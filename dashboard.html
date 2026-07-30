@@ -127,22 +127,69 @@
   }
 
   async function loadMyOrganization(user) {
+    // le nom du profil, pour dire "Welcome, Daniel" plutôt que l'email
+    const { data: profile } = await supabaseClient.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+    const displayName = (profile && profile.full_name) || user.email;
+    els.greeting.textContent = `Welcome, ${displayName}`;
+
     const { data, error } = await supabaseClient
       .from("memberships")
       .select("organization_id, status, organizations(name)")
       .eq("status", "active")
       .limit(1);
+
+    if (error) console.error("loadMyOrganization error:", error);
+
     if (error || !data || data.length === 0) {
-      els.greeting.textContent = `Welcome, ${user.email}`;
       els.clubStatusText.textContent = "You're not an active member of any club yet.";
+      showJoinPrompt();
       return null;
     }
     currentOrgId = data[0].organization_id;
     const orgName = (data[0].organizations && data[0].organizations.name) || "";
     els.orgName.textContent = orgName;
-    els.greeting.textContent = `Welcome, ${user.email}`;
     els.clubStatusText.textContent = orgName ? `Club: ${orgName}` : "";
     return currentOrgId;
+  }
+
+  // -----------------------------------------------------------------------
+  // Pas encore dans un club actif : proposer d'en rejoindre un directement
+  // ici, plutôt que de laisser un message sans suite.
+  // -----------------------------------------------------------------------
+  async function showJoinPrompt() {
+    const box = document.createElement("div");
+    box.className = "pending-card";
+    box.style.padding = "16px 20px";
+    box.innerHTML = `
+      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Request to join a club</label>
+      <select id="join-org-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;"><option>Loading…</option></select>
+      <button class="nav-btn" id="join-org-btn" style="width:100%;">Send request</button>
+    `;
+    els.clubStatusText.insertAdjacentElement("afterend", box);
+
+    const select = box.querySelector("#join-org-select");
+    const { data: orgs, error } = await supabaseClient.from("organizations").select("id, name").eq("is_active", true).order("name");
+    if (error) console.error("showJoinPrompt error:", error);
+    select.innerHTML = "";
+    (orgs || []).forEach((org) => {
+      const opt = document.createElement("option");
+      opt.value = org.id;
+      opt.textContent = org.name;
+      select.appendChild(opt);
+    });
+
+    box.querySelector("#join-org-btn").addEventListener("click", async () => {
+      const orgId = select.value;
+      if (!orgId) return;
+      try {
+        const { error } = await supabaseClient.from("memberships").insert({ organization_id: orgId, role: "coach", status: "pending" });
+        if (error) throw error;
+        showMessage("Request sent — the club's admin needs to approve it.", "success");
+        box.remove();
+      } catch (err) {
+        showMessage(err.message || "Couldn't send the request.", "error");
+      }
+    });
   }
 
   // -----------------------------------------------------------------------
