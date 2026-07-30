@@ -189,19 +189,20 @@
     </div>
 
     <div id="club-choice-field" style="display:none">
-      <label>Your club</label>
+      <label>Your club or association</label>
       <div class="radio-row">
-        <label class="radio-option"><input type="radio" name="club_mode" value="create" checked /> Create a new club</label>
-        <label class="radio-option"><input type="radio" name="club_mode" value="join" /> Join an existing club</label>
+        <label class="radio-option"><input type="radio" name="club_mode" value="create" checked /> Create a new club or association</label>
+        <label class="radio-option"><input type="radio" name="club_mode" value="join" /> Join an existing one</label>
       </div>
 
       <div id="create-club-field">
-        <label for="club_name">Club name</label>
+        <label for="club_name">Club or association name</label>
         <input id="club_name" type="text" placeholder="e.g. DEL Basket" />
+        <p class="hint">You'll be its admin — you'll be able to approve others who want to join.</p>
       </div>
 
       <div id="join-club-field" style="display:none">
-        <label for="join_org">Which club?</label>
+        <label for="join_org">Which one?</label>
         <select id="join_org"></select>
         <label for="join_role">Your role there</label>
         <select id="join_role">
@@ -209,7 +210,7 @@
           <option value="assistant">Assistant coach</option>
           <option value="viewer">Viewer (players/parents)</option>
         </select>
-        <p class="hint">The club's admin will need to approve your request before you get access.</p>
+        <p class="hint">The admin will need to approve your request before you get access.</p>
       </div>
     </div>
 
@@ -287,7 +288,7 @@
       els.toggleLink.textContent = "Create one";
     } else {
       els.title.textContent = "Create an account";
-      els.sub.textContent = "Your account, then create your own club or join one that's already on Pivot.";
+      els.sub.textContent = "Your account, then create your own club/association or join one that's already on Pivot.";
       els.nameField.style.display = "block";
       els.clubChoiceField.style.display = "block";
       els.submitBtn.textContent = "Create my account";
@@ -319,7 +320,7 @@
       if (error) throw error;
       els.joinOrg.innerHTML = "";
       if (!data || data.length === 0) {
-        els.joinOrg.innerHTML = "<option value=''>No club yet — create the first one!</option>";
+        els.joinOrg.innerHTML = "<option value=''>None yet — create the first one!</option>";
         return;
       }
       data.forEach((org) => {
@@ -329,7 +330,7 @@
         els.joinOrg.appendChild(opt);
       });
     } catch (err) {
-      els.joinOrg.innerHTML = "<option value=''>Couldn't load clubs</option>";
+      els.joinOrg.innerHTML = "<option value=''>Couldn't load the list</option>";
     }
   }
 
@@ -359,7 +360,7 @@
         const full_name = els.fullName.value.trim();
         const clubAction = readClubActionFromForm();
         if (!clubAction) {
-          showMessage("Tell us your club's name, or pick one to join.", "error");
+          showMessage("Tell us the name, or pick one to join.", "error");
           els.submitBtn.disabled = false;
           return;
         }
