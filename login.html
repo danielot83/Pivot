@@ -72,6 +72,67 @@
     outline: none;
   }
   input:focus { border-color: var(--accent); }
+  select {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    background: #fff;
+  }
+  select:focus { border-color: var(--accent); }
+  .radio-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 6px;
+    margin-bottom: 12px;
+  }
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 400;
+    cursor: pointer;
+  }
+  .radio-option input { width: auto; }
+  .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 6px 0 0;
+  }
+  #pending-requests { text-align: left; margin-top: 18px; }
+  #pending-requests h2 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0 0 8px;
+  }
+  .request-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+  }
+  .request-row:last-child { border-bottom: none; }
+  .request-info strong { display: block; }
+  .request-info span { color: var(--text-muted); font-size: 12.5px; }
+  .request-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .request-actions button {
+    width: auto;
+    margin-top: 0;
+    padding: 6px 12px;
+    font-size: 12.5px;
+  }
+  .btn-approve { background: var(--accent); }
+  .btn-reject { background: transparent; color: #991b1b; border: 1px solid var(--border); }
   button {
     width: 100%;
     margin-top: 20px;
@@ -127,6 +188,31 @@
       <input id="full_name" type="text" placeholder="Your name" />
     </div>
 
+    <div id="club-choice-field" style="display:none">
+      <label>Your club</label>
+      <div class="radio-row">
+        <label class="radio-option"><input type="radio" name="club_mode" value="create" checked /> Create a new club</label>
+        <label class="radio-option"><input type="radio" name="club_mode" value="join" /> Join an existing club</label>
+      </div>
+
+      <div id="create-club-field">
+        <label for="club_name">Club name</label>
+        <input id="club_name" type="text" placeholder="e.g. DEL Basket" />
+      </div>
+
+      <div id="join-club-field" style="display:none">
+        <label for="join_org">Which club?</label>
+        <select id="join_org"></select>
+        <label for="join_role">Your role there</label>
+        <select id="join_role">
+          <option value="coach">Coach</option>
+          <option value="assistant">Assistant coach</option>
+          <option value="viewer">Viewer (players/parents)</option>
+        </select>
+        <p class="hint">The club's admin will need to approve your request before you get access.</p>
+      </div>
+    </div>
+
     <label for="email">Email</label>
     <input id="email" type="email" placeholder="you@example.com" />
 
@@ -147,6 +233,8 @@
   <div id="logged-in">
     <h1>You're in!</h1>
     <p id="welcome-text"></p>
+    <p id="club-status-text" class="sub"></p>
+    <div id="pending-requests"></div>
     <button class="secondary" id="logout-btn">Log out</button>
   </div>
 </div>
@@ -170,6 +258,12 @@
     sub: document.getElementById("form-sub"),
     nameField: document.getElementById("name-field"),
     fullName: document.getElementById("full_name"),
+    clubChoiceField: document.getElementById("club-choice-field"),
+    createClubField: document.getElementById("create-club-field"),
+    joinClubField: document.getElementById("join-club-field"),
+    clubName: document.getElementById("club_name"),
+    joinOrg: document.getElementById("join_org"),
+    joinRole: document.getElementById("join_role"),
     email: document.getElementById("email"),
     password: document.getElementById("password"),
     submitBtn: document.getElementById("submit-btn"),
@@ -179,6 +273,8 @@
     authScreen: document.getElementById("auth-screen"),
     loggedIn: document.getElementById("logged-in"),
     welcomeText: document.getElementById("welcome-text"),
+    clubStatusText: document.getElementById("club-status-text"),
+    pendingRequests: document.getElementById("pending-requests"),
     logoutBtn: document.getElementById("logout-btn"),
   };
 
@@ -199,16 +295,55 @@
       els.title.textContent = "Log in";
       els.sub.textContent = "Access your Pivot workspace.";
       els.nameField.style.display = "none";
+      els.clubChoiceField.style.display = "none";
       els.submitBtn.textContent = "Log in";
       els.toggleText.textContent = "Don't have an account yet?";
       els.toggleLink.textContent = "Create one";
     } else {
       els.title.textContent = "Create an account";
-      els.sub.textContent = "Your account, then you can create or join a club.";
+      els.sub.textContent = "Your account, then create your own club or join one that's already on Pivot.";
       els.nameField.style.display = "block";
+      els.clubChoiceField.style.display = "block";
       els.submitBtn.textContent = "Create my account";
       els.toggleText.textContent = "Already have an account?";
       els.toggleLink.textContent = "Log in";
+      loadJoinableOrgs();
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Choix "créer un club" / "rejoindre un club existant"
+  // -----------------------------------------------------------------------
+  document.querySelectorAll('input[name="club_mode"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const isJoin = document.querySelector('input[name="club_mode"]:checked').value === "join";
+      els.createClubField.style.display = isJoin ? "none" : "block";
+      els.joinClubField.style.display = isJoin ? "block" : "none";
+    });
+  });
+
+  async function loadJoinableOrgs() {
+    els.joinOrg.innerHTML = "<option>Loading…</option>";
+    try {
+      const { data, error } = await supabaseClient
+        .from("organizations")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      els.joinOrg.innerHTML = "";
+      if (!data || data.length === 0) {
+        els.joinOrg.innerHTML = "<option value=''>No club yet — create the first one!</option>";
+        return;
+      }
+      data.forEach((org) => {
+        const opt = document.createElement("option");
+        opt.value = org.id;
+        opt.textContent = org.name;
+        els.joinOrg.appendChild(opt);
+      });
+    } catch (err) {
+      els.joinOrg.innerHTML = "<option value=''>Couldn't load clubs</option>";
     }
   }
 
@@ -218,6 +353,129 @@
     els.authScreen.style.display = "none";
     els.loggedIn.style.display = "block";
     els.welcomeText.textContent = `Logged in as ${user.email}.`;
+    await completePendingClubAction();
+    await loadPendingRequestsForAdmin();
+  }
+
+  // -----------------------------------------------------------------------
+  // Créer un club, ou envoyer une demande pour en rejoindre un
+  // -----------------------------------------------------------------------
+  async function performClubAction(action) {
+    if (action.type === "create") {
+      const { error } = await supabaseClient
+        .from("organizations")
+        .insert({ name: action.clubName });
+      if (error) throw error;
+      return `Club "${action.clubName}" created — you're its admin.`;
+    } else {
+      const { error } = await supabaseClient
+        .from("memberships")
+        .insert({ organization_id: action.orgId, role: action.role, status: "pending" });
+      if (error) throw error;
+      return "Your request to join has been sent — the club's admin needs to approve it.";
+    }
+  }
+
+  function readClubActionFromForm() {
+    const isJoin = document.querySelector('input[name="club_mode"]:checked').value === "join";
+    if (isJoin) {
+      const orgId = els.joinOrg.value;
+      if (!orgId) return null; // pas de club a rejoindre (liste vide)
+      return { type: "join", orgId, role: els.joinRole.value };
+    }
+    const clubName = els.clubName.value.trim();
+    if (!clubName) return null;
+    return { type: "create", clubName };
+  }
+
+  // Si l'e-mail doit être confirmé avant de pouvoir se connecter, l'action
+  // (créer/rejoindre un club) ne peut pas encore s'exécuter -- on la
+  // garde de côté ici, et on la termine dès que la personne a une vraie
+  // session (juste après l'inscription si pas de confirmation requise,
+  // ou après être revenue se connecter suite au lien reçu par e-mail).
+  async function completePendingClubAction() {
+    const saved = localStorage.getItem("pivot_pending_club_action");
+    if (!saved) return;
+    localStorage.removeItem("pivot_pending_club_action");
+    try {
+      els.clubStatusText.textContent = await performClubAction(JSON.parse(saved));
+    } catch (err) {
+      els.clubStatusText.textContent = err.message || "Couldn't finish setting up your club.";
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Demandes en attente pour les clubs que je dirige (approuver/refuser)
+  // -----------------------------------------------------------------------
+  async function loadPendingRequestsForAdmin() {
+    els.pendingRequests.innerHTML = "";
+
+    // d'abord, dans quels clubs suis-je admin actif ?
+    const { data: myAdminRows, error: adminErr } = await supabaseClient
+      .from("memberships")
+      .select("organization_id")
+      .eq("role", "admin")
+      .eq("status", "active");
+    if (adminErr || !myAdminRows || myAdminRows.length === 0) return;
+    const myOrgIds = myAdminRows.map((r) => r.organization_id);
+
+    // ensuite, les demandes en attente dans CES clubs-là uniquement
+    const { data: requests, error: reqErr } = await supabaseClient
+      .from("memberships")
+      .select("id, role, organization_id, user_id, organizations(name), profiles(full_name)")
+      .eq("status", "pending")
+      .in("organization_id", myOrgIds);
+    if (reqErr || !requests || requests.length === 0) return;
+
+    const heading = document.createElement("h2");
+    heading.textContent = "Pending requests to approve";
+    els.pendingRequests.appendChild(heading);
+
+    requests.forEach((req) => {
+      const row = document.createElement("div");
+      row.className = "request-row";
+
+      const info = document.createElement("div");
+      info.className = "request-info";
+      const name = document.createElement("strong");
+      name.textContent = (req.profiles && req.profiles.full_name) || "Someone";
+      const detail = document.createElement("span");
+      const orgName = (req.organizations && req.organizations.name) || "your club";
+      detail.textContent = `wants to join ${orgName} as ${req.role}`;
+      info.appendChild(name);
+      info.appendChild(detail);
+
+      const actions = document.createElement("div");
+      actions.className = "request-actions";
+      const approveBtn = document.createElement("button");
+      approveBtn.className = "btn-approve";
+      approveBtn.textContent = "Approve";
+      const rejectBtn = document.createElement("button");
+      rejectBtn.className = "btn-reject";
+      rejectBtn.textContent = "Reject";
+
+      approveBtn.addEventListener("click", () => respondToRequest(req.id, "active", row));
+      rejectBtn.addEventListener("click", () => respondToRequest(req.id, "rejected", row));
+
+      actions.appendChild(approveBtn);
+      actions.appendChild(rejectBtn);
+      row.appendChild(info);
+      row.appendChild(actions);
+      els.pendingRequests.appendChild(row);
+    });
+  }
+
+  async function respondToRequest(membershipId, newStatus, rowEl) {
+    try {
+      const { error } = await supabaseClient
+        .from("memberships")
+        .update({ status: newStatus })
+        .eq("id", membershipId);
+      if (error) throw error;
+      rowEl.remove();
+    } catch (err) {
+      alert(err.message || "Couldn't update that request.");
+    }
   }
 
   els.submitBtn.addEventListener("click", async () => {
@@ -234,27 +492,41 @@
     try {
       if (mode === "signup") {
         const full_name = els.fullName.value.trim();
+        const clubAction = readClubActionFromForm();
+        if (!clubAction) {
+          showMessage("Tell us your club's name, or pick one to join.", "error");
+          els.submitBtn.disabled = false;
+          return;
+        }
         const { data, error } = await supabaseClient.auth.signUp({
           email,
           password,
           options: { data: { full_name } },
         });
         if (error) throw error;
+        // on garde toujours l'action de côté de la même façon, que la
+        // session soit immédiate ou non -- un seul chemin de code, plus
+        // simple à suivre et moins risqué qu'avoir deux mécanismes différents
+        localStorage.setItem("pivot_pending_club_action", JSON.stringify(clubAction));
         if (data.session) {
           // some Supabase projects log the user in immediately without an
           // email confirmation step, depending on the project's settings
-          showLoggedInState(data.user);
+          await showLoggedInState(data.user);
         } else {
+          // pas encore de session tant que l'e-mail n'est pas confirmé --
+          // switchMode d'abord (il efface le message en changeant d'écran),
+          // ENSUITE afficher le message de succès -- sinon il serait
+          // effacé aussitôt affiché.
+          setMode("login");
           showMessage(
             "Account created! Check your inbox to confirm your email, then come back to log in.",
             "success"
           );
-          setMode("login");
         }
       } else {
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        showLoggedInState(data.user);
+        await showLoggedInState(data.user);
       }
     } catch (err) {
       showMessage(err.message || "Something went wrong.", "error");
