@@ -20,11 +20,11 @@
   /* Minimalist style, ChemCalc/shadcn-ui inspired: lots of white,
      little color, thin borders, no gradients or heavy shadows. */
   :root {
-    --border: #e5e7eb;
-    --text: #111827;
-    --text-muted: #6b7280;
-    --accent: #1e5c38; /* club color -- easy to change here */
-    --accent-hover: #164a2c;
+    --border: #e5e5e5;
+    --text: #1a1a1a;
+    --text-muted: #6b6b70;
+    --accent: #d21414; /* couleur réelle de la marque Pivot -- voir icons/pivot_logo.png */
+    --accent-hover: #a10f0f;
     --bg: #fafafa;
   }
   * { box-sizing: border-box; }
@@ -228,15 +228,6 @@
 
     <div class="msg" id="msg"></div>
   </div>
-
-  <!-- screen: logged in -->
-  <div id="logged-in">
-    <h1>You're in!</h1>
-    <p id="welcome-text"></p>
-    <p id="club-status-text" class="sub"></p>
-    <div id="pending-requests"></div>
-    <button class="secondary" id="logout-btn">Log out</button>
-  </div>
 </div>
 
 <!-- Official Supabase client, loaded from their CDN -- nothing to
@@ -271,11 +262,6 @@
     toggleLink: document.getElementById("toggle-link"),
     msg: document.getElementById("msg"),
     authScreen: document.getElementById("auth-screen"),
-    loggedIn: document.getElementById("logged-in"),
-    welcomeText: document.getElementById("welcome-text"),
-    clubStatusText: document.getElementById("club-status-text"),
-    pendingRequests: document.getElementById("pending-requests"),
-    logoutBtn: document.getElementById("logout-btn"),
   };
 
   function showMessage(text, type) {
@@ -349,133 +335,12 @@
 
   els.toggleLink.addEventListener("click", () => setMode(mode === "login" ? "signup" : "login"));
 
-  async function showLoggedInState(user) {
-    els.authScreen.style.display = "none";
-    els.loggedIn.style.display = "block";
-    els.welcomeText.textContent = `Logged in as ${user.email}.`;
-    await completePendingClubAction();
-    await loadPendingRequestsForAdmin();
-  }
-
-  // -----------------------------------------------------------------------
-  // Créer un club, ou envoyer une demande pour en rejoindre un
-  // -----------------------------------------------------------------------
-  async function performClubAction(action) {
-    if (action.type === "create") {
-      const { error } = await supabaseClient
-        .from("organizations")
-        .insert({ name: action.clubName });
-      if (error) throw error;
-      return `Club "${action.clubName}" created — you're its admin.`;
-    } else {
-      const { error } = await supabaseClient
-        .from("memberships")
-        .insert({ organization_id: action.orgId, role: action.role, status: "pending" });
-      if (error) throw error;
-      return "Your request to join has been sent — the club's admin needs to approve it.";
-    }
-  }
-
-  function readClubActionFromForm() {
-    const isJoin = document.querySelector('input[name="club_mode"]:checked').value === "join";
-    if (isJoin) {
-      const orgId = els.joinOrg.value;
-      if (!orgId) return null; // pas de club a rejoindre (liste vide)
-      return { type: "join", orgId, role: els.joinRole.value };
-    }
-    const clubName = els.clubName.value.trim();
-    if (!clubName) return null;
-    return { type: "create", clubName };
-  }
-
-  // Si l'e-mail doit être confirmé avant de pouvoir se connecter, l'action
-  // (créer/rejoindre un club) ne peut pas encore s'exécuter -- on la
-  // garde de côté ici, et on la termine dès que la personne a une vraie
-  // session (juste après l'inscription si pas de confirmation requise,
-  // ou après être revenue se connecter suite au lien reçu par e-mail).
-  async function completePendingClubAction() {
-    const saved = localStorage.getItem("pivot_pending_club_action");
-    if (!saved) return;
-    localStorage.removeItem("pivot_pending_club_action");
-    try {
-      els.clubStatusText.textContent = await performClubAction(JSON.parse(saved));
-    } catch (err) {
-      els.clubStatusText.textContent = err.message || "Couldn't finish setting up your club.";
-    }
-  }
-
-  // -----------------------------------------------------------------------
-  // Demandes en attente pour les clubs que je dirige (approuver/refuser)
-  // -----------------------------------------------------------------------
-  async function loadPendingRequestsForAdmin() {
-    els.pendingRequests.innerHTML = "";
-
-    // d'abord, dans quels clubs suis-je admin actif ?
-    const { data: myAdminRows, error: adminErr } = await supabaseClient
-      .from("memberships")
-      .select("organization_id")
-      .eq("role", "admin")
-      .eq("status", "active");
-    if (adminErr || !myAdminRows || myAdminRows.length === 0) return;
-    const myOrgIds = myAdminRows.map((r) => r.organization_id);
-
-    // ensuite, les demandes en attente dans CES clubs-là uniquement
-    const { data: requests, error: reqErr } = await supabaseClient
-      .from("memberships")
-      .select("id, role, organization_id, user_id, organizations(name), profiles(full_name)")
-      .eq("status", "pending")
-      .in("organization_id", myOrgIds);
-    if (reqErr || !requests || requests.length === 0) return;
-
-    const heading = document.createElement("h2");
-    heading.textContent = "Pending requests to approve";
-    els.pendingRequests.appendChild(heading);
-
-    requests.forEach((req) => {
-      const row = document.createElement("div");
-      row.className = "request-row";
-
-      const info = document.createElement("div");
-      info.className = "request-info";
-      const name = document.createElement("strong");
-      name.textContent = (req.profiles && req.profiles.full_name) || "Someone";
-      const detail = document.createElement("span");
-      const orgName = (req.organizations && req.organizations.name) || "your club";
-      detail.textContent = `wants to join ${orgName} as ${req.role}`;
-      info.appendChild(name);
-      info.appendChild(detail);
-
-      const actions = document.createElement("div");
-      actions.className = "request-actions";
-      const approveBtn = document.createElement("button");
-      approveBtn.className = "btn-approve";
-      approveBtn.textContent = "Approve";
-      const rejectBtn = document.createElement("button");
-      rejectBtn.className = "btn-reject";
-      rejectBtn.textContent = "Reject";
-
-      approveBtn.addEventListener("click", () => respondToRequest(req.id, "active", row));
-      rejectBtn.addEventListener("click", () => respondToRequest(req.id, "rejected", row));
-
-      actions.appendChild(approveBtn);
-      actions.appendChild(rejectBtn);
-      row.appendChild(info);
-      row.appendChild(actions);
-      els.pendingRequests.appendChild(row);
-    });
-  }
-
-  async function respondToRequest(membershipId, newStatus, rowEl) {
-    try {
-      const { error } = await supabaseClient
-        .from("memberships")
-        .update({ status: newStatus })
-        .eq("id", membershipId);
-      if (error) throw error;
-      rowEl.remove();
-    } catch (err) {
-      alert(err.message || "Couldn't update that request.");
-    }
+  // Une fois connecté, tout le reste (compléter la création/demande de
+  // club en attente, voir les demandes à approuver, la grille de modules,
+  // les statistiques) vit dans dashboard.html -- pas ici. login.html ne
+  // s'occupe que de la connexion elle-même.
+  function showLoggedInState() {
+    window.location.href = "./dashboard.html";
   }
 
   els.submitBtn.addEventListener("click", async () => {
@@ -533,15 +398,6 @@
     } finally {
       els.submitBtn.disabled = false;
     }
-  });
-
-  els.logoutBtn.addEventListener("click", async () => {
-    await supabaseClient.auth.signOut();
-    els.loggedIn.style.display = "none";
-    els.authScreen.style.display = "block";
-    els.email.value = "";
-    els.password.value = "";
-    setMode("login");
   });
 
   // If already logged in (session remembered by the browser), skip

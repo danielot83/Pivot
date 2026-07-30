@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pivot — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
+  h1, h2, h3, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  a { color: inherit; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
+  .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
+  .nav-btn:hover { border-color: var(--accent); }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 60px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+  .msg { margin-bottom: 16px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+
+  .section-label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 32px 0 14px; }
+  .section-label:first-of-type { margin-top: 0; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
+  @media (max-width: 640px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .stat-card .num { font-size: 26px; font-weight: 700; font-family: "Space Grotesk", sans-serif; }
+  .stat-card .label { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  .module-card { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; text-decoration: none; color: inherit; transition: border-color 0.15s; }
+  .module-card:hover { border-color: var(--accent); }
+  .module-card .icon { width: 26px; height: 26px; margin-bottom: 10px; color: var(--ink); }
+  .module-card h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; justify-content: space-between; }
+  .module-card h3 .chevron { font-size: 13px; color: var(--accent); }
+  .module-card p.blurb { font-size: 13.5px; color: var(--muted); margin: 0; }
+  .module-card .badge-soon { display: inline-block; font-size: 10.5px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); padding: 2px 8px; border-radius: 100px; margin-left: 8px; }
+
+  .pending-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 0; margin-bottom: 8px; }
+  .request-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 20px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
+  .request-row:last-child { border-bottom: none; }
+  .request-info strong { display: block; }
+  .request-info span { color: var(--muted); font-size: 12.5px; }
+  .request-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .request-actions button { width: auto; padding: 6px 12px; font-size: 12.5px; border: none; border-radius: 6px; cursor: pointer; }
+  .btn-approve { background: var(--accent); color: #fff; }
+  .btn-reject { background: transparent; color: #991b1b; border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+  <div class="nav-right">
+    <span id="org-name"></span>
+    <button class="nav-btn" id="logout-btn">Log out</button>
+  </div>
+</nav>
+
+<div class="wrap">
+  <h1 id="greeting">Welcome</h1>
+  <p class="sub" id="club-status-text"></p>
+
+  <div class="msg" id="msg"></div>
+
+  <div id="pending-section" style="display:none">
+    <p class="section-label">Pending requests to approve</p>
+    <div class="pending-card" id="pending-requests"></div>
+  </div>
+
+  <p class="section-label">Your club, at a glance</p>
+  <div class="stats-row">
+    <div class="stat-card"><div class="num" id="stat-players">—</div><div class="label">Players</div></div>
+    <div class="stat-card"><div class="num" id="stat-assessments">—</div><div class="label">Assessments</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="label">Exercises</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="label">Matches</div></div>
+  </div>
+
+  <p class="section-label">Tools</p>
+  <div class="grid" id="modules-grid"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="modules-grid.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const els = {
+    greeting: document.getElementById("greeting"),
+    orgName: document.getElementById("org-name"),
+    logoutBtn: document.getElementById("logout-btn"),
+    clubStatusText: document.getElementById("club-status-text"),
+    msg: document.getElementById("msg"),
+    pendingSection: document.getElementById("pending-section"),
+    pendingRequests: document.getElementById("pending-requests"),
+    statPlayers: document.getElementById("stat-players"),
+    statAssessments: document.getElementById("stat-assessments"),
+  };
+
+  let currentOrgId = null;
+
+  function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+
+  // -----------------------------------------------------------------------
+  // Pages réelles pour les modules déjà construits ; les autres pointent
+  // encore vers la fiche explicative (module.html) en attendant.
+  // -----------------------------------------------------------------------
+  const REAL_PAGES = { roster: "roster.html", assessment: "assessment.html" };
+  function linkForModule(m) {
+    return REAL_PAGES[m.key] || `module.html?m=${m.key}`;
+  }
+
+  async function loadMyOrganization(user) {
+    const { data, error } = await supabaseClient
+      .from("memberships")
+      .select("organization_id, status, organizations(name)")
+      .eq("status", "active")
+      .limit(1);
+    if (error || !data || data.length === 0) {
+      els.greeting.textContent = `Welcome, ${user.email}`;
+      els.clubStatusText.textContent = "You're not an active member of any club yet.";
+      return null;
+    }
+    currentOrgId = data[0].organization_id;
+    const orgName = (data[0].organizations && data[0].organizations.name) || "";
+    els.orgName.textContent = orgName;
+    els.greeting.textContent = `Welcome, ${user.email}`;
+    els.clubStatusText.textContent = orgName ? `Club: ${orgName}` : "";
+    return currentOrgId;
+  }
+
+  // -----------------------------------------------------------------------
+  // Terminer une création/demande de club restée en attente (voir login.html)
+  // -----------------------------------------------------------------------
+  async function performClubAction(action) {
+    if (action.type === "create") {
+      const { error } = await supabaseClient.from("organizations").insert({ name: action.clubName });
+      if (error) throw error;
+      return `Club "${action.clubName}" created — you're its admin.`;
+    } else {
+      const { error } = await supabaseClient
+        .from("memberships")
+        .insert({ organization_id: action.orgId, role: action.role, status: "pending" });
+      if (error) throw error;
+      return "Your request to join has been sent — the club's admin needs to approve it.";
+    }
+  }
+
+  async function completePendingClubAction() {
+    const saved = localStorage.getItem("pivot_pending_club_action");
+    if (!saved) return false;
+    localStorage.removeItem("pivot_pending_club_action");
+    try {
+      showMessage(await performClubAction(JSON.parse(saved)), "success");
+      return true;
+    } catch (err) {
+      showMessage(err.message || "Couldn't finish setting up your club.", "error");
+      return false;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Demandes en attente pour les clubs que je dirige
+  // -----------------------------------------------------------------------
+  async function loadPendingRequestsForAdmin() {
+    const { data: myAdminRows } = await supabaseClient
+      .from("memberships").select("organization_id").eq("role", "admin").eq("status", "active");
+    if (!myAdminRows || myAdminRows.length === 0) return;
+    const myOrgIds = myAdminRows.map((r) => r.organization_id);
+
+    const { data: requests } = await supabaseClient
+      .from("memberships")
+      .select("id, role, organization_id, user_id, organizations(name), profiles(full_name)")
+      .eq("status", "pending")
+      .in("organization_id", myOrgIds);
+    if (!requests || requests.length === 0) return;
+
+    els.pendingSection.style.display = "block";
+    requests.forEach((req) => {
+      const row = document.createElement("div");
+      row.className = "request-row";
+      const info = document.createElement("div");
+      info.className = "request-info";
+      const name = document.createElement("strong");
+      name.textContent = (req.profiles && req.profiles.full_name) || "Someone";
+      const detail = document.createElement("span");
+      detail.textContent = `wants to join ${(req.organizations && req.organizations.name) || "your club"} as ${req.role}`;
+      info.appendChild(name); info.appendChild(detail);
+
+      const actions = document.createElement("div");
+      actions.className = "request-actions";
+      const approveBtn = document.createElement("button");
+      approveBtn.className = "btn-approve"; approveBtn.textContent = "Approve";
+      const rejectBtn = document.createElement("button");
+      rejectBtn.className = "btn-reject"; rejectBtn.textContent = "Reject";
+      approveBtn.addEventListener("click", () => respondToRequest(req.id, "active", row));
+      rejectBtn.addEventListener("click", () => respondToRequest(req.id, "rejected", row));
+      actions.appendChild(approveBtn); actions.appendChild(rejectBtn);
+      row.appendChild(info); row.appendChild(actions);
+      els.pendingRequests.appendChild(row);
+    });
+  }
+
+  async function respondToRequest(id, newStatus, rowEl) {
+    try {
+      const { error } = await supabaseClient.from("memberships").update({ status: newStatus }).eq("id", id);
+      if (error) throw error;
+      rowEl.remove();
+    } catch (err) {
+      alert(err.message || "Couldn't update that request.");
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Statistiques simples -- seuls Roster et Suivi existent vraiment pour
+  // l'instant, les autres modules restent à "—" tant qu'ils n'existent pas.
+  // -----------------------------------------------------------------------
+  async function loadStats() {
+    if (!currentOrgId) return;
+    const { count: playerCount } = await supabaseClient
+      .from("players").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
+    els.statPlayers.textContent = playerCount ?? 0;
+
+    const { count: assessmentCount } = await supabaseClient
+      .from("player_assessments").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
+    els.statAssessments.textContent = assessmentCount ?? 0;
+  }
+
+  els.logoutBtn.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+
+    renderModulesGrid("modules-grid", linkForModule);
+    const orgId = await loadMyOrganization(data.session.user);
+    await completePendingClubAction();
+    if (orgId || currentOrgId) {
+      if (!orgId) await loadMyOrganization(data.session.user); // recharger si un club vient d'être créé/rejoint
+      await loadPendingRequestsForAdmin();
+      await loadStats();
+    }
+  }
+  init();
+</script>
+
+</body>
+</html>
