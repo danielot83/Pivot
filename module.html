@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pivot — Module</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* Même feuille de style que index.html -- une seule logique de design
+     partagée entre la page d'accueil et chaque fiche de module. */
+  :root {
+    --ink: #1a1a1a;
+    --muted: #6b6b70;
+    --line: #e5e5e5;
+    --paper: #fafafa;
+    --card: #ffffff;
+    --accent: #d21414;
+    --accent-deep: #a10f0f;
+    --accent-tint: #fceceb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.6;
+  }
+  h1, h2, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  a { color: inherit; }
+
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--line);
+    background: var(--card);
+  }
+  .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .nav-cta {
+    background: var(--ink);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .nav-cta:hover { background: var(--accent-deep); }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 40px; }
+  .back-link {
+    display: inline-block;
+    font-size: 13.5px;
+    color: var(--muted);
+    text-decoration: none;
+    margin-bottom: 24px;
+  }
+  .back-link:hover { color: var(--ink); }
+  .badge-soon {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--line);
+    padding: 3px 10px;
+    border-radius: 100px;
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+  h1 { font-size: 32px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.01em; }
+  p.tagline { font-size: 16px; color: var(--muted); margin: 0 0 32px; }
+  .concept-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 26px 30px;
+    margin-bottom: 20px;
+  }
+  .concept-card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent-deep); margin: 0 0 12px; }
+  .concept-card p { font-size: 15px; color: var(--ink); margin: 0 0 12px; }
+  .concept-card p:last-child { margin-bottom: 0; }
+  .cta-row { margin-top: 32px; text-align: center; }
+  .btn-primary {
+    display: inline-block;
+    padding: 12px 26px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent-deep); }
+
+  .section-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 48px 0 16px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .module-card {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s;
+  }
+  .module-card:hover { border-color: var(--accent); }
+  .module-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .module-card h3 .chevron { font-size: 13px; color: var(--accent); }
+  .module-card p.blurb { font-size: 13.5px; color: var(--muted); margin: 0; }
+  .module-card .badge-soon {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 2px 8px;
+    border-radius: 100px;
+    margin-left: 8px;
+  }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 28px 24px 40px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+  <a class="nav-cta" href="./login.html">Log in</a>
+</nav>
+
+<div class="wrap">
+  <a class="back-link" href="./index.html">&larr; Back to all modules</a>
+
+  <h1 id="mod-title">…</h1>
+  <p class="tagline" id="mod-tagline"></p>
+
+  <div class="concept-card">
+    <h2>The idea</h2>
+    <p id="mod-concept-1"></p>
+    <p id="mod-concept-2"></p>
+  </div>
+
+  <div class="cta-row">
+    <a class="btn-primary" href="./login.html" id="mod-cta">Create your account</a>
+  </div>
+
+  <p class="section-label">What's inside — click a card to learn more</p>
+  <div class="grid">
+
+    <a class="module-card" href="module.html?m=roster">
+      <h3>Roster <span class="chevron">→</span></h3>
+      <p class="blurb">Players by season and team — contacts, license status, jersey numbers, one place per club.</p>
+    </a>
+
+    <a class="module-card" href="module.html?m=exercises">
+      <h3>Exercise library <span class="chevron">→</span></h3>
+      <p class="blurb">Court diagrams, categories, difficulty — start from a shared base, or keep your own private set.</p>
+    </a>
+
+    <a class="module-card" href="module.html?m=training">
+      <h3>Training builder <span class="chevron">→</span></h3>
+      <p class="blurb">Pull exercises into a session plan, track total time, mark attendance, print the sheet.</p>
+    </a>
+
+    <a class="module-card" href="module.html?m=match">
+      <h3>Match day <span class="chevron">→</span></h3>
+      <p class="blurb">Lineups, starters, live stats, and a season summary per player — generated as a clean PDF.</p>
+    </a>
+
+    <a class="module-card" href="module.html?m=assessment">
+      <h3>Player assessment <span class="chevron">→</span></h3>
+      <p class="blurb">Score technique, IQ, personality and attitude by criteria, with automatic sector averages and a chart.</p>
+    </a>
+
+    <a class="module-card" href="module.html?m=plays">
+      <h3>Play design <span class="badge-soon">Coming soon</span> <span class="chevron">→</span></h3>
+      <p class="blurb">Draw your team's sets and plays — offense, out-of-bounds, defense — not just individual drills.</p>
+    </a>
+
+  </div>
+</div>
+
+<footer>
+  Pivot is under active development. Some modules are still coming online.
+  <br><br>
+  © <span id="year"></span> DOT — Pivot is under active development.
+</footer>
+
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  // -----------------------------------------------------------------------
+  // Un seul endroit où décrire chaque module -- la même logique pour les
+  // six, pour ne pas avoir six pages différentes à maintenir séparément.
+  // -----------------------------------------------------------------------
+  const MODULES = {
+    roster: {
+      title: "Roster",
+      tagline: "Players by season and team — contacts, license status, jersey numbers, one place per club.",
+      concept1: "A club's roster changes every season — new players arrive, others move up an age group, licenses need renewing. Roster keeps all of that organized by season and by team, instead of scattered across spreadsheets that go out of date.",
+      concept2: "Each player has a jersey number, contact details, license status, and an attached license document if needed. When you build a training session or a match sheet later, the roster is what feeds the list of players you can call up.",
+    },
+    exercises: {
+      title: "Exercise library",
+      tagline: "Court diagrams, categories, difficulty — start from a shared base, or keep your own private set.",
+      concept1: "Every coach accumulates exercises over the years — drills for dribbling, shooting, defense, game situations. The exercise library gives each one a real court diagram, a difficulty rating, categories, and age groups, so you can find the right drill in seconds instead of digging through old notes.",
+      concept2: "You start from a shared base library, and can add your own exercises on top. Exercise by exercise, you choose whether to keep it private to your club or share it so other coaches on Pivot can use it too.",
+    },
+    training: {
+      title: "Training builder",
+      tagline: "Pull exercises into a session plan, track total time, mark attendance, print the sheet.",
+      concept1: "Planning a session usually means picking exercises from memory and guessing at timing. The training builder lets you pull exercises straight from your library into a session plan, with a running total that compares against how long you actually have.",
+      concept2: "You can also mark who attended, straight from your roster, so attendance history builds up automatically over a season instead of living on a paper sheet.",
+    },
+    match: {
+      title: "Match day",
+      tagline: "Lineups, starters, live stats, and a season summary per player — generated as a clean PDF.",
+      concept1: "On match day, you need a call-up sheet, a way to mark starters, and a way to record what happens — points, minutes, fouls — for each player. Match day handles all three, pulling the roster in automatically so you're not retyping names.",
+      concept2: "Across a season, those individual match sheets add up into a per-player summary — games played, points, minutes, fouls, and averages — useful for checking that playing time is being shared fairly, not just match by match.",
+    },
+    assessment: {
+      title: "Player assessment",
+      tagline: "Score technique, IQ, personality and attitude by criteria, with automatic sector averages and a chart.",
+      concept1: "Beyond day-to-day coaching, tracking a player's development over a season (or several) needs a real framework, not just a gut feeling. This module scores 36 concrete criteria across 4 sectors — technique, basketball IQ, personality, and behaviour — each rated 0 to 5, modeled on real federation assessment sheets.",
+      concept2: "Sector averages and a chart are calculated automatically as you fill it in, so a coach can see strengths and gaps at a glance, and compare across evaluations over time.",
+    },
+    plays: {
+      title: "Play design",
+      tagline: "Draw your team's sets and plays — offense, out-of-bounds, defense — not just individual drills.",
+      concept1: "The exercise library covers individual drills, but a team also needs its actual playbook — half-court sets, out-of-bounds plays, defensive schemes. This module is a dedicated board for that: player movement, screens, and sequences, drawn out step by step.",
+      concept2: "This one isn't built yet — it's on the roadmap, listed here so you know it's coming and can plan around it.",
+      soon: true,
+    },
+  };
+
+  const params = new URLSearchParams(window.location.search);
+  const key = params.get("m");
+  const mod = MODULES[key];
+
+  if (mod) {
+    document.title = `Pivot — ${mod.title}`;
+    document.getElementById("mod-title").textContent = mod.title;
+    document.getElementById("mod-tagline").textContent = mod.tagline;
+    document.getElementById("mod-concept-1").textContent = mod.concept1;
+    document.getElementById("mod-concept-2").textContent = mod.concept2;
+    if (mod.soon) {
+      const badge = document.createElement("span");
+      badge.className = "badge-soon";
+      badge.textContent = "Coming soon";
+      document.getElementById("mod-title").appendChild(badge);
+      const cta = document.getElementById("mod-cta");
+      cta.textContent = "Create your account anyway";
+    }
+  } else {
+    document.getElementById("mod-title").textContent = "Module not found";
+    document.getElementById("mod-tagline").textContent = "Head back and pick one from the list.";
+  }
+</script>
+
+</body>
+</html>
