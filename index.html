@@ -138,6 +138,7 @@
     transition: border-color 0.15s;
   }
   .module-card:hover { border-color: var(--accent); }
+  .module-card .icon { width: 26px; height: 26px; margin-bottom: 10px; color: var(--ink); }
   .module-card h3 {
     font-size: 15px;
     font-weight: 600;
@@ -211,47 +212,17 @@
   </div>
 
   <p class="section-label" id="modules">What's inside — click a card to learn more</p>
-  <div class="grid">
-
-    <a class="module-card" href="module.html?m=roster">
-      <h3>Roster <span class="chevron">→</span></h3>
-      <p class="blurb">Players by season and team — contacts, license status, jersey numbers, one place per club.</p>
-    </a>
-
-    <a class="module-card" href="module.html?m=exercises">
-      <h3>Exercise library <span class="chevron">→</span></h3>
-      <p class="blurb">Court diagrams, categories, difficulty — start from a shared base, or keep your own private set.</p>
-    </a>
-
-    <a class="module-card" href="module.html?m=training">
-      <h3>Training builder <span class="chevron">→</span></h3>
-      <p class="blurb">Pull exercises into a session plan, track total time, mark attendance, print the sheet.</p>
-    </a>
-
-    <a class="module-card" href="module.html?m=match">
-      <h3>Match day <span class="chevron">→</span></h3>
-      <p class="blurb">Lineups, starters, live stats, and a season summary per player — generated as a clean PDF.</p>
-    </a>
-
-    <a class="module-card" href="module.html?m=assessment">
-      <h3>Player assessment <span class="chevron">→</span></h3>
-      <p class="blurb">Score technique, IQ, personality and attitude by criteria, with automatic sector averages and a chart.</p>
-    </a>
-
-    <a class="module-card" href="module.html?m=plays">
-      <h3>Play design <span class="badge-soon">Coming soon</span> <span class="chevron">→</span></h3>
-      <p class="blurb">Draw your team's sets and plays — offense, out-of-bounds, defense — not just individual drills.</p>
-    </a>
-
-  </div>
+  <div class="grid" id="modules-grid"></div>
+  <script src="modules-grid.js"></script>
+  <script>renderModulesGrid("modules-grid");</script>
 
 </div>
 
 <footer>
-  Pivot is under active development. Some modules above are still coming
-  online — <a href="./login.html" style="color:var(--accent-deep); font-weight:600;">create an account</a> to be ready when they land.
+  Pivot is in continuous development —
+  <a href="./login.html" style="color:var(--accent-deep); font-weight:600;">create an account</a> to be ready when new modules land.
   <br><br>
-  © <span id="year"></span> DOT — Pivot is under active development.
+  © <span id="year"></span> DOT — non-profit.
   <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 </footer>
 
