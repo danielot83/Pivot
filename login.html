@@ -161,7 +161,7 @@
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let mode = "login"; // or "signup"
 
@@ -234,7 +234,7 @@
     try {
       if (mode === "signup") {
         const full_name = els.fullName.value.trim();
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
           email,
           password,
           options: { data: { full_name } },
@@ -252,7 +252,7 @@
           setMode("login");
         }
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
         showLoggedInState(data.user);
       }
@@ -264,7 +264,7 @@
   });
 
   els.logoutBtn.addEventListener("click", async () => {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     els.loggedIn.style.display = "none";
     els.authScreen.style.display = "block";
     els.email.value = "";
@@ -274,7 +274,7 @@
 
   // If already logged in (session remembered by the browser), skip
   // straight to the "logged in" screen when the page loads.
-  supabase.auth.getSession().then(({ data }) => {
+  supabaseClient.auth.getSession().then(({ data }) => {
     if (data.session) showLoggedInState(data.session.user);
   });
 </script>
