@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pivot — Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
+  h1, h2, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  a { color: inherit; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
+  .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
+  .nav-btn:hover { border-color: var(--accent); }
+
+  .wrap { max-width: 640px; margin: 0 auto; padding: 32px 24px 60px; }
+  .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; margin-bottom: 18px; }
+  .back-link:hover { color: var(--ink); }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+
+  .msg { margin-bottom: 16px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+  .card h2 { font-size: 15px; margin: 0 0 4px; }
+  .card p.hint { font-size: 13px; color: var(--muted); margin: 0 0 16px; }
+
+  .logo-row { display: flex; align-items: center; gap: 20px; }
+  .logo-preview {
+    width: 96px; height: 96px; border: 1px dashed var(--line); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    background: repeating-conic-gradient(#f0f0f0 0% 25%, #fff 0% 50%) 50% / 16px 16px;
+    flex-shrink: 0;
+  }
+  .logo-preview img { max-width: 100%; max-height: 100%; }
+  .logo-preview span { font-size: 11px; color: var(--muted); text-align: center; padding: 6px; }
+
+  .requirements { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; padding-left: 18px; }
+  .requirements li { margin-bottom: 4px; }
+
+  .btn { padding: 9px 16px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  input[type="file"] { font-size: 13px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+  <div class="nav-right">
+    <span id="org-name"></span>
+    <button class="nav-btn" id="logout-btn">Log out</button>
+  </div>
+</nav>
+
+<div class="wrap">
+  <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+  <h1>Settings</h1>
+  <p class="sub">Only admins of a club can change these.</p>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="card" id="logo-card">
+    <h2>Club logo</h2>
+    <p class="hint">Shown across Pivot wherever your club appears.</p>
+
+    <div class="logo-row">
+      <div class="logo-preview" id="logo-preview"><span>No logo yet</span></div>
+      <div>
+        <input type="file" id="logo-input" accept="image/png, image/jpeg, image/webp" />
+        <div style="margin-top:10px;">
+          <button class="btn btn-primary" id="logo-save-btn" disabled>Upload logo</button>
+        </div>
+      </div>
+    </div>
+
+    <ul class="requirements">
+      <li><strong>Square image</strong>, ideally at least 256 × 256 px — non-square logos get squeezed to fit.</li>
+      <li><strong>Transparent background</strong> (PNG) works best — it'll sit correctly on any color.</li>
+      <li>Formats accepted: PNG, JPEG, or WebP. Max 2 MB.</li>
+      <li>Pivot resizes it automatically, so don't worry about the exact pixel size.</li>
+    </ul>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const els = {
+    orgName: document.getElementById("org-name"),
+    logoutBtn: document.getElementById("logout-btn"),
+    msg: document.getElementById("msg"),
+    logoPreview: document.getElementById("logo-preview"),
+    logoInput: document.getElementById("logo-input"),
+    logoSaveBtn: document.getElementById("logo-save-btn"),
+  };
+
+  let currentOrgId = null;
+  let pendingBlob = null;
+
+  function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+
+  function logoUrl(orgId) {
+    return `${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`;
+  }
+
+  async function loadOrgAndLogo() {
+    const { data, error } = await supabaseClient
+      .from("memberships")
+      .select("organization_id, role, status, organizations(name)")
+      .eq("status", "active")
+      .eq("role", "admin")
+      .limit(1);
+    if (error || !data || data.length === 0) {
+      showMessage("You need to be an active admin of a club to change its settings.", "error");
+      document.getElementById("logo-card").style.display = "none";
+      return;
+    }
+    currentOrgId = data[0].organization_id;
+    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+
+    // essaie d'afficher le logo actuel -- s'il n'existe pas encore, l'image
+    // ne charge pas et on garde juste le texte "No logo yet"
+    const img = new Image();
+    img.onload = () => { els.logoPreview.innerHTML = ""; els.logoPreview.appendChild(img); };
+    img.onerror = () => {};
+    img.src = logoUrl(currentOrgId) + `?t=${Date.now()}`;
+  }
+
+  // -----------------------------------------------------------------------
+  // Convertit toujours l'image choisie en PNG (peu importe le format
+  // d'origine), redimensionnée pour ne pas dépasser 512px de large ou
+  // haut -- garde le nom de fichier final toujours prévisible.
+  // -----------------------------------------------------------------------
+  function fileToResizedPngBlob(file, maxSize) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = () => {
+        img.onload = () => {
+          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't process that image."))), "image/png");
+        };
+        img.onerror = () => reject(new Error("That doesn't look like a valid image."));
+        img.src = reader.result;
+      };
+      reader.onerror = () => reject(new Error("Couldn't read that file."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  els.logoInput.addEventListener("change", async () => {
+    const file = els.logoInput.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      showMessage("That file is over 2 MB — pick a smaller one.", "error");
+      els.logoInput.value = "";
+      return;
+    }
+    try {
+      pendingBlob = await fileToResizedPngBlob(file, 512);
+      const url = URL.createObjectURL(pendingBlob);
+      els.logoPreview.innerHTML = `<img src="${url}" />`;
+      els.logoSaveBtn.disabled = false;
+    } catch (err) {
+      showMessage(err.message || "Couldn't read that image.", "error");
+    }
+  });
+
+  els.logoSaveBtn.addEventListener("click", async () => {
+    if (!pendingBlob || !currentOrgId) return;
+    els.logoSaveBtn.disabled = true;
+    try {
+      const { error } = await supabaseClient.storage
+        .from("logos")
+        .upload(`${currentOrgId}/logo.png`, pendingBlob, { upsert: true, contentType: "image/png" });
+      if (error) throw error;
+      showMessage("Logo updated.", "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't upload the logo.", "error");
+    } finally {
+      els.logoSaveBtn.disabled = false;
+    }
+  });
+
+  els.logoutBtn.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    await loadOrgAndLogo();
+  }
+  init();
+</script>
+
+</body>
+</html>

@@ -67,6 +67,7 @@
   <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
   <div class="nav-right">
     <span id="org-name"></span>
+    <a class="nav-btn" href="./settings.html" style="text-decoration:none;">Settings</a>
     <button class="nav-btn" id="logout-btn">Log out</button>
   </div>
 </nav>
@@ -156,16 +157,32 @@
   // Pas encore dans un club actif : proposer d'en rejoindre un directement
   // ici, plutôt que de laisser un message sans suite.
   // -----------------------------------------------------------------------
-  async function showJoinPrompt() {
+  function showJoinPrompt() {
+    const wrap = document.createElement("div");
+    wrap.style.marginTop = "10px";
+
+    const openBtn = document.createElement("button");
+    openBtn.className = "nav-btn";
+    openBtn.textContent = "Request to join a club or association";
+    wrap.appendChild(openBtn);
+
+    openBtn.addEventListener("click", () => openJoinForm(wrap, openBtn), { once: true });
+    els.clubStatusText.insertAdjacentElement("afterend", wrap);
+  }
+
+  async function openJoinForm(wrap, openBtn) {
+    openBtn.style.display = "none";
+
     const box = document.createElement("div");
     box.className = "pending-card";
     box.style.padding = "16px 20px";
+    box.style.marginTop = "8px";
     box.innerHTML = `
-      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Request to join a club or association</label>
+      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which club or association?</label>
       <select id="join-org-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;"><option>Loading…</option></select>
       <button class="nav-btn" id="join-org-btn" style="width:100%;">Send request</button>
     `;
-    els.clubStatusText.insertAdjacentElement("afterend", box);
+    wrap.appendChild(box);
 
     const select = box.querySelector("#join-org-select");
     const { data: orgs, error } = await supabaseClient.from("organizations").select("id, name").eq("is_active", true).order("name");
@@ -185,7 +202,7 @@
         const { error } = await supabaseClient.from("memberships").insert({ organization_id: orgId, role: "coach", status: "pending" });
         if (error) throw error;
         showMessage("Request sent — the admin needs to approve it.", "success");
-        box.remove();
+        wrap.remove();
       } catch (err) {
         showMessage(err.message || "Couldn't send the request.", "error");
       }
@@ -299,10 +316,12 @@
     if (!data.session) { window.location.href = "./login.html"; return; }
 
     renderModulesGrid("modules-grid", linkForModule);
-    const orgId = await loadMyOrganization(data.session.user);
+    // Terminer une création/demande de club en attente AVANT de vérifier
+    // si on appartient déjà à un club -- sinon on vérifie trop tôt et ça
+    // affiche à tort "pas encore membre" alors que le club vient d'être créé.
     await completePendingClubAction();
-    if (orgId || currentOrgId) {
-      if (!orgId) await loadMyOrganization(data.session.user); // recharger si un club vient d'être créé/rejoint
+    const orgId = await loadMyOrganization(data.session.user);
+    if (orgId) {
       await loadPendingRequestsForAdmin();
       await loadStats();
     }
