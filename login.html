@@ -336,6 +336,21 @@
 
   els.toggleLink.addEventListener("click", () => setMode(mode === "login" ? "signup" : "login"));
 
+  // Lit le choix "créer" ou "rejoindre" du formulaire d'inscription, AVANT
+  // d'avoir une session (donc avant de pouvoir écrire quoi que ce soit en
+  // base) -- c'est pour ça que ça reste ici et pas dans dashboard.html.
+  function readClubActionFromForm() {
+    const isJoin = document.querySelector('input[name="club_mode"]:checked').value === "join";
+    if (isJoin) {
+      const orgId = els.joinOrg.value;
+      if (!orgId) return null;
+      return { type: "join", orgId, role: els.joinRole.value };
+    }
+    const clubName = els.clubName.value.trim();
+    if (!clubName) return null;
+    return { type: "create", clubName };
+  }
+
   // Une fois connecté, tout le reste (compléter la création/demande de
   // club en attente, voir les demandes à approuver, la grille de modules,
   // les statistiques) vit dans dashboard.html -- pas ici. login.html ne
