@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pivot — Player assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #6b6b70;
+    --line: #e5e5e5;
+    --paper: #fafafa;
+    --card: #ffffff;
+    --accent: #d21414;
+    --accent-deep: #a10f0f;
+    --accent-tint: #fceceb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.5;
+  }
+  h1, h2, h3, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  a { color: inherit; }
+
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card);
+  }
+  .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
+  .nav-btn:hover { border-color: var(--accent); }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 32px 24px 60px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+
+  .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 20px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field input, .field select {
+    padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13.5px; min-width: 160px;
+  }
+  .spacer { flex: 1; }
+  .btn { padding: 9px 16px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+
+  .msg { margin-bottom: 16px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+
+  .toggle-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 13.5px; }
+  .toggle-row input { width: auto; }
+
+  .sector-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 20px 24px; margin-bottom: 16px;
+  }
+  .sector-card h2 { font-size: 15px; margin: 0 0 2px; }
+  .sector-card .avg { font-size: 13px; color: var(--accent-deep); font-weight: 600; margin-bottom: 14px; }
+  .group-title { font-size: 12.5px; font-weight: 600; color: var(--muted); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .criterion-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 13.5px; }
+  .criterion-row.advanced { display: none; }
+  .criterion-row.advanced.show { display: flex; }
+  .criterion-row select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; width: 64px; }
+
+  .comments-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; margin-bottom: 20px;
+  }
+  .comments-card label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
+  .comments-card label:first-child { margin-top: 0; }
+  .comments-card textarea { width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13.5px; font-family: inherit; resize: vertical; }
+
+  .history-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 0; }
+  .history-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; font-size: 13.5px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .history-row:last-child { border-bottom: none; }
+  .history-row:hover { background: var(--paper); }
+  .history-row .tot { color: var(--accent-deep); font-weight: 600; }
+  .empty-state { text-align: center; padding: 30px 20px; color: var(--muted); font-size: 13.5px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+  <div class="nav-right">
+    <span id="org-name"></span>
+    <button class="nav-btn" id="logout-btn">Log out</button>
+  </div>
+</nav>
+
+<div class="wrap">
+  <h1>Player assessment</h1>
+  <p class="sub">36 criteria across 4 sectors, scored 0 to 5.</p>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="toolbar">
+    <div class="field">
+      <label for="player-select">Player</label>
+      <select id="player-select"><option value="">Loading…</option></select>
+    </div>
+    <div class="field">
+      <label for="date">Date</label>
+      <input id="date" type="date" />
+    </div>
+    <div class="field">
+      <label for="location">Location</label>
+      <input id="location" type="text" placeholder="Optional" />
+    </div>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" id="new-btn">+ New assessment</button>
+  </div>
+
+  <div id="form-area" style="display:none">
+    <div class="toggle-row">
+      <input type="checkbox" id="advanced-toggle" />
+      <label for="advanced-toggle">Show advanced criteria too (16 more, tactical/IQ-focused)</label>
+    </div>
+
+    <div id="sectors-container"></div>
+
+    <div class="comments-card">
+      <label for="positive_points">Positive points</label>
+      <textarea id="positive_points"></textarea>
+      <label for="negative_points">Points to watch</label>
+      <textarea id="negative_points"></textarea>
+      <label for="to_improve">To work on next</label>
+      <textarea id="to_improve"></textarea>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn btn-primary" id="save-btn">Save assessment</button>
+      <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
+      <div class="spacer"></div>
+      <button class="btn btn-secondary" id="delete-btn" style="display:none">Delete</button>
+    </div>
+  </div>
+
+  <h2 style="font-size:15px; margin: 28px 0 10px;">Past assessments</h2>
+  <div class="history-card" id="history-card">
+    <div class="empty-state" id="history-empty">Pick a player above to see their assessment history.</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---------------------------------------------------------------------
+  // Les 36 critères, identiques à suivi.py (application de bureau).
+  // "basic": true = suffisamment simple à juger pour un coach débutant.
+  // Les critères sans "basic" (donc avancés) restent cachés tant que la
+  // case "Show advanced criteria" n'est pas cochée.
+  // ---------------------------------------------------------------------
+  const CRITERIA = {
+    technique: { label: "Technique", sector: 2, groups: {
+      dribble: { label: "Dribble", items: [
+        { text: "Looks at the ball", basic: true },
+        { text: "Dribbles with right hand", basic: true },
+        { text: "Dribbles with left hand", basic: true },
+        { text: "Changes of direction", basic: true },
+      ]},
+      tir: { label: "Shooting", items: [
+        { text: "Shooting technique", basic: true },
+        { text: "Balance / footwork for the shot", basic: true },
+        { text: "Speed of execution", basic: false },
+        { text: "Free throw", basic: true },
+      ]},
+      passe: { label: "Passing", items: [
+        { text: "Passing technique", basic: true },
+        { text: "Passing out of the dribble", basic: false },
+        { text: "Catching passes", basic: true },
+      ]},
+      defense: { label: "Defense", items: [
+        { text: "Defensive stance", basic: true },
+        { text: "On-ball defense (strong side)", basic: false },
+        { text: "Off-ball defense (weak side)", basic: false },
+      ]},
+    }},
+    intelligence: { label: "Basketball IQ", sector: 3, groups: {
+      sans_ballon: { label: "Off the ball", items: [
+        { text: "Getting open, back door cuts", basic: false },
+        { text: "Spacing", basic: false },
+        { text: "Rebounding", basic: true },
+        { text: "Setting screens (U18)", basic: false },
+      ]},
+      avec_ballon: { label: "With the ball", items: [
+        { text: "Uses the dribble effectively", basic: true },
+        { text: "Reads the defense", basic: false },
+        { text: "Shot selection", basic: false },
+      ]},
+      defense: { label: "Defense", items: [
+        { text: "Anticipation", basic: false },
+        { text: "Reading the offense", basic: false },
+        { text: "Help defense", basic: false },
+        { text: "Defending screens", basic: false },
+        { text: "Character, motivation, determination", basic: true },
+      ]},
+      divers: { label: "Other", items: [
+        { text: "Pace of play", basic: false },
+        { text: "Tactical choices", basic: false },
+        { text: "Influence on the game", basic: false },
+      ]},
+    }},
+    personnalite: { label: "Personality", sector: 4, groups: {
+      attitude: { label: "General attitude", items: [
+        { text: "Towards teammates / coaches", basic: true },
+        { text: "Towards their own mistakes", basic: true },
+        { text: "Towards referees", basic: true },
+      ]},
+    }},
+    comportement: { label: "Behaviour", sector: 5, groups: {
+      comportement: { label: "", items: [
+        { text: "Motivation, willing to sacrifice time for the sport, willing to push their limits", basic: true },
+        { text: "Tactical discipline: follows the coach's instructions, pays attention when others are corrected", basic: true },
+        { text: "Team integration: helps and supports teammates", basic: true },
+        { text: "Adaptability: can adapt quickly to a new role", basic: true },
+      ]},
+    }},
+  };
+  const SECTOR_ORDER = ["technique", "intelligence", "personnalite", "comportement"];
+
+  function emptyRatings() {
+    const r = {};
+    for (const sectKey in CRITERIA) {
+      r[sectKey] = {};
+      for (const grpKey in CRITERIA[sectKey].groups) {
+        r[sectKey][grpKey] = CRITERIA[sectKey].groups[grpKey].items.map(() => null);
+      }
+    }
+    return r;
+  }
+
+  function sectorAverage(ratings, sectKey) {
+    let sum = 0, count = 0;
+    const groups = ratings[sectKey] || {};
+    for (const grpKey in groups) {
+      (groups[grpKey] || []).forEach((v) => { if (v !== null && v !== undefined) { sum += v; count++; } });
+    }
+    return count > 0 ? sum / count : null;
+  }
+
+  // ---------------------------------------------------------------------
+  const els = {
+    orgName: document.getElementById("org-name"),
+    logoutBtn: document.getElementById("logout-btn"),
+    playerSelect: document.getElementById("player-select"),
+    date: document.getElementById("date"),
+    location: document.getElementById("location"),
+    newBtn: document.getElementById("new-btn"),
+    formArea: document.getElementById("form-area"),
+    advancedToggle: document.getElementById("advanced-toggle"),
+    sectorsContainer: document.getElementById("sectors-container"),
+    positivePoints: document.getElementById("positive_points"),
+    negativePoints: document.getElementById("negative_points"),
+    toImprove: document.getElementById("to_improve"),
+    saveBtn: document.getElementById("save-btn"),
+    cancelBtn: document.getElementById("cancel-btn"),
+    deleteBtn: document.getElementById("delete-btn"),
+    historyCard: document.getElementById("history-card"),
+    historyEmpty: document.getElementById("history-empty"),
+    msg: document.getElementById("msg"),
+  };
+
+  let currentOrgId = null;
+  let currentRatings = emptyRatings();
+  let editingId = null;
+
+  function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+  function clearMessage() { els.msg.className = "msg"; els.msg.textContent = ""; }
+
+  // ---------------------------------------------------------------------
+  // Construit le formulaire une seule fois (les 36 lignes), avec des
+  // select liés directement à currentRatings.
+  // ---------------------------------------------------------------------
+  function buildForm() {
+    els.sectorsContainer.innerHTML = "";
+    SECTOR_ORDER.forEach((sectKey) => {
+      const sect = CRITERIA[sectKey];
+      const card = document.createElement("div");
+      card.className = "sector-card";
+      card.innerHTML = `<h2>${sect.label}</h2><div class="avg" id="avg-${sectKey}">Average: —</div>`;
+
+      Object.keys(sect.groups).forEach((grpKey) => {
+        const grp = sect.groups[grpKey];
+        if (grp.label) {
+          const gt = document.createElement("div");
+          gt.className = "group-title";
+          gt.textContent = grp.label;
+          card.appendChild(gt);
+        }
+        grp.items.forEach((item, i) => {
+          const row = document.createElement("div");
+          row.className = "criterion-row" + (item.basic ? "" : " advanced");
+          row.innerHTML = `
+            <span>${item.text}</span>
+            <select data-sector="${sectKey}" data-group="${grpKey}" data-index="${i}">
+              <option value="">—</option>
+              <option value="1">1</option><option value="2">2</option>
+              <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          `;
+          const select = row.querySelector("select");
+          select.addEventListener("change", () => {
+            const v = select.value ? parseInt(select.value, 10) : null;
+            currentRatings[sectKey][grpKey][i] = v;
+            updateAverages();
+          });
+          card.appendChild(row);
+        });
+      });
+      els.sectorsContainer.appendChild(card);
+    });
+  }
+
+  function updateAverages() {
+    SECTOR_ORDER.forEach((sectKey) => {
+      const avg = sectorAverage(currentRatings, sectKey);
+      const el = document.getElementById(`avg-${sectKey}`);
+      if (el) el.textContent = avg !== null ? `Average: ${avg.toFixed(1)} / 5` : "Average: —";
+    });
+  }
+
+  function fillFormFromRatings() {
+    document.querySelectorAll("#sectors-container select").forEach((select) => {
+      const sectKey = select.dataset.sector, grpKey = select.dataset.group, i = parseInt(select.dataset.index, 10);
+      const v = currentRatings[sectKey][grpKey][i];
+      select.value = v === null || v === undefined ? "" : String(v);
+    });
+    updateAverages();
+  }
+
+  function applyAdvancedVisibility() {
+    const show = els.advancedToggle.checked;
+    document.querySelectorAll(".criterion-row.advanced").forEach((row) => row.classList.toggle("show", show));
+  }
+  els.advancedToggle.addEventListener("change", applyAdvancedVisibility);
+
+  // ---------------------------------------------------------------------
+  // Club, joueurs, assessments
+  // ---------------------------------------------------------------------
+  async function loadMyOrganization() {
+    const { data, error } = await supabaseClient
+      .from("memberships")
+      .select("organization_id, status, organizations(name)")
+      .eq("status", "active")
+      .limit(1);
+    if (error || !data || data.length === 0) {
+      showMessage("You're not an active member of any club yet.", "error");
+      return null;
+    }
+    currentOrgId = data[0].organization_id;
+    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    return currentOrgId;
+  }
+
+  async function loadPlayersIntoSelect() {
+    const { data, error } = await supabaseClient
+      .from("players")
+      .select("id, first_name, last_name, season, team")
+      .eq("organization_id", currentOrgId)
+      .eq("active", true)
+      .order("last_name");
+    els.playerSelect.innerHTML = "";
+    if (error || !data || data.length === 0) {
+      els.playerSelect.innerHTML = '<option value="">No players yet — add some in Roster first</option>';
+      return;
+    }
+    data.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.first_name} ${p.last_name} (${p.team}, ${p.season})`;
+      els.playerSelect.appendChild(opt);
+    });
+  }
+
+  async function loadHistory() {
+    const playerId = els.playerSelect.value;
+    els.historyCard.innerHTML = "";
+    if (!playerId) {
+      els.historyCard.appendChild(els.historyEmpty);
+      return;
+    }
+    const { data, error } = await supabaseClient
+      .from("player_assessments")
+      .select("id, date, location, ratings")
+      .eq("player_id", playerId)
+      .order("date", { ascending: false });
+    if (error || !data || data.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No assessments yet for this player.";
+      els.historyCard.appendChild(empty);
+      return;
+    }
+    data.forEach((row) => {
+      const sectorAvgs = SECTOR_ORDER.map((s) => sectorAverage(row.ratings, s)).filter((v) => v !== null);
+      const tot = sectorAvgs.length ? sectorAvgs.reduce((a, b) => a + b, 0).toFixed(1) : "—";
+      const div = document.createElement("div");
+      div.className = "history-row";
+      div.innerHTML = `<span>${row.date}${row.location ? " — " + row.location : ""}</span><span class="tot">TOT ${tot}</span>`;
+      div.addEventListener("click", () => openExisting(row.id));
+      els.historyCard.appendChild(div);
+    });
+  }
+
+  function openNew() {
+    editingId = null;
+    currentRatings = emptyRatings();
+    els.date.value = new Date().toISOString().slice(0, 10);
+    els.location.value = "";
+    els.positivePoints.value = "";
+    els.negativePoints.value = "";
+    els.toImprove.value = "";
+    els.deleteBtn.style.display = "none";
+    els.formArea.style.display = "block";
+    fillFormFromRatings();
+    applyAdvancedVisibility();
+  }
+
+  async function openExisting(id) {
+    const { data, error } = await supabaseClient.from("player_assessments").select("*").eq("id", id).single();
+    if (error) { showMessage(error.message, "error"); return; }
+    editingId = id;
+    currentRatings = data.ratings;
+    els.date.value = data.date;
+    els.location.value = data.location || "";
+    els.positivePoints.value = data.positive_points || "";
+    els.negativePoints.value = data.negative_points || "";
+    els.toImprove.value = data.to_improve || "";
+    els.deleteBtn.style.display = "inline-block";
+    els.formArea.style.display = "block";
+    fillFormFromRatings();
+    applyAdvancedVisibility();
+  }
+
+  async function saveAssessment() {
+    clearMessage();
+    const playerId = els.playerSelect.value;
+    if (!playerId) { showMessage("Pick a player first.", "error"); return; }
+    const payload = {
+      organization_id: currentOrgId,
+      player_id: playerId,
+      date: els.date.value,
+      location: els.location.value.trim() || null,
+      ratings: currentRatings,
+      positive_points: els.positivePoints.value.trim() || null,
+      negative_points: els.negativePoints.value.trim() || null,
+      to_improve: els.toImprove.value.trim() || null,
+    };
+    try {
+      let error;
+      if (editingId) {
+        ({ error } = await supabaseClient.from("player_assessments").update(payload).eq("id", editingId));
+      } else {
+        ({ error } = await supabaseClient.from("player_assessments").insert(payload));
+      }
+      if (error) throw error;
+      els.formArea.style.display = "none";
+      await loadHistory();
+      showMessage("Assessment saved.", "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't save that assessment.", "error");
+    }
+  }
+
+  async function deleteAssessment() {
+    if (!editingId || !confirm("Delete this assessment?")) return;
+    const { error } = await supabaseClient.from("player_assessments").delete().eq("id", editingId);
+    if (error) { showMessage(error.message, "error"); return; }
+    els.formArea.style.display = "none";
+    await loadHistory();
+  }
+
+  els.newBtn.addEventListener("click", openNew);
+  els.cancelBtn.addEventListener("click", () => { els.formArea.style.display = "none"; });
+  els.saveBtn.addEventListener("click", saveAssessment);
+  els.deleteBtn.addEventListener("click", deleteAssessment);
+  els.playerSelect.addEventListener("change", () => { els.formArea.style.display = "none"; loadHistory(); });
+  els.logoutBtn.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    buildForm();
+    const orgId = await loadMyOrganization();
+    if (orgId) {
+      await loadPlayersIntoSelect();
+      await loadHistory();
+    }
+  }
+  init();
+</script>
+
+</body>
+</html>
