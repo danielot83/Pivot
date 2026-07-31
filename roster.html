@@ -9,114 +9,96 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --ink: #1a1a1a;
-    --muted: #6b6b70;
-    --line: #e5e5e5;
-    --paper: #fafafa;
-    --card: #ffffff;
-    --accent: #d21414;
-    --accent-deep: #a10f0f;
-    --accent-tint: #fceceb;
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-    line-height: 1.5;
-  }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
   h1, h2, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
   a { color: inherit; }
 
-  nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 32px;
-    border-bottom: 1px solid var(--line);
-    background: var(--card);
-  }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
   .logotype .v-red, .logotype .dot { color: var(--accent); }
   .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
-  .nav-btn {
-    background: transparent;
-    border: 1px solid var(--line);
-    color: var(--ink);
-    padding: 7px 14px;
-    border-radius: 6px;
-    font-size: 13.5px;
-    cursor: pointer;
-  }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
   .nav-btn:hover { border-color: var(--accent); }
+  .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
+  .back-link:hover { color: var(--ink); }
 
-  .wrap { max-width: 860px; margin: 0 auto; padding: 32px 24px 60px; }
-  h1 { font-size: 24px; margin: 0 0 4px; }
-  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; max-width: 1100px; margin: 0 auto; padding: 24px; align-items: start; }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
 
-  .toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .field { display: flex; flex-direction: column; gap: 4px; }
-  .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
-  .field input, .field select {
-    padding: 8px 10px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    font-size: 13.5px;
-    min-width: 140px;
-  }
-  .spacer { flex: 1; }
-  .btn {
-    padding: 9px 16px;
-    border-radius: 6px;
-    font-size: 13.5px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-  }
+  h1 { font-size: 22px; margin: 8px 0 4px; }
+  p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+
+  .msg { margin-bottom: 14px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+
+  /* -------- arbre saison/équipe -------- */
+  .tree-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .tree-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .tree-season { font-size: 13px; font-weight: 600; margin: 10px 0 4px; cursor: default; }
+  .tree-season:first-child { margin-top: 0; }
+  .tree-team { display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 8px; margin: 1px 0; border-radius: 6px; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .tree-team:hover { background: var(--paper); }
+  .tree-team.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .tree-new { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
+
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-deep); }
   .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
   .btn-secondary:hover { border-color: var(--accent); }
+  .spacer { flex: 1; }
 
-  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-  th, td { text-align: left; padding: 10px 12px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
-  th { background: var(--paper); font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.02em; }
+  /* -------- menu de columnas -------- */
+  .columns-menu { position: relative; }
+  .columns-panel {
+    display: none; position: absolute; top: 100%; right: 0; margin-top: 6px; z-index: 5;
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08); min-width: 180px;
+  }
+  .columns-panel.open { display: block; }
+  .columns-panel label { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; cursor: pointer; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { background: var(--paper); font-weight: 600; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
   tr:last-child td { border-bottom: none; }
-  td.actions { white-space: nowrap; text-align: right; }
-  td.actions button { background: none; border: none; cursor: pointer; font-size: 12.5px; color: var(--muted); padding: 4px 6px; }
-  td.actions button:hover { color: var(--accent); }
   .inactive-row { opacity: 0.5; }
+  td.actions { white-space: nowrap; text-align: right; }
+  td.actions button { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--muted); padding: 3px 5px; }
+  td.actions button:hover { color: var(--accent); }
   .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
 
-  /* panneau d'ajout / édition */
-  .panel {
-    display: none;
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 22px 24px;
-    margin-bottom: 20px;
-  }
-  .panel.open { display: block; }
-  .panel h2 { font-size: 15px; margin: 0 0 16px; }
-  .panel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  @media (max-width: 720px) { .panel-grid { grid-template-columns: repeat(2, 1fr); } }
-  .panel-grid .field input, .panel-grid .field select { width: 100%; min-width: 0; }
-  .checkbox-field { display: flex; align-items: center; gap: 6px; flex-direction: row; margin-top: 18px; }
-  .checkbox-field input { width: auto; }
-  .checkbox-field label { font-size: 13px; font-weight: 400; color: var(--ink); }
-  .panel-actions { margin-top: 18px; display: flex; gap: 8px; }
+  /* -------- cellules éditables directement -------- */
+  td.editable { cursor: text; }
+  td.editable:hover { background: var(--accent-tint); }
+  td.editable input, td.editable select { width: 100%; padding: 3px 5px; border: 1px solid var(--accent); border-radius: 4px; font-size: 13px; font-family: inherit; }
+  td.editable input[type="checkbox"] { width: auto; }
 
-  .msg { margin-bottom: 16px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
-  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
-  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+  /* -------- photo -------- */
+  .photo-thumb {
+    width: 32px; height: 32px; border-radius: 50%; object-fit: cover; cursor: pointer;
+    border: 1px solid var(--line); background: var(--paper); display: block;
+  }
+  .photo-thumb.placeholder { display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted); }
+  .license-btn { font-size: 11.5px; background: none; border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; cursor: pointer; color: var(--muted); }
+  .license-btn.has-file { color: var(--accent-deep); border-color: var(--accent-tint); }
+
+  /* -------- panneau d'ajout (nouveau joueur uniquement) -------- */
+  .panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; margin-bottom: 16px; }
+  .panel.open { display: block; }
+  .panel h2 { font-size: 15px; margin: 0 0 14px; }
+  .panel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (max-width: 720px) { .panel-grid { grid-template-columns: repeat(2, 1fr); } }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field label { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+  .panel-actions { margin-top: 14px; display: flex; gap: 8px; }
 </style>
 </head>
 <body>
@@ -124,221 +106,457 @@
 <nav>
   <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
   <div class="nav-right">
+    <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
+    <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
+      <option value="">Go to…</option>
+      <option value="dashboard.html">Dashboard</option>
+      <option value="roster.html" selected>Roster</option>
+      <option value="assessment.html">Player assessment</option>
+      <option value="settings.html">Settings</option>
+    </select>
     <button class="nav-btn" id="logout-btn">Log out</button>
   </div>
 </nav>
 
-<div class="wrap">
-  <h1>Roster</h1>
-  <p class="sub">Players by season and team.</p>
-
-  <div class="msg" id="msg"></div>
-
-  <div class="toolbar">
-    <div class="field">
-      <label for="season">Season</label>
-      <input id="season" type="text" placeholder="2026-2027" />
-    </div>
-    <div class="field">
-      <label for="team">Team</label>
-      <input id="team" type="text" placeholder="e.g. U15" />
-    </div>
-    <div class="spacer"></div>
-    <button class="btn btn-secondary" id="example-btn">Load example (Chicago Bulls '96)</button>
-    <button class="btn btn-primary" id="add-btn">+ Add player</button>
+<div class="layout">
+  <div class="tree-card">
+    <h2>Seasons &amp; teams</h2>
+    <div id="tree"></div>
   </div>
 
-  <div class="panel" id="panel">
-    <h2 id="panel-title">Add a player</h2>
-    <div class="panel-grid">
-      <div class="field"><label>First name *</label><input id="f-first_name" type="text" /></div>
-      <div class="field"><label>Last name *</label><input id="f-last_name" type="text" /></div>
-      <div class="field"><label>Birth year</label><input id="f-birth_year" type="number" placeholder="2012" /></div>
-      <div class="field"><label>Category</label><input id="f-category" type="text" placeholder="U15" /></div>
-      <div class="field"><label>Jersey number</label><input id="f-jersey_number" type="text" /></div>
-      <div class="field">
-        <label>Gender</label>
-        <select id="f-gender">
-          <option value="">—</option>
-          <option value="Girl">Girl</option>
-          <option value="Boy">Boy</option>
-        </select>
+  <div>
+    <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+    <h1>Roster</h1>
+    <p class="sub" id="current-selection">Pick a season/team on the left, or create a new one.</p>
+
+    <div class="msg" id="msg"></div>
+
+    <div class="toolbar">
+      <button class="btn btn-primary" id="add-btn">+ Add player</button>
+      <div class="columns-menu">
+        <button class="btn btn-secondary" id="columns-btn">Columns ▾</button>
+        <div class="columns-panel" id="columns-panel"></div>
       </div>
-      <div class="field"><label>Phone</label><input id="f-phone" type="text" /></div>
-      <div class="field"><label>Email</label><input id="f-email" type="email" /></div>
-      <div class="field"><label>License number</label><input id="f-license" type="text" /></div>
-      <div class="field"><label>AVS number</label><input id="f-avs_number" type="text" /></div>
+      <div class="spacer"></div>
+      <button class="btn btn-secondary" id="export-btn">Export to Excel</button>
+      <button class="btn btn-secondary" id="import-btn">Import from Excel</button>
+      <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none" />
     </div>
-    <div class="checkbox-field"><input id="f-has_license" type="checkbox" /><label for="f-has_license">Has a valid license</label></div>
-    <div class="checkbox-field"><input id="f-active" type="checkbox" checked /><label for="f-active">Active</label></div>
-    <div class="panel-actions">
-      <button class="btn btn-primary" id="save-btn">Save</button>
-      <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
-    </div>
-  </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>#</th><th>First name</th><th>Last name</th><th>Birth year</th>
-        <th>Category</th><th>Gender</th><th>License</th><th>Active</th><th></th>
-      </tr>
-    </thead>
-    <tbody id="players-body"></tbody>
-  </table>
-  <div class="empty-state" id="empty-state" style="display:none">No players yet for this season/team — add the first one above.</div>
+    <div class="panel" id="panel">
+      <h2>Add a player</h2>
+      <div class="panel-grid">
+        <div class="field"><label>First name *</label><input id="f-first_name" type="text" /></div>
+        <div class="field"><label>Last name *</label><input id="f-last_name" type="text" /></div>
+        <div class="field"><label>Birth year</label><input id="f-birth_year" type="number" placeholder="2012" /></div>
+        <div class="field"><label>Category</label><input id="f-category" type="text" placeholder="U15" /></div>
+        <div class="field"><label>Jersey number</label><input id="f-jersey_number" type="text" /></div>
+        <div class="field">
+          <label>Gender</label>
+          <select id="f-gender"><option value="">—</option><option value="Girl">Girl</option><option value="Boy">Boy</option></select>
+        </div>
+        <div class="field"><label>Phone</label><input id="f-phone" type="text" /></div>
+        <div class="field"><label>Email</label><input id="f-email" type="email" /></div>
+        <div class="field"><label>License number</label><input id="f-license" type="text" /></div>
+        <div class="field"><label>AVS number</label><input id="f-avs_number" type="text" /></div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn btn-primary" id="save-btn">Save</button>
+        <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
+      </div>
+    </div>
+
+    <table id="roster-table">
+      <thead><tr id="table-head"></tr></thead>
+      <tbody id="players-body"></tbody>
+    </table>
+    <div class="empty-state" id="empty-state" style="display:none">No players yet for this season/team — add the first one above.</div>
+  </div>
 </div>
 
+<input type="file" id="photo-file-input" accept="image/png, image/jpeg, image/webp" style="display:none" />
+<input type="file" id="license-file-input" accept="image/png, image/jpeg, image/webp" style="display:none" />
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  // ---------------------------------------------------------------------
+  // Colonnes possibles -- l'utilisateur choisit lesquelles voir (menu
+  // "Columns"), gardé en mémoire d'une visite à l'autre via localStorage.
+  // ---------------------------------------------------------------------
+  const COLUMN_DEFS = [
+    { key: "jersey_number", label: "#", default: true, type: "text" },
+    { key: "first_name", label: "First name", default: true, type: "text" },
+    { key: "last_name", label: "Last name", default: true, type: "text" },
+    { key: "birth_year", label: "Birth year", default: false, type: "number" },
+    { key: "category", label: "Category", default: true, type: "text" },
+    { key: "gender", label: "Gender", default: false, type: "select", options: ["", "Girl", "Boy"] },
+    { key: "phone", label: "Phone", default: false, type: "text" },
+    { key: "email", label: "Email", default: false, type: "text" },
+    { key: "license", label: "License #", default: false, type: "text" },
+    { key: "avs_number", label: "AVS number", default: false, type: "text" },
+    { key: "has_license", label: "Has license", default: true, type: "checkbox" },
+    { key: "active", label: "Active", default: true, type: "checkbox" },
+  ];
+  const FORM_FIELDS = ["first_name","last_name","birth_year","category","jersey_number","gender","phone","email","license","avs_number"];
+
+  function loadVisibleColumns() {
+    const saved = localStorage.getItem("pivot_roster_columns");
+    if (saved) { try { return JSON.parse(saved); } catch (e) {} }
+    return COLUMN_DEFS.filter((c) => c.default).map((c) => c.key);
+  }
+  function saveVisibleColumns(keys) {
+    localStorage.setItem("pivot_roster_columns", JSON.stringify(keys));
+  }
+  let visibleColumns = loadVisibleColumns();
+
   const els = {
     orgName: document.getElementById("org-name"),
+    orgLogo: document.getElementById("org-logo"),
     logoutBtn: document.getElementById("logout-btn"),
-    season: document.getElementById("season"),
-    team: document.getElementById("team"),
+    tree: document.getElementById("tree"),
+    currentSelection: document.getElementById("current-selection"),
     addBtn: document.getElementById("add-btn"),
-    exampleBtn: document.getElementById("example-btn"),
+    columnsBtn: document.getElementById("columns-btn"),
+    columnsPanel: document.getElementById("columns-panel"),
     panel: document.getElementById("panel"),
-    panelTitle: document.getElementById("panel-title"),
     saveBtn: document.getElementById("save-btn"),
     cancelBtn: document.getElementById("cancel-btn"),
+    tableHead: document.getElementById("table-head"),
     body: document.getElementById("players-body"),
     emptyState: document.getElementById("empty-state"),
     msg: document.getElementById("msg"),
+    photoFileInput: document.getElementById("photo-file-input"),
+    licenseFileInput: document.getElementById("license-file-input"),
   };
 
-  const FORM_FIELDS = ["first_name","last_name","birth_year","category","jersey_number","gender","phone","email","license","avs_number"];
-
   let currentOrgId = null;
-  let editingId = null; // null = on ajoute, sinon = id du joueur qu'on modifie
+  let currentSeason = null;
+  let currentTeam = null;
+  let photoUploadTargetId = null;
+  let licenseUploadTargetId = null;
 
-  function showMessage(text, type) {
-    els.msg.textContent = text;
-    els.msg.className = "msg " + type;
+  function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+  function clearMessage() { els.msg.className = "msg"; els.msg.textContent = ""; }
+
+  // ---------------------------------------------------------------------
+  // Menu des colonnes
+  // ---------------------------------------------------------------------
+  function renderColumnsMenu() {
+    els.columnsPanel.innerHTML = "";
+    COLUMN_DEFS.forEach((col) => {
+      const label = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = visibleColumns.includes(col.key);
+      cb.addEventListener("change", () => {
+        visibleColumns = cb.checked
+          ? [...visibleColumns, col.key]
+          : visibleColumns.filter((k) => k !== col.key);
+        saveVisibleColumns(visibleColumns);
+        renderTableHead();
+        loadPlayers();
+      });
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(col.label));
+      els.columnsPanel.appendChild(label);
+    });
   }
-  function clearMessage() {
-    els.msg.className = "msg";
-    els.msg.textContent = "";
+  els.columnsBtn.addEventListener("click", () => els.columnsPanel.classList.toggle("open"));
+
+  function renderTableHead() {
+    els.tableHead.innerHTML = "";
+    const photoTh = document.createElement("th");
+    photoTh.textContent = "Photo";
+    els.tableHead.appendChild(photoTh);
+    COLUMN_DEFS.filter((c) => visibleColumns.includes(c.key)).forEach((c) => {
+      const th = document.createElement("th");
+      th.textContent = c.label;
+      els.tableHead.appendChild(th);
+    });
+    const licenseTh = document.createElement("th");
+    licenseTh.textContent = "License doc.";
+    els.tableHead.appendChild(licenseTh);
+    els.tableHead.appendChild(document.createElement("th"));
   }
 
-  function currentSeasonGuess() {
-    const now = new Date();
-    const start = now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-    return `${start}-${start + 1}`;
+  // ---------------------------------------------------------------------
+  // Arbre saison / équipe
+  // ---------------------------------------------------------------------
+  async function loadTree() {
+    const { data, error } = await supabaseClient
+      .from("players").select("season, team").eq("organization_id", currentOrgId);
+    if (error) { console.error("loadTree error:", error); return; }
+
+    const bySeasons = {};
+    (data || []).forEach((r) => {
+      (bySeasons[r.season] = bySeasons[r.season] || new Set()).add(r.team);
+    });
+
+    els.tree.innerHTML = "";
+    Object.keys(bySeasons).sort().reverse().forEach((season) => {
+      const seasonEl = document.createElement("div");
+      seasonEl.className = "tree-season";
+      seasonEl.textContent = season;
+      els.tree.appendChild(seasonEl);
+      Array.from(bySeasons[season]).sort().forEach((team) => {
+        const btn = document.createElement("button");
+        btn.className = "tree-team" + (season === currentSeason && team === currentTeam ? " active" : "");
+        btn.textContent = team;
+        btn.addEventListener("click", () => selectSeasonTeam(season, team));
+        els.tree.appendChild(btn);
+      });
+    });
+
+    const newBtn = document.createElement("button");
+    newBtn.className = "tree-new";
+    newBtn.textContent = "+ New season/team";
+    newBtn.addEventListener("click", () => {
+      const season = prompt("Season (e.g. 2026-2027):");
+      if (!season) return;
+      const team = prompt("Team name:");
+      if (!team) return;
+      selectSeasonTeam(season.trim(), team.trim());
+    });
+    els.tree.appendChild(newBtn);
   }
 
-  // -----------------------------------------------------------------------
-  // Charger le club de la personne connectée (le premier membership actif --
-  // suffisant tant qu'on n'a pas encore d'écran pour gérer plusieurs clubs)
-  // -----------------------------------------------------------------------
+  function selectSeasonTeam(season, team) {
+    currentSeason = season;
+    currentTeam = team;
+    els.currentSelection.textContent = `${team} — ${season}`;
+    loadTree();
+    loadPlayers();
+  }
+
+  // ---------------------------------------------------------------------
+  // Club
+  // ---------------------------------------------------------------------
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships")
-      .select("organization_id, status, organizations(name)")
-      .eq("status", "active")
-      .limit(1);
+      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
     if (error || !data || data.length === 0) {
       showMessage("You're not an active member of any club yet.", "error");
       return null;
     }
     currentOrgId = data[0].organization_id;
     els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
     return currentOrgId;
   }
 
+  // ---------------------------------------------------------------------
+  // Joueurs : chargement + rendu, avec édition directe dans les cellules
+  // ---------------------------------------------------------------------
   async function loadPlayers() {
-    if (!currentOrgId) return;
-    const season = els.season.value.trim();
-    const team = els.team.value.trim();
-    if (!season || !team) return;
-
+    if (!currentOrgId || !currentSeason || !currentTeam) return;
     const { data, error } = await supabaseClient
-      .from("players")
-      .select("*")
-      .eq("organization_id", currentOrgId)
-      .eq("season", season)
-      .eq("team", team)
+      .from("players").select("*")
+      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
       .order("last_name");
-
-    if (error) {
-      showMessage(error.message, "error");
-      return;
-    }
+    if (error) { showMessage(error.message, "error"); return; }
     renderPlayers(data || []);
   }
 
   function renderPlayers(players) {
     els.body.innerHTML = "";
     els.emptyState.style.display = players.length === 0 ? "block" : "none";
-    players.forEach((p) => {
-      const tr = document.createElement("tr");
-      if (!p.active) tr.className = "inactive-row";
-      tr.innerHTML = `
-        <td>${p.jersey_number || ""}</td>
-        <td>${p.first_name}</td>
-        <td>${p.last_name}</td>
-        <td>${p.birth_year || ""}</td>
-        <td>${p.category || ""}</td>
-        <td>${p.gender || ""}</td>
-        <td>${p.has_license ? "✓" : ""}</td>
-        <td>${p.active ? "✓" : ""}</td>
-        <td class="actions">
-          <button data-edit>Edit</button>
-          <button data-delete>Delete</button>
-        </td>
-      `;
-      tr.querySelector("[data-edit]").addEventListener("click", () => openEdit(p));
-      tr.querySelector("[data-delete]").addEventListener("click", () => deletePlayer(p));
-      els.body.appendChild(tr);
+    players.forEach((p) => els.body.appendChild(renderRow(p)));
+  }
+
+  function renderRow(p) {
+    const tr = document.createElement("tr");
+    if (!p.active) tr.className = "inactive-row";
+
+    // -- photo --
+    const photoTd = document.createElement("td");
+    const img = document.createElement("img");
+    img.className = "photo-thumb";
+    img.title = "Click to change photo";
+    img.onerror = () => { img.replaceWith(placeholderPhoto(p)); };
+    img.addEventListener("click", () => { photoUploadTargetId = p.id; els.photoFileInput.click(); });
+    photoTd.appendChild(img);
+    tr.appendChild(photoTd);
+    loadSignedPhoto("player-photos", p.id, img);
+
+    // -- colonnes visibles, éditables directement --
+    COLUMN_DEFS.filter((c) => visibleColumns.includes(c.key)).forEach((col) => {
+      const td = document.createElement("td");
+      td.className = "editable";
+      td.textContent = formatCellValue(p[col.key], col);
+      td.addEventListener("click", () => makeCellEditable(td, p, col));
+      tr.appendChild(td);
+    });
+
+    // -- document de licence --
+    const licenseTd = document.createElement("td");
+    const licenseBtn = document.createElement("button");
+    licenseBtn.className = "license-btn";
+    licenseBtn.textContent = "Upload";
+    // on essaie de savoir s'il y en a déjà un (juste pour l'indication visuelle)
+    checkLicenseExists(p.id).then((exists) => {
+      if (exists) { licenseBtn.textContent = "View / replace"; licenseBtn.classList.add("has-file"); }
+    });
+    licenseBtn.addEventListener("click", () => { licenseUploadTargetId = p.id; els.licenseFileInput.click(); });
+    licenseTd.appendChild(licenseBtn);
+    tr.appendChild(licenseTd);
+
+    // -- actions --
+    const actionsTd = document.createElement("td");
+    actionsTd.className = "actions";
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", () => deletePlayer(p));
+    actionsTd.appendChild(delBtn);
+    tr.appendChild(actionsTd);
+
+    return tr;
+  }
+
+  function placeholderPhoto(p) {
+    const div = document.createElement("div");
+    div.className = "photo-thumb placeholder";
+    div.title = "Click to add a photo";
+    div.textContent = (p.first_name || "?")[0] + (p.last_name || "?")[0];
+    div.addEventListener("click", () => { photoUploadTargetId = p.id; els.photoFileInput.click(); });
+    return div;
+  }
+
+  function formatCellValue(value, col) {
+    if (col.type === "checkbox") return value ? "✓" : "";
+    return value ?? "";
+  }
+
+  function makeCellEditable(td, player, col) {
+    if (td.querySelector("input, select")) return; // déjà en édition
+    const original = player[col.key];
+    let input;
+    if (col.type === "checkbox") {
+      input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = !!original;
+    } else if (col.type === "select") {
+      input = document.createElement("select");
+      col.options.forEach((opt) => {
+        const o = document.createElement("option");
+        o.value = opt; o.textContent = opt || "—";
+        if (opt === original) o.selected = true;
+        input.appendChild(o);
+      });
+    } else {
+      input = document.createElement("input");
+      input.type = col.type === "number" ? "number" : "text";
+      input.value = original ?? "";
+    }
+    td.textContent = "";
+    td.appendChild(input);
+    input.focus();
+
+    const commit = async () => {
+      const newValue = col.type === "checkbox" ? input.checked : (input.value || null);
+      td.textContent = formatCellValue(newValue, col);
+      if (newValue !== original) {
+        const { error } = await supabaseClient.from("players").update({ [col.key]: newValue }).eq("id", player.id);
+        if (error) { showMessage(error.message, "error"); }
+        else { player[col.key] = newValue; }
+      }
+    };
+    input.addEventListener("blur", commit);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") input.blur(); });
+  }
+
+  // ---------------------------------------------------------------------
+  // Photos (bucket privé -- URL signée, pas d'accès public direct)
+  // ---------------------------------------------------------------------
+  async function loadSignedPhoto(bucket, playerId, imgEl) {
+    const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(`${playerId}/photo.png`, 300);
+    if (error || !data) { imgEl.onerror(); return; }
+    imgEl.src = data.signedUrl;
+  }
+
+  async function checkLicenseExists(playerId) {
+    const { data } = await supabaseClient.storage.from("license-photos").list(String(playerId));
+    return !!(data && data.length > 0);
+  }
+
+  function fileToResizedPngBlob(file, maxSize) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = () => {
+        img.onload = () => {
+          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't process that image."))), "image/png");
+        };
+        img.onerror = () => reject(new Error("That doesn't look like a valid image."));
+        img.src = reader.result;
+      };
+      reader.onerror = () => reject(new Error("Couldn't read that file."));
+      reader.readAsDataURL(file);
     });
   }
 
+  els.photoFileInput.addEventListener("change", async () => {
+    const file = els.photoFileInput.files[0];
+    els.photoFileInput.value = "";
+    if (!file || !photoUploadTargetId) return;
+    try {
+      const blob = await fileToResizedPngBlob(file, 400);
+      const { error } = await supabaseClient.storage.from("player-photos")
+        .upload(`${photoUploadTargetId}/photo.png`, blob, { upsert: true, contentType: "image/png" });
+      if (error) throw error;
+      showMessage("Photo updated.", "success");
+      await loadPlayers();
+    } catch (err) {
+      showMessage(err.message || "Couldn't upload the photo.", "error");
+    }
+  });
+
+  els.licenseFileInput.addEventListener("change", async () => {
+    const file = els.licenseFileInput.files[0];
+    els.licenseFileInput.value = "";
+    if (!file || !licenseUploadTargetId) return;
+    if (file.size > 2 * 1024 * 1024) { showMessage("That file is over 2 MB.", "error"); return; }
+    try {
+      const blob = await fileToResizedPngBlob(file, 1200);
+      const { error } = await supabaseClient.storage.from("license-photos")
+        .upload(`${licenseUploadTargetId}/license.png`, blob, { upsert: true, contentType: "image/png" });
+      if (error) throw error;
+      showMessage("License document uploaded.", "success");
+      await loadPlayers();
+    } catch (err) {
+      showMessage(err.message || "Couldn't upload the license photo.", "error");
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // Ajouter / supprimer un joueur
+  // ---------------------------------------------------------------------
   function openAdd() {
-    editingId = null;
-    els.panelTitle.textContent = "Add a player";
+    if (!currentSeason || !currentTeam) { showMessage("Pick a season/team on the left first.", "error"); return; }
     FORM_FIELDS.forEach((f) => (document.getElementById("f-" + f).value = ""));
-    document.getElementById("f-has_license").checked = false;
-    document.getElementById("f-active").checked = true;
     els.panel.classList.add("open");
   }
-
-  function openEdit(p) {
-    editingId = p.id;
-    els.panelTitle.textContent = `Edit ${p.first_name} ${p.last_name}`;
-    FORM_FIELDS.forEach((f) => (document.getElementById("f-" + f).value = p[f] ?? ""));
-    document.getElementById("f-has_license").checked = !!p.has_license;
-    document.getElementById("f-active").checked = !!p.active;
-    els.panel.classList.add("open");
-  }
-
-  function closePanel() {
-    els.panel.classList.remove("open");
-    editingId = null;
-  }
+  function closePanel() { els.panel.classList.remove("open"); }
 
   async function savePlayer() {
     clearMessage();
     const first_name = document.getElementById("f-first_name").value.trim();
     const last_name = document.getElementById("f-last_name").value.trim();
-    if (!first_name || !last_name) {
-      showMessage("First and last name are required.", "error");
-      return;
-    }
-    const season = els.season.value.trim();
-    const team = els.team.value.trim();
-    if (!season || !team) {
-      showMessage("Pick a season and a team first.", "error");
-      return;
-    }
-
+    if (!first_name || !last_name) { showMessage("First and last name are required.", "error"); return; }
     const payload = {
-      organization_id: currentOrgId,
-      season, team,
+      organization_id: currentOrgId, season: currentSeason, team: currentTeam,
       first_name, last_name,
       birth_year: document.getElementById("f-birth_year").value ? parseInt(document.getElementById("f-birth_year").value, 10) : null,
       category: document.getElementById("f-category").value.trim() || null,
@@ -348,20 +566,14 @@
       email: document.getElementById("f-email").value.trim() || null,
       license: document.getElementById("f-license").value.trim() || null,
       avs_number: document.getElementById("f-avs_number").value.trim() || null,
-      has_license: document.getElementById("f-has_license").checked,
-      active: document.getElementById("f-active").checked,
+      has_license: false, active: true,
     };
-
     try {
-      let error;
-      if (editingId) {
-        ({ error } = await supabaseClient.from("players").update(payload).eq("id", editingId));
-      } else {
-        ({ error } = await supabaseClient.from("players").insert(payload));
-      }
+      const { error } = await supabaseClient.from("players").insert(payload);
       if (error) throw error;
       closePanel();
       await loadPlayers();
+      await loadTree();
     } catch (err) {
       showMessage(err.message || "Couldn't save that player.", "error");
     }
@@ -370,63 +582,89 @@
   async function deletePlayer(p) {
     if (!confirm(`Delete ${p.first_name} ${p.last_name}?`)) return;
     const { error } = await supabaseClient.from("players").delete().eq("id", p.id);
-    if (error) {
-      showMessage(error.message, "error");
-      return;
-    }
+    if (error) { showMessage(error.message, "error"); return; }
     await loadPlayers();
   }
 
-  // -----------------------------------------------------------------------
-  // Données d'exemple réelles (roster 1995-96 des Chicago Bulls, 72-10) --
-  // permet d'essayer le module sans avoir encore ses propres données.
-  // -----------------------------------------------------------------------
-  const EXAMPLE_SEASON = "1995-1996";
-  const EXAMPLE_TEAM = "Chicago Bulls";
-  const EXAMPLE_PLAYERS = [
-    { first_name: "Michael", last_name: "Jordan", jersey_number: "23", category: "SG" },
-    { first_name: "Scottie", last_name: "Pippen", jersey_number: "33", category: "SF" },
-    { first_name: "Dennis", last_name: "Rodman", jersey_number: "91", category: "PF" },
-    { first_name: "Ron", last_name: "Harper", jersey_number: "9", category: "PG" },
-    { first_name: "Luc", last_name: "Longley", jersey_number: "13", category: "C" },
-    { first_name: "Toni", last_name: "Kukoc", jersey_number: "7", category: "SF" },
-    { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
-    { first_name: "Bill", last_name: "Wennington", jersey_number: "34", category: "C" },
-    { first_name: "Jud", last_name: "Buechler", jersey_number: "30", category: "SF" },
-    { first_name: "Randy", last_name: "Brown", jersey_number: "1", category: "PG" },
-    { first_name: "Dickey", last_name: "Simpkins", jersey_number: "8", category: "PF" },
-    { first_name: "Jason", last_name: "Caffey", jersey_number: "35", category: "PF" },
-    { first_name: "James", last_name: "Edwards", jersey_number: "53", category: "C" },
-    { first_name: "Jack", last_name: "Haley", jersey_number: "4", category: "C" },
-    { first_name: "John", last_name: "Salley", jersey_number: "22", category: "PF" },
-  ].map((p) => ({ ...p, gender: "Boy", has_license: true, active: true }));
+  // ---------------------------------------------------------------------
+  // Excel : toutes les colonnes (pas juste celles affichées à l'écran),
+  // pour que l'export serve aussi d'archive/sauvegarde complète.
+  // ---------------------------------------------------------------------
+  const EXCEL_COLUMNS = ["jersey_number","first_name","last_name","birth_year","category","gender","phone","email","license","avs_number","has_license","active"];
 
-  async function loadExampleData() {
-    if (!currentOrgId) return;
-    if (!confirm(`Add ${EXAMPLE_PLAYERS.length} example players (${EXAMPLE_TEAM}, ${EXAMPLE_SEASON}) to your club?`)) return;
-    els.exampleBtn.disabled = true;
+  async function exportToExcel() {
+    if (!currentSeason || !currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
+    const { data, error } = await supabaseClient
+      .from("players").select("*")
+      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
+      .order("last_name");
+    if (error) { showMessage(error.message, "error"); return; }
+
+    const rows = (data || []).map((p) => {
+      const row = {};
+      EXCEL_COLUMNS.forEach((c) => (row[c] = p[c] ?? ""));
+      return row;
+    });
+    const ws = XLSX.utils.json_to_sheet(rows, { header: EXCEL_COLUMNS });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Roster");
+    XLSX.writeFile(wb, `${currentTeam}_${currentSeason}.xlsx`);
+  }
+
+  async function importFromExcel(file) {
+    if (!currentSeason || !currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
     try {
-      const rows = EXAMPLE_PLAYERS.map((p) => ({ ...p, organization_id: currentOrgId, season: EXAMPLE_SEASON, team: EXAMPLE_TEAM }));
-      const { error } = await supabaseClient.from("players").insert(rows);
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      if (rows.length === 0) { showMessage("That file doesn't have any rows.", "error"); return; }
+
+      const payload = rows
+        .filter((r) => r.first_name && r.last_name)
+        .map((r) => ({
+          organization_id: currentOrgId, season: currentSeason, team: currentTeam,
+          first_name: String(r.first_name).trim(),
+          last_name: String(r.last_name).trim(),
+          birth_year: r.birth_year ? parseInt(r.birth_year, 10) : null,
+          category: r.category || null,
+          jersey_number: r.jersey_number ? String(r.jersey_number) : null,
+          gender: r.gender || null,
+          phone: r.phone ? String(r.phone) : null,
+          email: r.email || null,
+          license: r.license ? String(r.license) : null,
+          avs_number: r.avs_number ? String(r.avs_number) : null,
+          has_license: r.has_license === true || r.has_license === "TRUE" || r.has_license === 1,
+          active: !(r.active === false || r.active === "FALSE" || r.active === 0),
+        }));
+      if (payload.length === 0) { showMessage("No valid rows found (need at least first_name and last_name).", "error"); return; }
+      if (!confirm(`Import ${payload.length} players into ${currentTeam} (${currentSeason})?`)) return;
+
+      const { error } = await supabaseClient.from("players").insert(payload);
       if (error) throw error;
-      els.season.value = EXAMPLE_SEASON;
-      els.team.value = EXAMPLE_TEAM;
+      showMessage(`${payload.length} players imported.`, "success");
       await loadPlayers();
-      showMessage(`${EXAMPLE_PLAYERS.length} example players added.`, "success");
+      await loadTree();
     } catch (err) {
-      showMessage(err.message || "Couldn't load the example data.", "error");
-    } finally {
-      els.exampleBtn.disabled = false;
+      showMessage(err.message || "Couldn't read that Excel file.", "error");
     }
   }
 
-  els.exampleBtn.addEventListener("click", loadExampleData);
-  els.addBtn.addEventListener("click", openAdd);
+  document.getElementById("export-btn").addEventListener("click", exportToExcel);
+  document.getElementById("import-btn").addEventListener("click", () => document.getElementById("import-file-input").click());
+  document.getElementById("import-file-input").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (file) importFromExcel(file);
+  });
 
+  els.addBtn.addEventListener("click", openAdd);
   els.cancelBtn.addEventListener("click", closePanel);
   els.saveBtn.addEventListener("click", savePlayer);
-  els.season.addEventListener("change", loadPlayers);
-  els.team.addEventListener("change", loadPlayers);
+  document.getElementById("nav-menu").addEventListener("change", (e) => {
+    if (e.target.value) window.location.href = "./" + e.target.value;
+  });
+
   els.logoutBtn.addEventListener("click", async () => {
     await supabaseClient.auth.signOut();
     window.location.href = "./login.html";
@@ -434,13 +672,11 @@
 
   async function init() {
     const { data } = await supabaseClient.auth.getSession();
-    if (!data.session) {
-      window.location.href = "./login.html";
-      return;
-    }
-    els.season.value = currentSeasonGuess();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    renderColumnsMenu();
+    renderTableHead();
     const orgId = await loadMyOrganization();
-    if (orgId) await loadPlayers();
+    if (orgId) await loadTree();
   }
   init();
 </script>
