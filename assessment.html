@@ -118,6 +118,13 @@
         <span>Show advanced criteria too (18 more, tactical/IQ-focused)</span>
       </label>
     </div>
+    <div class="side-card">
+      <h2>Example data</h2>
+      <button class="tree-example" id="load-bulls-btn">★ Load Chicago Bulls '96</button>
+      <button class="tree-example" id="remove-bulls-btn" style="color:#991b1b;">Remove Bulls example</button>
+      <button class="tree-example" id="load-celtics-btn" style="margin-top:6px;">★ Load Boston Celtics '08</button>
+      <button class="tree-example" id="remove-celtics-btn" style="color:#991b1b;">Remove Celtics example</button>
+    </div>
   </div>
 
   <div>
@@ -165,6 +172,7 @@
       <div class="toolbar">
         <button class="btn btn-primary" id="save-btn">Save assessment</button>
         <button class="btn btn-secondary" id="pdf-btn">Generate PDF</button>
+        <button class="btn btn-secondary" id="excel-btn">Export history to Excel</button>
         <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
         <div class="spacer"></div>
         <button class="btn btn-secondary" id="delete-btn" style="display:none">Delete</button>
@@ -178,6 +186,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -341,12 +350,6 @@
         els.tree.appendChild(btn);
       });
     });
-
-    const exampleBtn = document.createElement("button");
-    exampleBtn.className = "tree-example";
-    exampleBtn.textContent = "★ Load example (Bulls '96)";
-    exampleBtn.addEventListener("click", loadExample);
-    els.tree.appendChild(exampleBtn);
   }
 
   function selectSeasonTeam(season, team) {
@@ -400,10 +403,11 @@
   }
 
   // ---------------------------------------------------------------------
-  // Exemple : mêmes Bulls '96, avec une évaluation type par joueur
+  // Exemple : deux équipes réelles, chacune avec un roster + une note
+  // type par joueur -- pour pouvoir comparer deux équipes/années.
+  // Même logique "delete puis insert" que roster.html, copiée telle
+  // quelle ici pour être sûr qu'elle marche pareil.
   // ---------------------------------------------------------------------
-  const EXAMPLE_SEASON = "1995-1996";
-  const EXAMPLE_TEAM = "Chicago Bulls";
   const CRITERIA_SHAPE = {
     technique: { dribble: 4, tir: 4, passe: 3, defense: 3 },
     intelligence: { sans_ballon: 4, avec_ballon: 3, defense: 5, divers: 3 },
@@ -424,26 +428,102 @@
     }
     return ratings;
   }
-  const ASSESSMENT_PATTERNS = { Jordan: [5, 0], Pippen: [5, 1], Rodman: [4, 1], Harper: [3, 1] };
   const DEFAULT_PATTERN = [2, 1];
-  const EXAMPLE_PLAYER_NAMES = ["Jordan","Pippen","Rodman","Harper","Longley","Kukoc","Kerr","Wennington","Buechler","Brown","Simpkins","Caffey","Edwards","Haley","Salley"];
 
-  async function loadExample() {
+  const EXAMPLE_TEAMS = {
+    bulls: {
+      season: "1995-1996", team: "Chicago Bulls", date: "1996-04-21",
+      patterns: { Jordan: [5, 0], Pippen: [5, 1], Rodman: [4, 1], Harper: [3, 1] },
+      players: [
+        { first_name: "Michael", last_name: "Jordan", jersey_number: "23", category: "SG" },
+        { first_name: "Scottie", last_name: "Pippen", jersey_number: "33", category: "SF" },
+        { first_name: "Dennis", last_name: "Rodman", jersey_number: "91", category: "PF" },
+        { first_name: "Ron", last_name: "Harper", jersey_number: "9", category: "PG" },
+        { first_name: "Luc", last_name: "Longley", jersey_number: "13", category: "C" },
+        { first_name: "Toni", last_name: "Kukoc", jersey_number: "7", category: "SF" },
+        { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
+        { first_name: "Bill", last_name: "Wennington", jersey_number: "34", category: "C" },
+        { first_name: "Jud", last_name: "Buechler", jersey_number: "30", category: "SF" },
+        { first_name: "Randy", last_name: "Brown", jersey_number: "1", category: "PG" },
+        { first_name: "Dickey", last_name: "Simpkins", jersey_number: "8", category: "PF" },
+        { first_name: "Jason", last_name: "Caffey", jersey_number: "35", category: "PF" },
+        { first_name: "James", last_name: "Edwards", jersey_number: "53", category: "C" },
+        { first_name: "Jack", last_name: "Haley", jersey_number: "4", category: "C" },
+        { first_name: "John", last_name: "Salley", jersey_number: "22", category: "PF" },
+      ].map((p) => ({ ...p, gender: "Boy", has_license: true, active: true })),
+    },
+    celtics: {
+      season: "2007-2008", team: "Boston Celtics", date: "2008-04-16",
+      patterns: { Garnett: [5, 0], Pierce: [4, 1], Allen: [3, 1] },
+      players: [
+        { first_name: "Ray", last_name: "Allen", jersey_number: "20", category: "SG" },
+        { first_name: "Tony", last_name: "Allen", jersey_number: "42", category: "SG" },
+        { first_name: "P.J.", last_name: "Brown", jersey_number: "93", category: "PF" },
+        { first_name: "Sam", last_name: "Cassell", jersey_number: "28", category: "PG" },
+        { first_name: "Glen", last_name: "Davis", jersey_number: "11", category: "F/C" },
+        { first_name: "Kevin", last_name: "Garnett", jersey_number: "5", category: "PF" },
+        { first_name: "Eddie", last_name: "House", jersey_number: "50", category: "SG" },
+        { first_name: "Kendrick", last_name: "Perkins", jersey_number: "43", category: "C" },
+        { first_name: "Paul", last_name: "Pierce", jersey_number: "34", category: "SF" },
+        { first_name: "Scot", last_name: "Pollard", jersey_number: "66", category: "C" },
+        { first_name: "James", last_name: "Posey", jersey_number: "41", category: "SF" },
+        { first_name: "Leon", last_name: "Powe", jersey_number: "0", category: "PF/C" },
+        { first_name: "Gabe", last_name: "Pruitt", jersey_number: "13", category: "PG" },
+        { first_name: "Rajon", last_name: "Rondo", jersey_number: "9", category: "PG" },
+        { first_name: "Brian", last_name: "Scalabrine", jersey_number: "44", category: "PF" },
+      ].map((p) => ({ ...p, gender: "Boy", has_license: true, active: true })),
+    },
+  };
+
+  async function loadExampleTeam(key) {
+    const ex = EXAMPLE_TEAMS[key];
     if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
-    if (!confirm(`Load the Chicago Bulls '95-96 roster and a sample assessment for each player?`)) return;
+    if (!confirm(`Load ${ex.team} (${ex.season}) with a sample assessment for each player?`)) return;
     try {
-      const { data: existing } = await supabaseClient.from("players").select("id")
-        .eq("organization_id", currentOrgId).eq("season", EXAMPLE_SEASON).eq("team", EXAMPLE_TEAM);
-      if (existing && existing.length > 0) {
-        selectSeasonTeam(EXAMPLE_SEASON, EXAMPLE_TEAM);
-        showMessage("The example was already loaded — pick a player above to see their assessment, or load it fresh from the Dashboard.", "success");
-        return;
-      }
-      showMessage("No example roster found yet — go to Dashboard or Roster and click \"Load example\" first, then come back here.", "error");
+      await supabaseClient.from("players").delete()
+        .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
+      const rows = ex.players.map((p) => ({ ...p, organization_id: currentOrgId, season: ex.season, team: ex.team }));
+      const { data: inserted, error } = await supabaseClient.from("players").insert(rows).select("id, last_name");
+      if (error) throw error;
+
+      const assessmentRows = (inserted || []).map((p) => {
+        const [center, spread] = ex.patterns[p.last_name] || DEFAULT_PATTERN;
+        return {
+          organization_id: currentOrgId, player_id: p.id, date: ex.date,
+          ratings: makeExampleRatings(center, spread),
+          positive_points: "Example assessment, for demo purposes.",
+        };
+      });
+      const { error: aErr } = await supabaseClient.from("player_assessments").insert(assessmentRows);
+      if (aErr) throw aErr;
+
+      selectSeasonTeam(ex.season, ex.team);
+      showMessage(`${ex.players.length} example players and assessments loaded.`, "success");
     } catch (err) {
-      showMessage(err.message || "Couldn't check for the example data.", "error");
+      showMessage(err.message || "Couldn't load the example data.", "error");
     }
   }
+
+  async function removeExampleTeam(key) {
+    const ex = EXAMPLE_TEAMS[key];
+    if (!currentOrgId) return;
+    if (!confirm(`Remove ${ex.team} (${ex.season}) and all its data? Can't be undone.`)) return;
+    const { error } = await supabaseClient.from("players").delete()
+      .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
+    if (error) { showMessage(error.message, "error"); return; }
+    if (currentSeason === ex.season && currentTeam === ex.team) {
+      currentSeason = null; currentTeam = null;
+      els.currentSelection.textContent = "Pick a season/team on the left, or load the example.";
+      els.playerSelect.innerHTML = '<option value="">Pick a season/team first</option>';
+    }
+    showMessage(`${ex.team} removed.`, "success");
+    await loadTree();
+  }
+
+  document.getElementById("load-bulls-btn").addEventListener("click", () => loadExampleTeam("bulls"));
+  document.getElementById("remove-bulls-btn").addEventListener("click", () => removeExampleTeam("bulls"));
+  document.getElementById("load-celtics-btn").addEventListener("click", () => loadExampleTeam("celtics"));
+  document.getElementById("remove-celtics-btn").addEventListener("click", () => removeExampleTeam("celtics"));
 
   // ---------------------------------------------------------------------
   // Formulaire des critères
@@ -573,15 +653,67 @@
   // pas encore sauvegardée) -- texte et graphique dessinés directement,
   // avec le même graphique en barres par secteur que sur l'app de bureau.
   // -----------------------------------------------------------------------
-  function generatePdf() {
+  // -----------------------------------------------------------------------
+  // Export Excel de tout l'historique du joueur sélectionné -- une ligne
+  // par évaluation, avec les moyennes par secteur et le TOT.
+  // -----------------------------------------------------------------------
+  async function exportHistoryToExcel() {
+    const playerId = els.playerSelect.value;
+    if (!playerId) { showMessage("Pick a player first.", "error"); return; }
+    const playerName = els.playerSelect.options[els.playerSelect.selectedIndex].textContent;
+
+    const { data, error } = await supabaseClient
+      .from("player_assessments").select("*").eq("player_id", playerId).order("date");
+    if (error) { showMessage(error.message, "error"); return; }
+    if (!data || data.length === 0) { showMessage("No assessments yet for this player.", "error"); return; }
+
+    const rows = data.map((row) => {
+      const out = { date: row.date, location: row.location || "" };
+      SECTOR_ORDER.forEach((s) => {
+        const avg = sectorAverage(row.ratings, s);
+        out[CRITERIA[s].label] = avg !== null ? Number(avg.toFixed(2)) : "";
+      });
+      const sectorAvgs = SECTOR_ORDER.map((s) => sectorAverage(row.ratings, s)).filter((v) => v !== null);
+      out["TOT"] = sectorAvgs.length ? Number(sectorAvgs.reduce((a, b) => a + b, 0).toFixed(2)) : "";
+      out["Positive points"] = row.positive_points || "";
+      out["Points to watch"] = row.negative_points || "";
+      out["To improve"] = row.to_improve || "";
+      return out;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Assessments");
+    XLSX.writeFile(wb, `${playerName.replace(/\s+/g, "_")}_assessments.xlsx`);
+  }
+
+  async function loadLogoDataUrl(orgId) {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`);
+      if (!resp.ok) return null;
+      const blob = await resp.blob();
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) { return null; }
+  }
+
+  async function generatePdf() {
     const playerName = els.playerSelect.options[els.playerSelect.selectedIndex]
       ? els.playerSelect.options[els.playerSelect.selectedIndex].textContent
       : "Player";
+    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const accent = [210, 20, 20];
     const ink = [26, 26, 26];
     const muted = [107, 107, 112];
+    if (logoDataUrl) {
+      try { doc.addImage(logoDataUrl, "PNG", 480, 30, 40, 40); } catch (e) { /* logo illisible, on continue sans */ }
+    }
     const marginX = 40;
     let y = 50;
 
@@ -691,6 +823,7 @@
   els.cancelBtn.addEventListener("click", () => { els.formArea.style.display = "none"; });
   els.saveBtn.addEventListener("click", saveAssessment);
   document.getElementById("pdf-btn").addEventListener("click", generatePdf);
+  document.getElementById("excel-btn").addEventListener("click", exportHistoryToExcel);
   els.deleteBtn.addEventListener("click", deleteAssessment);
   els.playerSelect.addEventListener("change", () => { els.formArea.style.display = "none"; loadHistory(); });
 

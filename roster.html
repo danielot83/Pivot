@@ -135,7 +135,7 @@
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
       <p class="sub" id="current-selection">Pick a season/team on the left, or create a new one.</p>
       <button class="nav-btn" id="load-example-btn" style="text-transform:none; letter-spacing:normal; font-weight:600; font-size:12.5px; white-space:nowrap;">Load example (Chicago Bulls '96)</button>
-      <button class="nav-btn" id="load-example2-btn" style="text-transform:none; letter-spacing:normal; font-weight:600; font-size:12.5px; white-space:nowrap;">Load example (Boston Celtics '08)</button>
+      <button class="nav-btn" id="remove-example-btn" style="text-transform:none; letter-spacing:normal; font-weight:600; font-size:12.5px; white-space:nowrap; color:#991b1b;">Remove example</button>
     </div>
 
     <div class="msg" id="msg"></div>
@@ -650,6 +650,22 @@
   // image de la page) -- même esprit que les fiches de l'application de
   // bureau, ici via jsPDF. Se télécharge directement sur l'ordinateur.
   // -----------------------------------------------------------------------
+  // Récupère le logo du club en base64, pour l'insérer dans le PDF --
+  // renvoie null proprement si le club n'a pas encore de logo.
+  async function loadLogoDataUrl(orgId) {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`);
+      if (!resp.ok) return null;
+      const blob = await resp.blob();
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) { return null; }
+  }
+
   async function exportToPdf() {
     if (!currentSeason || !currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
     const { data, error } = await supabaseClient
@@ -658,6 +674,7 @@
       .order("last_name");
     if (error) { showMessage(error.message, "error"); return; }
 
+    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const accent = [210, 20, 20];
@@ -665,6 +682,10 @@
     const muted = [107, 107, 112];
     const marginX = 40;
     let y = 50;
+
+    if (logoDataUrl) {
+      try { doc.addImage(logoDataUrl, "PNG", 480, 30, 40, 40); } catch (e) { /* logo illisible, on continue sans */ }
+    }
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.setTextColor(...ink);
     doc.text(els.orgName.textContent || "Pivot", marginX, y);
@@ -913,45 +934,19 @@
     }
   });
 
-  // -----------------------------------------------------------------------
-  // Deuxième exemple : Boston Celtics 2007-08 (le "Big Three" champion),
-  // pour pouvoir comparer deux équipes/années différentes une fois qu'on
-  // a des évaluations sur les deux (voir assessment.html).
-  // -----------------------------------------------------------------------
-  const EXAMPLE2_SEASON = "2007-2008";
-  const EXAMPLE2_TEAM = "Boston Celtics";
-  const EXAMPLE2_PLAYERS = [
-    { first_name: "Ray", last_name: "Allen", jersey_number: "20", category: "SG" },
-    { first_name: "Tony", last_name: "Allen", jersey_number: "42", category: "SG" },
-    { first_name: "P.J.", last_name: "Brown", jersey_number: "93", category: "PF" },
-    { first_name: "Sam", last_name: "Cassell", jersey_number: "28", category: "PG" },
-    { first_name: "Glen", last_name: "Davis", jersey_number: "11", category: "F/C" },
-    { first_name: "Kevin", last_name: "Garnett", jersey_number: "5", category: "PF" },
-    { first_name: "Eddie", last_name: "House", jersey_number: "50", category: "SG" },
-    { first_name: "Kendrick", last_name: "Perkins", jersey_number: "43", category: "C" },
-    { first_name: "Paul", last_name: "Pierce", jersey_number: "34", category: "SF" },
-    { first_name: "Scot", last_name: "Pollard", jersey_number: "66", category: "C" },
-    { first_name: "James", last_name: "Posey", jersey_number: "41", category: "SF" },
-    { first_name: "Leon", last_name: "Powe", jersey_number: "0", category: "PF/C" },
-    { first_name: "Gabe", last_name: "Pruitt", jersey_number: "13", category: "PG" },
-    { first_name: "Rajon", last_name: "Rondo", jersey_number: "9", category: "PG" },
-    { first_name: "Brian", last_name: "Scalabrine", jersey_number: "44", category: "PF" },
-  ].map((p) => ({ ...p, gender: "Boy", has_license: true, active: true }));
-
-  document.getElementById("load-example2-btn").addEventListener("click", async () => {
-    if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
-    if (!confirm(`Add ${EXAMPLE2_PLAYERS.length} example players (${EXAMPLE2_TEAM}, ${EXAMPLE2_SEASON}) to your club?`)) return;
-    try {
-      await supabaseClient.from("players").delete()
-        .eq("organization_id", currentOrgId).eq("season", EXAMPLE2_SEASON).eq("team", EXAMPLE2_TEAM);
-      const rows = EXAMPLE2_PLAYERS.map((p) => ({ ...p, organization_id: currentOrgId, season: EXAMPLE2_SEASON, team: EXAMPLE2_TEAM }));
-      const { error } = await supabaseClient.from("players").insert(rows);
-      if (error) throw error;
-      selectSeasonTeam(EXAMPLE2_SEASON, EXAMPLE2_TEAM);
-      showMessage(`${EXAMPLE2_PLAYERS.length} example players loaded.`, "success");
-    } catch (err) {
-      showMessage(err.message || "Couldn't load the example data.", "error");
+  document.getElementById("remove-example-btn").addEventListener("click", async () => {
+    if (!currentOrgId) return;
+    if (!confirm(`Remove the example data (${EXAMPLE_TEAM}, ${EXAMPLE_SEASON})? This can't be undone.`)) return;
+    const { error } = await supabaseClient.from("players").delete()
+      .eq("organization_id", currentOrgId).eq("season", EXAMPLE_SEASON).eq("team", EXAMPLE_TEAM);
+    if (error) { showMessage(error.message, "error"); return; }
+    if (currentSeason === EXAMPLE_SEASON && currentTeam === EXAMPLE_TEAM) {
+      currentSeason = null; currentTeam = null;
+      els.body.innerHTML = "";
+      els.currentSelection.textContent = "Pick a season/team on the left, or create a new one.";
     }
+    showMessage("Example data removed.", "success");
+    await loadTree();
   });
 
   els.addBtn.addEventListener("click", openAdd);
