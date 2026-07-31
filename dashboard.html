@@ -66,6 +66,7 @@
 <nav>
   <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
   <div class="nav-right">
+    <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
     <a class="nav-btn" href="./settings.html" style="text-decoration:none;">Settings</a>
     <button class="nav-btn" id="logout-btn">Log out</button>
@@ -83,7 +84,10 @@
     <div class="pending-card" id="pending-requests"></div>
   </div>
 
-  <p class="section-label">Your club, at a glance</p>
+  <p class="section-label" style="display:flex; align-items:center; justify-content:space-between;">
+    <span>Your club, at a glance</span>
+    <button class="nav-btn" id="load-example-btn" style="text-transform:none; letter-spacing:normal; font-weight:600; font-size:12.5px;">Load example data</button>
+  </p>
   <div class="stats-row">
     <div class="stat-card"><div class="num" id="stat-players">—</div><div class="label">Players</div></div>
     <div class="stat-card"><div class="num" id="stat-assessments">—</div><div class="label">Assessments</div></div>
@@ -105,6 +109,7 @@
   const els = {
     greeting: document.getElementById("greeting"),
     orgName: document.getElementById("org-name"),
+    orgLogo: document.getElementById("org-logo"),
     logoutBtn: document.getElementById("logout-btn"),
     clubStatusText: document.getElementById("club-status-text"),
     msg: document.getElementById("msg"),
@@ -150,7 +155,17 @@
     const orgName = (data[0].organizations && data[0].organizations.name) || "";
     els.orgName.textContent = orgName;
     els.clubStatusText.textContent = orgName ? `Club: ${orgName}` : "";
+    loadOrgLogo(currentOrgId);
     return currentOrgId;
+  }
+
+  // Essaie de charger le logo du club -- si aucun n'a été mis en ligne,
+  // l'image échoue silencieusement et reste cachée (pas d'erreur affichée).
+  function loadOrgLogo(orgId) {
+    const url = `${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png?t=${Date.now()}`;
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = url;
   }
 
   // -----------------------------------------------------------------------
@@ -305,6 +320,45 @@
       .from("player_assessments").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
     els.statAssessments.textContent = assessmentCount ?? 0;
   }
+
+  // -----------------------------------------------------------------------
+  // Mêmes données d'exemple que dans roster.html (Bulls 95-96) -- ici,
+  // en un clic, pour remplir les statistiques d'un coup sans avoir à
+  // aller les charger séparément dans Roster.
+  // -----------------------------------------------------------------------
+  const EXAMPLE_SEASON = "1995-1996";
+  const EXAMPLE_TEAM = "Chicago Bulls";
+  const EXAMPLE_PLAYERS = [
+    { first_name: "Michael", last_name: "Jordan", jersey_number: "23", category: "SG" },
+    { first_name: "Scottie", last_name: "Pippen", jersey_number: "33", category: "SF" },
+    { first_name: "Dennis", last_name: "Rodman", jersey_number: "91", category: "PF" },
+    { first_name: "Ron", last_name: "Harper", jersey_number: "9", category: "PG" },
+    { first_name: "Luc", last_name: "Longley", jersey_number: "13", category: "C" },
+    { first_name: "Toni", last_name: "Kukoc", jersey_number: "7", category: "SF" },
+    { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
+    { first_name: "Bill", last_name: "Wennington", jersey_number: "34", category: "C" },
+    { first_name: "Jud", last_name: "Buechler", jersey_number: "30", category: "SF" },
+    { first_name: "Randy", last_name: "Brown", jersey_number: "1", category: "PG" },
+    { first_name: "Dickey", last_name: "Simpkins", jersey_number: "8", category: "PF" },
+    { first_name: "Jason", last_name: "Caffey", jersey_number: "35", category: "PF" },
+    { first_name: "James", last_name: "Edwards", jersey_number: "53", category: "C" },
+    { first_name: "Jack", last_name: "Haley", jersey_number: "4", category: "C" },
+    { first_name: "John", last_name: "Salley", jersey_number: "22", category: "PF" },
+  ].map((p) => ({ ...p, gender: "Boy", has_license: true, active: true }));
+
+  document.getElementById("load-example-btn").addEventListener("click", async () => {
+    if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
+    if (!confirm(`Add ${EXAMPLE_PLAYERS.length} example players (${EXAMPLE_TEAM}, ${EXAMPLE_SEASON}) to your club?`)) return;
+    try {
+      const rows = EXAMPLE_PLAYERS.map((p) => ({ ...p, organization_id: currentOrgId, season: EXAMPLE_SEASON, team: EXAMPLE_TEAM }));
+      const { error } = await supabaseClient.from("players").insert(rows);
+      if (error) throw error;
+      showMessage(`${EXAMPLE_PLAYERS.length} example players added — see them in Roster.`, "success");
+      await loadStats();
+    } catch (err) {
+      showMessage(err.message || "Couldn't load the example data.", "error");
+    }
+  });
 
   els.logoutBtn.addEventListener("click", async () => {
     await supabaseClient.auth.signOut();

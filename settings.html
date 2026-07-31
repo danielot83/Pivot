@@ -51,6 +51,15 @@
   .requirements { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; padding-left: 18px; }
   .requirements li { margin-bottom: 4px; }
 
+  .member-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .member-row:last-child { border-bottom: none; }
+  .member-info strong { display: block; }
+  .member-info span { color: var(--muted); font-size: 12px; }
+  .member-actions { display: flex; align-items: center; gap: 8px; }
+  .member-actions select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; }
+  .member-actions button { background: none; border: none; cursor: pointer; font-size: 12.5px; color: var(--muted); padding: 4px 6px; }
+  .member-actions button:hover { color: var(--accent); }
+
   .btn { padding: 9px 16px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-deep); }
@@ -100,6 +109,12 @@
       <li>Pivot resizes it automatically, so don't worry about the exact pixel size.</li>
     </ul>
   </div>
+
+  <div class="card" id="members-card" style="display:none">
+    <h2>Members</h2>
+    <p class="hint">Change someone's role, or remove them from the club. You can't demote or remove the club's last admin.</p>
+    <div id="members-list"></div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -147,6 +162,80 @@
     img.onload = () => { els.logoPreview.innerHTML = ""; els.logoPreview.appendChild(img); };
     img.onerror = () => {};
     img.src = logoUrl(currentOrgId) + `?t=${Date.now()}`;
+
+    document.getElementById("members-card").style.display = "block";
+    await loadMembers();
+  }
+
+  // -----------------------------------------------------------------------
+  // Membres actifs du club : changer un rôle, ou retirer quelqu'un.
+  // Le "on ne retire jamais le dernier admin" est déjà garanti côté base
+  // de données (un trigger) -- ici on se contente d'afficher clairement
+  // l'erreur qu'elle renvoie si quelqu'un essaie quand même.
+  // -----------------------------------------------------------------------
+  async function loadMembers() {
+    const list = document.getElementById("members-list");
+    list.innerHTML = "";
+    const { data, error } = await supabaseClient
+      .from("memberships")
+      .select("id, role, user_id, profiles(full_name)")
+      .eq("organization_id", currentOrgId)
+      .eq("status", "active");
+    if (error) { console.error("loadMembers error:", error); return; }
+
+    (data || []).forEach((m) => {
+      const row = document.createElement("div");
+      row.className = "member-row";
+
+      const info = document.createElement("div");
+      info.className = "member-info";
+      const name = document.createElement("strong");
+      name.textContent = (m.profiles && m.profiles.full_name) || "Someone";
+      info.appendChild(name);
+
+      const actions = document.createElement("div");
+      actions.className = "member-actions";
+      const roleSelect = document.createElement("select");
+      ["admin", "coach", "assistant", "viewer"].forEach((r) => {
+        const opt = document.createElement("option");
+        opt.value = r; opt.textContent = r;
+        if (r === m.role) opt.selected = true;
+        roleSelect.appendChild(opt);
+      });
+      roleSelect.addEventListener("change", () => changeRole(m.id, roleSelect.value, row));
+
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "Remove";
+      removeBtn.addEventListener("click", () => removeMember(m.id, row));
+
+      actions.appendChild(roleSelect);
+      actions.appendChild(removeBtn);
+      row.appendChild(info);
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
+  }
+
+  async function changeRole(membershipId, newRole, rowEl) {
+    try {
+      const { error } = await supabaseClient.from("memberships").update({ role: newRole }).eq("id", membershipId);
+      if (error) throw error;
+      showMessage("Role updated.", "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't change that role.", "error");
+      await loadMembers(); // remettre le select à la vraie valeur si ça a échoué
+    }
+  }
+
+  async function removeMember(membershipId, rowEl) {
+    if (!confirm("Remove this person from the club?")) return;
+    try {
+      const { error } = await supabaseClient.from("memberships").delete().eq("id", membershipId);
+      if (error) throw error;
+      rowEl.remove();
+    } catch (err) {
+      showMessage(err.message || "Couldn't remove that member.", "error");
+    }
   }
 
   // -----------------------------------------------------------------------
