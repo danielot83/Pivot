@@ -74,8 +74,16 @@
 </nav>
 
 <div class="wrap">
-  <h1 id="greeting">Welcome</h1>
-  <p class="sub" id="club-status-text"></p>
+  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px;">
+    <div>
+      <h1 id="greeting">Welcome</h1>
+      <p class="sub" id="club-status-text"></p>
+    </div>
+    <div style="text-align:center; flex-shrink:0;">
+      <img id="org-logo-big" style="width:64px; height:64px; border-radius:10px; object-fit:cover; display:none;" />
+      <div id="org-name-big" style="font-size:13px; color:var(--muted); margin-top:6px; font-weight:600; max-width:120px;"></div>
+    </div>
+  </div>
 
   <div class="msg" id="msg"></div>
 
@@ -85,14 +93,17 @@
   </div>
 
   <p class="section-label" style="display:flex; align-items:center; justify-content:space-between;">
-    <span>Your club, at a glance</span>
+    <span>Your stats at a glance</span>
     <button class="nav-btn" id="load-example-btn" style="text-transform:none; letter-spacing:normal; font-weight:600; font-size:12.5px;">Load example data</button>
   </p>
   <div class="stats-row">
     <div class="stat-card"><div class="num" id="stat-players">—</div><div class="label">Players</div></div>
+    <div class="stat-card"><div class="num" id="stat-teams">—</div><div class="label">Teams</div></div>
     <div class="stat-card"><div class="num" id="stat-assessments">—</div><div class="label">Assessments</div></div>
     <div class="stat-card"><div class="num">—</div><div class="label">Exercises</div></div>
     <div class="stat-card"><div class="num">—</div><div class="label">Matches</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="label">Notebooks</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="label">Play designs</div></div>
   </div>
 
   <p class="section-label">Tools</p>
@@ -110,12 +121,15 @@
     greeting: document.getElementById("greeting"),
     orgName: document.getElementById("org-name"),
     orgLogo: document.getElementById("org-logo"),
+    orgLogoBig: document.getElementById("org-logo-big"),
+    orgNameBig: document.getElementById("org-name-big"),
     logoutBtn: document.getElementById("logout-btn"),
     clubStatusText: document.getElementById("club-status-text"),
     msg: document.getElementById("msg"),
     pendingSection: document.getElementById("pending-section"),
     pendingRequests: document.getElementById("pending-requests"),
     statPlayers: document.getElementById("stat-players"),
+    statTeams: document.getElementById("stat-teams"),
     statAssessments: document.getElementById("stat-assessments"),
   };
 
@@ -155,17 +169,22 @@
     const orgName = (data[0].organizations && data[0].organizations.name) || "";
     els.orgName.textContent = orgName;
     els.clubStatusText.textContent = orgName ? `Club: ${orgName}` : "";
-    loadOrgLogo(currentOrgId);
+    loadOrgLogo(currentOrgId, orgName);
     return currentOrgId;
   }
 
   // Essaie de charger le logo du club -- si aucun n'a été mis en ligne,
   // l'image échoue silencieusement et reste cachée (pas d'erreur affichée).
-  function loadOrgLogo(orgId) {
+  function loadOrgLogo(orgId, orgName) {
     const url = `${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png?t=${Date.now()}`;
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
     els.orgLogo.src = url;
+
+    els.orgLogoBig.onload = () => { els.orgLogoBig.style.display = "inline-block"; };
+    els.orgLogoBig.onerror = () => { els.orgLogoBig.style.display = "none"; };
+    els.orgLogoBig.src = url;
+    els.orgNameBig.textContent = orgName || "";
   }
 
   // -----------------------------------------------------------------------
@@ -316,6 +335,11 @@
       .from("players").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
     els.statPlayers.textContent = playerCount ?? 0;
 
+    // pas de "distinct count" tout fait côté client Supabase -- on récupère
+    // juste la colonne "team" et on compte les valeurs différentes ici
+    const { data: teamRows } = await supabaseClient.from("players").select("team").eq("organization_id", currentOrgId);
+    els.statTeams.textContent = teamRows ? new Set(teamRows.map((r) => r.team)).size : 0;
+
     const { count: assessmentCount } = await supabaseClient
       .from("player_assessments").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
     els.statAssessments.textContent = assessmentCount ?? 0;
@@ -346,14 +370,55 @@
     { first_name: "John", last_name: "Salley", jersey_number: "22", category: "PF" },
   ].map((p) => ({ ...p, gender: "Boy", has_license: true, active: true }));
 
+  // Même forme de critères que assessment.html (juste les décomptes, pas
+  // besoin du texte complet ici) -- pour générer des notes d'exemple.
+  const CRITERIA_SHAPE = {
+    technique: { dribble: 4, tir: 4, passe: 3, defense: 3 },
+    intelligence: { sans_ballon: 4, avec_ballon: 3, defense: 5, divers: 3 },
+    personnalite: { attitude: 3 },
+    comportement: { comportement: 4 },
+  };
+  function makeExampleRatings(center, spread) {
+    const ratings = {};
+    for (const sect in CRITERIA_SHAPE) {
+      ratings[sect] = {};
+      for (const grp in CRITERIA_SHAPE[sect]) {
+        const n = CRITERIA_SHAPE[sect][grp];
+        ratings[sect][grp] = Array.from({ length: n }, () => {
+          const v = spread ? center + Math.round((Math.random() * 2 - 1) * spread) : center;
+          return Math.max(1, Math.min(5, v));
+        });
+      }
+    }
+    return ratings;
+  }
+  // centre / écart par joueur -- même logique que la démo Bulls du bureau
+  const ASSESSMENT_PATTERNS = { Jordan: [5, 0], Pippen: [5, 1], Rodman: [4, 1], Harper: [3, 1] };
+  const DEFAULT_PATTERN = [2, 1];
+
   document.getElementById("load-example-btn").addEventListener("click", async () => {
     if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
-    if (!confirm(`Add ${EXAMPLE_PLAYERS.length} example players (${EXAMPLE_TEAM}, ${EXAMPLE_SEASON}) to your club?`)) return;
+    if (!confirm(`Add ${EXAMPLE_PLAYERS.length} example players (${EXAMPLE_TEAM}, ${EXAMPLE_SEASON}), plus a sample assessment for each, to your club?`)) return;
     try {
       const rows = EXAMPLE_PLAYERS.map((p) => ({ ...p, organization_id: currentOrgId, season: EXAMPLE_SEASON, team: EXAMPLE_TEAM }));
-      const { error } = await supabaseClient.from("players").insert(rows);
+      const { data: inserted, error } = await supabaseClient.from("players").insert(rows).select("id, last_name");
       if (error) throw error;
-      showMessage(`${EXAMPLE_PLAYERS.length} example players added — see them in Roster.`, "success");
+
+      const assessmentRows = (inserted || []).map((p) => {
+        const [center, spread] = ASSESSMENT_PATTERNS[p.last_name] || DEFAULT_PATTERN;
+        return {
+          organization_id: currentOrgId,
+          player_id: p.id,
+          date: "1996-04-21",
+          location: "Chicago (United Center)",
+          ratings: makeExampleRatings(center, spread),
+          positive_points: "Example assessment, for demo purposes.",
+        };
+      });
+      const { error: assessError } = await supabaseClient.from("player_assessments").insert(assessmentRows);
+      if (assessError) throw assessError;
+
+      showMessage(`${EXAMPLE_PLAYERS.length} example players and assessments added — see them in Roster and Player assessment.`, "success");
       await loadStats();
     } catch (err) {
       showMessage(err.message || "Couldn't load the example data.", "error");
