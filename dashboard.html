@@ -405,6 +405,13 @@
     if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
     if (!confirm(`Add ${EXAMPLE_PLAYERS.length} example players (${EXAMPLE_TEAM}, ${EXAMPLE_SEASON}), plus a sample assessment for each, to your club?`)) return;
     try {
+      // on retire d'abord toute donnée d'exemple déjà là (au cas où on a
+      // déjà cliqué avant) -- comme ça, ce bouton ne peut jamais dupliquer
+      const { error: cleanupError } = await supabaseClient
+        .from("players").delete()
+        .eq("organization_id", currentOrgId).eq("season", EXAMPLE_SEASON).eq("team", EXAMPLE_TEAM);
+      if (cleanupError) throw cleanupError;
+
       const rows = EXAMPLE_PLAYERS.map((p) => ({ ...p, organization_id: currentOrgId, season: EXAMPLE_SEASON, team: EXAMPLE_TEAM }));
       const { data: inserted, error } = await supabaseClient.from("players").insert(rows).select("id, last_name");
       if (error) throw error;

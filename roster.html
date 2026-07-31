@@ -127,12 +127,15 @@
 
   <div>
     <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
-    <h1 style="display:flex; align-items:center; gap:8px;">
+    <h1 style="display:flex; align-items:center; justify-content:space-between;">
       Roster
-      <button id="help-btn" title="What's this module for?" style="width:22px; height:22px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:12px; cursor:pointer; line-height:1;">?</button>
+      <button id="help-btn" title="What's this module for?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
     </h1>
     <div id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px;"></div>
-    <p class="sub" id="current-selection">Pick a season/team on the left, or create a new one.</p>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <p class="sub" id="current-selection">Pick a season/team on the left, or create a new one.</p>
+      <button class="nav-btn" id="load-example-btn" style="text-transform:none; letter-spacing:normal; font-weight:600; font-size:12.5px; white-space:nowrap;">Load example (Chicago Bulls '96)</button>
+    </div>
 
     <div class="msg" id="msg"></div>
 
@@ -616,33 +619,119 @@
     XLSX.writeFile(wb, `${currentTeam}_${currentSeason}.xlsx`);
   }
 
+  // -----------------------------------------------------------------------
+  // Import flexible : reconnaît plusieurs jeux d'en-têtes (le nôtre, en
+  // anglais, mais aussi les exports français typiques d'un club/fédération
+  // -- accents ignorés, casse ignorée). Gère aussi une colonne "Contacts"
+  // combinée "Nom, Prénom" quand il n'y a pas de colonnes séparées.
+  // -----------------------------------------------------------------------
+  const HEADER_ALIASES = {
+    first_name: ["first_name", "prenom", "prénom", "firstname"],
+    last_name: ["last_name", "nom", "lastname", "surname"],
+    combined_name: ["contacts", "nom complet", "name", "joueur", "player"],
+    birth_year: ["birth_year", "annee de naissance", "année de naissance", "birth year"],
+    birth_date: ["birth_date", "date de naissance", "naissance", "date of birth"],
+    category: ["category", "categorie", "catégorie"],
+    jersey_number: ["jersey_number", "n maillot", "numero maillot", "n° maillot", "dossard", "number"],
+    gender: ["gender", "sexe", "genre"],
+    phone: ["phone", "mobile", "telephone", "téléphone", "tel"],
+    email: ["email", "e-mail", "e-mail parents 1", "mail", "courriel"],
+    license: ["license", "licence", "n licence", "n° licence"],
+    avs_number: ["avs_number", "n avs", "n° avs", "n securite sociale", "n° sécurité sociale", "ahv", "ssn", "social security"],
+    has_license: ["has_license", "licencie", "licencié"],
+    active: ["active", "actif"],
+  };
+
+  function normalizeHeader(h) {
+    return String(h || "").toLowerCase().trim()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // enlève les accents
+  }
+
+  function buildFieldMap(headers) {
+    const map = {}; // en-tête original -> champ canonique
+    headers.forEach((h) => {
+      const norm = normalizeHeader(h);
+      for (const field in HEADER_ALIASES) {
+        if (HEADER_ALIASES[field].some((alias) => normalizeHeader(alias) === norm)) {
+          map[h] = field;
+          break;
+        }
+      }
+    });
+    return map;
+  }
+
+  function parseGender(value) {
+    const v = normalizeHeader(value);
+    if (["masculin", "boy", "m", "garcon", "garçon"].includes(v)) return "Boy";
+    if (["feminin", "féminin", "girl", "f", "fille"].includes(v)) return "Girl";
+    return value || null;
+  }
+
+  function yearFromBirthDate(value) {
+    if (!value) return null;
+    // accepte "15/08/2017", "2017-08-15", ou juste "2017"
+    const str = String(value).trim();
+    const match = str.match(/(\d{4})(?!.*\d{4})/); // dernier groupe de 4 chiffres = l'année
+    return match ? parseInt(match[1], 10) : null;
+  }
+
   async function importFromExcel(file) {
     if (!currentSeason || !currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
-      if (rows.length === 0) { showMessage("That file doesn't have any rows.", "error"); return; }
+      const rawRows = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
+      if (rawRows.length === 0) { showMessage("That file doesn't have any rows.", "error"); return; }
 
-      const payload = rows
-        .filter((r) => r.first_name && r.last_name)
-        .map((r) => ({
+      const fieldMap = buildFieldMap(Object.keys(rawRows[0]));
+
+      const payload = [];
+      rawRows.forEach((raw) => {
+        const r = {};
+        for (const header in raw) {
+          const field = fieldMap[header];
+          if (field) r[field] = raw[header];
+        }
+
+        let first_name = r.first_name ? String(r.first_name).trim() : "";
+        let last_name = r.last_name ? String(r.last_name).trim() : "";
+        if ((!first_name || !last_name) && r.combined_name) {
+          // format "Nom, Prénom" (ou juste "Prénom Nom" si pas de virgule)
+          const combined = String(r.combined_name).trim();
+          if (combined.includes(",")) {
+            const [ln, fn] = combined.split(",");
+            last_name = last_name || (ln || "").trim();
+            first_name = first_name || (fn || "").trim();
+          } else {
+            const parts = combined.split(" ");
+            first_name = first_name || parts.pop() || "";
+            last_name = last_name || parts.join(" ");
+          }
+        }
+        if (!first_name || !last_name) return; // ligne sans nom exploitable, ignorée
+
+        payload.push({
           organization_id: currentOrgId, season: currentSeason, team: currentTeam,
-          first_name: String(r.first_name).trim(),
-          last_name: String(r.last_name).trim(),
-          birth_year: r.birth_year ? parseInt(r.birth_year, 10) : null,
+          first_name, last_name,
+          birth_year: r.birth_year ? parseInt(r.birth_year, 10) : yearFromBirthDate(r.birth_date),
           category: r.category || null,
           jersey_number: r.jersey_number ? String(r.jersey_number) : null,
-          gender: r.gender || null,
+          gender: parseGender(r.gender),
           phone: r.phone ? String(r.phone) : null,
           email: r.email || null,
           license: r.license ? String(r.license) : null,
           avs_number: r.avs_number ? String(r.avs_number) : null,
           has_license: r.has_license === true || r.has_license === "TRUE" || r.has_license === 1,
           active: !(r.active === false || r.active === "FALSE" || r.active === 0),
-        }));
-      if (payload.length === 0) { showMessage("No valid rows found (need at least first_name and last_name).", "error"); return; }
+        });
+      });
+
+      if (payload.length === 0) {
+        showMessage("Couldn't find any usable name column — check the file has a name, or First/Last name columns.", "error");
+        return;
+      }
       if (!confirm(`Import ${payload.length} players into ${currentTeam} (${currentSeason})?`)) return;
 
       const { error } = await supabaseClient.from("players").insert(payload);
@@ -663,15 +752,66 @@
     if (file) importFromExcel(file);
   });
 
+  // ---------------------------------------------------------------------
+  // Mêmes données d'exemple que le tableau de bord -- accessible ici
+  // aussi, directement depuis Roster. Toujours "delete puis insert" pour
+  // ne jamais dupliquer, même en cliquant plusieurs fois.
+  // ---------------------------------------------------------------------
+  const EXAMPLE_SEASON = "1995-1996";
+  const EXAMPLE_TEAM = "Chicago Bulls";
+  const EXAMPLE_PLAYERS = [
+    { first_name: "Michael", last_name: "Jordan", jersey_number: "23", category: "SG" },
+    { first_name: "Scottie", last_name: "Pippen", jersey_number: "33", category: "SF" },
+    { first_name: "Dennis", last_name: "Rodman", jersey_number: "91", category: "PF" },
+    { first_name: "Ron", last_name: "Harper", jersey_number: "9", category: "PG" },
+    { first_name: "Luc", last_name: "Longley", jersey_number: "13", category: "C" },
+    { first_name: "Toni", last_name: "Kukoc", jersey_number: "7", category: "SF" },
+    { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
+    { first_name: "Bill", last_name: "Wennington", jersey_number: "34", category: "C" },
+    { first_name: "Jud", last_name: "Buechler", jersey_number: "30", category: "SF" },
+    { first_name: "Randy", last_name: "Brown", jersey_number: "1", category: "PG" },
+    { first_name: "Dickey", last_name: "Simpkins", jersey_number: "8", category: "PF" },
+    { first_name: "Jason", last_name: "Caffey", jersey_number: "35", category: "PF" },
+    { first_name: "James", last_name: "Edwards", jersey_number: "53", category: "C" },
+    { first_name: "Jack", last_name: "Haley", jersey_number: "4", category: "C" },
+    { first_name: "John", last_name: "Salley", jersey_number: "22", category: "PF" },
+  ].map((p) => ({ ...p, gender: "Boy", has_license: true, active: true }));
+
+  document.getElementById("load-example-btn").addEventListener("click", async () => {
+    if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
+    if (!confirm(`Add ${EXAMPLE_PLAYERS.length} example players (${EXAMPLE_TEAM}, ${EXAMPLE_SEASON}) to your club?`)) return;
+    try {
+      await supabaseClient.from("players").delete()
+        .eq("organization_id", currentOrgId).eq("season", EXAMPLE_SEASON).eq("team", EXAMPLE_TEAM);
+      const rows = EXAMPLE_PLAYERS.map((p) => ({ ...p, organization_id: currentOrgId, season: EXAMPLE_SEASON, team: EXAMPLE_TEAM }));
+      const { error } = await supabaseClient.from("players").insert(rows);
+      if (error) throw error;
+      selectSeasonTeam(EXAMPLE_SEASON, EXAMPLE_TEAM);
+      showMessage(`${EXAMPLE_PLAYERS.length} example players loaded.`, "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't load the example data.", "error");
+    }
+  });
+
   els.addBtn.addEventListener("click", openAdd);
   els.cancelBtn.addEventListener("click", closePanel);
   els.saveBtn.addEventListener("click", savePlayer);
   document.getElementById("help-btn").addEventListener("click", () => {
     const box = document.getElementById("help-box");
     if (box.style.display === "block") { box.style.display = "none"; return; }
-    box.innerHTML =
-      "<strong>Roster</strong> — a club's roster changes every season: new players arrive, others move up an age group, licenses need renewing. This keeps it organized by season and team instead of scattered spreadsheets." +
-      "<br><br>Each player has a jersey number, contact details, license status, and now a photo and license document if needed. When you build a training session or a match sheet later, this roster is what feeds the list of players you can call up.";
+    box.innerHTML = `
+      <strong>What you can do here</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.6;">
+        <li><strong>Seasons &amp; teams</strong> (left) — click one to switch, or "+ New season/team" to start one.</li>
+        <li><strong>Add a player</strong> with the button above the table.</li>
+        <li><strong>Edit directly in the table</strong> — click any cell to change it, saves automatically.</li>
+        <li><strong>Columns</strong> — choose which fields show (add AVS number, birth year… or hide ones you don't need).</li>
+        <li><strong>Photo</strong> — click a player's photo circle to upload one. Kept private to your club.</li>
+        <li><strong>License doc.</strong> — upload a photo of the license per player, same way.</li>
+        <li><strong>Export to Excel</strong> — downloads the current team as a spreadsheet.</li>
+        <li><strong>Import from Excel</strong> — reads most common column layouts (English or French headers, combined "Last, First" name columns, full birth dates...). Needs at least a usable name per row.</li>
+        <li><strong>Load example</strong> — fills this in with a real historical roster (Chicago Bulls '95-96) so you can try everything above without your own data yet.</li>
+      </ul>`;
     box.style.display = "block";
   });
 
