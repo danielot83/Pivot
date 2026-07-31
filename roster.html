@@ -212,6 +212,16 @@
   ];
   const FORM_FIELDS = ["first_name","last_name","birth_year","category","jersey_number","gender","phone","email","license","avs_number"];
 
+  function saveDefaultCategory(season, team, category) {
+    const store = JSON.parse(localStorage.getItem("pivot_roster_default_categories") || "{}");
+    store[`${season}|${team}`] = category;
+    localStorage.setItem("pivot_roster_default_categories", JSON.stringify(store));
+  }
+  function getDefaultCategory(season, team) {
+    const store = JSON.parse(localStorage.getItem("pivot_roster_default_categories") || "{}");
+    return store[`${season}|${team}`] || "";
+  }
+
   function loadVisibleColumns() {
     const saved = localStorage.getItem("pivot_roster_columns");
     if (saved) { try { return JSON.parse(saved); } catch (e) {} }
@@ -304,6 +314,12 @@
     (data || []).forEach((r) => {
       (bySeasons[r.season] = bySeasons[r.season] || new Set()).add(r.team);
     });
+    // le club/équipe qu'on vient de créer doit apparaître tout de suite,
+    // même à zéro joueur -- sinon il faut d'abord ajouter quelqu'un pour
+    // même le voir dans l'arbre, ce qui n'a pas de sens
+    if (currentSeason && currentTeam) {
+      (bySeasons[currentSeason] = bySeasons[currentSeason] || new Set()).add(currentTeam);
+    }
 
     els.tree.innerHTML = "";
 
@@ -315,6 +331,8 @@
       if (!season) return;
       const team = prompt("Team name:");
       if (!team) return;
+      const category = prompt("Default category for this team (e.g. U15) — optional, can leave blank:");
+      if (category) saveDefaultCategory(season.trim(), team.trim(), category.trim());
       selectSeasonTeam(season.trim(), team.trim());
     });
     els.tree.appendChild(newBtn);
@@ -325,13 +343,36 @@
       seasonEl.textContent = season;
       els.tree.appendChild(seasonEl);
       Array.from(bySeasons[season]).sort().forEach((team) => {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.alignItems = "center";
         const btn = document.createElement("button");
         btn.className = "tree-team" + (season === currentSeason && team === currentTeam ? " active" : "");
         btn.textContent = team;
+        btn.style.flex = "1";
         btn.addEventListener("click", () => selectSeasonTeam(season, team));
-        els.tree.appendChild(btn);
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "🗑";
+        delBtn.title = `Remove ${team} (${season}) — deletes all its players`;
+        delBtn.style.cssText = "background:none;border:none;cursor:pointer;font-size:11px;padding:4px 6px;color:var(--muted);";
+        delBtn.addEventListener("click", () => deleteTeam(season, team));
+        row.appendChild(btn);
+        row.appendChild(delBtn);
+        els.tree.appendChild(row);
       });
     });
+  }
+
+  async function deleteTeam(season, team) {
+    if (!confirm(`Remove "${team}" (${season}) and all its players? This can't be undone.`)) return;
+    const { error } = await supabaseClient.from("players").delete()
+      .eq("organization_id", currentOrgId).eq("season", season).eq("team", team);
+    if (error) { showMessage(error.message, "error"); return; }
+    if (season === currentSeason && team === currentTeam) { currentSeason = null; currentTeam = null; }
+    showMessage(`"${team}" (${season}) removed.`, "success");
+    await loadTree();
+    els.body.innerHTML = "";
+    els.currentSelection.textContent = "Pick a season/team on the left, or create a new one.";
   }
 
   function selectSeasonTeam(season, team) {
@@ -554,6 +595,7 @@
   function openAdd() {
     if (!currentSeason || !currentTeam) { showMessage("Pick a season/team on the left first.", "error"); return; }
     FORM_FIELDS.forEach((f) => (document.getElementById("f-" + f).value = ""));
+    document.getElementById("f-category").value = getDefaultCategory(currentSeason, currentTeam);
     els.panel.classList.add("open");
   }
   function closePanel() { els.panel.classList.remove("open"); }
@@ -800,17 +842,17 @@
     const box = document.getElementById("help-box");
     if (box.style.display === "block") { box.style.display = "none"; return; }
     box.innerHTML = `
-      <strong>What you can do here</strong>
-      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.6;">
-        <li><strong>Seasons &amp; teams</strong> (left) — click one to switch, or "+ New season/team" to start one.</li>
-        <li><strong>Add a player</strong> with the button above the table.</li>
-        <li><strong>Edit directly in the table</strong> — click any cell to change it, saves automatically.</li>
-        <li><strong>Columns</strong> — choose which fields show (add AVS number, birth year… or hide ones you don't need).</li>
-        <li><strong>Photo</strong> — click a player's photo circle to upload one. Kept private to your club.</li>
-        <li><strong>License doc.</strong> — upload a photo of the license per player, same way.</li>
-        <li><strong>Export to Excel</strong> — downloads the current team as a spreadsheet.</li>
-        <li><strong>Import from Excel</strong> — reads most common column layouts (English or French headers, combined "Last, First" name columns, full birth dates...). Needs at least a usable name per row.</li>
-        <li><strong>Load example</strong> — fills this in with a real historical roster (Chicago Bulls '95-96) so you can try everything above without your own data yet.</li>
+      <strong>How to use Roster</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li><strong>Pick or create a team</strong> — on the left, click an existing season/team, or "+ New season/team" (top) and answer the three questions: season, team name, and an optional default category (pre-fills new players, saves you retyping it each time).</li>
+        <li><strong>Add a player</strong> — click "+ Add player" above the table, fill in the panel, Save. Needs at least a first and last name.</li>
+        <li><strong>Edit a player</strong> — no separate edit screen: just click any cell in the table (name, category, checkboxes...), type the new value, and click away or press Enter. It saves right away.</li>
+        <li><strong>Show/hide columns</strong> — click "Columns ▾", tick what you want to see (e.g. add AVS number or birth year, hide category). Remembered next time you open Roster.</li>
+        <li><strong>Add a photo</strong> — click the round photo icon on a player's row, pick an image. Same for the license document, via its "Upload" button in that column.</li>
+        <li><strong>Export to Excel</strong> — click the button, get a spreadsheet of the currently selected team, ready to send or archive.</li>
+        <li><strong>Import from Excel</strong> — click the button, pick a file. It recognizes common column names automatically (English or French, a combined "Last, First" name column, full birth dates instead of just the year...). Rows without a usable name are skipped, not imported.</li>
+        <li><strong>Remove a team</strong> — click the small 🗑 next to a team's name in the left list. This deletes all its players too, so it asks to confirm first.</li>
+        <li><strong>Load example</strong> — top right, fills this in with a real historical roster (Chicago Bulls '95-96) so you can try everything above before you have your own data. Safe to click more than once — it replaces itself instead of duplicating.</li>
       </ul>`;
     box.style.display = "block";
   });
