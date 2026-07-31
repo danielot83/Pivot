@@ -92,22 +92,27 @@
     <div class="pending-card" id="pending-requests"></div>
   </div>
 
-  <p class="section-label" style="display:flex; align-items:center; justify-content:space-between;">
-    <span>Your stats at a glance</span>
-    <button class="nav-btn" id="load-example-btn" style="text-transform:none; letter-spacing:normal; font-weight:600; font-size:12.5px;">Load example data</button>
-  </p>
-  <div class="stats-row">
-    <div class="stat-card"><div class="num" id="stat-players">—</div><div class="label">Players</div></div>
+  <p class="section-label">Your stats at a glance</p>
+  <div class="stats-row" style="grid-template-columns: repeat(3, 1fr);">
     <div class="stat-card"><div class="num" id="stat-teams">—</div><div class="label">Teams</div></div>
+    <div class="stat-card"><div class="num" id="stat-players">—</div><div class="label">Players</div></div>
     <div class="stat-card"><div class="num" id="stat-assessments">—</div><div class="label">Assessments</div></div>
     <div class="stat-card"><div class="num">—</div><div class="label">Exercises</div></div>
-    <div class="stat-card"><div class="num">—</div><div class="label">Matches</div></div>
     <div class="stat-card"><div class="num">—</div><div class="label">Notebooks</div></div>
     <div class="stat-card"><div class="num">—</div><div class="label">Play designs</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="label">Matches</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="label">Wins</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="label">Losses</div></div>
   </div>
 
   <p class="section-label">Tools</p>
   <div class="grid" id="modules-grid"></div>
+
+  <p class="section-label">Example data (Chicago Bulls '96)</p>
+  <div style="display:flex; gap:10px;">
+    <button class="nav-btn" id="load-example-btn" style="text-transform:none; letter-spacing:normal; font-weight:600; font-size:13px;">Load example data</button>
+    <button class="nav-btn" id="remove-example-btn" style="text-transform:none; letter-spacing:normal; font-weight:600; font-size:13px; color:#991b1b;">Remove example data</button>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -422,6 +427,23 @@
       await loadStats();
     } catch (err) {
       showMessage(err.message || "Couldn't load the example data.", "error");
+    }
+  });
+
+  document.getElementById("remove-example-btn").addEventListener("click", async () => {
+    if (!currentOrgId) return;
+    if (!confirm(`Remove all example data (${EXAMPLE_TEAM}, ${EXAMPLE_SEASON}) from your club? Their assessments go with them.`)) return;
+    try {
+      // supprimer les joueurs suffit : les évaluations liées disparaissent
+      // automatiquement (contrainte "on delete cascade" côté base de données)
+      const { error } = await supabaseClient
+        .from("players").delete()
+        .eq("organization_id", currentOrgId).eq("season", EXAMPLE_SEASON).eq("team", EXAMPLE_TEAM);
+      if (error) throw error;
+      showMessage("Example data removed.", "success");
+      await loadStats();
+    } catch (err) {
+      showMessage(err.message || "Couldn't remove the example data.", "error");
     }
   });
 

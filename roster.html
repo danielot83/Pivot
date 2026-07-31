@@ -127,7 +127,11 @@
 
   <div>
     <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
-    <h1>Roster</h1>
+    <h1 style="display:flex; align-items:center; gap:8px;">
+      Roster
+      <button id="help-btn" title="What's this module for?" style="width:22px; height:22px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:12px; cursor:pointer; line-height:1;">?</button>
+    </h1>
+    <div id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px;"></div>
     <p class="sub" id="current-selection">Pick a season/team on the left, or create a new one.</p>
 
     <div class="msg" id="msg"></div>
@@ -299,6 +303,19 @@
     });
 
     els.tree.innerHTML = "";
+
+    const newBtn = document.createElement("button");
+    newBtn.className = "tree-new";
+    newBtn.textContent = "+ New season/team";
+    newBtn.addEventListener("click", () => {
+      const season = prompt("Season (e.g. 2026-2027):");
+      if (!season) return;
+      const team = prompt("Team name:");
+      if (!team) return;
+      selectSeasonTeam(season.trim(), team.trim());
+    });
+    els.tree.appendChild(newBtn);
+
     Object.keys(bySeasons).sort().reverse().forEach((season) => {
       const seasonEl = document.createElement("div");
       seasonEl.className = "tree-season";
@@ -312,18 +329,6 @@
         els.tree.appendChild(btn);
       });
     });
-
-    const newBtn = document.createElement("button");
-    newBtn.className = "tree-new";
-    newBtn.textContent = "+ New season/team";
-    newBtn.addEventListener("click", () => {
-      const season = prompt("Season (e.g. 2026-2027):");
-      if (!season) return;
-      const team = prompt("Team name:");
-      if (!team) return;
-      selectSeasonTeam(season.trim(), team.trim());
-    });
-    els.tree.appendChild(newBtn);
   }
 
   function selectSeasonTeam(season, team) {
@@ -661,6 +666,15 @@
   els.addBtn.addEventListener("click", openAdd);
   els.cancelBtn.addEventListener("click", closePanel);
   els.saveBtn.addEventListener("click", savePlayer);
+  document.getElementById("help-btn").addEventListener("click", () => {
+    const box = document.getElementById("help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.innerHTML =
+      "<strong>Roster</strong> — a club's roster changes every season: new players arrive, others move up an age group, licenses need renewing. This keeps it organized by season and team instead of scattered spreadsheets." +
+      "<br><br>Each player has a jersey number, contact details, license status, and now a photo and license document if needed. When you build a training session or a match sheet later, this roster is what feeds the list of players you can call up.";
+    box.style.display = "block";
+  });
+
   document.getElementById("nav-menu").addEventListener("change", (e) => {
     if (e.target.value) window.location.href = "./" + e.target.value;
   });
