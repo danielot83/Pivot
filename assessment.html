@@ -9,86 +9,82 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --ink: #1a1a1a;
-    --muted: #6b6b70;
-    --line: #e5e5e5;
-    --paper: #fafafa;
-    --card: #ffffff;
-    --accent: #d21414;
-    --accent-deep: #a10f0f;
-    --accent-tint: #fceceb;
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-    line-height: 1.5;
-  }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
   h1, h2, h3, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
   a { color: inherit; }
 
-  nav {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card);
-  }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
   .logotype .v-red, .logotype .dot { color: var(--accent); }
   .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
   .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
   .nav-btn:hover { border-color: var(--accent); }
+  .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
+  .back-link:hover { color: var(--ink); }
 
-  .wrap { max-width: 860px; margin: 0 auto; padding: 32px 24px 60px; }
-  h1 { font-size: 24px; margin: 0 0 4px; }
-  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; max-width: 900px; margin: 0 auto; padding: 24px; align-items: start; }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
 
-  .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 20px; }
+  h1 { font-size: 22px; margin: 8px 0 4px; }
+  p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+
+  .msg { margin-bottom: 14px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+
+  /* -------- barre latérale : arbre + critères -------- */
+  .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .tree-season { font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  .tree-season:first-child { margin-top: 0; }
+  .tree-team-row { display: flex; align-items: center; }
+  .tree-team { display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 8px; margin: 1px 0; border-radius: 6px; font-size: 13px; color: var(--ink); cursor: pointer; flex: 1; }
+  .tree-team:hover { background: var(--paper); }
+  .tree-team.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .tree-new, .tree-example { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
+  .toggle-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: var(--ink); }
+  .toggle-row input { width: auto; margin-top: 2px; }
+
+  .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 16px; }
   .field { display: flex; flex-direction: column; gap: 4px; }
   .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
-  .field input, .field select {
-    padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13.5px; min-width: 160px;
-  }
+  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; min-width: 140px; }
   .spacer { flex: 1; }
-  .btn { padding: 9px 16px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
+  .btn { padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-deep); }
   .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
   .btn-secondary:hover { border-color: var(--accent); }
-  .btn:disabled { opacity: 0.5; cursor: default; }
 
-  .msg { margin-bottom: 16px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
-  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
-  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+  .heights-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .heights-row .field input { min-width: 100px; }
 
-  .toggle-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 13.5px; }
-  .toggle-row input { width: auto; }
-
-  .sector-card {
-    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
-    padding: 20px 24px; margin-bottom: 16px;
-  }
-  .sector-card h2 { font-size: 15px; margin: 0 0 2px; }
-  .sector-card .avg { font-size: 13px; color: var(--accent-deep); font-weight: 600; margin-bottom: 14px; }
-  .group-title { font-size: 12.5px; font-weight: 600; color: var(--muted); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: 0.02em; }
-  .criterion-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 13.5px; }
+  .sector-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 22px; margin-bottom: 14px; }
+  .sector-card h3 { font-size: 15px; margin: 0 0 2px; }
+  .sector-card .avg { font-size: 13px; color: var(--accent-deep); font-weight: 600; margin-bottom: 12px; }
+  .group-title { font-size: 12px; font-weight: 600; color: var(--muted); margin: 12px 0 5px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .criterion-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 13px; }
   .criterion-row.advanced { display: none; }
   .criterion-row.advanced.show { display: flex; }
-  .criterion-row select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; width: 64px; }
+  .criterion-row select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; width: 60px; }
 
-  .comments-card {
-    background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; margin-bottom: 20px;
-  }
-  .comments-card label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
+  .comments-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 22px; margin-bottom: 16px; }
+  .comments-card label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
   .comments-card label:first-child { margin-top: 0; }
-  .comments-card textarea { width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13.5px; font-family: inherit; resize: vertical; }
+  .comments-card textarea { width: 100%; min-height: 50px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; font-family: inherit; resize: vertical; }
 
   .history-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 0; }
-  .history-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; font-size: 13.5px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .history-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 18px; font-size: 13px; border-bottom: 1px solid var(--line); cursor: pointer; }
   .history-row:last-child { border-bottom: none; }
   .history-row:hover { background: var(--paper); }
   .history-row .tot { color: var(--accent-deep); font-weight: 600; }
-  .empty-state { text-align: center; padding: 30px 20px; color: var(--muted); font-size: 13.5px; }
+  .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }
+
+  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--ink); margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -96,62 +92,88 @@
 <nav>
   <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
   <div class="nav-right">
+    <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
+    <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
+      <option value="">Go to…</option>
+      <option value="dashboard.html">Dashboard</option>
+      <option value="roster.html">Roster</option>
+      <option value="assessment.html" selected>Player assessment</option>
+      <option value="settings.html">Settings</option>
+    </select>
     <button class="nav-btn" id="logout-btn">Log out</button>
   </div>
 </nav>
 
-<div class="wrap">
-  <h1>Player assessment</h1>
-  <p class="sub">36 criteria across 4 sectors, scored 0 to 5.</p>
-
-  <div class="msg" id="msg"></div>
-
-  <div class="toolbar">
-    <div class="field">
-      <label for="player-select">Player</label>
-      <select id="player-select"><option value="">Loading…</option></select>
+<div class="layout">
+  <div>
+    <div class="side-card">
+      <h2>Seasons &amp; teams</h2>
+      <div id="tree"></div>
     </div>
-    <div class="field">
-      <label for="date">Date</label>
-      <input id="date" type="date" />
+    <div class="side-card">
+      <h2>Criteria</h2>
+      <label class="toggle-row">
+        <input type="checkbox" id="advanced-toggle" />
+        <span>Show advanced criteria too (18 more, tactical/IQ-focused)</span>
+      </label>
     </div>
-    <div class="field">
-      <label for="location">Location</label>
-      <input id="location" type="text" placeholder="Optional" />
-    </div>
-    <div class="spacer"></div>
-    <button class="btn btn-primary" id="new-btn">+ New assessment</button>
   </div>
 
-  <div id="form-area" style="display:none">
-    <div class="toggle-row">
-      <input type="checkbox" id="advanced-toggle" />
-      <label for="advanced-toggle">Show advanced criteria too (16 more, tactical/IQ-focused)</label>
-    </div>
+  <div>
+    <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+    <h1 style="display:flex; align-items:center; justify-content:space-between;">
+      Player assessment
+      <button id="help-btn" title="What's this module for?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+    </h1>
+    <div class="help-box" id="help-box"></div>
+    <p class="sub" id="current-selection">Pick a season/team on the left, or load the example.</p>
 
-    <div id="sectors-container"></div>
-
-    <div class="comments-card">
-      <label for="positive_points">Positive points</label>
-      <textarea id="positive_points"></textarea>
-      <label for="negative_points">Points to watch</label>
-      <textarea id="negative_points"></textarea>
-      <label for="to_improve">To work on next</label>
-      <textarea id="to_improve"></textarea>
-    </div>
+    <div class="msg" id="msg"></div>
 
     <div class="toolbar">
-      <button class="btn btn-primary" id="save-btn">Save assessment</button>
-      <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
+      <div class="field">
+        <label for="player-select">Player</label>
+        <select id="player-select"><option value="">Pick a season/team first</option></select>
+      </div>
       <div class="spacer"></div>
-      <button class="btn btn-secondary" id="delete-btn" style="display:none">Delete</button>
+      <button class="btn btn-primary" id="new-btn">+ New assessment</button>
     </div>
-  </div>
 
-  <h2 style="font-size:15px; margin: 28px 0 10px;">Past assessments</h2>
-  <div class="history-card" id="history-card">
-    <div class="empty-state" id="history-empty">Pick a player above to see their assessment history.</div>
+    <div id="form-area" style="display:none">
+      <div class="toolbar">
+        <div class="field"><label for="date">Date</label><input id="date" type="date" /></div>
+        <div class="field"><label for="location">Location</label><input id="location" type="text" placeholder="Optional" /></div>
+      </div>
+      <div class="heights-row">
+        <div class="field"><label for="height_player">Player height (cm)</label><input id="height_player" type="text" /></div>
+        <div class="field"><label for="height_father">Father's height (cm)</label><input id="height_father" type="text" /></div>
+        <div class="field"><label for="height_mother">Mother's height (cm)</label><input id="height_mother" type="text" /></div>
+      </div>
+
+      <div id="sectors-container"></div>
+
+      <div class="comments-card">
+        <label for="positive_points">Positive points</label>
+        <textarea id="positive_points"></textarea>
+        <label for="negative_points">Points to watch</label>
+        <textarea id="negative_points"></textarea>
+        <label for="to_improve">To work on next</label>
+        <textarea id="to_improve"></textarea>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn btn-primary" id="save-btn">Save assessment</button>
+        <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
+        <div class="spacer"></div>
+        <button class="btn btn-secondary" id="delete-btn" style="display:none">Delete</button>
+      </div>
+    </div>
+
+    <h2 style="font-size:15px; margin: 24px 0 10px;">Past assessments</h2>
+    <div class="history-card" id="history-card">
+      <div class="empty-state" id="history-empty">Pick a player above to see their assessment history.</div>
+    </div>
   </div>
 </div>
 
@@ -162,22 +184,22 @@
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ---------------------------------------------------------------------
-  // Les 36 critères, identiques à suivi.py (application de bureau).
-  // "basic": true = suffisamment simple à juger pour un coach débutant.
-  // Les critères sans "basic" (donc avancés) restent cachés tant que la
-  // case "Show advanced criteria" n'est pas cochée.
+  // Les 36 critères. "basic": true = suffisamment simple à juger pour un
+  // coach débutant -- allégé encore par rapport à la première version
+  // (moins de critères de dribble/tir en base pour que ce soit vraiment
+  // plus facile).
   // ---------------------------------------------------------------------
   const CRITERIA = {
-    technique: { label: "Technique", sector: 2, groups: {
+    technique: { label: "Technique", groups: {
       dribble: { label: "Dribble", items: [
         { text: "Looks at the ball", basic: true },
         { text: "Dribbles with right hand", basic: true },
         { text: "Dribbles with left hand", basic: true },
-        { text: "Changes of direction", basic: true },
+        { text: "Changes of direction", basic: false },
       ]},
       tir: { label: "Shooting", items: [
         { text: "Shooting technique", basic: true },
-        { text: "Balance / footwork for the shot", basic: true },
+        { text: "Balance / footwork for the shot", basic: false },
         { text: "Speed of execution", basic: false },
         { text: "Free throw", basic: true },
       ]},
@@ -192,7 +214,7 @@
         { text: "Off-ball defense (weak side)", basic: false },
       ]},
     }},
-    intelligence: { label: "Basketball IQ", sector: 3, groups: {
+    intelligence: { label: "Basketball IQ", groups: {
       sans_ballon: { label: "Off the ball", items: [
         { text: "Getting open, back door cuts", basic: false },
         { text: "Spacing", basic: false },
@@ -217,14 +239,14 @@
         { text: "Influence on the game", basic: false },
       ]},
     }},
-    personnalite: { label: "Personality", sector: 4, groups: {
+    personnalite: { label: "Personality", groups: {
       attitude: { label: "General attitude", items: [
         { text: "Towards teammates / coaches", basic: true },
         { text: "Towards their own mistakes", basic: true },
         { text: "Towards referees", basic: true },
       ]},
     }},
-    comportement: { label: "Behaviour", sector: 5, groups: {
+    comportement: { label: "Behaviour", groups: {
       comportement: { label: "", items: [
         { text: "Motivation, willing to sacrifice time for the sport, willing to push their limits", basic: true },
         { text: "Tactical discipline: follows the coach's instructions, pays attention when others are corrected", basic: true },
@@ -245,7 +267,6 @@
     }
     return r;
   }
-
   function sectorAverage(ratings, sectKey) {
     let sum = 0, count = 0;
     const groups = ratings[sectKey] || {};
@@ -255,13 +276,18 @@
     return count > 0 ? sum / count : null;
   }
 
-  // ---------------------------------------------------------------------
   const els = {
     orgName: document.getElementById("org-name"),
+    orgLogo: document.getElementById("org-logo"),
     logoutBtn: document.getElementById("logout-btn"),
+    tree: document.getElementById("tree"),
+    currentSelection: document.getElementById("current-selection"),
     playerSelect: document.getElementById("player-select"),
     date: document.getElementById("date"),
     location: document.getElementById("location"),
+    heightPlayer: document.getElementById("height_player"),
+    heightFather: document.getElementById("height_father"),
+    heightMother: document.getElementById("height_mother"),
     newBtn: document.getElementById("new-btn"),
     formArea: document.getElementById("form-area"),
     advancedToggle: document.getElementById("advanced-toggle"),
@@ -278,6 +304,8 @@
   };
 
   let currentOrgId = null;
+  let currentSeason = null;
+  let currentTeam = null;
   let currentRatings = emptyRatings();
   let editingId = null;
 
@@ -285,8 +313,138 @@
   function clearMessage() { els.msg.className = "msg"; els.msg.textContent = ""; }
 
   // ---------------------------------------------------------------------
-  // Construit le formulaire une seule fois (les 36 lignes), avec des
-  // select liés directement à currentRatings.
+  // Arbre saison / équipe (même logique que roster.html)
+  // ---------------------------------------------------------------------
+  async function loadTree() {
+    const { data, error } = await supabaseClient
+      .from("players").select("season, team").eq("organization_id", currentOrgId);
+    if (error) { console.error("loadTree error:", error); return; }
+
+    const bySeasons = {};
+    (data || []).forEach((r) => {
+      (bySeasons[r.season] = bySeasons[r.season] || new Set()).add(r.team);
+    });
+
+    els.tree.innerHTML = "";
+    Object.keys(bySeasons).sort().reverse().forEach((season) => {
+      const seasonEl = document.createElement("div");
+      seasonEl.className = "tree-season";
+      seasonEl.textContent = season;
+      els.tree.appendChild(seasonEl);
+      Array.from(bySeasons[season]).sort().forEach((team) => {
+        const btn = document.createElement("button");
+        btn.className = "tree-team" + (season === currentSeason && team === currentTeam ? " active" : "");
+        btn.textContent = team;
+        btn.addEventListener("click", () => selectSeasonTeam(season, team));
+        els.tree.appendChild(btn);
+      });
+    });
+
+    const exampleBtn = document.createElement("button");
+    exampleBtn.className = "tree-example";
+    exampleBtn.textContent = "★ Load example (Bulls '96)";
+    exampleBtn.addEventListener("click", loadExample);
+    els.tree.appendChild(exampleBtn);
+  }
+
+  function selectSeasonTeam(season, team) {
+    currentSeason = season;
+    currentTeam = team;
+    els.currentSelection.textContent = `${team} — ${season}`;
+    els.formArea.style.display = "none";
+    loadTree();
+    loadPlayersIntoSelect();
+  }
+
+  // ---------------------------------------------------------------------
+  // Club + logo
+  // ---------------------------------------------------------------------
+  async function loadMyOrganization() {
+    const { data, error } = await supabaseClient
+      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+    if (error || !data || data.length === 0) {
+      showMessage("You're not an active member of any club yet.", "error");
+      return null;
+    }
+    currentOrgId = data[0].organization_id;
+    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
+    return currentOrgId;
+  }
+
+  async function loadPlayersIntoSelect() {
+    els.playerSelect.innerHTML = "";
+    if (!currentSeason || !currentTeam) {
+      els.playerSelect.innerHTML = '<option value="">Pick a season/team first</option>';
+      return;
+    }
+    const { data, error } = await supabaseClient
+      .from("players").select("id, first_name, last_name")
+      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
+      .eq("active", true).order("last_name");
+    if (error || !data || data.length === 0) {
+      els.playerSelect.innerHTML = '<option value="">No players in this team yet — add some in Roster</option>';
+      return;
+    }
+    data.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.first_name} ${p.last_name}`;
+      els.playerSelect.appendChild(opt);
+    });
+    loadHistory();
+  }
+
+  // ---------------------------------------------------------------------
+  // Exemple : mêmes Bulls '96, avec une évaluation type par joueur
+  // ---------------------------------------------------------------------
+  const EXAMPLE_SEASON = "1995-1996";
+  const EXAMPLE_TEAM = "Chicago Bulls";
+  const CRITERIA_SHAPE = {
+    technique: { dribble: 4, tir: 4, passe: 3, defense: 3 },
+    intelligence: { sans_ballon: 4, avec_ballon: 3, defense: 5, divers: 3 },
+    personnalite: { attitude: 3 },
+    comportement: { comportement: 4 },
+  };
+  function makeExampleRatings(center, spread) {
+    const ratings = {};
+    for (const sect in CRITERIA_SHAPE) {
+      ratings[sect] = {};
+      for (const grp in CRITERIA_SHAPE[sect]) {
+        const n = CRITERIA_SHAPE[sect][grp];
+        ratings[sect][grp] = Array.from({ length: n }, () => {
+          const v = spread ? center + Math.round((Math.random() * 2 - 1) * spread) : center;
+          return Math.max(1, Math.min(5, v));
+        });
+      }
+    }
+    return ratings;
+  }
+  const ASSESSMENT_PATTERNS = { Jordan: [5, 0], Pippen: [5, 1], Rodman: [4, 1], Harper: [3, 1] };
+  const DEFAULT_PATTERN = [2, 1];
+  const EXAMPLE_PLAYER_NAMES = ["Jordan","Pippen","Rodman","Harper","Longley","Kukoc","Kerr","Wennington","Buechler","Brown","Simpkins","Caffey","Edwards","Haley","Salley"];
+
+  async function loadExample() {
+    if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
+    if (!confirm(`Load the Chicago Bulls '95-96 roster and a sample assessment for each player?`)) return;
+    try {
+      const { data: existing } = await supabaseClient.from("players").select("id")
+        .eq("organization_id", currentOrgId).eq("season", EXAMPLE_SEASON).eq("team", EXAMPLE_TEAM);
+      if (existing && existing.length > 0) {
+        selectSeasonTeam(EXAMPLE_SEASON, EXAMPLE_TEAM);
+        showMessage("The example was already loaded — pick a player above to see their assessment, or load it fresh from the Dashboard.", "success");
+        return;
+      }
+      showMessage("No example roster found yet — go to Dashboard or Roster and click \"Load example\" first, then come back here.", "error");
+    } catch (err) {
+      showMessage(err.message || "Couldn't check for the example data.", "error");
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Formulaire des critères
   // ---------------------------------------------------------------------
   function buildForm() {
     els.sectorsContainer.innerHTML = "";
@@ -294,8 +452,7 @@
       const sect = CRITERIA[sectKey];
       const card = document.createElement("div");
       card.className = "sector-card";
-      card.innerHTML = `<h2>${sect.label}</h2><div class="avg" id="avg-${sectKey}">Average: —</div>`;
-
+      card.innerHTML = `<h3>${sect.label}</h3><div class="avg" id="avg-${sectKey}">Average: —</div>`;
       Object.keys(sect.groups).forEach((grpKey) => {
         const grp = sect.groups[grpKey];
         if (grp.label) {
@@ -327,7 +484,6 @@
       els.sectorsContainer.appendChild(card);
     });
   }
-
   function updateAverages() {
     SECTOR_ORDER.forEach((sectKey) => {
       const avg = sectorAverage(currentRatings, sectKey);
@@ -335,7 +491,6 @@
       if (el) el.textContent = avg !== null ? `Average: ${avg.toFixed(1)} / 5` : "Average: —";
     });
   }
-
   function fillFormFromRatings() {
     document.querySelectorAll("#sectors-container select").forEach((select) => {
       const sectKey = select.dataset.sector, grpKey = select.dataset.group, i = parseInt(select.dataset.index, 10);
@@ -344,7 +499,6 @@
     });
     updateAverages();
   }
-
   function applyAdvancedVisibility() {
     const show = els.advancedToggle.checked;
     document.querySelectorAll(".criterion-row.advanced").forEach((row) => row.classList.toggle("show", show));
@@ -352,55 +506,15 @@
   els.advancedToggle.addEventListener("change", applyAdvancedVisibility);
 
   // ---------------------------------------------------------------------
-  // Club, joueurs, assessments
+  // Historique / sauvegarde
   // ---------------------------------------------------------------------
-  async function loadMyOrganization() {
-    const { data, error } = await supabaseClient
-      .from("memberships")
-      .select("organization_id, status, organizations(name)")
-      .eq("status", "active")
-      .limit(1);
-    if (error || !data || data.length === 0) {
-      showMessage("You're not an active member of any club yet.", "error");
-      return null;
-    }
-    currentOrgId = data[0].organization_id;
-    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
-    return currentOrgId;
-  }
-
-  async function loadPlayersIntoSelect() {
-    const { data, error } = await supabaseClient
-      .from("players")
-      .select("id, first_name, last_name, season, team")
-      .eq("organization_id", currentOrgId)
-      .eq("active", true)
-      .order("last_name");
-    els.playerSelect.innerHTML = "";
-    if (error || !data || data.length === 0) {
-      els.playerSelect.innerHTML = '<option value="">No players yet — add some in Roster first</option>';
-      return;
-    }
-    data.forEach((p) => {
-      const opt = document.createElement("option");
-      opt.value = p.id;
-      opt.textContent = `${p.first_name} ${p.last_name} (${p.team}, ${p.season})`;
-      els.playerSelect.appendChild(opt);
-    });
-  }
-
   async function loadHistory() {
     const playerId = els.playerSelect.value;
     els.historyCard.innerHTML = "";
-    if (!playerId) {
-      els.historyCard.appendChild(els.historyEmpty);
-      return;
-    }
+    if (!playerId) { els.historyCard.appendChild(els.historyEmpty); return; }
     const { data, error } = await supabaseClient
-      .from("player_assessments")
-      .select("id, date, location, ratings")
-      .eq("player_id", playerId)
-      .order("date", { ascending: false });
+      .from("player_assessments").select("id, date, location, ratings")
+      .eq("player_id", playerId).order("date", { ascending: false });
     if (error || !data || data.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-state";
@@ -420,13 +534,13 @@
   }
 
   function openNew() {
+    if (!els.playerSelect.value) { showMessage("Pick a player first.", "error"); return; }
     editingId = null;
     currentRatings = emptyRatings();
     els.date.value = new Date().toISOString().slice(0, 10);
     els.location.value = "";
-    els.positivePoints.value = "";
-    els.negativePoints.value = "";
-    els.toImprove.value = "";
+    els.heightPlayer.value = ""; els.heightFather.value = ""; els.heightMother.value = "";
+    els.positivePoints.value = ""; els.negativePoints.value = ""; els.toImprove.value = "";
     els.deleteBtn.style.display = "none";
     els.formArea.style.display = "block";
     fillFormFromRatings();
@@ -440,6 +554,9 @@
     currentRatings = data.ratings;
     els.date.value = data.date;
     els.location.value = data.location || "";
+    els.heightPlayer.value = data.height_player || "";
+    els.heightFather.value = data.height_father || "";
+    els.heightMother.value = data.height_mother || "";
     els.positivePoints.value = data.positive_points || "";
     els.negativePoints.value = data.negative_points || "";
     els.toImprove.value = data.to_improve || "";
@@ -454,10 +571,11 @@
     const playerId = els.playerSelect.value;
     if (!playerId) { showMessage("Pick a player first.", "error"); return; }
     const payload = {
-      organization_id: currentOrgId,
-      player_id: playerId,
-      date: els.date.value,
-      location: els.location.value.trim() || null,
+      organization_id: currentOrgId, player_id: playerId,
+      date: els.date.value, location: els.location.value.trim() || null,
+      height_player: els.heightPlayer.value.trim() || null,
+      height_father: els.heightFather.value.trim() || null,
+      height_mother: els.heightMother.value.trim() || null,
       ratings: currentRatings,
       positive_points: els.positivePoints.value.trim() || null,
       negative_points: els.negativePoints.value.trim() || null,
@@ -465,11 +583,8 @@
     };
     try {
       let error;
-      if (editingId) {
-        ({ error } = await supabaseClient.from("player_assessments").update(payload).eq("id", editingId));
-      } else {
-        ({ error } = await supabaseClient.from("player_assessments").insert(payload));
-      }
+      if (editingId) ({ error } = await supabaseClient.from("player_assessments").update(payload).eq("id", editingId));
+      else ({ error } = await supabaseClient.from("player_assessments").insert(payload));
       if (error) throw error;
       els.formArea.style.display = "none";
       await loadHistory();
@@ -492,6 +607,28 @@
   els.saveBtn.addEventListener("click", saveAssessment);
   els.deleteBtn.addEventListener("click", deleteAssessment);
   els.playerSelect.addEventListener("change", () => { els.formArea.style.display = "none"; loadHistory(); });
+
+  document.getElementById("nav-menu").addEventListener("change", (e) => {
+    if (e.target.value) window.location.href = "./" + e.target.value;
+  });
+
+  document.getElementById("help-btn").addEventListener("click", () => {
+    const box = document.getElementById("help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.innerHTML = `
+      <strong>How to use Player assessment</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li><strong>Pick a season/team</strong> on the left, then a player at the top — the list updates to match.</li>
+        <li><strong>Show advanced criteria</strong> (left, below the tree) reveals 18 more tactical/IQ-focused criteria on top of the 18 basic ones — leave it off for a quicker, simpler evaluation.</li>
+        <li><strong>Heights</strong> (player, father, mother) are optional, used to get a feel for likely adult height.</li>
+        <li><strong>Click "+ New assessment"</strong>, fill in what you can (blank stays blank, it's not forced to a random score), Save.</li>
+        <li>Sector averages update live as you fill each one in.</li>
+        <li><strong>Past assessments</strong> below are clickable — opens that one back up to review or edit.</li>
+        <li><strong>★ Load example</strong> (left, under the tree) needs the Bulls roster to already exist — load it from Dashboard or Roster first if you haven't yet, then come back here to see sample evaluations for Jordan, Pippen, and the rest.</li>
+      </ul>`;
+    box.style.display = "block";
+  });
+
   els.logoutBtn.addEventListener("click", async () => {
     await supabaseClient.auth.signOut();
     window.location.href = "./login.html";
@@ -502,10 +639,7 @@
     if (!data.session) { window.location.href = "./login.html"; return; }
     buildForm();
     const orgId = await loadMyOrganization();
-    if (orgId) {
-      await loadPlayersIntoSelect();
-      await loadHistory();
-    }
+    if (orgId) await loadTree();
   }
   init();
 </script>
