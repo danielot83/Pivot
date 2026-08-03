@@ -20,38 +20,77 @@ const TOOLS_ROW2 = [["arrow","Movement (no ball)"],["dribble","Movement (dribble
 const TOOLS_ROW3 = [["shot","Shot/finish (double line)"],["fake_move","Fake move"],["fake_pass","Fake pass"],["fake_shot","Fake shot"]];
 
 /** Dessine le fond de terrain (demi, vertical, ou complet horizontal) sur un canvas 2D context donné. */
-function drawCourtBackground(ctx, canvas, courtType) {
-  const w = canvas.width, h = canvas.height;
+/** Configure un canvas pour un rendu net sur les écrans haute résolution
+    (Retina etc.) -- sans ça, le texte et les traits sortent flous parce
+    que le canvas est dessiné à sa taille CSS mais affiché plus grand par
+    le navigateur. Renvoie le nouveau contexte 2D à utiliser -- l'appelant
+    doit continuer à utiliser cssW/cssH (pas canvas.width/height) pour
+    tous les calculs de coordonnées (toPx etc.), le ratio est géré ici. */
+function setupHiDPICanvas(canvas, cssW, cssH) {
+  const ratio = window.devicePixelRatio || 1;
+  canvas.style.width = cssW + "px";
+  canvas.style.height = cssH + "px";
+  canvas.width = Math.round(cssW * ratio);
+  canvas.height = Math.round(cssH * ratio);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  return ctx;
+}
+
+function drawCourtBackground(ctx, canvas, courtType, cssW, cssH) {
+  const w = cssW || canvas.width, h = cssH || canvas.height;
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
   ctx.strokeStyle = "#c9c9ce"; ctx.lineWidth = 1.2;
   ctx.strokeRect(3, 3, w - 6, h - 6);
 
-  if (courtType === "half") {
-    const keyW = w * 0.34, keyH = h * 0.34;
-    const keyX = (w - keyW) / 2, keyY = h - keyH;
+  // Dessine un demi-terrain de basket avec le panier en bas, à l'échelle
+  // donnée (utilisé tel quel pour "half", et deux fois, dos à dos, pour
+  // "full"). Proportions réalistes : raquette étroite, cercle de lancer
+  // franc juste au-dessus, arc à 3 points en forme de D.
+  function drawHalfCourt(originX, originY, courtW, courtH, basketAtBottom) {
+    const keyW = courtW * 0.34, keyH = courtH * 0.36;
+    const keyX = originX + (courtW - keyW) / 2;
+    const keyY = basketAtBottom ? originY + courtH - keyH : originY;
     ctx.strokeRect(keyX, keyY, keyW, keyH);
-    ctx.beginPath(); ctx.arc(w / 2, keyY, keyW / 2, Math.PI, 2 * Math.PI); ctx.stroke();
-    ctx.beginPath(); ctx.arc(w / 2, h - 5, 6, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(w / 2, h + h * 0.12, h * 0.6, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+
+    const ftY = basketAtBottom ? keyY : keyY + keyH;
+    ctx.beginPath();
+    ctx.arc(originX + courtW / 2, ftY, keyW / 2, basketAtBottom ? Math.PI : 0, basketAtBottom ? 2 * Math.PI : Math.PI);
+    ctx.stroke();
+
+    const basketY = basketAtBottom ? originY + courtH - 6 : originY + 6;
+    ctx.beginPath(); ctx.arc(originX + courtW / 2, basketY, 4, 0, Math.PI * 2); ctx.stroke();
+    // planche
+    const backboardY = basketAtBottom ? basketY - 8 : basketY + 8;
+    ctx.beginPath();
+    ctx.moveTo(originX + courtW / 2 - 14, backboardY); ctx.lineTo(originX + courtW / 2 + 14, backboardY);
+    ctx.stroke();
+
+    // arc à 3 points -- un arc simple centré sur le panier, assez large
+    // pour bien se distinguer du cercle de lancer franc
+    const r3 = Math.min(courtW * 0.46, courtH * 0.85);
+    ctx.beginPath();
+    if (basketAtBottom) ctx.arc(originX + courtW / 2, basketY, r3, Math.PI * 1.08, Math.PI * 1.92);
+    else ctx.arc(originX + courtW / 2, basketY, r3, Math.PI * 0.08, Math.PI * 0.92, true);
+    ctx.stroke();
+  }
+
+  if (courtType === "half") {
+    drawHalfCourt(3, 3, w - 6, h - 6, true);
   } else if (courtType === "vertical") {
     ctx.beginPath(); ctx.moveTo(3, h / 2); ctx.lineTo(w - 3, h / 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.16, 0, Math.PI * 2); ctx.stroke();
-    [0, 1].forEach((half) => {
-      const keyW = w * 0.5, keyH = h * 0.16;
-      const keyX = (w - keyW) / 2, keyY = half === 0 ? 3 : h - keyH - 3;
-      ctx.strokeRect(keyX, keyY, keyW, keyH);
-      ctx.beginPath(); ctx.arc(w / 2, half === 0 ? 9 : h - 9, 5, 0, Math.PI * 2); ctx.stroke();
-    });
-  } else { // "full", horizontal
+    ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.22, 0, Math.PI * 2); ctx.stroke();
+    drawHalfCourt(3, 3, w - 6, (h - 6) / 2, false);
+    drawHalfCourt(3, h / 2, w - 6, (h - 6) / 2, true);
+  } else { // "full", horizontal -- même géométrie que "vertical", tournée
     ctx.beginPath(); ctx.moveTo(w / 2, 3); ctx.lineTo(w / 2, h - 3); ctx.stroke();
-    ctx.beginPath(); ctx.arc(w / 2, h / 2, h * 0.16, 0, Math.PI * 2); ctx.stroke();
-    [0, 1].forEach((half) => {
-      const keyH = h * 0.5, keyW = w * 0.16;
-      const keyY = (h - keyH) / 2, keyX = half === 0 ? 3 : w - keyW - 3;
-      ctx.strokeRect(keyX, keyY, keyW, keyH);
-      ctx.beginPath(); ctx.arc(half === 0 ? 9 : w - 9, h / 2, 5, 0, Math.PI * 2); ctx.stroke();
-    });
+    ctx.beginPath(); ctx.arc(w / 2, h / 2, h * 0.22, 0, Math.PI * 2); ctx.stroke();
+    ctx.save();
+    ctx.translate(w / 2, h / 2); ctx.rotate(-Math.PI / 2); ctx.translate(-h / 2, -w / 2);
+    drawHalfCourt(3, 3, h - 6, (w - 6) / 2, false);
+    drawHalfCourt(3, w / 2, h - 6, (w - 6) / 2, true);
+    ctx.restore();
   }
 }
 
@@ -117,21 +156,48 @@ function drawScreenElement(ctx, toPx, el) {
 /** Dessine une zone surlignée (rectangle semi-transparent). */
 function drawZoneElement(ctx, toPx, canvas, el) {
   const [x, y] = toPx(el.x, el.y);
-  const w = el.w * canvas.width, h = el.h * canvas.height;
+  const [x2, y2] = toPx(el.x + el.w, el.y + el.h);
+  const w = x2 - x, h = y2 - y;
   ctx.fillStyle = (el.color || "#c9002b") + "33";
   ctx.fillRect(x, y, w, h);
   ctx.strokeStyle = el.color || "#c9002b"; ctx.lineWidth = 1;
   ctx.strokeRect(x, y, w, h);
 }
 
+/** Dessine un élément "point" (player/defender/coach/cone/ball/post/handoff),
+    avec une étiquette optionnelle (numéro ou initiales) pour player/defender. */
+function drawPointElement(ctx, toPx, el) {
+  const [px, py] = toPx(el.x, el.y);
+  const color = el.color || "#141414";
+  ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+  const label = el.label !== undefined && el.label !== null ? String(el.label) : (el.num !== undefined ? String(el.num) : "");
+  if (el.type === "player") {
+    ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2); ctx.fill();
+    if (label) { ctx.fillStyle = "#fff"; ctx.font = "bold 11px Inter, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(label.slice(0, 2), px, py + 0.5); }
+  } else if (el.type === "defender") {
+    ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2); ctx.stroke();
+    if (label) { ctx.fillStyle = color; ctx.font = "bold 11px Inter, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(label.slice(0, 2), px, py + 0.5); }
+  } else if (el.type === "coach") {
+    ctx.font = "bold 14px Inter, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("C", px, py);
+  } else if (el.type === "cone") {
+    ctx.beginPath(); ctx.moveTo(px, py - 8); ctx.lineTo(px + 7, py + 7); ctx.lineTo(px - 7, py + 7); ctx.closePath(); ctx.fill();
+  } else if (el.type === "ball") {
+    ctx.beginPath(); ctx.arc(px, py, 7, 0, Math.PI * 2); ctx.stroke();
+  } else if (el.type === "post") {
+    ctx.fillRect(px - 6, py - 6, 12, 12);
+  } else if (el.type === "handoff") {
+    ctx.font = "bold 13px Inter, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("#", px, py);
+  }
+}
+
+const POINT_KINDS = ["player", "defender", "coach", "cone", "ball", "post", "handoff"];
+
 /** Dessine n'importe quel élément selon son type -- point, ligne, écran, ou zone. */
 function drawDiagramElement(ctx, toPx, canvas, el, progress) {
   if (el.type === "zone") drawZoneElement(ctx, toPx, canvas, el);
   else if (el.type === "screen") drawScreenElement(ctx, toPx, el);
   else if (LINE_KINDS.includes(el.type)) drawLineElement(ctx, toPx, el, progress);
-  // les éléments "point" (player/defender/coach/cone/ball/post/handoff)
-  // restent dessinés par chaque page, car leur style diffère un peu selon
-  // le contexte (numérotés pour play_design, libres pour exercises).
+  else if (POINT_KINDS.includes(el.type)) drawPointElement(ctx, toPx, el);
 }
 
 /** Construit la barre d'outils des 17 outils dans les trois lignes fournies. */

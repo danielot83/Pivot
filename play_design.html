@@ -41,7 +41,8 @@
   .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
   .tree-season { font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
   .tree-season:first-child { margin-top: 0; }
-  .play-item { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 8px; margin-left: 8px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .tree-cat { font-size: 11px; color: var(--muted); margin: 4px 0 2px 6px; text-transform: uppercase; }
+  .play-item { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 8px; margin-left: 10px; border-radius: 6px; font-size: 13px; cursor: pointer; }
   .play-item:hover { background: var(--paper); }
   .play-item.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
   .play-item button { background: none; border: none; cursor: pointer; font-size: 11px; color: var(--muted); }
@@ -54,6 +55,8 @@
   .btn-primary:hover { background: var(--accent-deep); }
   .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
   .btn-secondary:hover { border-color: var(--accent); }
+  .btn-danger { background: transparent; border: 1px solid #f3c6c6; color: #991b1b; }
+  .btn-danger:hover { background: #fef2f2; }
   .spacer { flex: 1; }
   .tool-group { display: flex; flex-wrap: wrap; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px; margin-bottom: 6px; }
   .tool-btn { padding: 5px 9px; border: none; background: none; border-radius: 6px; cursor: pointer; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
@@ -63,7 +66,7 @@
   .field-row { display: flex; gap: 10px; margin-bottom: 12px; align-items: end; flex-wrap: wrap; }
   .field { display: flex; flex-direction: column; gap: 4px; }
   .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
-  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+  .field input, .field select, .field textarea { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; font-family: inherit; }
 
   .step-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; align-items: center; }
   .step-tab { display: flex; align-items: center; gap: 4px; padding: 6px 10px; border: 1px solid var(--line); background: var(--card); border-radius: 6px; font-size: 12px; cursor: pointer; }
@@ -73,9 +76,10 @@
   .add-step-btn { padding: 6px 10px; border: 1px dashed var(--line); background: none; border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--accent-deep); font-weight: 600; }
   .add-step-btn:hover { border-color: var(--accent); }
 
-  .court-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .court-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; text-align: center; }
   #court-canvas { display: block; margin: 0 auto; cursor: crosshair; touch-action: none; }
   .hint-text { font-size: 11.5px; color: var(--muted); margin: 8px 0 0; }
+  .step-note-display { font-size: 13px; color: var(--ink); background: var(--accent-tint); border-radius: 6px; padding: 8px 12px; margin-top: 10px; display: none; }
 </style>
 </head>
 <body>
@@ -125,17 +129,26 @@
       <div class="field" style="flex:2;"><label for="play-name">Play name</label><input id="play-name" type="text" placeholder="e.g. Horns flare" /></div>
       <div class="field"><label for="play-season">Season</label><select id="play-season"><option value="">Optional</option></select></div>
       <div class="field"><label for="play-team">Team</label><select id="play-team"><option value="">Optional</option></select></div>
-      <div class="field"><label for="play-category">Category</label><input id="play-category" type="text" placeholder="e.g. Half-court offense" /></div>
+      <div class="field"><label for="play-category">Category (folder)</label><input id="play-category" type="text" placeholder="e.g. Half-court offense" /></div>
     </div>
 
     <div class="step-tabs" id="step-tabs"></div>
-    <div class="toolbar">
+    <div class="field-row">
       <div class="field" style="flex-direction:row; align-items:center; gap:6px;">
         <label for="step-court-type" style="margin:0;">This step's court</label>
         <select id="step-court-type" style="width:110px;"><option value="half">Half court</option><option value="full">Full court</option></select>
       </div>
+      <div class="field" style="flex:2; min-width:220px;"><label for="step-note">Note for this step</label><input id="step-note" type="text" placeholder="e.g. 1 passes to 2 and cuts to the corner" /></div>
       <div class="spacer"></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="field" style="flex-direction:row; align-items:center; gap:6px;">
+        <label for="anim-speed" style="margin:0;">Speed</label>
+        <select id="anim-speed" style="width:90px;"><option value="1.8">Slow</option><option value="1" selected>Normal</option><option value="0.5">Fast</option></select>
+      </div>
       <button class="btn btn-secondary" id="animate-btn">▶ Animate whole sequence</button>
+      <button class="btn btn-secondary" id="download-gif-btn">⬇ Download animation (GIF)</button>
     </div>
 
     <div class="tool-group" id="tools-row1"></div>
@@ -151,25 +164,28 @@
           <option value="#1e7a3c">Green</option>
         </select>
       </div>
-      <button class="btn btn-secondary" id="undo-btn">↩ Undo</button>
+      <button class="btn btn-secondary" id="undo-btn">↩ Undo last</button>
       <button class="btn btn-secondary" id="clear-actions-btn">Clear this step</button>
     </div>
 
     <div class="court-card">
-      <canvas id="court-canvas" width="480" height="460"></canvas>
+      <canvas id="court-canvas"></canvas>
+      <div class="step-note-display" id="step-note-display"></div>
     </div>
     <p class="hint-text" id="step-hint"></p>
 
     <div class="toolbar" style="margin-top:14px;">
       <button class="btn btn-primary" id="save-play-btn">Save play</button>
       <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF (all steps)</button>
-      <button class="btn btn-secondary" id="delete-play-btn" style="display:none; color:#991b1b;">Delete this play</button>
+      <div class="spacer"></div>
+      <button class="btn btn-danger" id="delete-play-btn" style="display:none;">Delete this play</button>
     </div>
   </div>
 </div>
 
 <script src="court-diagram.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
@@ -189,17 +205,21 @@
     canvas: document.getElementById("court-canvas"),
     colorSelect: document.getElementById("color-select"),
     stepCourtType: document.getElementById("step-court-type"),
+    stepNote: document.getElementById("step-note"),
+    stepNoteDisplay: document.getElementById("step-note-display"),
     stepHint: document.getElementById("step-hint"),
+    animSpeed: document.getElementById("anim-speed"),
   };
-  const ctx = els.canvas.getContext("2d");
+  let ctx = els.canvas.getContext("2d");
+  let cssW = 480, cssH = 460;
 
   let currentOrgId = null;
   let currentPlayId = null;
-  let allPlays = [];
-  let rosterSeasonsTeams = []; // [{season, team}] réels, tirés de Roster
-  let activeTool = "move";
-  // steps = tableau ordonné, PAS de nombre fixe : chaque étape a son propre
-  // type de terrain et sa propre position de départ des joueurs.
+  let rosterSeasonsTeams = [];
+  let activeTool = "select";
+  // steps = tableau ordonné, pas de nombre fixe. Chaque étape : son propre
+  // type de terrain, sa propre note, ses propres points (joueurs/cônes/...)
+  // et actions -- rien n'est pré-rempli, l'utilisateur ajoute ce qu'il faut.
   let steps = [];
   let currentStepIndex = 0;
   let dragging = null, drawingFrom = null;
@@ -207,79 +227,49 @@
 
   function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
 
-  // -----------------------------------------------------------------------
-  // Formation par défaut (5 attaquants, 5 défenseurs)
-  // -----------------------------------------------------------------------
-  function defaultFormation() {
-    const spots = [
-      { x: 0.5, y: 0.88 }, { x: 0.18, y: 0.7 }, { x: 0.82, y: 0.7 }, { x: 0.3, y: 0.35 }, { x: 0.7, y: 0.35 },
-    ];
-    return [
-      ...spots.map((s, i) => ({ id: "O" + (i + 1), team: "O", num: i + 1, x: s.x, y: s.y })),
-      ...spots.map((s, i) => ({ id: "X" + (i + 1), team: "X", num: i + 1, x: s.x, y: Math.max(0.1, s.y - 0.12) })),
-    ];
-  }
-
-  function newStep(players) {
-    return { courtType: "half", players: players || defaultFormation(), actions: [] };
-  }
-
+  function newStep() { return { courtType: "half", note: "", points: [], actions: [] }; }
   function currentStep() { return steps[currentStepIndex]; }
 
   // -----------------------------------------------------------------------
-  // Applique les mouvements (coupe/dribble) d'une étape aux joueurs, pour
-  // que l'étape suivante démarre là où le ballon/les joueurs ont fini --
-  // pas avec les positions de départ de l'étape précédente.
+  // Continuité logique : applique les mouvements (coupe/dribble) d'une
+  // étape à ses points, pour que l'étape suivante démarre là où le
+  // ballon/les joueurs ont fini -- pas avec les positions de départ.
   // -----------------------------------------------------------------------
-  function resolvedPlayers(step) {
-    const resolved = step.players.map((p) => ({ ...p }));
+  function resolvedPoints(step) {
+    const resolved = step.points.map((p) => ({ ...p }));
     step.actions.forEach((a) => {
-      if ((a.type === "arrow" || a.type === "dribble") && a.playerId && a.points) {
-        const p = resolved.find((pp) => pp.id === a.playerId);
+      if ((a.type === "arrow" || a.type === "dribble") && a.pointId && a.points) {
+        const p = resolved.find((pp) => pp.id === a.pointId);
         if (p) { p.x = a.points[1][0]; p.y = a.points[1][1]; }
       }
     });
     return resolved;
   }
 
-  function toPx(x, y) { return [x * els.canvas.width, y * els.canvas.height]; }
-
-  function drawPlayers(playersToDraw) {
-    playersToDraw.forEach((p) => {
-      const [px, py] = toPx(p.x, p.y);
-      ctx.beginPath();
-      ctx.arc(px, py, 13, 0, Math.PI * 2);
-      ctx.fillStyle = p.team === "O" ? "#d21414" : "#1a1a1a";
-      ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.font = "bold 12px Inter, sans-serif";
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(String(p.num), px, py + 0.5);
-    });
-  }
+  function toPx(x, y) { return [x * cssW, y * cssH]; }
 
   function render() {
     const step = currentStep();
     if (!step) return;
-    drawCourtBackground(ctx, els.canvas, step.courtType);
+    drawCourtBackground(ctx, els.canvas, step.courtType, cssW, cssH);
     step.actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, a));
-    drawPlayers(step.players);
+    step.points.forEach((p) => drawPointElement(ctx, toPx, p));
+    els.stepNote.value = step.note || "";
   }
 
   function resizeCanvasForStep() {
     const step = currentStep();
     if (!step) return;
-    const [w, h] = CANVAS_SIZES[step.courtType];
-    els.canvas.width = w; els.canvas.height = h;
+    [cssW, cssH] = CANVAS_SIZES[step.courtType];
+    ctx = setupHiDPICanvas(els.canvas, cssW, cssH);
   }
 
   // -----------------------------------------------------------------------
-  // Onglets d'étapes -- nombre libre, pas fixé à 5. "+ Add step" crée la
-  // suite logique : les joueurs partent d'où ils ont fini l'étape d'avant.
+  // Onglets d'étapes -- nombre libre. "+ Add step" crée la suite logique.
   // -----------------------------------------------------------------------
   function buildStepTabs() {
     els.stepHint.textContent = steps.length > 1
-      ? `Step ${currentStepIndex + 1} of ${steps.length} — players start where the previous step's moves ended.`
+      ? `Step ${currentStepIndex + 1} of ${steps.length} — points start where the previous step's moves ended.`
       : "Add more steps to build out the full sequence of the play.";
     const row = document.getElementById("step-tabs");
     row.innerHTML = "";
@@ -289,8 +279,9 @@
       btn.innerHTML = `Step ${i + 1}` + (steps.length > 1 ? ` <span class="del-step" data-idx="${i}">✕</span>` : "");
       btn.addEventListener("click", (e) => {
         if (e.target.classList.contains("del-step")) return;
+        commitNoteField();
         currentStepIndex = i;
-        buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
+        buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
       });
       row.appendChild(btn);
     });
@@ -301,26 +292,35 @@
         if (steps.length <= 1) return;
         steps.splice(idx, 1);
         currentStepIndex = Math.min(currentStepIndex, steps.length - 1);
-        buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
+        buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
       });
     });
     const addBtn = document.createElement("button");
     addBtn.className = "add-step-btn";
     addBtn.textContent = "+ Add step";
     addBtn.addEventListener("click", () => {
+      commitNoteField();
       const prev = currentStep();
-      const carried = resolvedPlayers(prev);
-      steps.push(newStep(carried));
+      const carried = resolvedPoints(prev);
+      const next = newStep();
+      next.points = carried;
+      next.courtType = prev.courtType;
+      steps.push(next);
       currentStepIndex = steps.length - 1;
-      steps[currentStepIndex].courtType = prev.courtType;
-      buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
+      buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
     });
     row.appendChild(addBtn);
   }
 
-  function syncCourtTypeSelect() {
+  function commitNoteField() {
     const step = currentStep();
-    if (step) els.stepCourtType.value = step.courtType;
+    if (step) step.note = els.stepNote.value;
+  }
+  els.stepNote.addEventListener("input", commitNoteField);
+
+  function syncControls() {
+    const step = currentStep();
+    if (step) { els.stepCourtType.value = step.courtType; els.stepNote.value = step.note || ""; }
   }
   els.stepCourtType.addEventListener("change", () => {
     const step = currentStep();
@@ -330,30 +330,52 @@
   });
 
   // -----------------------------------------------------------------------
-  // Interaction souris/tactile
+  // Interaction souris/tactile -- gère les TROIS familles d'outils :
+  // sélection/déplacement, placement de point (clic simple), et tracé de
+  // ligne/écran/zone (clic-glisser). C'est ce qui manquait avant : les
+  // outils de placement (joueur, ballon, cône...) ne faisaient jamais rien.
   // -----------------------------------------------------------------------
+  const POINT_TOOLS = ["player", "defender", "coach", "ball", "cone", "post", "handoff"];
+
   function eventToFraction(e) {
     const rect = els.canvas.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
   }
-  function playerAt(x, y) {
+  function pointAt(x, y) {
     const step = currentStep();
-    return step.players.find((p) => Math.hypot(p.x - x, p.y - y) < 0.05);
+    return step.points.find((p) => Math.hypot(p.x - x, p.y - y) < 0.045);
   }
+  let nextPointNum = 1;
 
   els.canvas.addEventListener("mousedown", onPointerDown);
   els.canvas.addEventListener("touchstart", onPointerDown);
   function onPointerDown(e) {
     e.preventDefault();
     const { x, y } = eventToFraction(e);
-    if (activeTool === "move") {
-      const p = playerAt(x, y);
+    const step = currentStep();
+
+    if (activeTool === "select") {
+      const p = pointAt(x, y);
       if (p) dragging = p.id;
-    } else {
-      drawingFrom = { x, y, playerId: (playerAt(x, y) || {}).id };
+      return;
     }
+    if (POINT_TOOLS.includes(activeTool)) {
+      const id = "p" + Date.now() + Math.floor(Math.random() * 1000);
+      const el = { id, type: activeTool, x, y, color: els.colorSelect.value };
+      if (activeTool === "player" || activeTool === "defender") {
+        const label = prompt("Number/label for this " + activeTool + ":", String(nextPointNum));
+        if (label === null) return; // annulé
+        el.label = label.trim();
+        nextPointNum++;
+      }
+      step.points.push(el);
+      render();
+      return;
+    }
+    // outils de ligne/écran/zone : clic-glisser
+    drawingFrom = { x, y, pointId: (pointAt(x, y) || {}).id };
   }
   els.canvas.addEventListener("mousemove", onPointerMove);
   els.canvas.addEventListener("touchmove", onPointerMove);
@@ -363,11 +385,17 @@
     const { x, y } = eventToFraction(e);
     const step = currentStep();
     if (dragging) {
-      const p = step.players.find((pl) => pl.id === dragging);
-      if (p) { p.x = Math.min(0.96, Math.max(0.04, x)); p.y = Math.min(0.96, Math.max(0.04, y)); render(); }
+      const p = step.points.find((pl) => pl.id === dragging);
+      if (p) { p.x = Math.min(0.97, Math.max(0.03, x)); p.y = Math.min(0.97, Math.max(0.03, y)); render(); }
     } else if (drawingFrom) {
       render();
-      drawDiagramElement(ctx, toPx, els.canvas, { type: activeTool, points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value });
+      if (activeTool === "zone") {
+        drawZoneElement(ctx, toPx, els.canvas, { x: Math.min(drawingFrom.x, x), y: Math.min(drawingFrom.y, y), w: Math.abs(x - drawingFrom.x), h: Math.abs(y - drawingFrom.y), color: els.colorSelect.value });
+      } else if (activeTool === "screen") {
+        drawScreenElement(ctx, toPx, { points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value });
+      } else {
+        drawLineElement(ctx, toPx, { type: activeTool, points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value });
+      }
     }
   }
   window.addEventListener("mouseup", onPointerUp);
@@ -376,48 +404,105 @@
     if (dragging) { dragging = null; return; }
     if (drawingFrom) {
       const { x, y } = eventToFraction(e.changedTouches ? e.changedTouches[0] : e);
-      if (Math.hypot(x - drawingFrom.x, y - drawingFrom.y) > 0.03) {
-        currentStep().actions.push({ type: activeTool, points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value, playerId: drawingFrom.playerId });
+      const step = currentStep();
+      if (activeTool === "zone") {
+        if (Math.abs(x - drawingFrom.x) > 0.02 && Math.abs(y - drawingFrom.y) > 0.02) {
+          step.actions.push({ type: "zone", x: Math.min(drawingFrom.x, x), y: Math.min(drawingFrom.y, y), w: Math.abs(x - drawingFrom.x), h: Math.abs(y - drawingFrom.y), color: els.colorSelect.value });
+        }
+      } else if (Math.hypot(x - drawingFrom.x, y - drawingFrom.y) > 0.03) {
+        step.actions.push({ type: activeTool, points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value, pointId: drawingFrom.pointId });
       }
       drawingFrom = null;
       render();
     }
   }
+  els.canvas.addEventListener("dblclick", (e) => {
+    const { x, y } = eventToFraction(e);
+    const p = pointAt(x, y);
+    if (p && (p.type === "player" || p.type === "defender")) {
+      const label = prompt("Label for this point:", p.label || "");
+      if (label !== null) { p.label = label.trim(); render(); }
+    } else if (p) {
+      if (confirm("Remove this point from the step?")) {
+        const step = currentStep();
+        step.points = step.points.filter((pt) => pt.id !== p.id);
+        render();
+      }
+    }
+  });
 
   buildSharedToolbar(["tools-row1", "tools-row2", "tools-row3"], (key) => { activeTool = key; });
 
-  document.getElementById("undo-btn").addEventListener("click", () => { currentStep().actions.pop(); render(); });
-  document.getElementById("clear-actions-btn").addEventListener("click", () => { currentStep().actions = []; render(); });
-
-  document.getElementById("animate-btn").addEventListener("click", async () => {
-    if (animating || steps.length === 0) return;
-    animating = true;
-    for (let i = 0; i < steps.length; i++) {
-      currentStepIndex = i;
-      buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect();
-      await animateStep(steps[i]);
-      await new Promise((r) => setTimeout(r, 350)); // petite pause entre étapes
-    }
-    animating = false;
+  document.getElementById("undo-btn").addEventListener("click", () => {
+    const step = currentStep();
+    if (step.actions.length) step.actions.pop();
+    else step.points.pop();
+    render();
+  });
+  document.getElementById("clear-actions-btn").addEventListener("click", () => {
+    const step = currentStep();
+    step.actions = []; step.points = [];
     render();
   });
 
-  function animateStep(step) {
+  // -----------------------------------------------------------------------
+  // Anime toute la séquence, étape par étape, à la vitesse choisie.
+  // -----------------------------------------------------------------------
+  document.getElementById("animate-btn").addEventListener("click", () => runAnimation(false));
+  document.getElementById("download-gif-btn").addEventListener("click", () => runAnimation(true));
+
+  async function runAnimation(recordGif) {
+    if (animating || steps.length === 0) return;
+    animating = true;
+    const speed = parseFloat(els.animSpeed.value) || 1;
+    let gif = null;
+    if (recordGif) {
+      gif = new GIF({ workers: 2, quality: 8, width: els.canvas.width, height: els.canvas.height, workerScript: "https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js" });
+    }
+    for (let i = 0; i < steps.length; i++) {
+      currentStepIndex = i;
+      buildStepTabs(); resizeCanvasForStep(); syncControls();
+      await animateStep(steps[i], speed, gif);
+      await new Promise((r) => setTimeout(r, 350 * speed));
+    }
+    animating = false;
+    render();
+    if (gif) {
+      showMessage("Rendering the GIF, this can take a moment…", "success");
+      gif.on("finished", (blob) => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${(els.playName.value || "play").replace(/\s+/g, "_")}.gif`;
+        a.click();
+      });
+      gif.render();
+    }
+  }
+
+  function animateStep(step, speed, gif) {
     return new Promise((resolve) => {
       const start = performance.now();
-      const duration = 1300;
+      const duration = 1300 * speed;
+      let lastFrameTime = 0;
       function frame(now) {
         const t = Math.min(1, (now - start) / duration);
-        drawCourtBackground(ctx, els.canvas, step.courtType);
+        drawCourtBackground(ctx, els.canvas, step.courtType, cssW, cssH);
         step.actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, a, t));
-        const moved = step.players.map((p) => ({ ...p }));
+        const moved = step.points.map((p) => ({ ...p }));
         step.actions.forEach((a) => {
-          if ((a.type === "arrow" || a.type === "dribble") && a.playerId && a.points) {
-            const p = moved.find((pp) => pp.id === a.playerId);
+          if ((a.type === "arrow" || a.type === "dribble") && a.pointId && a.points) {
+            const p = moved.find((pp) => pp.id === a.pointId);
             if (p) { p.x = a.points[0][0] + (a.points[1][0] - a.points[0][0]) * t; p.y = a.points[0][1] + (a.points[1][1] - a.points[0][1]) * t; }
           }
         });
-        drawPlayers(moved);
+        moved.forEach((p) => drawPointElement(ctx, toPx, p));
+        if (step.note) {
+          els.stepNoteDisplay.textContent = step.note;
+          els.stepNoteDisplay.style.display = "block";
+        } else {
+          els.stepNoteDisplay.style.display = "none";
+        }
+        if (gif && now - lastFrameTime > 80) { gif.addFrame(els.canvas, { copy: true, delay: 90 }); lastFrameTime = now; }
         if (t < 1) requestAnimationFrame(frame);
         else resolve();
       }
@@ -426,7 +511,7 @@
   }
 
   // -----------------------------------------------------------------------
-  // Club + logo + saisons/équipes réelles du Roster (pour les menus)
+  // Club + logo + saisons/équipes réelles du Roster
   // -----------------------------------------------------------------------
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
@@ -465,17 +550,17 @@
   els.playSeason.addEventListener("change", updateTeamOptions);
 
   // -----------------------------------------------------------------------
-  // Cuaderno de jugadas, agrupado por temporada/equipo/categoría
+  // Cuaderno de jugadas, agrupado por temporada/equipo, luego categoría
+  // (comme des "sous-dossiers")
   // -----------------------------------------------------------------------
   async function loadPlaysList() {
     const { data, error } = await supabaseClient
       .from("plays").select("id, name, season, team, category").eq("organization_id", currentOrgId).order("name");
     els.playsTree.innerHTML = "";
     if (error) { console.error("loadPlaysList error:", error); return; }
-    allPlays = data || [];
 
-    const groups = {}; // "season|team" -> { label, category: { catName: [plays] } }
-    allPlays.forEach((p) => {
+    const groups = {};
+    (data || []).forEach((p) => {
       const seasonTeam = `${p.season || "No season"} — ${p.team || "No team"}`;
       groups[seasonTeam] = groups[seasonTeam] || {};
       const cat = p.category || "Uncategorized";
@@ -489,8 +574,8 @@
       els.playsTree.appendChild(seasonEl);
       Object.keys(groups[seasonTeam]).sort().forEach((cat) => {
         const catEl = document.createElement("div");
-        catEl.style.cssText = "font-size:11.5px; color:var(--muted); margin:4px 0 2px 4px; text-transform:uppercase;";
-        catEl.textContent = cat;
+        catEl.className = "tree-cat";
+        catEl.textContent = "📁 " + cat;
         els.playsTree.appendChild(catEl);
         groups[seasonTeam][cat].forEach((p) => {
           const row = document.createElement("div");
@@ -516,9 +601,9 @@
     els.playCategory.value = "";
     steps = [newStep()];
     currentStepIndex = 0;
-    buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
+    buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
     document.getElementById("delete-play-btn").style.display = "none";
-    showMessage("New blank play — draw on the court, then Save when ready.", "success");
+    showMessage("New blank play — pick a tool and draw on the court, then Save when ready.", "success");
   }
 
   async function openPlay(id) {
@@ -531,10 +616,10 @@
     els.playTeam.value = data.team || "";
     els.playCategory.value = data.category || "";
     steps = (data.diagram && Array.isArray(data.diagram.steps) && data.diagram.steps.length > 0)
-      ? data.diagram.steps
+      ? data.diagram.steps.map((s) => ({ courtType: s.courtType || "half", note: s.note || "", points: s.points || [], actions: s.actions || [] }))
       : [newStep()];
     currentStepIndex = 0;
-    buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
+    buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
     document.getElementById("delete-play-btn").style.display = "inline-block";
     await loadPlaysList();
   }
@@ -543,6 +628,7 @@
     if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
     const name = els.playName.value.trim();
     if (!name) { showMessage("Give the play a name first.", "error"); return; }
+    commitNoteField();
     const payload = {
       organization_id: currentOrgId,
       season: els.playSeason.value || null,
@@ -570,7 +656,7 @@
   }
 
   async function deletePlay(id) {
-    if (!confirm("Delete this play?")) return;
+    if (!confirm("Delete this play? This can't be undone.")) return;
     const { error } = await supabaseClient.from("plays").delete().eq("id", id);
     if (error) { showMessage(error.message, "error"); return; }
     if (id === currentPlayId) newPlay();
@@ -578,14 +664,12 @@
   }
 
   // -----------------------------------------------------------------------
-  // PDF vectoriel : une page par étape, terrain + joueurs + actions
-  // dessinés directement (jamais une capture d'écran).
+  // PDF vectoriel : une page par étape, avec sa note en légende
   // -----------------------------------------------------------------------
   function hexToRgb(hex) {
     const n = parseInt(hex.replace("#", ""), 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   }
-
   async function loadLogoDataUrl(orgId) {
     try {
       const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`);
@@ -601,49 +685,46 @@
   }
 
   function drawStepOnPdf(doc, step, marginX, top) {
-    const ink = [26, 26, 26];
     const isHalf = step.courtType === "half";
     const courtW = isHalf ? 300 : 460;
     const courtH = isHalf ? 380 : 260;
     const courtX = marginX + (495 - courtW) / 2;
-    const courtTop = top;
-
     doc.setDrawColor(200, 200, 205); doc.setLineWidth(1);
-    doc.rect(courtX, courtTop, courtW, courtH);
+    doc.rect(courtX, top, courtW, courtH);
     if (isHalf) {
       const keyW = courtW * 0.34, keyH = courtH * 0.34;
-      doc.rect(courtX + (courtW - keyW) / 2, courtTop + courtH - keyH, keyW, keyH);
-      doc.circle(courtX + courtW / 2, courtTop + courtH - keyH, keyW / 2, "S");
+      doc.rect(courtX + (courtW - keyW) / 2, top + courtH - keyH, keyW, keyH);
+      doc.circle(courtX + courtW / 2, top + courtH - keyH, keyW / 2, "S");
     } else {
-      doc.line(courtX, courtTop + courtH / 2, courtX + courtW, courtTop + courtH / 2);
-      doc.circle(courtX + courtW / 2, courtTop + courtH / 2, courtH * 0.16, "S");
+      doc.line(courtX, top + courtH / 2, courtX + courtW, top + courtH / 2);
+      doc.circle(courtX + courtW / 2, top + courtH / 2, courtH * 0.2, "S");
       [0, 1].forEach((half) => {
         const keyH = courtH * 0.5, keyW = courtW * 0.16;
         const keyX = half === 0 ? courtX : courtX + courtW - keyW;
-        doc.rect(keyX, courtTop + (courtH - keyH) / 2, keyW, keyH);
+        doc.rect(keyX, top + (courtH - keyH) / 2, keyW, keyH);
       });
     }
 
-    function toPdfXY(x, y) { return [courtX + x * courtW, courtTop + y * courtH]; }
+    function toPdfXY(x, y) { return [courtX + x * courtW, top + y * courtH]; }
     step.actions.forEach((a) => {
       const pts = a.points || [];
       if (pts.length < 2) return;
       const [fx, fy] = toPdfXY(pts[0][0], pts[0][1]);
       const [tx, ty] = toPdfXY(pts[pts.length - 1][0], pts[pts.length - 1][1]);
       if (a.type === "pass" || a.type === "fake_pass") doc.setLineDash([3, 2]); else doc.setLineDash([]);
-      const [r, g, b] = a.color ? hexToRgb(a.color) : ink;
+      const [r, g, b] = a.color ? hexToRgb(a.color) : [26, 26, 26];
       doc.setDrawColor(r, g, b); doc.setLineWidth(1.3);
       doc.line(fx, fy, tx, ty);
       doc.setLineDash([]);
     });
-    step.players.forEach((p) => {
+    step.points.forEach((p) => {
       const [px, py] = toPdfXY(p.x, p.y);
-      doc.setFillColor(...(p.team === "O" ? [210, 20, 20] : [26, 26, 26]));
+      const [r, g, b] = p.color ? hexToRgb(p.color) : [26, 26, 26];
+      doc.setFillColor(r, g, b);
       doc.circle(px, py, 8, "F");
-      doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont("helvetica", "bold");
-      doc.text(String(p.num), px - 2.5, py + 3);
+      if (p.label) { doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.text(String(p.label).slice(0, 2), px - 3, py + 3); }
     });
-    return courtTop + courtH;
+    return top + courtH;
   }
 
   async function exportToPdf() {
@@ -664,8 +745,12 @@
       top += 10;
       doc.setDrawColor(210, 20, 20); doc.setLineWidth(1);
       doc.line(marginX, top, 545, top);
-      top += 30;
-      drawStepOnPdf(doc, step, marginX, top);
+      top += 26;
+      const bottom = drawStepOnPdf(doc, step, marginX, top);
+      if (step.note) {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(10); doc.setTextColor(60, 60, 60);
+        doc.text(step.note, marginX, bottom + 20, { maxWidth: 495 });
+      }
       doc.setTextColor(130, 130, 136); doc.setFontSize(8); doc.setFont("helvetica", "normal");
       doc.text(`Generated by Pivot on ${new Date().toISOString().slice(0, 10)}`, marginX, 810);
     });
@@ -688,13 +773,15 @@
     box.innerHTML = `
       <strong>How to use Play design</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.9;">
-        <li><strong>Season / Team</strong> — pulled straight from your Roster, so plays stay organized the same way your players are. <strong>Category</strong> is free text (e.g. "Half-court offense", "Out of bounds", "Press break") and groups plays in the list on the left.</li>
-        <li><strong>Steps</strong> — a play isn't one static picture, it's a sequence. Click "+ Add step" as many times as the play needs (not limited to any fixed number). Each new step starts with players positioned where the previous step's cuts/dribbles ended — so if player 1 passes to player 2 and cuts through, step 2 opens with the ball already at player 2 and player 1 already through the lane. You don't have to manually re-place anyone.</li>
-        <li><strong>This step's court</strong> — choose half or full court independently for every single step (e.g. draw the inbounds on a full court, then switch to half court for the set that follows).</li>
-        <li><strong>Tools</strong> — 17 total, same set as the Exercise creator: move/select, attacker, defender, coach, ball, cone, post, hand-off, movement (no ball), dribble, pass (dashed), screen, zone, shot, and three types of fakes. Pick a color to distinguish different sequences on the same step.</li>
-        <li><strong>Animate whole sequence</strong> — plays every step in order, one after another, moving players along their cuts/dribbles each time — not just the step you're currently looking at.</li>
-        <li><strong>Export to PDF</strong> — one page per step, in order, each drawn as real vector shapes (not a screenshot) so it prints and zooms cleanly.</li>
-        <li><strong>Save</strong> — the whole sequence (all steps) is saved together as one play.</li>
+        <li><strong>Season / Team</strong> come straight from your Roster. <strong>Category</strong> is free text and works like a folder — plays with the same category show grouped together in the list on the left, under their season/team.</li>
+        <li>A new play starts <strong>completely empty</strong> — nothing is pre-placed. Pick "Attacker", "Defender", "Ball", "Cone", "Coach", "Post", or "Handoff" and click the court to add one; you'll be asked for a number/label for attackers and defenders.</li>
+        <li><strong>Move/select</strong> — drag any point you've placed. Double-click a player/defender to rename it, or double-click any other point to remove it.</li>
+        <li><strong>Steps</strong> — click "+ Add step" as many times as the play needs. Each new step starts with points positioned exactly where the previous step's cuts/dribbles ended — draw a pass from 1 to 2 and step 2 opens with the ball already at 2.</li>
+        <li><strong>Note for this step</strong> — a short caption (e.g. "1 passes to 2 and cuts backdoor") that appears on screen while that step plays during "Animate", and under the diagram in the exported PDF.</li>
+        <li><strong>This step's court</strong> — half or full, chosen independently for every step.</li>
+        <li><strong>Speed</strong> — slows down or speeds up "Animate whole sequence"; the same speed also gets baked into the downloaded GIF.</li>
+        <li><strong>Download animation (GIF)</strong> — renders the whole sequence as a GIF file you can send or embed anywhere, not just play it here.</li>
+        <li><strong>Undo</strong> removes the last action, or the last point if there are no actions left. <strong>Clear this step</strong> wipes everything on the current step only.</li>
       </ul>`;
     box.style.display = "block";
   });

@@ -242,7 +242,8 @@
     canvas: document.getElementById("court-canvas"),
     colorSelect: document.getElementById("color-select"),
   };
-  const ctx = els.canvas.getContext("2d");
+  let ctx = els.canvas.getContext("2d");
+  let cssW = 300, cssH = 280;
 
   let currentOrgId = null;
   let currentExId = null;
@@ -303,51 +304,23 @@
   }
 
   function resizeCanvasForStep() {
-    const [w, h] = CANVAS_SIZES[COURT_TYPES[currentStep]];
-    els.canvas.width = w; els.canvas.height = h;
+    [cssW, cssH] = CANVAS_SIZES[COURT_TYPES[currentStep]];
+    ctx = setupHiDPICanvas(els.canvas, cssW, cssH);
   }
 
   // -----------------------------------------------------------------------
   // Fonds de terrain (visuels seulement, jamais exportés)
   // -----------------------------------------------------------------------
   function drawBackground() {
-    drawCourtBackground(ctx, els.canvas, COURT_TYPES[currentStep]);
+    drawCourtBackground(ctx, els.canvas, COURT_TYPES[currentStep], cssW, cssH);
   }
 
-  function toPx(x, y) { return [x * els.canvas.width, y * els.canvas.height]; }
+  function toPx(x, y) { return [x * cssW, y * cssH]; }
   function currentElements() { return diagram[currentStep] || (diagram[currentStep] = []); }
-
-  const POINT_ICONS = { player: "●", defender: "○", coach: "C", cone: "▲", ball: "🏀", post: "■", handoff: "#" };
-
-  function drawPointElement(el) {
-    const [px, py] = toPx(el.x, el.y);
-    const color = el.color || "#141414";
-    ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 1.5;
-    if (el.type === "player") {
-      ctx.beginPath(); ctx.arc(px, py, 9, 0, Math.PI * 2); ctx.fill();
-      if (el.label) { ctx.fillStyle = "#fff"; ctx.font = "bold 9px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(el.label.slice(0, 2), px, py + 0.5); }
-    } else if (el.type === "defender") {
-      ctx.beginPath(); ctx.arc(px, py, 9, 0, Math.PI * 2); ctx.stroke();
-      if (el.label) { ctx.fillStyle = color; ctx.font = "bold 9px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(el.label.slice(0, 2), px, py + 0.5); }
-    } else if (el.type === "coach") {
-      ctx.font = "bold 13px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("C", px, py);
-    } else if (el.type === "cone") {
-      ctx.beginPath(); ctx.moveTo(px, py - 7); ctx.lineTo(px + 6, py + 6); ctx.lineTo(px - 6, py + 6); ctx.closePath(); ctx.fill();
-    } else if (el.type === "ball") {
-      ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2); ctx.stroke();
-    } else if (el.type === "post") {
-      ctx.fillRect(px - 5, py - 5, 10, 10);
-    } else if (el.type === "handoff") {
-      ctx.font = "bold 12px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("#", px, py);
-    }
-  }
 
   function render() {
     drawBackground();
-    currentElements().forEach((el) => {
-      if (el.type === "zone" || el.type === "screen" || LINE_KINDS.includes(el.type)) drawDiagramElement(ctx, toPx, els.canvas, el);
-      else drawPointElement(el);
-    });
+    currentElements().forEach((el) => drawDiagramElement(ctx, toPx, els.canvas, el));
   }
 
   function eventToFraction(e) {
