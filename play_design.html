@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pivot — Play design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
+    --defense: #1a1a1a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
+  h1, h2, h3, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  a { color: inherit; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
+  .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
+  .nav-btn:hover { border-color: var(--accent); }
+  .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
+  .back-link:hover { color: var(--ink); }
+
+  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; max-width: 1100px; margin: 0 auto; padding: 24px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
+  p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+
+  .msg { margin-bottom: 14px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--ink); margin-bottom: 12px; }
+
+  /* -------- barre latérale : cuaderno de jugadas -------- */
+  .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .play-item { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 8px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .play-item:hover { background: var(--paper); }
+  .play-item.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .play-item button { background: none; border: none; cursor: pointer; font-size: 11px; color: var(--muted); }
+  .play-item button:hover { color: var(--accent); }
+  .new-play-btn { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; font-weight: 600; }
+
+  /* -------- outils -------- */
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-secondary.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .spacer { flex: 1; }
+  .tool-group { display: flex; flex-wrap: wrap; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px; margin-bottom: 6px; }
+  .step-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+  .step-tab { padding: 6px 12px; border: 1px solid var(--line); background: var(--card); border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .step-tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .tool-btn { padding: 5px 9px; border: none; background: none; border-radius: 6px; cursor: pointer; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .tool-btn:hover { background: var(--paper); }
+  .tool-btn.active { background: var(--accent); color: #fff; }
+
+  .court-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  #court-canvas { display: block; margin: 0 auto; cursor: crosshair; touch-action: none; }
+
+  .field-row { display: flex; gap: 10px; margin-bottom: 12px; align-items: end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+  <div class="nav-right">
+    <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
+    <span id="org-name"></span>
+    <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
+      <option value="">Go to…</option>
+      <option value="dashboard.html">Dashboard</option>
+      <option value="roster.html">Roster</option>
+      <option value="assessment.html">Player assessment</option>
+      <option value="play_design.html" selected>Play design</option>
+      <option value="compare.html">Compare players</option>
+      <option value="match.html">Match day</option>
+      <option value="exercises.html">Exercise creator</option>
+      <option value="library.html">Library</option>
+      <option value="training.html">Training builder</option>
+      <option value="settings.html">Settings</option>
+    </select>
+    <button class="nav-btn" id="logout-btn">Log out</button>
+  </div>
+</nav>
+
+<div class="layout">
+  <div>
+    <div class="side-card">
+      <h2>Your playbook</h2>
+      <button class="new-play-btn" id="new-play-btn">+ New play</button>
+      <div id="plays-list"></div>
+    </div>
+  </div>
+
+  <div>
+    <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+    <h1>
+      Play design
+      <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+    </h1>
+    <p class="sub">Draw sets, cuts, screens, and passes — then animate or export them.</p>
+    <div class="help-box" id="help-box"></div>
+    <div class="msg" id="msg"></div>
+
+    <div class="field-row">
+      <div class="field"><label for="play-name">Play name</label><input id="play-name" type="text" placeholder="e.g. Horns flare" /></div>
+      <div class="field"><label for="play-season">Season</label><input id="play-season" type="text" placeholder="Optional" /></div>
+      <div class="field"><label for="play-team">Team</label><input id="play-team" type="text" placeholder="Optional" /></div>
+    </div>
+
+    <div class="step-tabs" id="step-tabs"></div>
+    <div class="tool-group" id="tools-row1"></div>
+    <div class="tool-group" id="tools-row2"></div>
+    <div class="tool-group" id="tools-row3"></div>
+    <div class="toolbar">
+      <div class="field" style="flex-direction:row; align-items:center; gap:6px;">
+        <label for="color-select" style="margin:0;">Color</label>
+        <select id="color-select" style="width:100px;">
+          <option value="#141414">Black</option>
+          <option value="#c9002b">Red</option>
+          <option value="#1560bd">Blue</option>
+          <option value="#1e7a3c">Green</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary" id="undo-btn">↩ Undo</button>
+      <button class="btn btn-secondary" id="copy-step-btn">Copy to next step ➡</button>
+      <button class="btn btn-secondary" id="clear-actions-btn">Clear this step</button>
+      <div class="spacer"></div>
+      <button class="btn btn-secondary" id="animate-btn">▶ Animate</button>
+    </div>
+
+    <div class="court-card">
+      <canvas id="court-canvas" width="300" height="280"></canvas>
+    </div>
+
+    <div class="toolbar" style="margin-top:14px;">
+      <button class="btn btn-primary" id="save-play-btn">Save play</button>
+      <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
+      <button class="btn btn-secondary" id="delete-play-btn" style="display:none; color:#991b1b;">Delete this play</button>
+    </div>
+  </div>
+</div>
+
+<script src="court-diagram.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const els = {
+    orgName: document.getElementById("org-name"),
+    orgLogo: document.getElementById("org-logo"),
+    logoutBtn: document.getElementById("logout-btn"),
+    msg: document.getElementById("msg"),
+    playsList: document.getElementById("plays-list"),
+    playName: document.getElementById("play-name"),
+    playSeason: document.getElementById("play-season"),
+    playTeam: document.getElementById("play-team"),
+    canvas: document.getElementById("court-canvas"),
+    colorSelect: document.getElementById("color-select"),
+  };
+  const ctx = els.canvas.getContext("2d");
+
+  let currentOrgId = null;
+  let currentPlayId = null;
+  let currentStep = "court_1";
+  let activeTool = "move";
+  let diagram = {}; // { court_1: { players: [...], actions: [...] }, court_2: {...}, ... }
+  let dragging = null; // id du joueur en cours de déplacement
+  let drawingFrom = null; // point de départ d'une action en cours de tracé
+  let animating = false;
+
+  function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+
+  // -----------------------------------------------------------------------
+  // Formation par défaut (5 attaquants, 5 défenseurs) selon le type de terrain
+  // -----------------------------------------------------------------------
+  function defaultPlayers() {
+    const offense = [
+      { num: 1, x: 0.5, y: 0.88 },
+      { num: 2, x: 0.18, y: 0.7 },
+      { num: 3, x: 0.82, y: 0.7 },
+      { num: 4, x: 0.3, y: 0.35 },
+      { num: 5, x: 0.7, y: 0.35 },
+    ];
+    return [
+      ...offense.map((p) => ({ id: "O" + p.num, team: "O", num: p.num, x: p.x, y: p.y })),
+      ...offense.map((p) => ({ id: "X" + p.num, team: "X", num: p.num, x: p.x, y: Math.max(0.1, p.y - 0.12) })),
+    ];
+  }
+
+  function currentFrame() {
+    return diagram[currentStep] || (diagram[currentStep] = { players: defaultPlayers(), actions: [] });
+  }
+
+  function toPx(x, y) { return [x * els.canvas.width, y * els.canvas.height]; }
+
+  function drawPlayers() {
+    currentFrame().players.forEach((p) => {
+      const [px, py] = toPx(p.x, p.y);
+      ctx.beginPath();
+      ctx.arc(px, py, 13, 0, Math.PI * 2);
+      ctx.fillStyle = p.team === "O" ? "#d21414" : "#1a1a1a";
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 12px Inter, sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(p.num), px, py + 0.5);
+    });
+  }
+
+  function render() {
+    drawCourtBackground(ctx, els.canvas, COURT_TYPES[currentStep]);
+    currentFrame().actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, a));
+    drawPlayers();
+  }
+
+  function resizeCanvasForStep() {
+    const [w, h] = CANVAS_SIZES[COURT_TYPES[currentStep]];
+    els.canvas.width = w; els.canvas.height = h;
+  }
+
+  function buildStepTabs() {
+    const row = document.getElementById("step-tabs");
+    row.innerHTML = "";
+    COURT_IDS.forEach((cid, i) => {
+      const btn = document.createElement("button");
+      btn.className = "step-tab" + (cid === currentStep ? " active" : "");
+      btn.textContent = COURT_LABELS[i];
+      btn.addEventListener("click", () => { currentStep = cid; buildStepTabs(); resizeCanvasForStep(); render(); });
+      row.appendChild(btn);
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Interaction souris/tactile
+  // -----------------------------------------------------------------------
+  function eventToFraction(e) {
+    const rect = els.canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
+  }
+  function playerAt(x, y) {
+    return currentFrame().players.find((p) => Math.hypot(p.x - x, p.y - y) < 0.05);
+  }
+
+  els.canvas.addEventListener("mousedown", onPointerDown);
+  els.canvas.addEventListener("touchstart", onPointerDown);
+  function onPointerDown(e) {
+    e.preventDefault();
+    const { x, y } = eventToFraction(e);
+    if (activeTool === "select" || activeTool === "move") {
+      const p = playerAt(x, y);
+      if (p) dragging = p.id;
+    } else {
+      drawingFrom = { x, y, playerId: (playerAt(x, y) || {}).id };
+    }
+  }
+  els.canvas.addEventListener("mousemove", onPointerMove);
+  els.canvas.addEventListener("touchmove", onPointerMove);
+  function onPointerMove(e) {
+    if (!dragging && !drawingFrom) return;
+    e.preventDefault();
+    const { x, y } = eventToFraction(e);
+    if (dragging) {
+      const p = currentFrame().players.find((pl) => pl.id === dragging);
+      if (p) { p.x = Math.min(0.96, Math.max(0.04, x)); p.y = Math.min(0.96, Math.max(0.04, y)); render(); }
+    } else if (drawingFrom) {
+      render();
+      drawDiagramElement(ctx, toPx, els.canvas, { type: activeTool, points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value });
+    }
+  }
+  window.addEventListener("mouseup", onPointerUp);
+  window.addEventListener("touchend", onPointerUp);
+  function onPointerUp(e) {
+    if (dragging) { dragging = null; return; }
+    if (drawingFrom) {
+      const { x, y } = eventToFraction(e.changedTouches ? e.changedTouches[0] : e);
+      if (Math.hypot(x - drawingFrom.x, y - drawingFrom.y) > 0.03) {
+        currentFrame().actions.push({ type: activeTool, points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value, playerId: drawingFrom.playerId });
+      }
+      drawingFrom = null;
+      render();
+    }
+  }
+
+  // Mêmes 17 outils que le créateur d'exercices (partagés via court-diagram.js)
+  buildSharedToolbar(["tools-row1", "tools-row2", "tools-row3"], (key) => { activeTool = key; });
+  buildStepTabs(); resizeCanvasForStep();
+
+  document.getElementById("undo-btn").addEventListener("click", () => { currentFrame().actions.pop(); render(); });
+  document.getElementById("clear-actions-btn").addEventListener("click", () => { currentFrame().actions = []; render(); });
+  document.getElementById("copy-step-btn").addEventListener("click", () => {
+    const idx = COURT_IDS.indexOf(currentStep);
+    if (idx >= COURT_IDS.length - 1) return;
+    const nextStep = COURT_IDS[idx + 1];
+    diagram[nextStep] = JSON.parse(JSON.stringify(currentFrame()));
+    currentStep = nextStep;
+    buildStepTabs(); resizeCanvasForStep(); render();
+  });
+
+  document.getElementById("animate-btn").addEventListener("click", () => {
+    if (animating) return;
+    animating = true;
+    const start = performance.now();
+    const duration = 1400;
+    const frame = currentFrame();
+    function step(now) {
+      const t = Math.min(1, (now - start) / duration);
+      drawCourtBackground(ctx, els.canvas, COURT_TYPES[currentStep]);
+      frame.actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, a, t));
+      // les joueurs concernés par une coupe/dribble avancent avec le trait
+      const moved = frame.players.map((p) => ({ ...p }));
+      frame.actions.forEach((a) => {
+        if ((a.type === "arrow" || a.type === "dribble") && a.playerId && a.points) {
+          const p = moved.find((pp) => pp.id === a.playerId);
+          if (p) { p.x = a.points[0][0] + (a.points[1][0] - a.points[0][0]) * t; p.y = a.points[0][1] + (a.points[1][1] - a.points[0][1]) * t; }
+        }
+      });
+      moved.forEach((p) => {
+        const [px, py] = toPx(p.x, p.y);
+        ctx.beginPath(); ctx.arc(px, py, 13, 0, Math.PI * 2);
+        ctx.fillStyle = p.team === "O" ? "#d21414" : "#1a1a1a"; ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.font = "bold 12px Inter, sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(p.num), px, py + 0.5);
+      });
+      if (t < 1) requestAnimationFrame(step);
+      else { animating = false; applyMovesToPlayers(); render(); }
+    }
+    requestAnimationFrame(step);
+  });
+  function applyMovesToPlayers() {
+    const frame = currentFrame();
+    frame.actions.forEach((a) => {
+      if ((a.type === "arrow" || a.type === "dribble") && a.playerId && a.points) {
+        const p = frame.players.find((pp) => pp.id === a.playerId);
+        if (p) { p.x = a.points[1][0]; p.y = a.points[1][1]; }
+      }
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Club + logo
+  // -----------------------------------------------------------------------
+  async function loadMyOrganization() {
+    const { data, error } = await supabaseClient
+      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+    if (error || !data || data.length === 0) {
+      showMessage("You're not an active member of any club yet.", "error");
+      return null;
+    }
+    currentOrgId = data[0].organization_id;
+    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
+    return currentOrgId;
+  }
+
+  // -----------------------------------------------------------------------
+  // Cuaderno de jugadas : liste, charge, sauvegarde, supprime
+  // -----------------------------------------------------------------------
+  async function loadPlaysList() {
+    const { data, error } = await supabaseClient
+      .from("plays").select("id, name, season, team").eq("organization_id", currentOrgId).order("name");
+    els.playsList.innerHTML = "";
+    if (error) { console.error("loadPlaysList error:", error); return; }
+    (data || []).forEach((p) => {
+      const row = document.createElement("div");
+      row.className = "play-item" + (p.id === currentPlayId ? " active" : "");
+      const label = document.createElement("span");
+      label.textContent = p.name;
+      const del = document.createElement("button");
+      del.textContent = "✕";
+      del.title = "Delete";
+      del.addEventListener("click", (e) => { e.stopPropagation(); deletePlay(p.id); });
+      row.appendChild(label);
+      row.appendChild(del);
+      row.addEventListener("click", () => openPlay(p.id));
+      els.playsList.appendChild(row);
+    });
+  }
+
+  function newPlay() {
+    currentPlayId = null;
+    els.playName.value = "";
+    els.playSeason.value = "";
+    els.playTeam.value = "";
+    diagram = {};
+    currentStep = "court_1";
+    buildStepTabs(); resizeCanvasForStep(); render();
+    document.getElementById("delete-play-btn").style.display = "none";
+  }
+
+  async function openPlay(id) {
+    const { data, error } = await supabaseClient.from("plays").select("*").eq("id", id).single();
+    if (error) { showMessage(error.message, "error"); return; }
+    currentPlayId = id;
+    els.playName.value = data.name;
+    els.playSeason.value = data.season || "";
+    els.playTeam.value = data.team || "";
+    diagram = (data.diagram && data.diagram.court_1) ? data.diagram : {}; // ancien format à plat -> on repart propre
+    currentStep = "court_1";
+    buildStepTabs(); resizeCanvasForStep(); render();
+    document.getElementById("delete-play-btn").style.display = "inline-block";
+    await loadPlaysList();
+  }
+
+  async function savePlay() {
+    if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
+    const name = els.playName.value.trim();
+    if (!name) { showMessage("Give the play a name first.", "error"); return; }
+    const payload = {
+      organization_id: currentOrgId,
+      season: els.playSeason.value.trim() || null,
+      team: els.playTeam.value.trim() || null,
+      name, court_type: "multi-step",
+      diagram,
+      updated_at: new Date().toISOString(),
+    };
+    try {
+      let error;
+      if (currentPlayId) ({ error } = await supabaseClient.from("plays").update(payload).eq("id", currentPlayId));
+      else {
+        const { data, error: insErr } = await supabaseClient.from("plays").insert(payload).select("id").single();
+        error = insErr;
+        if (!error) currentPlayId = data.id;
+      }
+      if (error) throw error;
+      showMessage("Play saved.", "success");
+      document.getElementById("delete-play-btn").style.display = "inline-block";
+      await loadPlaysList();
+    } catch (err) {
+      showMessage(err.message || "Couldn't save that play.", "error");
+    }
+  }
+
+  async function deletePlay(id) {
+    if (!confirm("Delete this play?")) return;
+    const { error } = await supabaseClient.from("plays").delete().eq("id", id);
+    if (error) { showMessage(error.message, "error"); return; }
+    if (id === currentPlayId) newPlay();
+    await loadPlaysList();
+  }
+
+  // -----------------------------------------------------------------------
+  // Export PDF vectoriel du jeu (terrain + joueurs + actions dessinés
+  // directement, même logique que roster.html / assessment.html)
+  // -----------------------------------------------------------------------
+  function hexToRgb(hex) {
+    const n = parseInt(hex.replace("#", ""), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  async function exportToPdf() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const marginX = 50, top = 50;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(26, 26, 26);
+    doc.text(els.orgName.textContent || "Pivot", marginX, top);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(130, 130, 136);
+    doc.text(`${els.playName.value || "Untitled play"} — ${COURT_LABELS[COURT_IDS.indexOf(currentStep)]}`, marginX, top + 18);
+    doc.setDrawColor(210, 20, 20); doc.setLineWidth(1);
+    doc.line(marginX, top + 28, 545, top + 28);
+
+    const type = COURT_TYPES[currentStep];
+    const courtTop = top + 50;
+    const courtW = 380, courtH = type === "half" ? 365 : type === "vertical" ? 560 : 260;
+    const courtX = marginX + (495 - courtW) / 2;
+    doc.setDrawColor(200, 200, 205); doc.setLineWidth(1);
+    doc.rect(courtX, courtTop, courtW, courtH);
+    if (type === "half") {
+      const keyW = courtW * 0.32;
+      doc.rect(courtX + (courtW - keyW) / 2, courtTop + courtH - courtH * 0.32, keyW, courtH * 0.32);
+    }
+
+    function toPdfXY(x, y) { return [courtX + x * courtW, courtTop + y * courtH]; }
+    const frame = currentFrame();
+    frame.actions.forEach((a) => {
+      const pts = a.points || [];
+      if (pts.length < 2) return;
+      const [fx, fy] = toPdfXY(pts[0][0], pts[0][1]);
+      const [tx, ty] = toPdfXY(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+      if (a.type === "pass" || a.type === "fake_pass") doc.setLineDash([3, 2]); else doc.setLineDash([]);
+      const [r, g, b] = a.color ? hexToRgb(a.color) : [26, 26, 26];
+      doc.setDrawColor(r, g, b); doc.setLineWidth(1.3);
+      doc.line(fx, fy, tx, ty);
+      doc.setLineDash([]);
+    });
+    frame.players.forEach((p) => {
+      const [px, py] = toPdfXY(p.x, p.y);
+      doc.setFillColor(...(p.team === "O" ? [210, 20, 20] : [26, 26, 26]));
+      doc.circle(px, py, 8, "F");
+      doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont("helvetica", "bold");
+      doc.text(String(p.num), px - 2.5, py + 3);
+    });
+
+    doc.setTextColor(130, 130, 136); doc.setFontSize(8); doc.setFont("helvetica", "normal");
+    doc.text(`Generated by Pivot on ${new Date().toISOString().slice(0, 10)}`, marginX, 810);
+    doc.save(`${(els.playName.value || "play").replace(/\s+/g, "_")}.pdf`);
+  }
+
+  document.getElementById("new-play-btn").addEventListener("click", newPlay);
+  document.getElementById("save-play-btn").addEventListener("click", savePlay);
+  document.getElementById("export-pdf-btn").addEventListener("click", exportToPdf);
+  document.getElementById("delete-play-btn").addEventListener("click", () => currentPlayId && deletePlay(currentPlayId));
+
+  document.getElementById("nav-menu").addEventListener("change", (e) => {
+    if (e.target.value) window.location.href = "./" + e.target.value;
+  });
+
+  document.getElementById("help-btn").addEventListener("click", () => {
+    const box = document.getElementById("help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.innerHTML = `
+      <strong>How to use Play design</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li><strong>Move</strong> (default tool) — drag any player (red = offense, black = defense) to reposition them.</li>
+        <li><strong>Cut / Screen / Pass / Dribble</strong> — pick a tool, then click-drag on the court to draw that action. A cut/dribble started from a player will move that player there when you hit Animate.</li>
+        <li><strong>Half / Full court</strong> — switch the diagram type. Changing it resets player positions to a default set.</li>
+        <li><strong>Animate</strong> — plays out every drawn action at once, moving players along their cuts/dribbles.</li>
+        <li><strong>Save</strong> — name the play, optionally tag a season/team, and it's added to your playbook on the left.</li>
+        <li><strong>Export to PDF</strong> — a clean vector diagram of the current play, downloaded to your computer.</li>
+      </ul>`;
+    box.style.display = "block";
+  });
+
+  els.logoutBtn.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    newPlay();
+    const orgId = await loadMyOrganization();
+    if (orgId) await loadPlaysList();
+  }
+  init();
+</script>
+
+</body>
+</html>

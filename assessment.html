@@ -99,6 +99,12 @@
       <option value="dashboard.html">Dashboard</option>
       <option value="roster.html">Roster</option>
       <option value="assessment.html" selected>Player assessment</option>
+      <option value="play_design.html">Play design</option>
+      <option value="compare.html">Compare players</option>
+      <option value="match.html">Match day</option>
+      <option value="exercises.html">Exercise creator</option>
+      <option value="library.html">Library</option>
+      <option value="training.html">Training builder</option>
       <option value="settings.html">Settings</option>
     </select>
     <button class="nav-btn" id="logout-btn">Log out</button>
@@ -117,11 +123,24 @@
         <input type="checkbox" id="advanced-toggle" />
         <span>Show advanced criteria too (18 more, tactical/IQ-focused)</span>
       </label>
+      <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); line-height:1.7;">
+        <strong style="color:var(--ink); font-size:12px;">What each score means</strong><br>
+        <strong>1</strong> — Needs a lot of work<br>
+        <strong>2</strong> — Below what's expected<br>
+        <strong>3</strong> — Meets expectations<br>
+        <strong>4</strong> — Above what's expected<br>
+        <strong>5</strong> — Excellent for this level
+      </div>
     </div>
     <div class="side-card">
       <h2>Example data</h2>
-      <button class="tree-example" id="load-bulls-btn">★ Load Chicago Bulls '96</button>
-      <button class="tree-example" id="remove-bulls-btn" style="color:#991b1b;">Remove Bulls example</button>
+      <select id="bulls-season-select" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; margin-bottom:6px;">
+        <option value="bulls96">Chicago Bulls '95-96</option>
+        <option value="bulls95">Chicago Bulls '94-95</option>
+        <option value="bulls94">Chicago Bulls '93-94</option>
+      </select>
+      <button class="tree-example" id="load-bulls-btn">★ Load selected Bulls season</button>
+      <button class="tree-example" id="remove-bulls-btn" style="color:#991b1b;">Remove selected Bulls season</button>
       <button class="tree-example" id="load-celtics-btn" style="margin-top:6px;">★ Load Boston Celtics '08</button>
       <button class="tree-example" id="remove-celtics-btn" style="color:#991b1b;">Remove Celtics example</button>
     </div>
@@ -152,6 +171,19 @@
         <div class="field"><label for="date">Date</label><input id="date" type="date" /></div>
         <div class="field"><label for="location">Location</label><input id="location" type="text" placeholder="Optional" /></div>
       </div>
+
+      <div class="side-card" style="margin-bottom:16px;">
+        <a href="#" id="ai-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Fill in with AI</a>
+        <div id="ai-section" style="display:none; margin-top:12px;">
+          <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">
+            Copy this prompt into any AI chat (describe the player when it asks), then paste its reply below.
+          </p>
+          <button class="btn btn-secondary" id="copy-ai-prompt-btn" style="margin-bottom:10px;">Copy prompt</button>
+          <textarea id="ai-response-input" placeholder="Paste the AI's reply here…" style="width:100%; min-height:100px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit;"></textarea>
+          <button class="btn btn-primary" id="fill-from-ai-btn" style="margin-top:8px;">Fill from AI reply</button>
+        </div>
+      </div>
+
       <div class="heights-row">
         <div class="field"><label for="height_player">Player height (cm)</label><input id="height_player" type="text" /></div>
         <div class="field"><label for="height_father">Father's height (cm)</label><input id="height_father" type="text" /></div>
@@ -159,6 +191,14 @@
       </div>
 
       <div id="sectors-container"></div>
+
+      <div class="sector-card">
+        <h3>Sector averages, at a glance</h3>
+        <p style="font-size:12.5px; color:var(--muted); margin:0 0 14px;">
+          Each bar shows the average of that sector's criteria (0 to 5). Updates live as you fill in scores above — the same chart appears on the generated PDF.
+        </p>
+        <div id="chart-container" style="display:flex; align-items:flex-end; gap:24px; height:120px; padding:0 10px;"></div>
+      </div>
 
       <div class="comments-card">
         <label for="positive_points">Positive points</label>
@@ -431,7 +471,7 @@
   const DEFAULT_PATTERN = [2, 1];
 
   const EXAMPLE_TEAMS = {
-    bulls: {
+    bulls96: {
       season: "1995-1996", team: "Chicago Bulls", date: "1996-04-21",
       patterns: { Jordan: [5, 0], Pippen: [5, 1], Rodman: [4, 1], Harper: [3, 1] },
       players: [
@@ -450,6 +490,50 @@
         { first_name: "James", last_name: "Edwards", jersey_number: "53", category: "C" },
         { first_name: "Jack", last_name: "Haley", jersey_number: "4", category: "C" },
         { first_name: "John", last_name: "Salley", jersey_number: "22", category: "PF" },
+      ].map((p) => ({ ...p, gender: "Boy", has_license: true, active: true })),
+    },
+    bulls95: {
+      season: "1994-1995", team: "Chicago Bulls", date: "1995-04-15",
+      patterns: { Jordan: [5, 0], Pippen: [5, 1], Kukoc: [4, 1], Armstrong: [3, 1] },
+      players: [
+        { first_name: "B.J.", last_name: "Armstrong", jersey_number: "10", category: "PG" },
+        { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
+        { first_name: "Toni", last_name: "Kukoc", jersey_number: "7", category: "SF" },
+        { first_name: "Scottie", last_name: "Pippen", jersey_number: "33", category: "SF" },
+        { first_name: "Will", last_name: "Perdue", jersey_number: "32", category: "C" },
+        { first_name: "Ron", last_name: "Harper", jersey_number: "9", category: "SG" },
+        { first_name: "Bill", last_name: "Wennington", jersey_number: "34", category: "C" },
+        { first_name: "Pete", last_name: "Myers", jersey_number: "20", category: "SG" },
+        { first_name: "Corie", last_name: "Blount", jersey_number: "44", category: "PF" },
+        { first_name: "Dickey", last_name: "Simpkins", jersey_number: "8", category: "PF" },
+        { first_name: "Jud", last_name: "Buechler", jersey_number: "30", category: "SF" },
+        { first_name: "Luc", last_name: "Longley", jersey_number: "13", category: "C" },
+        { first_name: "Larry", last_name: "Krystkowiak", jersey_number: "42", category: "PF" },
+        { first_name: "Greg", last_name: "Foster", jersey_number: "35", category: "PF" },
+        { first_name: "Michael", last_name: "Jordan", jersey_number: "45", category: "SG" },
+        { first_name: "Jo Jo", last_name: "English", jersey_number: "3", category: "PG" },
+      ].map((p) => ({ ...p, gender: "Boy", has_license: true, active: true })),
+    },
+    bulls94: {
+      season: "1993-1994", team: "Chicago Bulls", date: "1994-04-20",
+      patterns: { Pippen: [5, 0], Grant: [4, 1], Armstrong: [3, 1] },
+      players: [
+        { first_name: "B.J.", last_name: "Armstrong", jersey_number: "10", category: "PG" },
+        { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
+        { first_name: "Pete", last_name: "Myers", jersey_number: "20", category: "SG" },
+        { first_name: "Bill", last_name: "Wennington", jersey_number: "34", category: "C" },
+        { first_name: "Toni", last_name: "Kukoc", jersey_number: "7", category: "SF" },
+        { first_name: "Scottie", last_name: "Pippen", jersey_number: "33", category: "SF" },
+        { first_name: "Horace", last_name: "Grant", jersey_number: "54", category: "PF" },
+        { first_name: "Corie", last_name: "Blount", jersey_number: "44", category: "PF" },
+        { first_name: "Will", last_name: "Perdue", jersey_number: "32", category: "C" },
+        { first_name: "Bill", last_name: "Cartwright", jersey_number: "24", category: "C" },
+        { first_name: "Scott", last_name: "Williams", jersey_number: "42", category: "PF" },
+        { first_name: "Jo Jo", last_name: "English", jersey_number: "3", category: "PG" },
+        { first_name: "Stacey", last_name: "King", jersey_number: "00", category: "C" },
+        { first_name: "Luc", last_name: "Longley", jersey_number: "13", category: "C" },
+        { first_name: "John", last_name: "Paxson", jersey_number: "5", category: "PG" },
+        { first_name: "Dave", last_name: "Johnson", jersey_number: "8", category: "SG" },
       ].map((p) => ({ ...p, gender: "Boy", has_license: true, active: true })),
     },
     celtics: {
@@ -520,8 +604,8 @@
     await loadTree();
   }
 
-  document.getElementById("load-bulls-btn").addEventListener("click", () => loadExampleTeam("bulls"));
-  document.getElementById("remove-bulls-btn").addEventListener("click", () => removeExampleTeam("bulls"));
+  document.getElementById("load-bulls-btn").addEventListener("click", () => loadExampleTeam(document.getElementById("bulls-season-select").value));
+  document.getElementById("remove-bulls-btn").addEventListener("click", () => removeExampleTeam(document.getElementById("bulls-season-select").value));
   document.getElementById("load-celtics-btn").addEventListener("click", () => loadExampleTeam("celtics"));
   document.getElementById("remove-celtics-btn").addEventListener("click", () => removeExampleTeam("celtics"));
 
@@ -566,11 +650,41 @@
       els.sectorsContainer.appendChild(card);
     });
   }
+  function buildChart() {
+    const container = document.getElementById("chart-container");
+    container.innerHTML = "";
+    SECTOR_ORDER.forEach((sectKey) => {
+      const col = document.createElement("div");
+      col.style.cssText = "flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;";
+      const valueLabel = document.createElement("div");
+      valueLabel.id = `chart-value-${sectKey}`;
+      valueLabel.style.cssText = "font-size:12px; font-weight:700; color:var(--accent-deep);";
+      valueLabel.textContent = "—";
+      const bar = document.createElement("div");
+      bar.id = `chart-bar-${sectKey}`;
+      bar.style.cssText = "width:36px; height:0px; background:var(--accent); border-radius:4px 4px 0 0; transition:height 0.15s;";
+      const barTrack = document.createElement("div");
+      barTrack.style.cssText = "flex:1; display:flex; align-items:flex-end;";
+      barTrack.appendChild(bar);
+      const label = document.createElement("div");
+      label.style.cssText = "font-size:11px; color:var(--muted); text-align:center;";
+      label.textContent = CRITERIA[sectKey].label;
+      col.appendChild(valueLabel);
+      col.appendChild(barTrack);
+      col.appendChild(label);
+      container.appendChild(col);
+    });
+  }
+
   function updateAverages() {
     SECTOR_ORDER.forEach((sectKey) => {
       const avg = sectorAverage(currentRatings, sectKey);
       const el = document.getElementById(`avg-${sectKey}`);
       if (el) el.textContent = avg !== null ? `Average: ${avg.toFixed(1)} / 5` : "Average: —";
+      const bar = document.getElementById(`chart-bar-${sectKey}`);
+      const valueLabel = document.getElementById(`chart-value-${sectKey}`);
+      if (bar) bar.style.height = `${((avg || 0) / 5) * 80}px`;
+      if (valueLabel) valueLabel.textContent = avg !== null ? avg.toFixed(1) : "—";
     });
   }
   function fillFormFromRatings() {
@@ -623,6 +737,9 @@
     els.location.value = "";
     els.heightPlayer.value = ""; els.heightFather.value = ""; els.heightMother.value = "";
     els.positivePoints.value = ""; els.negativePoints.value = ""; els.toImprove.value = "";
+    document.getElementById("ai-response-input").value = "";
+    document.getElementById("ai-section").style.display = "none";
+    document.getElementById("ai-toggle-link").textContent = "▸ Fill in with AI";
     els.deleteBtn.style.display = "none";
     els.formArea.style.display = "block";
     fillFormFromRatings();
@@ -707,78 +824,112 @@
       : "Player";
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
     const accent = [210, 20, 20];
     const ink = [26, 26, 26];
-    const muted = [107, 107, 112];
+    const muted = [130, 130, 136];
+    const pageW = 842, pageH = 595;
+    const marginX = 36;
+
     if (logoDataUrl) {
-      try { doc.addImage(logoDataUrl, "PNG", 480, 30, 40, 40); } catch (e) { /* logo illisible, on continue sans */ }
+      try { doc.addImage(logoDataUrl, "PNG", pageW - marginX - 36, 22, 36, 36); } catch (e) {}
     }
-    const marginX = 40;
-    let y = 50;
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.setTextColor(...ink);
+    let y = 38;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(...ink);
     doc.text(els.orgName.textContent || "Pivot", marginX, y);
-    y += 22;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(...muted);
+    y += 16;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(...muted);
     doc.text(`Player assessment — ${playerName}`, marginX, y);
-    y += 16;
-    doc.setFontSize(10);
-    doc.text(`${els.date.value || ""}${els.location.value ? " — " + els.location.value : ""}`, marginX, y);
-    y += 10;
-    doc.setDrawColor(...accent); doc.setLineWidth(1.2);
-    doc.line(marginX, y, 555, y);
-    y += 20;
-
+    y += 13;
+    doc.setFontSize(9);
+    let subLine = `${els.date.value || ""}${els.location.value ? " — " + els.location.value : ""}`;
     if (els.heightPlayer.value || els.heightFather.value || els.heightMother.value) {
-      doc.setFontSize(9.5); doc.setTextColor(...muted);
-      doc.text(
-        `Height — player: ${els.heightPlayer.value || "—"} cm · father: ${els.heightFather.value || "—"} cm · mother: ${els.heightMother.value || "—"} cm`,
-        marginX, y
-      );
-      y += 20;
+      subLine += `   ·   Height: ${els.heightPlayer.value || "—"} cm (father ${els.heightFather.value || "—"}, mother ${els.heightMother.value || "—"})`;
     }
+    doc.text(subLine, marginX, y);
+    y += 8;
+    doc.setDrawColor(...accent); doc.setLineWidth(1);
+    doc.line(marginX, y, pageW - marginX, y);
+    const criteriaTop = y + 14;
 
-    // -- graphique en barres par secteur (même logique que pdf_builder_suivi.py) --
-    doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...ink);
-    doc.text("Sector averages", marginX, y);
-    y += 16;
-    const chartTop = y, chartHeight = 90, chartLeft = marginX + 10, chartWidth = 460;
-    const barGap = 20, barWidth = (chartWidth - barGap * (SECTOR_ORDER.length - 1)) / SECTOR_ORDER.length;
-    doc.setDrawColor(230, 230, 230); doc.setLineWidth(0.5);
-    for (let i = 0; i <= 5; i++) {
-      const gy = chartTop + chartHeight - (i / 5) * chartHeight;
-      doc.line(chartLeft, gy, chartLeft + chartWidth, gy);
+    // -- critères par secteur/groupe, sur deux colonnes équilibrées --
+    const colW = (pageW - marginX * 2 - 30) / 2;
+    const leftSectors = ["technique", "personnalite"];
+    const rightSectors = ["intelligence", "comportement"];
+
+    function drawColumn(sectorKeys, colX) {
+      let cy = criteriaTop;
+      sectorKeys.forEach((sectKey) => {
+        const sect = CRITERIA[sectKey];
+        const avg = sectorAverage(currentRatings, sectKey);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(...ink);
+        doc.text(sect.label, colX, cy);
+        doc.setTextColor(...accent);
+        doc.text(avg !== null ? avg.toFixed(1) : "—", colX + colW - 20, cy);
+        cy += 12;
+        Object.keys(sect.groups).forEach((grpKey) => {
+          const grp = sect.groups[grpKey];
+          if (grp.label) {
+            doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...muted);
+            doc.text(grp.label.toUpperCase(), colX, cy);
+            cy += 9;
+          }
+          grp.items.forEach((item, i) => {
+            const val = currentRatings[sectKey][grpKey][i];
+            if (!els.advancedToggle.checked && !item.basic) return; // n'affiche pas les avancés si la case n'est pas cochée
+            doc.setFont("helvetica", "normal"); doc.setFontSize(7.8); doc.setTextColor(...ink);
+            const lines = doc.splitTextToSize(item.text, colW - 26);
+            doc.text(lines, colX, cy);
+            doc.setTextColor(...accent); doc.setFont("helvetica", "bold");
+            doc.text(val !== null && val !== undefined ? String(val) : "—", colX + colW - 14, cy);
+            cy += lines.length * 8.5 + 2.5;
+          });
+        });
+        cy += 6;
+      });
+      return cy;
     }
+    drawColumn(leftSectors, marginX);
+    drawColumn(rightSectors, marginX + colW + 30);
+    doc.setDrawColor(230, 230, 230); doc.setLineWidth(0.5);
+    doc.line(marginX + colW + 15, criteriaTop - 8, marginX + colW + 15, pageH - 130);
+
+    // -- graphique en barres par secteur, en bas de page --
+    const chartTop = pageH - 118, chartHeight = 60, chartLeft = marginX, chartWidth = pageW - marginX * 2 - 260;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(...ink);
+    doc.text("Sector averages", marginX, chartTop - 10);
+    const barGap = 16, barWidth = (chartWidth - barGap * (SECTOR_ORDER.length - 1)) / SECTOR_ORDER.length;
     SECTOR_ORDER.forEach((sectKey, i) => {
       const avg = sectorAverage(currentRatings, sectKey) || 0;
       const bx = chartLeft + i * (barWidth + barGap);
       const barH = (avg / 5) * chartHeight;
       doc.setFillColor(...accent);
       doc.rect(bx, chartTop + chartHeight - barH, barWidth, barH, "F");
-      doc.setFontSize(8.5); doc.setTextColor(...ink);
-      doc.text(CRITERIA[sectKey].label, bx, chartTop + chartHeight + 14, { maxWidth: barWidth });
-      doc.setTextColor(...accent); doc.setFont("helvetica", "bold");
-      doc.text(avg ? avg.toFixed(1) : "—", bx, chartTop + chartHeight - barH - 4);
+      doc.setFontSize(7); doc.setTextColor(...ink);
+      doc.text(CRITERIA[sectKey].label, bx, chartTop + chartHeight + 11, { maxWidth: barWidth });
+      doc.setTextColor(...accent); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+      doc.text(avg ? avg.toFixed(1) : "—", bx, chartTop + chartHeight - barH - 3);
       doc.setFont("helvetica", "normal");
     });
-    y = chartTop + chartHeight + 34;
 
-    // -- remarques --
-    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...ink);
-    [["Positive points", els.positivePoints.value], ["Points to watch", els.negativePoints.value], ["To work on next", els.toImprove.value]]
+    // -- remarques, à côté du graphique --
+    let cy2 = chartTop - 10;
+    const notesX = chartLeft + chartWidth + 20;
+    [["Positive", els.positivePoints.value], ["To watch", els.negativePoints.value], ["Next", els.toImprove.value]]
       .forEach(([label, text]) => {
         if (!text) return;
-        doc.text(label, marginX, y); y += 14;
-        doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(...muted);
-        const lines = doc.splitTextToSize(text, 480);
-        doc.text(lines, marginX, y);
-        y += lines.length * 12 + 12;
-        doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...ink);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...muted);
+        doc.text(label.toUpperCase(), notesX, cy2);
+        cy2 += 9;
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.8); doc.setTextColor(...ink);
+        const lines = doc.splitTextToSize(text, 190).slice(0, 3);
+        doc.text(lines, notesX, cy2);
+        cy2 += lines.length * 9 + 6;
       });
 
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(...muted);
-    doc.text(`Generated by Pivot on ${new Date().toISOString().slice(0, 10)}`, marginX, 810);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...muted);
+    doc.text(`Generated by Pivot on ${new Date().toISOString().slice(0, 10)}`, marginX, pageH - 14);
 
     doc.save(`${playerName.replace(/\s+/g, "_")}_${els.date.value || "assessment"}.pdf`);
   }
@@ -819,6 +970,72 @@
     await loadHistory();
   }
 
+  // -----------------------------------------------------------------------
+  // Aide IA : on ne peut pas appeler une IA directement depuis cette page,
+  // donc le principe est copier/coller -- même logique que le bloc IA de
+  // suivi.py côté application de bureau (prompt prêt, puis un bloc de
+  // réponse qu'on relit pour remplir le formulaire).
+  // -----------------------------------------------------------------------
+  function buildAiPrompt() {
+    const lines = [
+      "You're helping a basketball coach evaluate a player. I'll describe the player and what I've seen from them; ask me any clarifying questions you need first (age, position, what stood out, weaknesses...).",
+      "Once you have enough, rate them on the criteria below, each from 1 (needs a lot of work) to 5 (excellent) — leave a criterion out if you're not confident enough to score it. Reply with ONLY lines in this exact format, nothing else:",
+      "key: score",
+      "",
+    ];
+    SECTOR_ORDER.forEach((sectKey) => {
+      const sect = CRITERIA[sectKey];
+      Object.keys(sect.groups).forEach((grpKey) => {
+        sect.groups[grpKey].items.forEach((item, i) => {
+          lines.push(`${sectKey}.${grpKey}.${i}: ${item.text}`);
+        });
+      });
+    });
+    return lines.join("\n");
+  }
+
+  function parseAiResponse(text) {
+    const found = {};
+    text.split("\n").forEach((line) => {
+      const m = line.match(/^([a-z_]+)\.([a-z_]+)\.(\d+)\s*:\s*(\d)/i);
+      if (!m) return;
+      const [, sectKey, grpKey, idx, score] = m;
+      if (!currentRatings[sectKey] || !currentRatings[sectKey][grpKey]) return;
+      const i = parseInt(idx, 10), v = Math.max(1, Math.min(5, parseInt(score, 10)));
+      currentRatings[sectKey][grpKey][i] = v;
+      found[`${sectKey}.${grpKey}.${idx}`] = v;
+    });
+    return Object.keys(found).length;
+  }
+
+  document.getElementById("ai-toggle-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    const section = document.getElementById("ai-section");
+    const open = section.style.display === "block";
+    section.style.display = open ? "none" : "block";
+    e.target.textContent = open ? "▸ Fill in with AI" : "▾ Fill in with AI";
+  });
+
+  document.getElementById("copy-ai-prompt-btn").addEventListener("click", async () => {
+    const text = buildAiPrompt();
+    try {
+      await navigator.clipboard.writeText(text);
+      showMessage("Prompt copied — paste it into any AI chat.", "success");
+    } catch (e) {
+      showMessage("Couldn't copy automatically — select and copy the prompt manually.", "error");
+    }
+  });
+
+  document.getElementById("fill-from-ai-btn").addEventListener("click", () => {
+    const text = document.getElementById("ai-response-input").value;
+    if (!text.trim()) { showMessage("Paste the AI's reply first.", "error"); return; }
+    const count = parseAiResponse(text);
+    if (count === 0) { showMessage("Couldn't find any recognizable scores in that text.", "error"); return; }
+    fillFormFromRatings();
+    applyAdvancedVisibility();
+    showMessage(`Filled in ${count} criteria from the AI reply — review before saving.`, "success");
+  });
+
   els.newBtn.addEventListener("click", openNew);
   els.cancelBtn.addEventListener("click", () => { els.formArea.style.display = "none"; });
   els.saveBtn.addEventListener("click", saveAssessment);
@@ -840,10 +1057,11 @@
         <li><strong>Pick a season/team</strong> on the left, then a player at the top — the list updates to match.</li>
         <li><strong>Show advanced criteria</strong> (left, below the tree) reveals 18 more tactical/IQ-focused criteria on top of the 18 basic ones — leave it off for a quicker, simpler evaluation.</li>
         <li><strong>Heights</strong> (player, father, mother) are optional, used to get a feel for likely adult height.</li>
+        <li><strong>Fill in with AI</strong> — copy a ready-made prompt into any AI chat, describe the player, paste its reply back in, and it fills the scores in for you to review.</li>
         <li><strong>Click "+ New assessment"</strong>, fill in what you can (blank stays blank, it's not forced to a random score), Save.</li>
-        <li>Sector averages update live as you fill each one in.</li>
+        <li>Sector averages update live as you fill each one in, both on screen and in the exported PDF.</li>
         <li><strong>Past assessments</strong> below are clickable — opens that one back up to review or edit.</li>
-        <li><strong>★ Load example</strong> (left, under the tree) needs the Bulls roster to already exist — load it from Dashboard or Roster first if you haven't yet, then come back here to see sample evaluations for Jordan, Pippen, and the rest.</li>
+        <li><strong>Example data</strong> (left) — three real Bulls seasons and the 2008 Celtics, with sample evaluations already filled in.</li>
       </ul>`;
     box.style.display = "block";
   });
@@ -857,6 +1075,7 @@
     const { data } = await supabaseClient.auth.getSession();
     if (!data.session) { window.location.href = "./login.html"; return; }
     buildForm();
+    buildChart();
     const orgId = await loadMyOrganization();
     if (orgId) await loadTree();
   }

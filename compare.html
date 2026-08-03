@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pivot — Compare players</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
+  h1, h2, h3, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  a { color: inherit; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
+  .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
+  .nav-btn:hover { border-color: var(--accent); }
+  .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; margin-bottom: 10px; }
+  .back-link:hover { color: var(--ink); }
+
+  .wrap { max-width: 900px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
+  p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+  .msg { margin-bottom: 14px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
+  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--ink); margin-bottom: 12px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; margin-bottom: 16px; }
+  .card h2 { font-size: 14px; margin: 0 0 4px; }
+  .card p.hint { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+  .picker-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+  .player-chip { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 100px; font-size: 12.5px; cursor: pointer; user-select: none; }
+  .player-chip.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .player-chip .swatch { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; max-width: 400px; }
+
+  /* -------- graphique de comparaison par secteur -------- */
+  .sector-chart { display: flex; gap: 30px; align-items: flex-end; height: 160px; padding: 0 10px; overflow-x: auto; }
+  .sector-group { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 70px; }
+  .bars-row { display: flex; align-items: flex-end; gap: 4px; height: 110px; }
+  .bar { width: 16px; border-radius: 3px 3px 0 0; position: relative; }
+  .bar .val { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .sector-label { font-size: 11px; color: var(--muted); text-align: center; }
+
+  .legend-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-size: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-item .swatch { width: 10px; height: 10px; border-radius: 50%; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; }
+  .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+  <div class="nav-right">
+    <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
+    <span id="org-name"></span>
+    <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
+      <option value="">Go to…</option>
+      <option value="dashboard.html">Dashboard</option>
+      <option value="roster.html">Roster</option>
+      <option value="assessment.html">Player assessment</option>
+      <option value="play_design.html">Play design</option>
+      <option value="match.html">Match day</option>
+      <option value="exercises.html">Exercise creator</option>
+      <option value="library.html">Library</option>
+      <option value="training.html">Training builder</option>
+      <option value="settings.html">Settings</option>
+    </select>
+    <button class="nav-btn" id="logout-btn">Log out</button>
+  </div>
+</nav>
+
+<div class="wrap">
+  <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+  <h1>
+    Compare players
+    <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+  </h1>
+  <p class="sub">Pick any players — from any season or team — and compare them live.</p>
+  <div class="help-box" id="help-box"></div>
+  <div class="msg" id="msg"></div>
+
+  <div class="card">
+    <h2>Who to compare</h2>
+    <p class="hint">Click players to add or remove them from the comparison. Works across different seasons and teams — that's the point.</p>
+    <div class="picker-row" id="player-picker"></div>
+  </div>
+
+  <div class="card">
+    <h2>Sector averages</h2>
+    <p class="hint">Each player's most recent assessment, one color per player.</p>
+    <div class="sector-chart" id="sector-chart"></div>
+    <div class="legend-row" id="sector-legend"></div>
+  </div>
+
+  <div class="card">
+    <h2>One specific criterion</h2>
+    <p class="hint">Pick a single criterion to compare directly, score by score.</p>
+    <div class="field">
+      <label for="criterion-select">Criterion</label>
+      <select id="criterion-select"></select>
+    </div>
+    <table>
+      <thead><tr><th>Player</th><th>Score</th><th>Assessment date</th></tr></thead>
+      <tbody id="criterion-body"></tbody>
+    </table>
+    <div class="empty-state" id="criterion-empty" style="display:none">Pick at least one player above.</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Même liste de critères que assessment.html (juste le texte, pas besoin
+  // du détail basic/avancé ici).
+  const CRITERIA = {
+    technique: { label: "Technique", groups: {
+      dribble: { items: ["Looks at the ball", "Dribbles with right hand", "Dribbles with left hand", "Changes of direction"] },
+      tir: { items: ["Shooting technique", "Balance / footwork for the shot", "Speed of execution", "Free throw"] },
+      passe: { items: ["Passing technique", "Passing out of the dribble", "Catching passes"] },
+      defense: { items: ["Defensive stance", "On-ball defense (strong side)", "Off-ball defense (weak side)"] },
+    }},
+    intelligence: { label: "Basketball IQ", groups: {
+      sans_ballon: { items: ["Getting open, back door cuts", "Spacing", "Rebounding", "Setting screens (U18)"] },
+      avec_ballon: { items: ["Uses the dribble effectively", "Reads the defense", "Shot selection"] },
+      defense: { items: ["Anticipation", "Reading the offense", "Help defense", "Defending screens", "Character, motivation, determination"] },
+      divers: { items: ["Pace of play", "Tactical choices", "Influence on the game"] },
+    }},
+    personnalite: { label: "Personality", groups: { attitude: { items: ["Towards teammates / coaches", "Towards their own mistakes", "Towards referees"] } } },
+    comportement: { label: "Behaviour", groups: { comportement: { items: [
+      "Motivation, willing to sacrifice time for the sport, willing to push their limits",
+      "Tactical discipline: follows the coach's instructions, pays attention when others are corrected",
+      "Team integration: helps and supports teammates",
+      "Adaptability: can adapt quickly to a new role",
+    ] } } },
+  };
+  const SECTOR_ORDER = ["technique", "intelligence", "personnalite", "comportement"];
+  function sectorAverage(ratings, sectKey) {
+    let sum = 0, count = 0;
+    const groups = (ratings && ratings[sectKey]) || {};
+    for (const grpKey in groups) (groups[grpKey] || []).forEach((v) => { if (v !== null && v !== undefined) { sum += v; count++; } });
+    return count > 0 ? sum / count : null;
+  }
+
+  const PLAYER_COLORS = ["#d21414", "#1a1a1a", "#0f766e", "#a16207", "#4338ca", "#be185d"];
+
+  const els = {
+    orgName: document.getElementById("org-name"),
+    orgLogo: document.getElementById("org-logo"),
+    logoutBtn: document.getElementById("logout-btn"),
+    msg: document.getElementById("msg"),
+    playerPicker: document.getElementById("player-picker"),
+    sectorChart: document.getElementById("sector-chart"),
+    sectorLegend: document.getElementById("sector-legend"),
+    criterionSelect: document.getElementById("criterion-select"),
+    criterionBody: document.getElementById("criterion-body"),
+    criterionEmpty: document.getElementById("criterion-empty"),
+  };
+
+  let currentOrgId = null;
+  let allPlayers = []; // { id, name, team, season }
+  let selectedIds = [];
+  let latestAssessments = {}; // player_id -> { date, ratings }
+
+  function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+
+  async function loadMyOrganization() {
+    const { data, error } = await supabaseClient
+      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+    if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
+    currentOrgId = data[0].organization_id;
+    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
+    return currentOrgId;
+  }
+
+  async function loadAllPlayers() {
+    const { data, error } = await supabaseClient
+      .from("players").select("id, first_name, last_name, team, season")
+      .eq("organization_id", currentOrgId).order("season", { ascending: false });
+    if (error) { console.error("loadAllPlayers error:", error); return; }
+    allPlayers = (data || []).map((p) => ({ id: p.id, name: `${p.first_name} ${p.last_name}`, team: p.team, season: p.season }));
+    renderPlayerPicker();
+  }
+
+  function renderPlayerPicker() {
+    els.playerPicker.innerHTML = "";
+    allPlayers.forEach((p) => {
+      const chip = document.createElement("div");
+      chip.className = "player-chip" + (selectedIds.includes(p.id) ? " selected" : "");
+      chip.textContent = `${p.name} — ${p.team} (${p.season})`;
+      chip.addEventListener("click", () => toggleSelected(p.id));
+      els.playerPicker.appendChild(chip);
+    });
+  }
+
+  async function toggleSelected(id) {
+    if (selectedIds.includes(id)) selectedIds = selectedIds.filter((x) => x !== id);
+    else selectedIds.push(id);
+    renderPlayerPicker();
+    await loadLatestAssessments();
+    renderSectorChart();
+    renderCriterionTable();
+  }
+
+  // -----------------------------------------------------------------------
+  // Dernière évaluation de chaque joueur sélectionné -- c'est ce qu'on
+  // compare (pas tout l'historique, pour rester simple et lisible).
+  // -----------------------------------------------------------------------
+  async function loadLatestAssessments() {
+    for (const id of selectedIds) {
+      if (latestAssessments[id]) continue;
+      const { data, error } = await supabaseClient
+        .from("player_assessments").select("date, ratings").eq("player_id", id)
+        .order("date", { ascending: false }).limit(1);
+      if (!error && data && data.length > 0) latestAssessments[id] = data[0];
+      else latestAssessments[id] = null;
+    }
+  }
+
+  function renderSectorChart() {
+    els.sectorChart.innerHTML = "";
+    els.sectorLegend.innerHTML = "";
+    if (selectedIds.length === 0) return;
+
+    SECTOR_ORDER.forEach((sectKey) => {
+      const group = document.createElement("div");
+      group.className = "sector-group";
+      const barsRow = document.createElement("div");
+      barsRow.className = "bars-row";
+      selectedIds.forEach((id, i) => {
+        const assessment = latestAssessments[id];
+        const avg = assessment ? sectorAverage(assessment.ratings, sectKey) : null;
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        bar.style.height = `${((avg || 0) / 5) * 100}px`;
+        bar.style.background = PLAYER_COLORS[i % PLAYER_COLORS.length];
+        const val = document.createElement("div");
+        val.className = "val";
+        val.textContent = avg !== null && avg !== undefined ? avg.toFixed(1) : "—";
+        bar.appendChild(val);
+        barsRow.appendChild(bar);
+      });
+      const label = document.createElement("div");
+      label.className = "sector-label";
+      label.textContent = CRITERIA[sectKey].label;
+      group.appendChild(barsRow);
+      group.appendChild(label);
+      els.sectorChart.appendChild(group);
+    });
+
+    selectedIds.forEach((id, i) => {
+      const p = allPlayers.find((pp) => pp.id === id);
+      const item = document.createElement("div");
+      item.className = "legend-item";
+      item.innerHTML = `<span class="swatch" style="background:${PLAYER_COLORS[i % PLAYER_COLORS.length]}"></span> ${p ? p.name : "?"}`;
+      els.sectorLegend.appendChild(item);
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Sélecteur de critère précis (même liste que assessment.html)
+  // -----------------------------------------------------------------------
+  function buildCriterionSelect() {
+    els.criterionSelect.innerHTML = "";
+    SECTOR_ORDER.forEach((sectKey) => {
+      const sect = CRITERIA[sectKey];
+      Object.keys(sect.groups).forEach((grpKey) => {
+        sect.groups[grpKey].items.forEach((text, i) => {
+          const opt = document.createElement("option");
+          opt.value = `${sectKey}|${grpKey}|${i}`;
+          opt.textContent = `${sect.label} — ${text}`;
+          els.criterionSelect.appendChild(opt);
+        });
+      });
+    });
+  }
+
+  function renderCriterionTable() {
+    els.criterionBody.innerHTML = "";
+    if (selectedIds.length === 0) { els.criterionEmpty.style.display = "block"; return; }
+    els.criterionEmpty.style.display = "none";
+    const [sectKey, grpKey, idx] = els.criterionSelect.value.split("|");
+    selectedIds.forEach((id) => {
+      const p = allPlayers.find((pp) => pp.id === id);
+      const assessment = latestAssessments[id];
+      const val = assessment && assessment.ratings[sectKey] && assessment.ratings[sectKey][grpKey]
+        ? assessment.ratings[sectKey][grpKey][idx] : null;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${p ? p.name : "?"}</td><td>${val !== null && val !== undefined ? val : "—"}</td><td>${assessment ? assessment.date : "—"}</td>`;
+      els.criterionBody.appendChild(tr);
+    });
+  }
+  els.criterionSelect.addEventListener("change", renderCriterionTable);
+
+  document.getElementById("nav-menu").addEventListener("change", (e) => {
+    if (e.target.value) window.location.href = "./" + e.target.value;
+  });
+
+  document.getElementById("help-btn").addEventListener("click", () => {
+    const box = document.getElementById("help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.innerHTML = `
+      <strong>How to use Compare players</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li>Click any player chip above to add them to the comparison — works across different seasons and teams, so you can put a 2024 player next to a 2019 one.</li>
+        <li>The sector chart shows each selected player's <em>most recent</em> assessment, one bar color per player.</li>
+        <li>The table below lets you pick one exact criterion (out of all 36) and see each player's score for just that, side by side.</li>
+        <li>Everything updates live as you add or remove players — no need to click a "compare" button.</li>
+      </ul>`;
+    box.style.display = "block";
+  });
+
+  els.logoutBtn.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    buildCriterionSelect();
+    const orgId = await loadMyOrganization();
+    if (orgId) await loadAllPlayers();
+  }
+  init();
+</script>
+
+</body>
+</html>

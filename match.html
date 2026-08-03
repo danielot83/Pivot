@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pivot — Match day</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
+  h1, h2, h3, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  a { color: inherit; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
+  .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
+  .nav-btn:hover { border-color: var(--accent); }
+  .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
+  .back-link:hover { color: var(--ink); }
+
+  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; max-width: 1000px; margin: 0 auto; padding: 24px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
+  p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+  .msg { margin-bottom: 14px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--ink); margin-bottom: 12px; }
+
+  .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .tree-season { font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  .tree-season:first-child { margin-top: 0; }
+  .tree-team { display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 8px; margin: 1px 0; border-radius: 6px; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .tree-team:hover { background: var(--paper); }
+  .tree-team.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+
+  .match-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 8px; border-radius: 6px; font-size: 12.5px; cursor: pointer; }
+  .match-item:hover { background: var(--paper); }
+  .match-item.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .new-btn { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; font-weight: 600; }
+
+  .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 14px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+  .spacer { flex: 1; }
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 13px; margin-bottom: 20px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { background: var(--paper); font-weight: 600; color: var(--muted); font-size: 11px; text-transform: uppercase; }
+  tr:last-child td { border-bottom: none; }
+  td.editable { cursor: text; }
+  td.editable:hover { background: var(--accent-tint); }
+  td.editable input, td.editable select { width: 100%; padding: 3px 5px; border: 1px solid var(--accent); border-radius: 4px; font-size: 13px; }
+  .empty-state { text-align: center; padding: 30px 20px; color: var(--muted); font-size: 13.5px; }
+  .section-label { font-size: 13px; font-weight: 600; margin: 22px 0 10px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+  <div class="nav-right">
+    <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
+    <span id="org-name"></span>
+    <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
+      <option value="">Go to…</option>
+      <option value="dashboard.html">Dashboard</option>
+      <option value="roster.html">Roster</option>
+      <option value="assessment.html">Player assessment</option>
+      <option value="play_design.html">Play design</option>
+      <option value="compare.html">Compare players</option>
+      <option value="match.html" selected>Match day</option>
+      <option value="exercises.html">Exercise creator</option>
+      <option value="library.html">Library</option>
+      <option value="training.html">Training builder</option>
+      <option value="settings.html">Settings</option>
+    </select>
+    <button class="nav-btn" id="logout-btn">Log out</button>
+  </div>
+</nav>
+
+<div class="layout">
+  <div>
+    <div class="side-card">
+      <h2>Seasons &amp; teams</h2>
+      <div id="tree"></div>
+    </div>
+    <div class="side-card">
+      <h2>Matches</h2>
+      <button class="new-btn" id="new-match-btn">+ New match</button>
+      <div id="matches-list"></div>
+    </div>
+  </div>
+
+  <div>
+    <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+    <h1>
+      Match day
+      <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+    </h1>
+    <p class="sub" id="current-selection">Pick a season/team on the left.</p>
+    <div class="help-box" id="help-box"></div>
+    <div class="msg" id="msg"></div>
+
+    <div id="match-area" style="display:none">
+      <div class="toolbar">
+        <div class="field"><label for="match-date">Date</label><input id="match-date" type="date" /></div>
+        <div class="field"><label for="match-opponent">Opponent</label><input id="match-opponent" type="text" /></div>
+        <div class="field"><label for="match-location">Location</label><input id="match-location" type="text" placeholder="Optional" /></div>
+        <div class="field">
+          <label for="match-home-away">Home/Away</label>
+          <select id="match-home-away"><option value="home">Home</option><option value="away">Away</option></select>
+        </div>
+        <div class="field"><label for="match-team-score">Score (us)</label><input id="match-team-score" type="number" style="width:70px;" /></div>
+        <div class="field"><label for="match-opponent-score">Score (them)</label><input id="match-opponent-score" type="number" style="width:70px;" /></div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-primary" id="save-match-btn">Save match details</button>
+        <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
+        <div class="spacer"></div>
+        <button class="btn btn-secondary" id="delete-match-btn" style="color:#991b1b;">Delete this match</button>
+      </div>
+
+      <p class="section-label">Call-up &amp; stats</p>
+      <p class="sub" style="margin-top:-6px;">Tick who's called up, mark starters, then fill in stats — click any cell to edit.</p>
+      <table>
+        <thead><tr><th>Called up</th><th>Starter</th><th>Player</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Fouls</th></tr></thead>
+        <tbody id="callup-body"></tbody>
+      </table>
+    </div>
+
+    <p class="section-label">Season summary — <span id="summary-team-label"></span></p>
+    <table>
+      <thead><tr><th>Player</th><th>GP</th><th>Pts/g</th><th>Reb/g</th><th>Ast/g</th><th>Fouls/g</th></tr></thead>
+      <tbody id="summary-body"></tbody>
+    </table>
+    <div class="empty-state" id="summary-empty" style="display:none">No matches recorded yet for this team.</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const els = {
+    orgName: document.getElementById("org-name"),
+    orgLogo: document.getElementById("org-logo"),
+    logoutBtn: document.getElementById("logout-btn"),
+    tree: document.getElementById("tree"),
+    matchesList: document.getElementById("matches-list"),
+    currentSelection: document.getElementById("current-selection"),
+    matchArea: document.getElementById("match-area"),
+    matchDate: document.getElementById("match-date"),
+    matchOpponent: document.getElementById("match-opponent"),
+    matchLocation: document.getElementById("match-location"),
+    matchHomeAway: document.getElementById("match-home-away"),
+    matchTeamScore: document.getElementById("match-team-score"),
+    matchOpponentScore: document.getElementById("match-opponent-score"),
+    callupBody: document.getElementById("callup-body"),
+    summaryBody: document.getElementById("summary-body"),
+    summaryEmpty: document.getElementById("summary-empty"),
+    summaryTeamLabel: document.getElementById("summary-team-label"),
+    msg: document.getElementById("msg"),
+  };
+
+  let currentOrgId = null;
+  let currentSeason = null;
+  let currentTeam = null;
+  let currentMatchId = null;
+  let teamPlayers = []; // joueurs actifs de l'équipe sélectionnée
+  let statsByPlayer = {}; // player_id -> { called_up, started, minutes, points, rebounds, assists, fouls }
+
+  function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+
+  async function loadMyOrganization() {
+    const { data, error } = await supabaseClient
+      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+    if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
+    currentOrgId = data[0].organization_id;
+    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
+    return currentOrgId;
+  }
+
+  // -----------------------------------------------------------------------
+  // Arbre saison / équipe (même logique que roster.html / assessment.html)
+  // -----------------------------------------------------------------------
+  async function loadTree() {
+    const { data, error } = await supabaseClient
+      .from("players").select("season, team").eq("organization_id", currentOrgId);
+    if (error) { console.error("loadTree error:", error); return; }
+    const bySeasons = {};
+    (data || []).forEach((r) => (bySeasons[r.season] = bySeasons[r.season] || new Set()).add(r.team));
+    els.tree.innerHTML = "";
+    Object.keys(bySeasons).sort().reverse().forEach((season) => {
+      const seasonEl = document.createElement("div");
+      seasonEl.className = "tree-season";
+      seasonEl.textContent = season;
+      els.tree.appendChild(seasonEl);
+      Array.from(bySeasons[season]).sort().forEach((team) => {
+        const btn = document.createElement("button");
+        btn.className = "tree-team" + (season === currentSeason && team === currentTeam ? " active" : "");
+        btn.textContent = team;
+        btn.addEventListener("click", () => selectSeasonTeam(season, team));
+        els.tree.appendChild(btn);
+      });
+    });
+  }
+
+  async function selectSeasonTeam(season, team) {
+    currentSeason = season; currentTeam = team;
+    els.currentSelection.textContent = `${team} — ${season}`;
+    els.summaryTeamLabel.textContent = `${team} (${season})`;
+    els.matchArea.style.display = "none";
+    currentMatchId = null;
+    await loadTree();
+    await loadTeamPlayers();
+    await loadMatchesList();
+    await loadSeasonSummary();
+  }
+
+  async function loadTeamPlayers() {
+    const { data, error } = await supabaseClient
+      .from("players").select("id, first_name, last_name")
+      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
+      .eq("active", true).order("last_name");
+    if (error) { console.error(error); teamPlayers = []; return; }
+    teamPlayers = data || [];
+  }
+
+  // -----------------------------------------------------------------------
+  // Liste des matchs de l'équipe sélectionnée
+  // -----------------------------------------------------------------------
+  async function loadMatchesList() {
+    const { data, error } = await supabaseClient
+      .from("matches").select("id, date, opponent")
+      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
+      .order("date", { ascending: false });
+    els.matchesList.innerHTML = "";
+    if (error) { console.error(error); return; }
+    (data || []).forEach((m) => {
+      const row = document.createElement("div");
+      row.className = "match-item" + (m.id === currentMatchId ? " active" : "");
+      row.textContent = `${m.date}${m.opponent ? " vs " + m.opponent : ""}`;
+      row.addEventListener("click", () => openMatch(m.id));
+      els.matchesList.appendChild(row);
+    });
+  }
+
+  function newMatch() {
+    if (!currentTeam) { showMessage("Pick a season/team on the left first.", "error"); return; }
+    currentMatchId = null;
+    els.matchDate.value = new Date().toISOString().slice(0, 10);
+    els.matchOpponent.value = "";
+    els.matchLocation.value = "";
+    els.matchHomeAway.value = "home";
+    els.matchTeamScore.value = "";
+    els.matchOpponentScore.value = "";
+    statsByPlayer = {};
+    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0 }));
+    renderCallupTable();
+    els.matchArea.style.display = "block";
+  }
+
+  async function openMatch(id) {
+    const { data: match, error } = await supabaseClient.from("matches").select("*").eq("id", id).single();
+    if (error) { showMessage(error.message, "error"); return; }
+    currentMatchId = id;
+    els.matchDate.value = match.date;
+    els.matchOpponent.value = match.opponent || "";
+    els.matchLocation.value = match.location || "";
+    els.matchHomeAway.value = match.home_away || "home";
+    els.matchTeamScore.value = match.team_score ?? "";
+    els.matchOpponentScore.value = match.opponent_score ?? "";
+
+    const { data: statRows } = await supabaseClient.from("match_player_stats").select("*").eq("match_id", id);
+    statsByPlayer = {};
+    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0 }));
+    (statRows || []).forEach((s) => {
+      statsByPlayer[s.player_id] = { called_up: true, started: s.started, minutes: s.minutes, points: s.points, rebounds: s.rebounds, assists: s.assists, fouls: s.fouls };
+    });
+    renderCallupTable();
+    els.matchArea.style.display = "block";
+    await loadMatchesList();
+  }
+
+  function renderCallupTable() {
+    els.callupBody.innerHTML = "";
+    teamPlayers.forEach((p) => {
+      const s = statsByPlayer[p.id];
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><input type="checkbox" data-player="${p.id}" data-field="called_up" ${s.called_up ? "checked" : ""}></td>
+        <td><input type="checkbox" data-player="${p.id}" data-field="started" ${s.started ? "checked" : ""}></td>
+        <td>${p.first_name} ${p.last_name}</td>
+        <td class="editable" data-player="${p.id}" data-field="minutes">${s.minutes ?? ""}</td>
+        <td class="editable" data-player="${p.id}" data-field="points">${s.points ?? 0}</td>
+        <td class="editable" data-player="${p.id}" data-field="rebounds">${s.rebounds ?? 0}</td>
+        <td class="editable" data-player="${p.id}" data-field="assists">${s.assists ?? 0}</td>
+        <td class="editable" data-player="${p.id}" data-field="fouls">${s.fouls ?? 0}</td>
+      `;
+      els.callupBody.appendChild(tr);
+    });
+    els.callupBody.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.addEventListener("change", () => { statsByPlayer[cb.dataset.player][cb.dataset.field] = cb.checked; });
+    });
+    els.callupBody.querySelectorAll("td.editable").forEach((td) => {
+      td.addEventListener("click", () => makeCellEditable(td));
+    });
+  }
+
+  function makeCellEditable(td) {
+    if (td.querySelector("input")) return;
+    const original = td.textContent.trim();
+    const input = document.createElement("input");
+    input.type = "number";
+    input.value = original;
+    td.textContent = "";
+    td.appendChild(input);
+    input.focus();
+    const commit = () => {
+      const val = input.value === "" ? null : parseFloat(input.value);
+      statsByPlayer[td.dataset.player][td.dataset.field] = val;
+      td.textContent = val ?? "";
+    };
+    input.addEventListener("blur", commit);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") input.blur(); });
+  }
+
+  async function saveMatch() {
+    if (!currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
+    const payload = {
+      organization_id: currentOrgId, season: currentSeason, team: currentTeam,
+      date: els.matchDate.value, opponent: els.matchOpponent.value.trim() || null,
+      location: els.matchLocation.value.trim() || null, home_away: els.matchHomeAway.value,
+      team_score: els.matchTeamScore.value ? parseInt(els.matchTeamScore.value, 10) : null,
+      opponent_score: els.matchOpponentScore.value ? parseInt(els.matchOpponentScore.value, 10) : null,
+    };
+    try {
+      let matchId = currentMatchId;
+      if (matchId) {
+        const { error } = await supabaseClient.from("matches").update(payload).eq("id", matchId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabaseClient.from("matches").insert(payload).select("id").single();
+        if (error) throw error;
+        matchId = data.id;
+        currentMatchId = matchId;
+      }
+
+      // remplace toutes les stats de ce match par l'état actuel (simple et sûr)
+      await supabaseClient.from("match_player_stats").delete().eq("match_id", matchId);
+      const rows = Object.keys(statsByPlayer)
+        .filter((pid) => statsByPlayer[pid].called_up)
+        .map((pid) => ({ match_id: matchId, player_id: pid, ...statsByPlayer[pid] }));
+      rows.forEach((r) => delete r.called_up); // colonne pas dans la table -- on la déduit de la présence de la ligne
+      if (rows.length > 0) {
+        const { error: sErr } = await supabaseClient.from("match_player_stats").insert(rows);
+        if (sErr) throw sErr;
+      }
+
+      showMessage("Match saved.", "success");
+      await loadMatchesList();
+      await loadSeasonSummary();
+    } catch (err) {
+      showMessage(err.message || "Couldn't save that match.", "error");
+    }
+  }
+
+  async function deleteMatch() {
+    if (!currentMatchId || !confirm("Delete this match and its stats?")) return;
+    const { error } = await supabaseClient.from("matches").delete().eq("id", currentMatchId);
+    if (error) { showMessage(error.message, "error"); return; }
+    els.matchArea.style.display = "none";
+    currentMatchId = null;
+    await loadMatchesList();
+    await loadSeasonSummary();
+  }
+
+  // -----------------------------------------------------------------------
+  // Résumé de saison : agrège match_player_stats pour l'équipe sélectionnée
+  // -----------------------------------------------------------------------
+  async function loadSeasonSummary() {
+    if (!currentTeam) return;
+    const { data: matchIds } = await supabaseClient
+      .from("matches").select("id").eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam);
+    const ids = (matchIds || []).map((m) => m.id);
+    els.summaryBody.innerHTML = "";
+    if (ids.length === 0) { els.summaryEmpty.style.display = "block"; return; }
+    els.summaryEmpty.style.display = "none";
+
+    const { data: stats } = await supabaseClient.from("match_player_stats").select("*").in("match_id", ids);
+    const byPlayer = {};
+    (stats || []).forEach((s) => {
+      byPlayer[s.player_id] = byPlayer[s.player_id] || { gp: 0, points: 0, rebounds: 0, assists: 0, fouls: 0 };
+      const b = byPlayer[s.player_id];
+      b.gp++; b.points += s.points || 0; b.rebounds += s.rebounds || 0; b.assists += s.assists || 0; b.fouls += s.fouls || 0;
+    });
+    teamPlayers.forEach((p) => {
+      const b = byPlayer[p.id];
+      if (!b) return;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${p.first_name} ${p.last_name}</td><td>${b.gp}</td><td>${(b.points / b.gp).toFixed(1)}</td><td>${(b.rebounds / b.gp).toFixed(1)}</td><td>${(b.assists / b.gp).toFixed(1)}</td><td>${(b.fouls / b.gp).toFixed(1)}</td>`;
+      els.summaryBody.appendChild(tr);
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // PDF vectoriel de la feuille de match
+  // -----------------------------------------------------------------------
+  async function loadLogoDataUrl(orgId) {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`);
+      if (!resp.ok) return null;
+      const blob = await resp.blob();
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) { return null; }
+  }
+
+  async function exportToPdf() {
+    if (!currentMatchId) { showMessage("Save the match first.", "error"); return; }
+    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+    const accent = [210, 20, 20], ink = [26, 26, 26], muted = [130, 130, 136];
+    const marginX = 36, pageW = 842;
+    if (logoDataUrl) { try { doc.addImage(logoDataUrl, "PNG", pageW - marginX - 36, 22, 36, 36); } catch (e) {} }
+
+    let y = 40;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(...ink);
+    doc.text(els.orgName.textContent || "Pivot", marginX, y);
+    y += 16;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(...muted);
+    doc.text(`Match day — ${currentTeam} vs ${els.matchOpponent.value || "?"} (${els.matchDate.value})`, marginX, y);
+    y += 8;
+    doc.setDrawColor(...accent); doc.setLineWidth(1);
+    doc.line(marginX, y, pageW - marginX, y);
+    y += 20;
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...muted);
+    ["Player", "Min", "Pts", "Reb", "Ast", "Fouls"].forEach((h, i) => doc.text(h.toUpperCase(), marginX + i * 110, y));
+    y += 14;
+    doc.setDrawColor(225, 225, 225); doc.line(marginX, y, pageW - marginX, y);
+    y += 14;
+
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(...ink);
+    teamPlayers.forEach((p) => {
+      const s = statsByPlayer[p.id];
+      if (!s.called_up) return;
+      [`${p.first_name} ${p.last_name}`, s.minutes ?? "—", s.points ?? 0, s.rebounds ?? 0, s.assists ?? 0, s.fouls ?? 0]
+        .forEach((v, i) => doc.text(String(v), marginX + i * 110, y));
+      y += 16;
+    });
+
+    doc.setFontSize(8); doc.setTextColor(...muted);
+    doc.text(`Generated by Pivot on ${new Date().toISOString().slice(0, 10)}`, marginX, 595 - 14);
+    doc.save(`${currentTeam}_vs_${els.matchOpponent.value || "match"}_${els.matchDate.value}.pdf`);
+  }
+
+  document.getElementById("new-match-btn").addEventListener("click", newMatch);
+  document.getElementById("save-match-btn").addEventListener("click", saveMatch);
+  document.getElementById("delete-match-btn").addEventListener("click", deleteMatch);
+  document.getElementById("export-pdf-btn").addEventListener("click", exportToPdf);
+
+  document.getElementById("nav-menu").addEventListener("change", (e) => {
+    if (e.target.value) window.location.href = "./" + e.target.value;
+  });
+
+  document.getElementById("help-btn").addEventListener("click", () => {
+    const box = document.getElementById("help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.innerHTML = `
+      <strong>How to use Match day</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li>Pick a season/team on the left, then "+ New match" or click an existing one from the list.</li>
+        <li>Fill in date, opponent, location, and the score once you have it.</li>
+        <li>Tick "Called up" for players in the roster that day, "Starter" for the five who start.</li>
+        <li>Click any stat cell (minutes, points, rebounds, assists, fouls) to edit it directly.</li>
+        <li>"Season summary" below adds up every saved match for this team — games played and per-game averages, automatically.</li>
+        <li>"Export to PDF" makes a clean box score you can print or send.</li>
+      </ul>`;
+    box.style.display = "block";
+  });
+
+  els.logoutBtn.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    const orgId = await loadMyOrganization();
+    if (orgId) await loadTree();
+  }
+  init();
+</script>
+
+</body>
+</html>

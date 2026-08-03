@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pivot — Exercise library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
+  h1, h2, h3, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  a { color: inherit; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
+  .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
+  .nav-btn:hover { border-color: var(--accent); }
+  .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
+  .back-link:hover { color: var(--ink); }
+
+  .layout { display: grid; grid-template-columns: 240px 1fr; gap: 24px; max-width: 1080px; margin: 0 auto; padding: 24px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
+  p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+  .msg { margin-bottom: 14px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--ink); margin-bottom: 12px; }
+
+  .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .cat-btn { display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 8px; margin: 1px 0; border-radius: 6px; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .cat-btn:hover { background: var(--paper); }
+  .cat-btn.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .ex-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 8px; border-radius: 6px; font-size: 12.5px; cursor: pointer; gap: 6px; }
+  .ex-item:hover { background: var(--paper); }
+  .ex-item.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .ex-item .stars { color: var(--accent); font-size: 11px; white-space: nowrap; }
+  .new-btn { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; font-weight: 600; }
+
+  .tabs-row { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .tab-btn { padding: 9px 16px; background: none; border: none; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab-btn.active { color: var(--accent-deep); border-bottom-color: var(--accent); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  .field-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field input, .field select, .field textarea { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; font-family: inherit; }
+  .checkbox-field { display: flex; align-items: center; gap: 6px; }
+  .checkbox-field input { width: auto; }
+  .checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 4px 10px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+  .checkbox-group-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 10px; display: block; }
+  .group-card { margin-bottom: 14px; }
+
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .spacer { flex: 1; }
+  .tool-group { display: flex; flex-wrap: wrap; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px; margin-bottom: 6px; }
+  .tool-btn { padding: 5px 9px; border: none; background: none; border-radius: 6px; cursor: pointer; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .tool-btn:hover { background: var(--paper); }
+  .tool-btn.active { background: var(--accent); color: #fff; }
+
+  .step-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+  .step-tab { padding: 6px 12px; border: 1px solid var(--line); background: var(--card); border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .step-tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  .court-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  #court-canvas { display: block; margin: 0 auto; cursor: crosshair; touch-action: none; }
+  .empty-state { text-align: center; padding: 30px 20px; color: var(--muted); font-size: 13.5px; }
+  .hint-text { font-size: 11.5px; color: var(--muted); margin: 8px 0 0; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+  <div class="nav-right">
+    <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
+    <span id="org-name"></span>
+    <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
+      <option value="">Go to…</option>
+      <option value="dashboard.html">Dashboard</option>
+      <option value="roster.html">Roster</option>
+      <option value="assessment.html">Player assessment</option>
+      <option value="play_design.html">Play design</option>
+      <option value="compare.html">Compare players</option>
+      <option value="match.html">Match day</option>
+      <option value="exercises.html" selected>Exercise creator</option>
+      <option value="library.html">Library</option>
+      <option value="training.html">Training builder</option>
+      <option value="settings.html">Settings</option>
+    </select>
+    <button class="nav-btn" id="logout-btn">Log out</button>
+  </div>
+</nav>
+
+<div class="layout">
+  <div>
+    <div class="side-card">
+      <h2>Categories</h2>
+      <div id="categories-list"></div>
+    </div>
+    <div class="side-card">
+      <h2>Exercises</h2>
+      <button class="new-btn" id="new-ex-btn">+ New exercise</button>
+      <div id="exercises-list"></div>
+    </div>
+  </div>
+
+  <div>
+    <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+    <h1>
+      Exercise library
+      <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+    </h1>
+    <p class="sub">Same fields as the desktop app: number, age groups, categories, material, difficulty, tags, objectives, and a 5-step court diagram.</p>
+    <div class="help-box" id="help-box"></div>
+    <div class="msg" id="msg"></div>
+
+    <div id="editor-area" style="display:none">
+      <div class="tabs-row">
+        <button class="tab-btn active" data-tab="data">Data</button>
+        <button class="tab-btn" data-tab="diagram">Court diagram</button>
+      </div>
+
+      <div class="tab-pane active" id="tab-data">
+        <div class="field-row">
+          <div class="field"><label for="ex-number">Number</label><input id="ex-number" type="number" style="width:80px;" /></div>
+          <div class="field" style="flex:2;"><label for="ex-name">Name</label><input id="ex-name" type="text" placeholder="e.g. 3-man weave" /></div>
+          <div class="field">
+            <label for="ex-difficulty">Difficulty</label>
+            <select id="ex-difficulty"><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select>
+          </div>
+          <div class="checkbox-field" style="align-self:end; margin-bottom:8px;"><input type="checkbox" id="ex-favorite" /><label for="ex-favorite">★ Favorite</label></div>
+        </div>
+
+        <div class="group-card">
+          <span class="checkbox-group-label">Age groups</span>
+          <div class="checkbox-group" id="age-group"></div>
+        </div>
+        <div class="group-card">
+          <span class="checkbox-group-label">Categories</span>
+          <div class="checkbox-group" id="categories-group"></div>
+        </div>
+        <div class="group-card">
+          <span class="checkbox-group-label">Material</span>
+          <div class="checkbox-group" id="material-group"></div>
+        </div>
+
+        <div class="field" style="margin-bottom:12px;"><label for="ex-tags">Tags (semicolon-separated)</label><input id="ex-tags" type="text" placeholder="e.g. Footwork; Balance" /></div>
+        <div class="field" style="margin-bottom:12px;"><label for="ex-objectives">Objectives (one per line, up to 4)</label><textarea id="ex-objectives" rows="3"></textarea></div>
+        <div class="field" style="margin-bottom:12px;"><label for="ex-description">Description</label><textarea id="ex-description" rows="4"></textarea></div>
+        <div class="field" style="margin-bottom:12px;"><label for="ex-variants">Variants</label><textarea id="ex-variants" rows="2"></textarea></div>
+
+        <div class="checkbox-field" style="margin-bottom:14px;">
+          <input type="checkbox" id="ex-shared" />
+          <label for="ex-shared">Share this exercise — other clubs on Pivot will be able to see (not edit) it</label>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="tab-diagram">
+        <div class="step-tabs" id="step-tabs"></div>
+        <div class="tool-group" id="tools-row1"></div>
+        <div class="tool-group" id="tools-row2"></div>
+        <div class="tool-group" id="tools-row3"></div>
+        <div class="toolbar">
+          <div class="field" style="flex-direction:row; align-items:center; gap:6px;">
+            <label for="color-select" style="margin:0;">Color</label>
+            <select id="color-select" style="width:100px;">
+              <option value="#141414">Black</option>
+              <option value="#c9002b">Red</option>
+              <option value="#1560bd">Blue</option>
+              <option value="#1e7a3c">Green</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary" id="undo-btn">↩ Undo</button>
+          <button class="btn btn-secondary" id="copy-step-btn">Copy to next step ➡</button>
+          <button class="btn btn-secondary" id="clear-btn">Clear this step</button>
+        </div>
+        <div class="court-card">
+          <canvas id="court-canvas" width="300" height="300"></canvas>
+        </div>
+        <p class="hint-text">Double-click a player/defender to label them. Del/Backspace clears the selection. "Copy to next step" is for drawing a sequence: draw step 1, copy it, then move a couple of things for step 2.</p>
+      </div>
+
+      <div class="toolbar" style="margin-top:16px;">
+        <button class="btn btn-primary" id="save-ex-btn">Save exercise</button>
+        <button class="btn btn-secondary" id="delete-ex-btn" style="display:none; color:#991b1b;">Delete</button>
+      </div>
+    </div>
+    <div class="empty-state" id="editor-empty">Pick an exercise on the left, or create a new one.</div>
+  </div>
+</div>
+
+<script src="court-diagram.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Mêmes listes exactes que Pivot.py (CATEGORIES / AGE_GROUPS / MATERIALS)
+  const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Defense","1v1","2v2","Fast break","Competition","Fun"];
+  const AGE_GROUPS = ["U6","U8","U10","U12","U14","U16","U18","U20","Seniors","All ages"];
+  const MATERIALS = ["Balls","Cones","Marker cones","Rings","Coordination ladder","Bibs","Sticks","Benches","Mats","Ropes","Other"];
+  // COURT_IDS, COURT_LABELS, COURT_TYPES, CANVAS_SIZES, LINE_KINDS,
+  // TOOLS_ROW1/2/3 now come from the shared court-diagram.js.
+
+  const els = {
+    orgName: document.getElementById("org-name"),
+    orgLogo: document.getElementById("org-logo"),
+    logoutBtn: document.getElementById("logout-btn"),
+    msg: document.getElementById("msg"),
+    categoriesList: document.getElementById("categories-list"),
+    exercisesList: document.getElementById("exercises-list"),
+    editorArea: document.getElementById("editor-area"),
+    editorEmpty: document.getElementById("editor-empty"),
+    number: document.getElementById("ex-number"),
+    name: document.getElementById("ex-name"),
+    difficulty: document.getElementById("ex-difficulty"),
+    favorite: document.getElementById("ex-favorite"),
+    tags: document.getElementById("ex-tags"),
+    objectives: document.getElementById("ex-objectives"),
+    description: document.getElementById("ex-description"),
+    variants: document.getElementById("ex-variants"),
+    shared: document.getElementById("ex-shared"),
+    canvas: document.getElementById("court-canvas"),
+    colorSelect: document.getElementById("color-select"),
+  };
+  const ctx = els.canvas.getContext("2d");
+
+  let currentOrgId = null;
+  let currentExId = null;
+  let activeCategory = null;
+  let allExercises = [];
+  let activeTool = "select";
+  let currentStep = "court_1";
+  let diagram = {}; // { court_1: [...elements], court_2: [...], ... }
+  let dragging = null, drawingFrom = null;
+
+  function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+
+  function buildCheckboxGroup(containerId, options, prefix) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = "";
+    options.forEach((opt) => {
+      const label = document.createElement("label");
+      label.className = "checkbox-field";
+      label.innerHTML = `<input type="checkbox" value="${opt}" data-group="${prefix}" /> <span style="font-size:13px;">${opt}</span>`;
+      el.appendChild(label);
+    });
+  }
+  buildCheckboxGroup("age-group", AGE_GROUPS, "age");
+  buildCheckboxGroup("categories-group", CATEGORIES, "categories");
+  buildCheckboxGroup("material-group", MATERIALS, "material");
+
+  function getCheckedValues(prefix) {
+    return Array.from(document.querySelectorAll(`input[data-group="${prefix}"]:checked`)).map((cb) => cb.value);
+  }
+  function setCheckedValues(prefix, values) {
+    document.querySelectorAll(`input[data-group="${prefix}"]`).forEach((cb) => { cb.checked = (values || []).includes(cb.value); });
+  }
+
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll(".tab-pane").forEach((p) => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Barre d'outils du diagramme (17 outils, comme court_editor.py)
+  // -----------------------------------------------------------------------
+  buildSharedToolbar(["tools-row1", "tools-row2", "tools-row3"], (key) => { activeTool = key; });
+
+  function buildStepTabs() {
+    const row = document.getElementById("step-tabs");
+    row.innerHTML = "";
+    COURT_IDS.forEach((cid, i) => {
+      const btn = document.createElement("button");
+      btn.className = "step-tab" + (cid === currentStep ? " active" : "");
+      btn.textContent = COURT_LABELS[i];
+      btn.addEventListener("click", () => { currentStep = cid; buildStepTabs(); resizeCanvasForStep(); render(); });
+      row.appendChild(btn);
+    });
+  }
+
+  function resizeCanvasForStep() {
+    const [w, h] = CANVAS_SIZES[COURT_TYPES[currentStep]];
+    els.canvas.width = w; els.canvas.height = h;
+  }
+
+  // -----------------------------------------------------------------------
+  // Fonds de terrain (visuels seulement, jamais exportés)
+  // -----------------------------------------------------------------------
+  function drawBackground() {
+    drawCourtBackground(ctx, els.canvas, COURT_TYPES[currentStep]);
+  }
+
+  function toPx(x, y) { return [x * els.canvas.width, y * els.canvas.height]; }
+  function currentElements() { return diagram[currentStep] || (diagram[currentStep] = []); }
+
+  const POINT_ICONS = { player: "●", defender: "○", coach: "C", cone: "▲", ball: "🏀", post: "■", handoff: "#" };
+
+  function drawPointElement(el) {
+    const [px, py] = toPx(el.x, el.y);
+    const color = el.color || "#141414";
+    ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    if (el.type === "player") {
+      ctx.beginPath(); ctx.arc(px, py, 9, 0, Math.PI * 2); ctx.fill();
+      if (el.label) { ctx.fillStyle = "#fff"; ctx.font = "bold 9px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(el.label.slice(0, 2), px, py + 0.5); }
+    } else if (el.type === "defender") {
+      ctx.beginPath(); ctx.arc(px, py, 9, 0, Math.PI * 2); ctx.stroke();
+      if (el.label) { ctx.fillStyle = color; ctx.font = "bold 9px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(el.label.slice(0, 2), px, py + 0.5); }
+    } else if (el.type === "coach") {
+      ctx.font = "bold 13px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("C", px, py);
+    } else if (el.type === "cone") {
+      ctx.beginPath(); ctx.moveTo(px, py - 7); ctx.lineTo(px + 6, py + 6); ctx.lineTo(px - 6, py + 6); ctx.closePath(); ctx.fill();
+    } else if (el.type === "ball") {
+      ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2); ctx.stroke();
+    } else if (el.type === "post") {
+      ctx.fillRect(px - 5, py - 5, 10, 10);
+    } else if (el.type === "handoff") {
+      ctx.font = "bold 12px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("#", px, py);
+    }
+  }
+
+  function render() {
+    drawBackground();
+    currentElements().forEach((el) => {
+      if (el.type === "zone" || el.type === "screen" || LINE_KINDS.includes(el.type)) drawDiagramElement(ctx, toPx, els.canvas, el);
+      else drawPointElement(el);
+    });
+  }
+
+  function eventToFraction(e) {
+    const rect = els.canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
+  }
+  function elementAt(x, y) {
+    return currentElements().find((el) => el.x !== undefined && Math.hypot(el.x - x, el.y - y) < 0.06);
+  }
+
+  els.canvas.addEventListener("mousedown", onDown); els.canvas.addEventListener("touchstart", onDown);
+  function onDown(e) {
+    e.preventDefault();
+    const { x, y } = eventToFraction(e);
+    if (activeTool === "select") { dragging = elementAt(x, y); return; }
+    if (["player","defender","coach","cone","ball","post","handoff"].includes(activeTool)) {
+      const el = { type: activeTool, x, y, color: els.colorSelect.value };
+      if (activeTool === "player" || activeTool === "defender") el.label = "";
+      currentElements().push(el);
+      render();
+      return;
+    }
+    if (activeTool === "zone") { drawingFrom = { x, y }; return; }
+    drawingFrom = { x, y };
+  }
+  els.canvas.addEventListener("mousemove", onMove); els.canvas.addEventListener("touchmove", onMove);
+  function onMove(e) {
+    if (!dragging && !drawingFrom) return;
+    e.preventDefault();
+    const { x, y } = eventToFraction(e);
+    if (dragging) { dragging.x = Math.min(0.97, Math.max(0.03, x)); dragging.y = Math.min(0.97, Math.max(0.03, y)); render(); }
+    else if (activeTool === "zone") {
+      render();
+      drawZoneElement(ctx, toPx, els.canvas, { x: Math.min(drawingFrom.x, x), y: Math.min(drawingFrom.y, y), w: Math.abs(x - drawingFrom.x), h: Math.abs(y - drawingFrom.y), color: els.colorSelect.value });
+    } else {
+      render();
+      const previewType = activeTool === "screen" ? "screen" : activeTool;
+      if (previewType === "screen") drawScreenElement(ctx, toPx, { points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value });
+      else drawLineElement(ctx, toPx, { type: activeTool, points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value });
+    }
+  }
+  window.addEventListener("mouseup", onUp); window.addEventListener("touchend", onUp);
+  function onUp(e) {
+    if (dragging) { dragging = null; return; }
+    if (drawingFrom) {
+      const { x, y } = eventToFraction(e.changedTouches ? e.changedTouches[0] : e);
+      if (activeTool === "zone") {
+        if (Math.abs(x - drawingFrom.x) > 0.02 && Math.abs(y - drawingFrom.y) > 0.02) {
+          currentElements().push({ type: "zone", x: Math.min(drawingFrom.x, x), y: Math.min(drawingFrom.y, y), w: Math.abs(x - drawingFrom.x), h: Math.abs(y - drawingFrom.y), color: els.colorSelect.value });
+        }
+      } else if (Math.hypot(x - drawingFrom.x, y - drawingFrom.y) > 0.03) {
+        currentElements().push({ type: activeTool, points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value });
+      }
+      drawingFrom = null; render();
+    }
+  }
+  els.canvas.addEventListener("dblclick", (e) => {
+    const { x, y } = eventToFraction(e);
+    const el = elementAt(x, y);
+    if (el && (el.type === "player" || el.type === "defender")) {
+      const label = prompt("Label for this player:", el.label || "");
+      if (label !== null) { el.label = label.trim(); render(); }
+    }
+  });
+
+  document.getElementById("undo-btn").addEventListener("click", () => { currentElements().pop(); render(); });
+  document.getElementById("clear-btn").addEventListener("click", () => { diagram[currentStep] = []; render(); });
+  document.getElementById("copy-step-btn").addEventListener("click", () => {
+    const idx = COURT_IDS.indexOf(currentStep);
+    if (idx >= COURT_IDS.length - 1) return;
+    const nextStep = COURT_IDS[idx + 1];
+    diagram[nextStep] = [...(diagram[nextStep] || []), ...JSON.parse(JSON.stringify(currentElements()))];
+    currentStep = nextStep;
+    buildStepTabs(); resizeCanvasForStep(); render();
+  });
+
+  // -----------------------------------------------------------------------
+  // Club + logo
+  // -----------------------------------------------------------------------
+  async function loadMyOrganization() {
+    const { data, error } = await supabaseClient
+      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+    if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
+    currentOrgId = data[0].organization_id;
+    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
+    return currentOrgId;
+  }
+
+  async function loadExercises() {
+    const { data, error } = await supabaseClient.from("exercises").select("*").order("number");
+    if (error) { console.error(error); return; }
+    allExercises = data || [];
+    renderCategories();
+    renderExercisesList();
+  }
+
+  function renderCategories() {
+    const cats = Array.from(new Set(allExercises.flatMap((e) => e.categories || []))).sort();
+    els.categoriesList.innerHTML = "";
+    const allBtn = document.createElement("button");
+    allBtn.className = "cat-btn" + (activeCategory === null ? " active" : "");
+    allBtn.textContent = "All";
+    allBtn.addEventListener("click", () => { activeCategory = null; renderCategories(); renderExercisesList(); });
+    els.categoriesList.appendChild(allBtn);
+    cats.forEach((c) => {
+      const btn = document.createElement("button");
+      btn.className = "cat-btn" + (activeCategory === c ? " active" : "");
+      btn.textContent = c;
+      btn.addEventListener("click", () => { activeCategory = c; renderCategories(); renderExercisesList(); });
+      els.categoriesList.appendChild(btn);
+    });
+  }
+
+  function renderExercisesList() {
+    els.exercisesList.innerHTML = "";
+    allExercises
+      .filter((e) => !activeCategory || (e.categories || []).includes(activeCategory))
+      .forEach((e) => {
+        const row = document.createElement("div");
+        row.className = "ex-item" + (e.id === currentExId ? " active" : "");
+        const owned = e.organization_id === currentOrgId;
+        const fav = e.favorite ? "★ " : "";
+        row.innerHTML = `<span>${fav}${e.number ? e.number + ". " : ""}${e.name}${!owned ? " 🌐" : ""}</span><span class="stars">${"★".repeat(e.difficulty)}${"☆".repeat(3 - e.difficulty)}</span>`;
+        row.addEventListener("click", () => openExercise(e.id));
+        els.exercisesList.appendChild(row);
+      });
+  }
+
+  function resetForm() {
+    els.number.value = ""; els.name.value = ""; els.difficulty.value = "1"; els.favorite.checked = false;
+    els.tags.value = ""; els.objectives.value = ""; els.description.value = ""; els.variants.value = ""; els.shared.checked = false;
+    setCheckedValues("age", []); setCheckedValues("categories", []); setCheckedValues("material", []);
+    diagram = {}; currentStep = "court_1";
+  }
+
+  function nextNumber() {
+    // seulement les exercices du club actuel -- sinon les modèles partagés
+    // (jusqu'au numéro 99) feraient exploser la numérotation de tout
+    // nouveau club à "100" dès le premier exercice
+    return allExercises
+      .filter((e) => e.organization_id === currentOrgId)
+      .reduce((max, e) => Math.max(max, e.number || 0), 0) + 1;
+  }
+
+  function newExercise() {
+    currentExId = null;
+    resetForm();
+    els.number.value = nextNumber();
+    buildStepTabs(); resizeCanvasForStep(); render();
+    els.editorArea.style.display = "block"; els.editorEmpty.style.display = "none";
+    document.getElementById("delete-ex-btn").style.display = "none";
+  }
+
+  function openExercise(id) {
+    const e = allExercises.find((ex) => ex.id === id);
+    if (!e) return;
+    currentExId = id;
+    els.number.value = e.number || ""; els.name.value = e.name; els.difficulty.value = String(e.difficulty || 1);
+    els.favorite.checked = !!e.favorite;
+    els.tags.value = (e.tags || []).join("; ");
+    els.objectives.value = (e.objectives || []).join("\n");
+    els.description.value = e.description || ""; els.variants.value = e.variants || "";
+    els.shared.checked = e.is_shared;
+    setCheckedValues("age", e.age); setCheckedValues("categories", e.categories); setCheckedValues("material", e.material);
+    diagram = e.diagram || {};
+    currentStep = "court_1";
+    buildStepTabs(); resizeCanvasForStep(); render();
+    els.editorArea.style.display = "block"; els.editorEmpty.style.display = "none";
+    const owned = e.organization_id === currentOrgId;
+    document.getElementById("delete-ex-btn").style.display = owned ? "inline-block" : "none";
+    renderExercisesList();
+  }
+
+  async function saveExercise() {
+    const name = els.name.value.trim();
+    if (!name) { showMessage("Give the exercise a name first.", "error"); return; }
+    const payload = {
+      organization_id: currentOrgId,
+      number: els.number.value ? parseInt(els.number.value, 10) : nextNumber(),
+      name,
+      favorite: els.favorite.checked,
+      difficulty: parseInt(els.difficulty.value, 10),
+      age: getCheckedValues("age"),
+      categories: getCheckedValues("categories"),
+      material: getCheckedValues("material"),
+      tags: els.tags.value.split(";").map((t) => t.trim()).filter(Boolean),
+      objectives: els.objectives.value.split("\n").map((t) => t.trim()).filter(Boolean).slice(0, 4),
+      description: els.description.value.trim() || null,
+      variants: els.variants.value.trim() || null,
+      is_shared: els.shared.checked,
+      diagram,
+    };
+    try {
+      let error;
+      if (currentExId) ({ error } = await supabaseClient.from("exercises").update(payload).eq("id", currentExId));
+      else {
+        const { data, error: insErr } = await supabaseClient.from("exercises").insert(payload).select("id").single();
+        error = insErr;
+        if (!error) currentExId = data.id;
+      }
+      if (error) throw error;
+      showMessage("Exercise saved.", "success");
+      await loadExercises();
+    } catch (err) {
+      showMessage(err.message || "Couldn't save that exercise.", "error");
+    }
+  }
+
+  async function deleteExercise() {
+    if (!currentExId || !confirm("Delete this exercise?")) return;
+    const { error } = await supabaseClient.from("exercises").delete().eq("id", currentExId);
+    if (error) { showMessage(error.message, "error"); return; }
+    els.editorArea.style.display = "none"; els.editorEmpty.style.display = "block";
+    currentExId = null;
+    await loadExercises();
+  }
+
+  document.getElementById("new-ex-btn").addEventListener("click", newExercise);
+  document.getElementById("save-ex-btn").addEventListener("click", saveExercise);
+  document.getElementById("delete-ex-btn").addEventListener("click", deleteExercise);
+
+  document.getElementById("nav-menu").addEventListener("change", (e) => {
+    if (e.target.value) window.location.href = "./" + e.target.value;
+  });
+
+  document.getElementById("help-btn").addEventListener("click", () => {
+    const box = document.getElementById("help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.innerHTML = `
+      <strong>How to use Exercise library</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li><strong>Data tab</strong> — number, name, difficulty (1-3 stars), favorite, age groups, categories, material, tags, up to 4 objectives, description, variants.</li>
+        <li><strong>Court diagram tab</strong> — 5 steps (3 half-court, 1 vertical, 1 full horizontal). Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
+        <li><strong>Color</strong> picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).</li>
+        <li><strong>Copy to next step</strong> duplicates everything into the next step, so you can draw a sequence step by step without starting from scratch each time.</li>
+        <li>Double-click a player or defender to give them a label (e.g. their number).</li>
+        <li><strong>Share this exercise</strong> — other clubs can see it (🌐 mark) but only you can edit or delete it.</li>
+      </ul>`;
+    box.style.display = "block";
+  });
+
+  els.logoutBtn.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    const orgId = await loadMyOrganization();
+    if (orgId) {
+      await loadExercises();
+      const params = new URLSearchParams(window.location.search);
+      const wantedId = params.get("id");
+      if (wantedId && allExercises.some((e) => e.id === wantedId)) openExercise(wantedId);
+    }
+  }
+  init();
+</script>
+
+</body>
+</html>

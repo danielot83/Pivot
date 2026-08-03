@@ -40,7 +40,6 @@ const PIVOT_MODULES = [
     title: "Play design",
     blurb: "Draw your team's sets and plays — offense, out-of-bounds, defense — not just individual drills.",
     icon: '<circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M5 8v4c0 2 1.5 3 3.5 3H15" stroke-dasharray="3 2.5"/><path d="M15 15l3 0 0 3" />',
-    soon: true,
   },
 ];
 

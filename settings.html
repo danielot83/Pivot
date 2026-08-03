@@ -72,15 +72,32 @@
 <nav>
   <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
   <div class="nav-right">
+    <img id="org-logo-nav" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
+    <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
+      <option value="">Go to…</option>
+      <option value="dashboard.html">Dashboard</option>
+      <option value="roster.html">Roster</option>
+      <option value="assessment.html">Player assessment</option>
+      <option value="play_design.html">Play design</option>
+      <option value="compare.html">Compare players</option>
+      <option value="match.html">Match day</option>
+      <option value="exercises.html">Exercise creator</option>
+      <option value="library.html">Library</option>
+      <option value="training.html">Training builder</option>
+    </select>
     <button class="nav-btn" id="logout-btn">Log out</button>
   </div>
 </nav>
 
 <div class="wrap">
   <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
-  <h1>Settings</h1>
+  <h1 style="display:flex; align-items:center; justify-content:space-between;">
+    Settings
+    <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+  </h1>
   <p class="sub">Only admins of a club can change these.</p>
+  <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px;"></div>
 
   <div class="msg" id="msg"></div>
 
@@ -114,6 +131,14 @@
     <h2>Members</h2>
     <p class="hint">Change someone's role, or remove them from the club. You can't demote or remove the club's last admin.</p>
     <div id="members-list"></div>
+  </div>
+
+  <div class="card" id="sharing-card" style="display:none">
+    <h2>Exercise sharing</h2>
+    <p class="hint">Share every exercise in your library with all other clubs on Pivot at once — they'll be able to see (not edit) them. You can still set sharing exercise by exercise in the Exercise creator.</p>
+    <div id="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
+    <button class="btn btn-primary" id="share-all-btn">Share all with everyone</button>
+    <button class="btn btn-secondary" id="unshare-all-btn">Make all private again</button>
   </div>
 </div>
 
@@ -156,6 +181,12 @@
     currentOrgId = data[0].organization_id;
     els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
 
+    // même logo dans la barre de navigation que sur les autres pages
+    const navLogo = document.getElementById("org-logo-nav");
+    navLogo.onload = () => { navLogo.style.display = "inline-block"; };
+    navLogo.onerror = () => { navLogo.style.display = "none"; };
+    navLogo.src = logoUrl(currentOrgId) + `?t=${Date.now()}`;
+
     // essaie d'afficher le logo actuel -- s'il n'existe pas encore, l'image
     // ne charge pas et on garde juste le texte "No logo yet"
     const img = new Image();
@@ -164,6 +195,8 @@
     img.src = logoUrl(currentOrgId) + `?t=${Date.now()}`;
 
     document.getElementById("members-card").style.display = "block";
+    document.getElementById("sharing-card").style.display = "block";
+    await loadSharingStatus();
     await loadMembers();
   }
 
@@ -173,6 +206,29 @@
   // de données (un trigger) -- ici on se contente d'afficher clairement
   // l'erreur qu'elle renvoie si quelqu'un essaie quand même.
   // -----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
+  // Partage en masse de tous les exercices du club -- pratique plutôt que
+  // de cocher "share" un par un dans le créateur d'exercices.
+  // -----------------------------------------------------------------------
+  async function loadSharingStatus() {
+    const { data, error } = await supabaseClient.from("exercises").select("id, is_shared").eq("organization_id", currentOrgId);
+    if (error) { console.error("loadSharingStatus error:", error); return; }
+    const total = (data || []).length;
+    const shared = (data || []).filter((e) => e.is_shared).length;
+    document.getElementById("sharing-status").textContent =
+      total === 0 ? "No exercises yet." : `${shared} of ${total} exercise${total === 1 ? "" : "s"} currently shared.`;
+  }
+
+  async function setAllSharing(value) {
+    if (!confirm(value ? "Share every exercise in your library with all other clubs?" : "Make every exercise private again?")) return;
+    const { error } = await supabaseClient.from("exercises").update({ is_shared: value }).eq("organization_id", currentOrgId);
+    if (error) { showMessage(error.message, "error"); return; }
+    showMessage(value ? "All exercises are now shared." : "All exercises are now private.", "success");
+    await loadSharingStatus();
+  }
+  document.getElementById("share-all-btn").addEventListener("click", () => setAllSharing(true));
+  document.getElementById("unshare-all-btn").addEventListener("click", () => setAllSharing(false));
+
   async function loadMembers() {
     const list = document.getElementById("members-list");
     list.innerHTML = "";
@@ -297,6 +353,24 @@
     } finally {
       els.logoSaveBtn.disabled = false;
     }
+  });
+
+  document.getElementById("nav-menu").addEventListener("change", (e) => {
+    if (e.target.value) window.location.href = "./" + e.target.value;
+  });
+
+  document.getElementById("help-btn").addEventListener("click", () => {
+    const box = document.getElementById("help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.innerHTML = `
+      <strong>How to use Settings</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li>Only an active <strong>admin</strong> of a club can see and change anything here.</li>
+        <li><strong>Club logo</strong> — pick an image, it's automatically resized and converted; instructions for the best result are right below the upload button.</li>
+        <li><strong>Members</strong> — change anyone's role with the dropdown, or remove them with "Remove". You can never remove or demote the club's last admin — the app blocks it on purpose.</li>
+        <li><strong>Share your exercises with everyone</strong> — turns on sharing for every exercise in your library at once, so other clubs can see (not edit) them.</li>
+      </ul>`;
+    box.style.display = "block";
   });
 
   els.logoutBtn.addEventListener("click", async () => {
