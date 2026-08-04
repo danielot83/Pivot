@@ -140,6 +140,18 @@
     <button class="btn btn-primary" id="share-all-btn">Share all with everyone</button>
     <button class="btn btn-secondary" id="unshare-all-btn">Make all private again</button>
   </div>
+
+  <div class="card" id="associations-card" style="display:none">
+    <h2>Club association</h2>
+    <p class="hint">A middle circle between "just my club" and "everyone on Pivot" — a small group of clubs (e.g. a league) who agree to share content with each other. Needs approval from the Pivot platform controller before it becomes real.</p>
+    <div id="associations-list" style="margin-bottom:14px;"></div>
+    <div class="field" style="margin-bottom:10px;">
+      <label for="assoc-name-input">Name for a new association (e.g. "Liga Cantonal U16")</label>
+      <input id="assoc-name-input" type="text" placeholder="Association name" />
+    </div>
+    <button class="btn btn-primary" id="request-association-btn">Request to create it</button>
+    <p class="hint" style="margin-top:10px;">Already know the name of an existing association? Ask its members, then request to join it the same way — matching names request to join the same association instead of creating a new one.</p>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -196,8 +208,10 @@
 
     document.getElementById("members-card").style.display = "block";
     document.getElementById("sharing-card").style.display = "block";
+    document.getElementById("associations-card").style.display = "block";
     await loadSharingStatus();
     await loadMembers();
+    await loadAssociations();
   }
 
   // -----------------------------------------------------------------------
@@ -228,6 +242,58 @@
   }
   document.getElementById("share-all-btn").addEventListener("click", () => setAllSharing(true));
   document.getElementById("unshare-all-btn").addEventListener("click", () => setAllSharing(false));
+
+  // -----------------------------------------------------------------------
+  // Association de clubes (cercle "communauté") -- proposer une nouvelle
+  // association, ou rejoindre une association déjà existante en tapant le
+  // même nom. Tant que le contrôleur de la plateforme n'a pas validé, ça
+  // reste "pending" et ne donne aucun accès réel à personne.
+  // -----------------------------------------------------------------------
+  async function loadAssociations() {
+    const { data, error } = await supabaseClient
+      .from("club_association_members")
+      .select("status, club_associations(id, name, status)")
+      .eq("organization_id", currentOrgId);
+    if (error) { console.error("loadAssociations error:", error); return; }
+    const list = document.getElementById("associations-list");
+    if (!data || data.length === 0) { list.innerHTML = '<p class="hint" style="margin:0;">Your club isn\'t part of any association yet.</p>'; return; }
+    list.innerHTML = data.map((row) => {
+      const a = row.club_associations;
+      const label = row.status === "pending" ? "⏳ Pending approval" : row.status === "approved" ? "✅ Member" : "❌ Rejected";
+      return `<div style="padding:8px 0; border-bottom:1px solid var(--line);"><strong>${a ? a.name : "—"}</strong> — ${label}</div>`;
+    }).join("");
+  }
+
+  document.getElementById("request-association-btn").addEventListener("click", async () => {
+    const name = document.getElementById("assoc-name-input").value.trim();
+    if (!name) { showMessage("Give the association a name first.", "error"); return; }
+    const { data: userData } = await supabaseClient.auth.getUser();
+    const userId = userData && userData.user && userData.user.id;
+    try {
+      // Une association du même nom existe-t-elle déjà ? Si oui, on
+      // demande à la rejoindre plutôt que d'en créer une deuxième avec
+      // le même nom.
+      let { data: existing } = await supabaseClient.from("club_associations").select("id").eq("name", name).limit(1);
+      let associationId;
+      if (existing && existing.length > 0) {
+        associationId = existing[0].id;
+      } else {
+        const { data: created, error: createErr } = await supabaseClient
+          .from("club_associations").insert({ name, requested_by: userId }).select("id").single();
+        if (createErr) throw createErr;
+        associationId = created.id;
+      }
+      const { error: joinErr } = await supabaseClient
+        .from("club_association_members")
+        .insert({ association_id: associationId, organization_id: currentOrgId, requested_by: userId });
+      if (joinErr) throw joinErr;
+      showMessage("Request sent — waiting for the Pivot controller to approve it.", "success");
+      document.getElementById("assoc-name-input").value = "";
+      await loadAssociations();
+    } catch (err) {
+      showMessage(err.message || "Couldn't send that request.", "error");
+    }
+  });
 
   async function loadMembers() {
     const list = document.getElementById("members-list");
