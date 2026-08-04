@@ -49,30 +49,65 @@ function drawCourtBackground(ctx, canvas, courtType, cssW, cssH) {
   // "full"). Proportions réalistes : raquette étroite, cercle de lancer
   // franc juste au-dessus, arc à 3 points en forme de D.
   function drawHalfCourt(originX, originY, courtW, courtH, basketAtBottom) {
-    const keyW = courtW * 0.34, keyH = courtH * 0.36;
-    const keyX = originX + (courtW - keyW) / 2;
+    const cx = originX + courtW / 2;
+    const keyW = courtW * 0.32, keyH = courtH * 0.38;
+    const keyX = cx - keyW / 2;
     const keyY = basketAtBottom ? originY + courtH - keyH : originY;
     ctx.strokeRect(keyX, keyY, keyW, keyH);
 
+    // petites marques le long de la raquette (blocs où se placent les
+    // joueurs pour les lancers francs) -- 2 par côté
+    const markLen = 4;
+    [0.35, 0.62].forEach((frac) => {
+      const my = keyY + keyH * frac;
+      ctx.beginPath(); ctx.moveTo(keyX - markLen, my); ctx.lineTo(keyX, my); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(keyX + keyW, my); ctx.lineTo(keyX + keyW + markLen, my); ctx.stroke();
+    });
+
+    // cercle de lancer franc -- cercle complet, centré sur la ligne de
+    // lancer franc (bord de la raquette côté terrain)
     const ftY = basketAtBottom ? keyY : keyY + keyH;
-    ctx.beginPath();
-    ctx.arc(originX + courtW / 2, ftY, keyW / 2, basketAtBottom ? Math.PI : 0, basketAtBottom ? 2 * Math.PI : Math.PI);
-    ctx.stroke();
+    const ftR = keyW / 2;
+    ctx.beginPath(); ctx.arc(cx, ftY, ftR, 0, Math.PI * 2); ctx.stroke();
 
-    const basketY = basketAtBottom ? originY + courtH - 6 : originY + 6;
-    ctx.beginPath(); ctx.arc(originX + courtW / 2, basketY, 4, 0, Math.PI * 2); ctx.stroke();
+    const basketY = basketAtBottom ? originY + courtH - 7 : originY + 7;
+    const backboardY = basketAtBottom ? basketY - 9 : basketY + 9;
     // planche
-    const backboardY = basketAtBottom ? basketY - 8 : basketY + 8;
+    ctx.beginPath(); ctx.moveTo(cx - 15, backboardY); ctx.lineTo(cx + 15, backboardY); ctx.stroke();
+    // panier
+    ctx.beginPath(); ctx.arc(cx, basketY, 4, 0, Math.PI * 2); ctx.stroke();
+
+    // zone restrictive (petit demi-cercle sous le panier)
+    const raR = keyW * 0.26;
     ctx.beginPath();
-    ctx.moveTo(originX + courtW / 2 - 14, backboardY); ctx.lineTo(originX + courtW / 2 + 14, backboardY);
+    if (basketAtBottom) ctx.arc(cx, basketY, raR, Math.PI, 2 * Math.PI);
+    else ctx.arc(cx, basketY, raR, 0, Math.PI);
     ctx.stroke();
 
-    // arc à 3 points -- un arc simple centré sur le panier, assez large
-    // pour bien se distinguer du cercle de lancer franc
-    const r3 = Math.min(courtW * 0.46, courtH * 0.85);
+    // ligne à 3 points -- arc + deux segments droits jusqu'à la ligne de
+    // fond, comme sur un vrai terrain (le corner 3 est plus court que le
+    // sommet de l'arc). phi = angle (depuis l'axe horizontal du panier)
+    // auquel l'arc atteint x = ±cornerX -- vérifié à la main point par point.
+    const r3 = courtW * 0.475;
+    const cornerX = courtW * 0.44;
+    const cornerReach = Math.sqrt(Math.max(r3 * r3 - cornerX * cornerX, 0));
+    const phi = Math.acos(cornerX / r3);
     ctx.beginPath();
-    if (basketAtBottom) ctx.arc(originX + courtW / 2, basketY, r3, Math.PI * 1.08, Math.PI * 1.92);
-    else ctx.arc(originX + courtW / 2, basketY, r3, Math.PI * 0.08, Math.PI * 0.92, true);
+    if (basketAtBottom) {
+      const baseY = originY + courtH - 3;
+      const straightTopY = basketY - cornerReach;
+      ctx.moveTo(cx - cornerX, baseY);
+      ctx.lineTo(cx - cornerX, straightTopY);
+      ctx.arc(cx, basketY, r3, Math.PI + phi, 2 * Math.PI - phi);
+      ctx.lineTo(cx + cornerX, baseY);
+    } else {
+      const baseY = originY + 3;
+      const straightBottomY = basketY + cornerReach;
+      ctx.moveTo(cx - cornerX, baseY);
+      ctx.lineTo(cx - cornerX, straightBottomY);
+      ctx.arc(cx, basketY, r3, phi, Math.PI - phi);
+      ctx.lineTo(cx + cornerX, baseY);
+    }
     ctx.stroke();
   }
 
