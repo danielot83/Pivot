@@ -241,6 +241,7 @@
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
 
   // ---------------------------------------------------------------------
   // Les 36 critères. "basic": true = suffisamment simple à juger pour un
@@ -718,7 +719,7 @@
     els.historyCard.innerHTML = "";
     if (!playerId) { els.historyCard.appendChild(els.historyEmpty); return; }
     const { data, error } = await supabaseClient
-      .from("player_assessments").select("id, date, location, ratings")
+      .from("player_assessments").select("id, date, location, ratings, visibility")
       .eq("player_id", playerId).order("date", { ascending: false });
     if (error || !data || data.length === 0) {
       const empty = document.createElement("div");
@@ -732,7 +733,7 @@
       const tot = sectorAvgs.length ? sectorAvgs.reduce((a, b) => a + b, 0).toFixed(1) : "—";
       const div = document.createElement("div");
       div.className = "history-row";
-      div.innerHTML = `<span>${row.date}${row.location ? " — " + row.location : ""}</span><span class="tot">TOT ${tot}</span>`;
+      div.innerHTML = `<span>${VISIBILITY_ICONS[row.visibility || "team"] || ""} ${row.date}${row.location ? " — " + row.location : ""}</span><span class="tot">TOT ${tot}</span>`;
       div.addEventListener("click", () => openExisting(row.id));
       els.historyCard.appendChild(div);
     });
@@ -1079,6 +1080,7 @@
         <li>Sector averages update live as you fill each one in, both on screen and in the exported PDF.</li>
         <li><strong>Past assessments</strong> below are clickable — opens that one back up to review or edit.</li>
         <li><strong>Example data</strong> (left) — three real Bulls seasons and the 2008 Celtics, with sample evaluations already filled in.</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). An assessment is a real player's evaluation, so think before sharing beyond your team.</li>
       </ul>`;
     box.style.display = "block";
   });

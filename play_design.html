@@ -199,6 +199,7 @@
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
 
   const els = {
     orgName: document.getElementById("org-name"),
@@ -714,7 +715,7 @@
   // -----------------------------------------------------------------------
   async function loadPlaysList() {
     const { data, error } = await supabaseClient
-      .from("plays").select("id, name, season, team, category").eq("organization_id", currentOrgId).order("name");
+      .from("plays").select("id, name, season, team, category, visibility").eq("organization_id", currentOrgId).order("name");
     els.playsTree.innerHTML = "";
     if (error) { console.error("loadPlaysList error:", error); return; }
 
@@ -740,7 +741,7 @@
           const row = document.createElement("div");
           row.className = "play-item" + (p.id === currentPlayId ? " active" : "");
           const label = document.createElement("span");
-          label.textContent = p.name;
+          label.textContent = `${VISIBILITY_ICONS[p.visibility || "team"] || ""} ${p.name}`;
           const del = document.createElement("button");
           del.textContent = "✕"; del.title = "Delete";
           del.addEventListener("click", (e) => { e.stopPropagation(); deletePlay(p.id); });
@@ -1080,6 +1081,7 @@
         <li><strong>Speed</strong> — slows down or speeds up "Animate whole sequence"; the same speed also gets baked into the downloaded GIF.</li>
         <li><strong>Download animation (GIF)</strong> — renders the whole sequence as a GIF file you can send or embed anywhere, not just play it here.</li>
         <li><strong>Undo</strong> removes the last action, or the last point if there are no actions left. <strong>Clear this step</strong> wipes everything on the current step only.</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). The icon next to each play in the list on the left shows its current circle.</li>
       </ul>`;
     box.style.display = "block";
   });

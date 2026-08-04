@@ -168,6 +168,7 @@
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
 
   const els = {
     orgName: document.getElementById("org-name"),
@@ -263,7 +264,7 @@
   // -----------------------------------------------------------------------
   async function loadMatchesList() {
     const { data, error } = await supabaseClient
-      .from("matches").select("id, date, opponent")
+      .from("matches").select("id, date, opponent, visibility")
       .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
       .order("date", { ascending: false });
     els.matchesList.innerHTML = "";
@@ -271,7 +272,7 @@
     (data || []).forEach((m) => {
       const row = document.createElement("div");
       row.className = "match-item" + (m.id === currentMatchId ? " active" : "");
-      row.textContent = `${m.date}${m.opponent ? " vs " + m.opponent : ""}`;
+      row.textContent = `${VISIBILITY_ICONS[m.visibility || "team"] || ""} ${m.date}${m.opponent ? " vs " + m.opponent : ""}`;
       row.addEventListener("click", () => openMatch(m.id));
       els.matchesList.appendChild(row);
     });
@@ -516,6 +517,7 @@
         <li>Click any stat cell (minutes, points, rebounds, assists, fouls) to edit it directly.</li>
         <li>"Season summary" below adds up every saved match for this team — games played and per-game averages, automatically.</li>
         <li>"Export to PDF" makes a clean box score you can print or send.</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). Match reports contain real player stats, so think before sharing beyond your team.</li>
       </ul>`;
     box.style.display = "block";
   });

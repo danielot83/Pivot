@@ -228,6 +228,7 @@
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
 
   // Mêmes listes exactes que Pivot.py (CATEGORIES / AGE_GROUPS / MATERIALS)
   const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Defense","1v1","2v2","Fast break","Competition","Fun"];
@@ -465,7 +466,7 @@
         row.className = "ex-item" + (e.id === currentExId ? " active" : "");
         const owned = e.organization_id === currentOrgId;
         const fav = e.favorite ? "★ " : "";
-        row.innerHTML = `<span>${fav}${e.number ? e.number + ". " : ""}${e.name}${!owned ? " 🌐" : ""}</span><span class="stars">${"★".repeat(e.difficulty)}${"☆".repeat(3 - e.difficulty)}</span>`;
+        row.innerHTML = `<span>${fav}${e.number ? e.number + ". " : ""}${VISIBILITY_ICONS[e.visibility || "team"] || ""} ${e.name}${!owned ? " 🌐" : ""}</span><span class="stars">${"★".repeat(e.difficulty)}${"☆".repeat(3 - e.difficulty)}</span>`;
         row.addEventListener("click", () => openExercise(e.id));
         els.exercisesList.appendChild(row);
       });
@@ -589,7 +590,7 @@
         <li><strong>Color</strong> picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).</li>
         <li><strong>Copy to next step</strong> duplicates everything into the next step, so you can draw a sequence step by step without starting from scratch each time.</li>
         <li>Double-click a player or defender to give them a label (e.g. their number).</li>
-        <li><strong>Share this exercise</strong> — other clubs can see it (🌐 mark) but only you can edit or delete it.</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). The icon next to each exercise in the list shows its current circle.</li>
       </ul>`;
     box.style.display = "block";
   });
