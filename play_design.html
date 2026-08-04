@@ -183,7 +183,7 @@
   </div>
 </div>
 
-<script src="court-diagram.js?v=5"></script>
+<script src="court-diagram.js?v=4"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -235,6 +235,20 @@
   // étape à ses points, pour que l'étape suivante démarre là où le
   // ballon/les joueurs ont fini -- pas avec les positions de départ.
   // -----------------------------------------------------------------------
+  // Retourne le point "collé" à p (le ballon qu'un joueur porte, ou le
+  // joueur qui porte ce ballon) -- pour que les deux se déplacent
+  // ensemble sur un mouvement/dribble. Une passe ne compte pas : le
+  // passeur reste sur place, seul le ballon doit voler.
+  function findAttachedCompanion(points, p) {
+    if (p.type === "ball") {
+      return points.find((o) => o.id !== p.id && (o.type === "player" || o.type === "defender") && Math.hypot(o.x - p.x, o.y - p.y) < 0.05);
+    }
+    if (p.type === "player" || p.type === "defender") {
+      return points.find((o) => o.id !== p.id && o.type === "ball" && Math.hypot(o.x - p.x, o.y - p.y) < 0.05);
+    }
+    return null;
+  }
+
   function resolvedPoints(step) {
     const resolved = step.points.map((p) => ({ ...p }));
     step.actions.forEach((a) => {
@@ -244,12 +258,15 @@
       if ((a.type === "arrow" || a.type === "dribble" || a.type === "pass") && a.pointId && a.points) {
         const p = resolved.find((pp) => pp.id === a.pointId);
         if (p) {
-          const dx = a.points[1][0] - p.x, dy = a.points[1][1] - p.y;
-          // un ballon collé au point qui bouge (le joueur "l'a en main")
-          // doit suivre exactement le même déplacement
-          const ball = resolved.find((b) => b.type === "ball" && b.id !== p.id && Math.hypot(b.x - p.x, b.y - p.y) < 0.05);
+          const dx = a.points[1][0] - p.x;
+          const dy = a.points[1][1] - p.y;
+          // Mouvement/dribble : le ballon et le joueur qui le porte
+          // avancent ensemble. Passe : seul le ballon vole.
+          if (a.type !== "pass") {
+            const companion = findAttachedCompanion(resolved, p);
+            if (companion) { companion.x += dx; companion.y += dy; }
+          }
           p.x = a.points[1][0]; p.y = a.points[1][1];
-          if (ball) { ball.x += dx; ball.y += dy; }
         }
       }
     });
@@ -355,7 +372,16 @@
   }
   function pointAt(x, y) {
     const step = currentStep();
-    return step.points.find((p) => Math.hypot(p.x - x, p.y - y) < 0.045);
+    // Le point le PLUS PROCHE du clic, pas le premier trouvé dans la
+    // liste -- sinon, quand un ballon est collé sur un joueur, on
+    // "attrapait" toujours le même des deux par hasard (l'ordre de
+    // création), même si l'autre était en réalité plus proche du clic.
+    let best = null, bestDist = 0.045;
+    step.points.forEach((p) => {
+      const d = Math.hypot(p.x - x, p.y - y);
+      if (d < bestDist) { best = p; bestDist = d; }
+    });
+    return best;
   }
   let nextPointNum = 1;
 
@@ -516,7 +542,14 @@
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = `${(els.playName.value || "play").replace(/\s+/g, "_")}.gif`;
+        // Un lien qui n'est pas dans le document est parfois ignoré par
+        // le navigateur, surtout ici où le clic arrive de façon
+        // asynchrone (après le rendu du GIF) et non pas au moment même
+        // du clic de l'utilisateur -- il faut l'attacher au DOM.
+        document.body.appendChild(a);
         a.click();
+        a.remove();
+        showMessage("GIF downloaded.", "success");
       });
       gif.render();
     }
@@ -534,15 +567,16 @@
         const moved = step.points.map((p) => ({ ...p }));
         step.actions.forEach((a) => {
           if ((a.type === "arrow" || a.type === "dribble" || a.type === "pass") && a.pointId && a.points) {
-            const original = step.points.find((pp) => pp.id === a.pointId);
             const p = moved.find((pp) => pp.id === a.pointId);
-            if (p && original) {
+            if (p) {
               const newX = a.points[0][0] + (a.points[1][0] - a.points[0][0]) * t;
               const newY = a.points[0][1] + (a.points[1][1] - a.points[0][1]) * t;
-              const dx = newX - original.x, dy = newY - original.y;
-              const ball = moved.find((b) => b.type === "ball" && b.id !== p.id && Math.hypot(b.x - original.x, b.y - original.y) < 0.05);
+              const dx = newX - p.x, dy = newY - p.y;
+              if (a.type !== "pass") {
+                const companion = findAttachedCompanion(moved, p);
+                if (companion) { companion.x += dx; companion.y += dy; }
+              }
               p.x = newX; p.y = newY;
-              if (ball) { ball.x += dx; ball.y += dy; }
             }
           }
         });
