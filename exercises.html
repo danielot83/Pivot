@@ -496,6 +496,9 @@
     buildStepTabs(); resizeCanvasForStep(); render();
     els.editorArea.style.display = "block"; els.editorEmpty.style.display = "none";
     document.getElementById("delete-ex-btn").style.display = "none";
+    document.getElementById("save-ex-btn").style.display = "inline-block";
+    [els.number, els.name, els.difficulty, els.favorite, els.tags, els.objectives, els.description, els.variants, els.language, els.visibility]
+      .forEach((el) => (el.disabled = false));
   }
 
   function openExercise(id) {
@@ -517,6 +520,15 @@
     els.editorArea.style.display = "block"; els.editorEmpty.style.display = "none";
     const owned = e.organization_id === currentOrgId;
     document.getElementById("delete-ex-btn").style.display = owned ? "inline-block" : "none";
+    // Un ejercicio compartido por otro club se mira, pero no se edita ni
+    // se guarda aquí -- antes solo se escondía "Delete", pero "Save" y
+    // los campos seguían activos: si alguien escribía y guardaba,
+    // Supabase lo rechazaba con un error de permisos en vez de
+    // impedirlo limpiamente desde la interfaz.
+    document.getElementById("save-ex-btn").style.display = owned ? "inline-block" : "none";
+    [els.number, els.name, els.difficulty, els.favorite, els.tags, els.objectives, els.description, els.variants, els.language, els.visibility]
+      .forEach((el) => (el.disabled = !owned));
+    if (!owned) showMessage("This exercise belongs to another club — you can look, but not edit or save changes.", "success");
     renderExercisesList();
   }
 

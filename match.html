@@ -264,18 +264,38 @@
   // -----------------------------------------------------------------------
   async function loadMatchesList() {
     const { data, error } = await supabaseClient
-      .from("matches").select("id, date, opponent, visibility")
-      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
+      .from("matches").select("id, date, opponent, visibility, organization_id, season, team")
       .order("date", { ascending: false });
     els.matchesList.innerHTML = "";
     if (error) { console.error(error); return; }
-    (data || []).forEach((m) => {
+    const mine = (data || []).filter((m) => m.organization_id === currentOrgId && m.season === currentSeason && m.team === currentTeam);
+    const shared = (data || []).filter((m) => m.organization_id !== currentOrgId);
+
+    mine.forEach((m) => {
       const row = document.createElement("div");
       row.className = "match-item" + (m.id === currentMatchId ? " active" : "");
       row.textContent = `${VISIBILITY_ICONS[m.visibility || "team"] || ""} ${m.date}${m.opponent ? " vs " + m.opponent : ""}`;
       row.addEventListener("click", () => openMatch(m.id));
       els.matchesList.appendChild(row);
     });
+
+    // Les matchs partagés par d'autres clubes vont dans leur propre
+    // groupe -- leur "season"/"team" appartiennent au roster d'un autre
+    // club, les mélanger dans TA sélection saison/équipe n'aurait pas de
+    // sens (une simple coïncidence de texte, rien de plus).
+    if (shared.length > 0) {
+      const header = document.createElement("div");
+      header.className = "tree-season";
+      header.textContent = "🌐 Shared by other clubs";
+      els.matchesList.appendChild(header);
+      shared.forEach((m) => {
+        const row = document.createElement("div");
+        row.className = "match-item" + (m.id === currentMatchId ? " active" : "");
+        row.textContent = `${VISIBILITY_ICONS[m.visibility || "team"] || ""} ${m.date}${m.opponent ? " vs " + m.opponent : ""}`;
+        row.addEventListener("click", () => openMatch(m.id));
+        els.matchesList.appendChild(row);
+      });
+    }
   }
 
   function newMatch() {
@@ -292,6 +312,9 @@
     teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0 }));
     renderCallupTable();
     els.matchArea.style.display = "block";
+    document.getElementById("save-match-btn").style.display = "inline-block";
+    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility]
+      .forEach((el) => (el.disabled = false));
   }
 
   async function openMatch(id) {
@@ -314,6 +337,11 @@
     });
     renderCallupTable();
     els.matchArea.style.display = "block";
+    const owned = match.organization_id === currentOrgId;
+    document.getElementById("save-match-btn").style.display = owned ? "inline-block" : "none";
+    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility]
+      .forEach((el) => (el.disabled = !owned));
+    if (!owned) showMessage("This match belongs to another club — you can look, but not edit or save changes.", "success");
     await loadMatchesList();
   }
 

@@ -715,12 +715,15 @@
   // -----------------------------------------------------------------------
   async function loadPlaysList() {
     const { data, error } = await supabaseClient
-      .from("plays").select("id, name, season, team, category, visibility").eq("organization_id", currentOrgId).order("name");
+      .from("plays").select("id, name, season, team, category, visibility, organization_id").order("name");
     els.playsTree.innerHTML = "";
     if (error) { console.error("loadPlaysList error:", error); return; }
 
+    const mine = (data || []).filter((p) => p.organization_id === currentOrgId);
+    const shared = (data || []).filter((p) => p.organization_id !== currentOrgId);
+
     const groups = {};
-    (data || []).forEach((p) => {
+    mine.forEach((p) => {
       const seasonTeam = `${p.season || "No season"} — ${p.team || "No team"}`;
       groups[seasonTeam] = groups[seasonTeam] || {};
       const cat = p.category || "Uncategorized";
@@ -751,6 +754,26 @@
         });
       });
     });
+
+    // Les jugadas d'autres clubes (association/community) vont dans leur
+    // propre groupe, séparé -- leur "team"/"season" appartiennent à un
+    // roster qui n'est pas le tien, les mélanger dans tes propres
+    // dossiers n'aurait pas de sens.
+    if (shared.length > 0) {
+      const sharedEl = document.createElement("div");
+      sharedEl.className = "tree-season";
+      sharedEl.textContent = "🌐 Shared by other clubs";
+      els.playsTree.appendChild(sharedEl);
+      shared.forEach((p) => {
+        const row = document.createElement("div");
+        row.className = "play-item" + (p.id === currentPlayId ? " active" : "");
+        const label = document.createElement("span");
+        label.textContent = `${VISIBILITY_ICONS[p.visibility || "team"] || ""} ${p.name}`;
+        row.appendChild(label);
+        row.addEventListener("click", () => openPlay(p.id));
+        els.playsTree.appendChild(row);
+      });
+    }
   }
 
   function newPlay() {
@@ -766,6 +789,8 @@
     pointCounters.nextDefenderNum = 1;
     buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
     document.getElementById("delete-play-btn").style.display = "none";
+    document.getElementById("save-play-btn").style.display = "inline-block";
+    [els.playName, els.playSeason, els.playTeam, els.playCategory, els.playVisibility].forEach((el) => (el.disabled = false));
     showMessage("New blank play — pick a tool and draw on the court, then Save when ready.", "success");
   }
 
@@ -773,6 +798,7 @@
     const { data, error } = await supabaseClient.from("plays").select("*").eq("id", id).single();
     if (error) { showMessage(error.message, "error"); return; }
     currentPlayId = id;
+    const owned = data.organization_id === currentOrgId;
     els.playName.value = data.name;
     els.playSeason.value = data.season || "";
     updateTeamOptions();
@@ -795,7 +821,15 @@
       pointCounters[key] = max + 1;
     });
     buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
-    document.getElementById("delete-play-btn").style.display = "inline-block";
+    document.getElementById("delete-play-btn").style.display = owned ? "inline-block" : "none";
+    // Une jugada partagée par un autre club se regarde, mais ne s'édite
+    // ni ne se sauvegarde ici -- comme pour les exercices dans la
+    // Library. Copier chez soi n'est pas encore proposé pour les
+    // jugadas -- à ajouter si Daniel veut la même chose que pour les
+    // exercices.
+    document.getElementById("save-play-btn").style.display = owned ? "inline-block" : "none";
+    [els.playName, els.playSeason, els.playTeam, els.playCategory, els.playVisibility].forEach((el) => (el.disabled = !owned));
+    if (!owned) showMessage("This play belongs to another club — you can look, but not edit or save changes.", "success");
     await loadPlaysList();
   }
 

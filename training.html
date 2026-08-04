@@ -269,18 +269,37 @@
 
   async function loadTrainingsList() {
     const { data, error } = await supabaseClient
-      .from("trainings").select("id, date, title, visibility")
-      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
+      .from("trainings").select("id, date, title, visibility, organization_id, season, team")
       .order("date", { ascending: false });
     els.trainingsList.innerHTML = "";
     if (error) { console.error(error); return; }
-    (data || []).forEach((t) => {
+    const mine = (data || []).filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam);
+    const shared = (data || []).filter((t) => t.organization_id !== currentOrgId);
+
+    mine.forEach((t) => {
       const row = document.createElement("div");
       row.className = "item-row" + (t.id === currentTrainingId ? " active" : "");
       row.textContent = `${VISIBILITY_ICONS[t.visibility || "team"] || ""} ${t.date}${t.title ? " — " + t.title : ""}`;
       row.addEventListener("click", () => openTraining(t.id));
       els.trainingsList.appendChild(row);
     });
+
+    // Même logique que pour les matchs : le season/team d'un
+    // entrenamiento partagé appartient au roster d'un autre club, on ne
+    // le mélange pas dans TA sélection.
+    if (shared.length > 0) {
+      const header = document.createElement("div");
+      header.className = "tree-season";
+      header.textContent = "🌐 Shared by other clubs";
+      els.trainingsList.appendChild(header);
+      shared.forEach((t) => {
+        const row = document.createElement("div");
+        row.className = "item-row" + (t.id === currentTrainingId ? " active" : "");
+        row.textContent = `${VISIBILITY_ICONS[t.visibility || "team"] || ""} ${t.date}${t.title ? " — " + t.title : ""}`;
+        row.addEventListener("click", () => openTraining(t.id));
+        els.trainingsList.appendChild(row);
+      });
+    }
   }
 
   function newTraining() {
@@ -293,6 +312,8 @@
     renderSessionTable(); renderAttendanceTable(); updateDurationBanner();
     els.trainingArea.style.display = "block";
     document.getElementById("delete-training-btn").style.display = "none";
+    document.getElementById("save-training-btn").style.display = "inline-block";
+    [els.title, els.date, els.planned, els.visibility].forEach((el) => (el.disabled = false));
   }
 
   async function openTraining(id) {
@@ -313,7 +334,11 @@
 
     renderSessionTable(); renderAttendanceTable(); updateDurationBanner();
     els.trainingArea.style.display = "block";
-    document.getElementById("delete-training-btn").style.display = "inline-block";
+    const owned = training.organization_id === currentOrgId;
+    document.getElementById("delete-training-btn").style.display = owned ? "inline-block" : "none";
+    document.getElementById("save-training-btn").style.display = owned ? "inline-block" : "none";
+    [els.title, els.date, els.planned, els.visibility].forEach((el) => (el.disabled = !owned));
+    if (!owned) showMessage("This session belongs to another club — you can look, but not edit or save changes.", "success");
     await loadTrainingsList();
   }
 
