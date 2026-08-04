@@ -112,6 +112,9 @@ function drawCourtBackground(ctx, canvas, courtType, cssW, cssH) {
   }
 
   if (courtType === "half") {
+    // demi-cercle central, coupé par le haut du terrain -- comme si on
+    // regardait la moitié d'un terrain complet coupé à la ligne médiane
+    ctx.beginPath(); ctx.arc(w / 2, 3, (w - 6) * 0.22, 0, Math.PI); ctx.stroke();
     drawHalfCourt(3, 3, w - 6, h - 6, true);
   } else if (courtType === "vertical") {
     ctx.beginPath(); ctx.moveTo(3, h / 2); ctx.lineTo(w - 3, h / 2); ctx.stroke();
