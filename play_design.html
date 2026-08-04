@@ -392,13 +392,13 @@
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
   }
-  function pointAt(x, y) {
+  function pointAt(x, y, radius) {
     const step = currentStep();
     // Le point le PLUS PROCHE du clic, pas le premier trouvé dans la
     // liste -- sinon, quand un ballon est collé sur un joueur, on
     // "attrapait" toujours le même des deux par hasard (l'ordre de
     // création), même si l'autre était en réalité plus proche du clic.
-    let best = null, bestDist = 0.045;
+    let best = null, bestDist = radius || 0.045;
     step.points.forEach((p) => {
       const d = Math.hypot(p.x - x, p.y - y);
       if (d < bestDist) { best = p; bestDist = d; }
@@ -451,7 +451,14 @@
       return;
     }
     // outils de ligne/écran/zone : clic-glisser
-    let startPoint = pointAt(x, y);
+    // Pour les outils qui représentent un déplacement réel (arrow,
+    // dribble, pass), on est plus tolérant sur la précision du clic --
+    // sinon, un clic à quelques pixels du joueur/ballon crée une ligne
+    // "orpheline" : elle se voit très bien à l'écran, mais comme elle
+    // n'est rattachée à personne, rien ne bouge à l'étape suivante, en
+    // silence, sans aucun message d'erreur.
+    const isMovementTool = activeTool === "arrow" || activeTool === "dribble" || activeTool === "pass";
+    let startPoint = pointAt(x, y, isMovementTool ? 0.09 : 0.045);
     // Une PASSE, c'est toujours le ballon qui vole -- jamais le joueur
     // qui l'envoie. Si le clic a "attrapé" le joueur (parce que le
     // ballon est collé dessus, à quelques pixels près), on redirige vers
@@ -461,6 +468,9 @@
       const step2 = currentStep();
       const ball = step2.points.find((b) => b.type === "ball" && (b.carriedBy === startPoint.id || (b.id !== startPoint.id && Math.hypot(b.x - startPoint.x, b.y - startPoint.y) < ATTACH_RADIUS)));
       if (ball) startPoint = ball;
+    }
+    if (isMovementTool && !startPoint) {
+      showMessage("This line didn't start on a player or ball, so it won't carry over to the next step. Start the drag right on the dot.", "error");
     }
     drawingFrom = { x, y, pointId: (startPoint || {}).id };
   }
