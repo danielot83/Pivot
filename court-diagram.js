@@ -154,11 +154,12 @@ function drawLineElement(ctx, toPx, el, progress) {
     const segs = 8, dx = (tx - fx) / segs, dy = (ty - fy) / segs;
     const nx = -dy, ny = dx, norm = Math.hypot(nx, ny) || 1;
     ctx.moveTo(fx, fy);
-    for (let i = 1; i <= segs; i++) {
+    for (let i = 1; i < segs; i++) {
       const off = (i % 2 === 0 ? 1 : -1) * 3.5;
       ctx.lineTo(fx + dx * i + (nx / norm) * off, fy + dy * i + (ny / norm) * off);
     }
-    ctx.stroke();
+    ctx.lineTo(tx, ty); // le dernier segment revient pile sur le point final,
+    ctx.stroke();       // pour que la pointe de flèche s'aligne bien dessus
   } else if (el.type === "shot") {
     const angle = Math.atan2(ty - fy, tx - fx), perp = angle + Math.PI / 2, off = 2.2;
     ctx.beginPath(); ctx.moveTo(fx + Math.cos(perp) * off, fy + Math.sin(perp) * off); ctx.lineTo(tx + Math.cos(perp) * off, ty + Math.sin(perp) * off); ctx.stroke();

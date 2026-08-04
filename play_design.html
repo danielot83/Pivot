@@ -183,7 +183,7 @@
   </div>
 </div>
 
-<script src="court-diagram.js?v=4"></script>
+<script src="court-diagram.js?v=5"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -243,7 +243,14 @@
       // terrain ne suivait jamais la jugada.
       if ((a.type === "arrow" || a.type === "dribble" || a.type === "pass") && a.pointId && a.points) {
         const p = resolved.find((pp) => pp.id === a.pointId);
-        if (p) { p.x = a.points[1][0]; p.y = a.points[1][1]; }
+        if (p) {
+          const dx = a.points[1][0] - p.x, dy = a.points[1][1] - p.y;
+          // un ballon collé au point qui bouge (le joueur "l'a en main")
+          // doit suivre exactement le même déplacement
+          const ball = resolved.find((b) => b.type === "ball" && b.id !== p.id && Math.hypot(b.x - p.x, b.y - p.y) < 0.05);
+          p.x = a.points[1][0]; p.y = a.points[1][1];
+          if (ball) { ball.x += dx; ball.y += dy; }
+        }
       }
     });
     return resolved;
@@ -527,8 +534,16 @@
         const moved = step.points.map((p) => ({ ...p }));
         step.actions.forEach((a) => {
           if ((a.type === "arrow" || a.type === "dribble" || a.type === "pass") && a.pointId && a.points) {
+            const original = step.points.find((pp) => pp.id === a.pointId);
             const p = moved.find((pp) => pp.id === a.pointId);
-            if (p) { p.x = a.points[0][0] + (a.points[1][0] - a.points[0][0]) * t; p.y = a.points[0][1] + (a.points[1][1] - a.points[0][1]) * t; }
+            if (p && original) {
+              const newX = a.points[0][0] + (a.points[1][0] - a.points[0][0]) * t;
+              const newY = a.points[0][1] + (a.points[1][1] - a.points[0][1]) * t;
+              const dx = newX - original.x, dy = newY - original.y;
+              const ball = moved.find((b) => b.type === "ball" && b.id !== p.id && Math.hypot(b.x - original.x, b.y - original.y) < 0.05);
+              p.x = newX; p.y = newY;
+              if (ball) { ball.x += dx; ball.y += dy; }
+            }
           }
         });
         moved.forEach((p) => drawPointElement(ctx, toPx, p));
