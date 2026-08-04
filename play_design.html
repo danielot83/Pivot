@@ -183,7 +183,7 @@
   </div>
 </div>
 
-<script src="court-diagram.js"></script>
+<script src="court-diagram.js?v=3"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -238,7 +238,10 @@
   function resolvedPoints(step) {
     const resolved = step.points.map((p) => ({ ...p }));
     step.actions.forEach((a) => {
-      if ((a.type === "arrow" || a.type === "dribble") && a.pointId && a.points) {
+      // "pass" est inclus : c'est normalement comme ça que le ballon se
+      // déplace d'un joueur à l'autre -- sans ça, un ballon posé sur le
+      // terrain ne suivait jamais la jugada.
+      if ((a.type === "arrow" || a.type === "dribble" || a.type === "pass") && a.pointId && a.points) {
         const p = resolved.find((pp) => pp.id === a.pointId);
         if (p) { p.x = a.points[1][0]; p.y = a.points[1][1]; }
       }
@@ -490,7 +493,7 @@
         step.actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, a, t));
         const moved = step.points.map((p) => ({ ...p }));
         step.actions.forEach((a) => {
-          if ((a.type === "arrow" || a.type === "dribble") && a.pointId && a.points) {
+          if ((a.type === "arrow" || a.type === "dribble" || a.type === "pass") && a.pointId && a.points) {
             const p = moved.find((pp) => pp.id === a.pointId);
             if (p) { p.x = a.points[0][0] + (a.points[1][0] - a.points[0][0]) * t; p.y = a.points[0][1] + (a.points[1][1] - a.points[0][1]) * t; }
           }
@@ -773,7 +776,9 @@
     box.innerHTML = `
       <strong>How to use Play design</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.9;">
-        <li><strong>Season / Team</strong> come straight from your Roster. <strong>Category</strong> is free text and works like a folder — plays with the same category show grouped together in the list on the left, under their season/team.</li>
+        <li><strong>Season / Team dropdowns</strong> — these are NOT typed in here. They're pulled directly from Roster: whatever seasons and teams already have players added in Roster are the only ones you can pick from. If a season/team is missing from the dropdown, go add that team's players in Roster first, then come back — it'll show up automatically.</li>
+        <li><strong>Category = the "subfolder"</strong> — this one IS free text, typed by you (e.g. "Half-court offense", "Out of bounds", "Press break", "Zone offense"). There's no separate screen to "create" a category — you just type a name here and save; the very next play you give the same category name to will automatically appear grouped with it in the playbook on the left, under that season/team. Typos create a new, separate folder, so keep the wording consistent (e.g. always "Out of bounds", not sometimes "OOB").</li>
+        <li>The playbook on the left is organized in two levels: first by <strong>Season — Team</strong>, then by <strong>Category</strong> underneath (shown with a 📁 icon). A play with no season/team goes under "No season — No team"; a play with no category goes under "Uncategorized."</li>
         <li>A new play starts <strong>completely empty</strong> — nothing is pre-placed. Pick "Attacker", "Defender", "Ball", "Cone", "Coach", "Post", or "Handoff" and click the court to add one; you'll be asked for a number/label for attackers and defenders.</li>
         <li><strong>Move/select</strong> — drag any point you've placed. Double-click a player/defender to rename it, or double-click any other point to remove it.</li>
         <li><strong>Steps</strong> — click "+ Add step" as many times as the play needs. Each new step starts with points positioned exactly where the previous step's cuts/dribbles ended — draw a pass from 1 to 2 and step 2 opens with the ball already at 2.</li>
