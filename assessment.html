@@ -978,9 +978,14 @@
   // -----------------------------------------------------------------------
   function buildAiPrompt() {
     const lines = [
-      "You're helping a basketball coach evaluate a player. I'll describe the player and what I've seen from them; ask me any clarifying questions you need first (age, position, what stood out, weaknesses...).",
-      "Once you have enough, rate them on the criteria below, each from 1 (needs a lot of work) to 5 (excellent) — leave a criterion out if you're not confident enough to score it. Reply with ONLY lines in this exact format, nothing else:",
+      "You're helping a basketball coach evaluate a player. I'll describe the player and what I've seen from them.",
+      "",
+      "IMPORTANT — do not score anything yet. First, ask me clarifying questions (age, position, what stood out, weaknesses, how many times you've seen them play...) until you're genuinely confident enough to rate EVERY criterion below. If after asking you still don't have enough to judge a specific criterion, say so and ask one more targeted question about it rather than guessing — only leave a criterion out as a last resort, and tell me which ones and why.",
+      "",
+      "You can ask your questions in whatever language I'm writing to you in — reply in that same language for the conversation. But once (and only once) I confirm you have enough, your FINAL reply must contain ONLY lines in this exact format, nothing else, no matter what language we spoke in:",
       "key: score",
+      "",
+      "Score each from 1 (needs a lot of work) to 5 (excellent).",
       "",
     ];
     SECTOR_ORDER.forEach((sectKey) => {

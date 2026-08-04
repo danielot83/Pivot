@@ -284,14 +284,17 @@
 
   const LANGUAGE_NAMES = { en: "English", fr: "Français", es: "Español" };
 
+  const VISIBILITY_LABELS = { private: "🔒 Only me", team: "👥 My team", association: "🤝 Club association", community: "🌐 Pivot Community" };
+
   function renderDetail(e) {
     if (!e) { els.detailCard.innerHTML = '<p class="sub" style="margin:0;">Pick an exercise from the list.</p>'; return; }
     const owned = e.organization_id === currentOrgId;
     const used = usageCounts[e.id] || 0;
     const langName = LANGUAGE_NAMES[e.language || "en"] || e.language;
+    const visLabel = VISIBILITY_LABELS[e.visibility || "team"] || e.visibility;
     els.detailCard.innerHTML = `
       <h3>${e.favorite ? "★ " : ""}${e.name}</h3>
-      <div class="meta-row">#${e.number || "—"} · ${"★".repeat(e.difficulty || 1)}${"☆".repeat(3 - (e.difficulty || 1))} · ${used === 0 ? "never used" : used + "× used"} · ${langName}${!owned ? " · 🌐 shared by another club" : ""}</div>
+      <div class="meta-row">#${e.number || "—"} · ${"★".repeat(e.difficulty || 1)}${"☆".repeat(3 - (e.difficulty || 1))} · ${used === 0 ? "never used" : used + "× used"} · ${langName} · ${visLabel}${!owned ? " · shared by another club" : ""}</div>
       <div class="section"><div class="section-label">Age</div><p>${(e.age || []).map((a) => `<span class="tag-chip">${a}</span>`).join("") || "—"}</p></div>
       <div class="section"><div class="section-label">Categories</div><p>${(e.categories || []).map((c) => `<span class="tag-chip">${c}</span>`).join("") || "—"}</p></div>
       <div class="section"><div class="section-label">Material</div><p>${(e.material || []).map((m) => `<span class="tag-chip">${m}</span>`).join("") || "—"}</p></div>
@@ -333,7 +336,7 @@
 
   async function duplicateExercise(e) {
     const copy = { ...e, name: e.name + " (copy)", number: nextNumberForMyClub(), favorite: false };
-    delete copy.id;
+    delete copy.id; delete copy.created_by;
     const { error } = await supabaseClient.from("exercises").insert(copy);
     if (error) { showMessage(error.message, "error"); return; }
     showMessage("Exercise duplicated.", "success");
@@ -342,14 +345,14 @@
 
   // -----------------------------------------------------------------------
   // "Copiar a mi biblioteca" -- para un ejercicio compartido por OTRO
-  // club. Crea una copia propia (editable, privada por defecto) en tu
-  // organización, conservando el translation_group_id: sigue siendo
-  // reconocido como el mismo ejercicio a efectos de idioma, aunque ahora
-  // tengas tu propia copia para editar libremente.
+  // club. Crea una copia propia (editable, visible a todo tu club por
+  // defecto) en tu organización, conservando el translation_group_id:
+  // sigue siendo reconocido como el mismo ejercicio a efectos de idioma,
+  // aunque ahora tengas tu propia copia para editar libremente.
   // -----------------------------------------------------------------------
   async function copyToMyLibrary(e) {
-    const copy = { ...e, organization_id: currentOrgId, number: nextNumberForMyClub(), favorite: false, is_shared: false };
-    delete copy.id;
+    const copy = { ...e, organization_id: currentOrgId, number: nextNumberForMyClub(), favorite: false, visibility: "team" };
+    delete copy.id; delete copy.created_by;
     const { error } = await supabaseClient.from("exercises").insert(copy);
     if (error) { showMessage(error.message, "error"); return; }
     showMessage("Copied to your library — it's now yours to edit.", "success");
@@ -367,7 +370,7 @@
     const choice = prompt(`Translate to which language? (${options.join(" / ")})`, options[0]);
     if (!choice || !LANGUAGE_NAMES[choice]) { if (choice) showMessage("Unknown language code.", "error"); return; }
     const copy = { ...e, number: nextNumberForMyClub(), favorite: false, language: choice, translation_group_id: e.translation_group_id };
-    delete copy.id;
+    delete copy.id; delete copy.created_by;
     const { error } = await supabaseClient.from("exercises").insert(copy);
     if (error) { showMessage(error.message, "error"); return; }
     showMessage(`Created a ${LANGUAGE_NAMES[choice]} copy — translate its text in the editor.`, "success");

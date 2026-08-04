@@ -129,8 +129,18 @@
 
   <div class="card" id="members-card" style="display:none">
     <h2>Members</h2>
-    <p class="hint">Change someone's role, or remove them from the club. You can't demote or remove the club's last admin.</p>
+    <p class="hint">Change someone's role, block them (they keep their account but lose access to this club), or remove them for good. You can't demote, block, or remove the club's last admin. Someone asking to join for the first time shows up on the dashboard, not here.</p>
     <div id="members-list"></div>
+  </div>
+
+  <div class="card" id="export-language-card" style="display:none">
+    <h2>Export language</h2>
+    <p class="hint">The language your club's PDFs (roster sheets, assessments, plays, match reports...) are generated in.</p>
+    <select id="export-language-select">
+      <option value="en">English</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+    </select>
   </div>
 
   <div class="card" id="sharing-card" style="display:none">
@@ -209,10 +219,24 @@
     document.getElementById("members-card").style.display = "block";
     document.getElementById("sharing-card").style.display = "block";
     document.getElementById("associations-card").style.display = "block";
+    document.getElementById("export-language-card").style.display = "block";
     await loadSharingStatus();
     await loadMembers();
     await loadAssociations();
+    await loadExportLanguage();
   }
+
+  async function loadExportLanguage() {
+    const { data, error } = await supabaseClient.from("organizations").select("export_language").eq("id", currentOrgId).single();
+    if (error) { console.error("loadExportLanguage error:", error); return; }
+    document.getElementById("export-language-select").value = data.export_language || "en";
+  }
+
+  document.getElementById("export-language-select").addEventListener("change", async (e) => {
+    const { error } = await supabaseClient.from("organizations").update({ export_language: e.target.value }).eq("id", currentOrgId);
+    if (error) { showMessage(error.message, "error"); return; }
+    showMessage("Export language updated — new PDFs will use it.", "success");
+  });
 
   // -----------------------------------------------------------------------
   // Membres actifs du club : changer un rôle, ou retirer quelqu'un.
@@ -225,19 +249,19 @@
   // de cocher "share" un par un dans le créateur d'exercices.
   // -----------------------------------------------------------------------
   async function loadSharingStatus() {
-    const { data, error } = await supabaseClient.from("exercises").select("id, is_shared").eq("organization_id", currentOrgId);
+    const { data, error } = await supabaseClient.from("exercises").select("id, visibility").eq("organization_id", currentOrgId);
     if (error) { console.error("loadSharingStatus error:", error); return; }
     const total = (data || []).length;
-    const shared = (data || []).filter((e) => e.is_shared).length;
+    const shared = (data || []).filter((e) => e.visibility === "community").length;
     document.getElementById("sharing-status").textContent =
-      total === 0 ? "No exercises yet." : `${shared} of ${total} exercise${total === 1 ? "" : "s"} currently shared.`;
+      total === 0 ? "No exercises yet." : `${shared} of ${total} exercise${total === 1 ? "" : "s"} currently shared with everyone on Pivot.`;
   }
 
   async function setAllSharing(value) {
-    if (!confirm(value ? "Share every exercise in your library with all other clubs?" : "Make every exercise private again?")) return;
-    const { error } = await supabaseClient.from("exercises").update({ is_shared: value }).eq("organization_id", currentOrgId);
+    if (!confirm(value ? "Share every exercise in your library with all other clubs on Pivot?" : "Set every exercise back to team-only?")) return;
+    const { error } = await supabaseClient.from("exercises").update({ visibility: value ? "community" : "team" }).eq("organization_id", currentOrgId);
     if (error) { showMessage(error.message, "error"); return; }
-    showMessage(value ? "All exercises are now shared." : "All exercises are now private.", "success");
+    showMessage(value ? "All exercises are now shared with everyone." : "All exercises are back to team-only.", "success");
     await loadSharingStatus();
   }
   document.getElementById("share-all-btn").addEventListener("click", () => setAllSharing(true));
@@ -300,9 +324,10 @@
     list.innerHTML = "";
     const { data, error } = await supabaseClient
       .from("memberships")
-      .select("id, role, user_id, profiles(full_name)")
+      .select("id, role, status, user_id, profiles(full_name)")
       .eq("organization_id", currentOrgId)
-      .eq("status", "active");
+      .in("status", ["active", "blocked"])
+      .order("status");
     if (error) { console.error("loadMembers error:", error); return; }
 
     (data || []).forEach((m) => {
@@ -312,7 +337,7 @@
       const info = document.createElement("div");
       info.className = "member-info";
       const name = document.createElement("strong");
-      name.textContent = (m.profiles && m.profiles.full_name) || "Someone";
+      name.textContent = ((m.profiles && m.profiles.full_name) || "Someone") + (m.status === "blocked" ? " — blocked" : "");
       info.appendChild(name);
 
       const actions = document.createElement("div");
@@ -324,18 +349,35 @@
         if (r === m.role) opt.selected = true;
         roleSelect.appendChild(opt);
       });
+      roleSelect.disabled = m.status === "blocked";
       roleSelect.addEventListener("change", () => changeRole(m.id, roleSelect.value, row));
+
+      const statusBtn = document.createElement("button");
+      statusBtn.textContent = m.status === "blocked" ? "Reactivate" : "Block";
+      statusBtn.addEventListener("click", () => changeStatus(m.id, m.status === "blocked" ? "active" : "blocked", row));
 
       const removeBtn = document.createElement("button");
       removeBtn.textContent = "Remove";
       removeBtn.addEventListener("click", () => removeMember(m.id, row));
 
       actions.appendChild(roleSelect);
+      actions.appendChild(statusBtn);
       actions.appendChild(removeBtn);
       row.appendChild(info);
       row.appendChild(actions);
       list.appendChild(row);
     });
+  }
+
+  async function changeStatus(membershipId, newStatus, rowEl) {
+    try {
+      const { error } = await supabaseClient.from("memberships").update({ status: newStatus }).eq("id", membershipId);
+      if (error) throw error;
+      showMessage(newStatus === "blocked" ? "Member blocked — they've lost access to this club." : "Member reactivated.", "success");
+      await loadMembers();
+    } catch (err) {
+      showMessage(err.message || "Couldn't change that member's status.", "error");
+    }
   }
 
   async function changeRole(membershipId, newRole, rowEl) {
@@ -433,8 +475,10 @@
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
         <li>Only an active <strong>admin</strong> of a club can see and change anything here.</li>
         <li><strong>Club logo</strong> — pick an image, it's automatically resized and converted; instructions for the best result are right below the upload button.</li>
-        <li><strong>Members</strong> — change anyone's role with the dropdown, or remove them with "Remove". You can never remove or demote the club's last admin — the app blocks it on purpose.</li>
-        <li><strong>Share your exercises with everyone</strong> — turns on sharing for every exercise in your library at once, so other clubs can see (not edit) them.</li>
+        <li><strong>Members</strong> — change anyone's role with the dropdown, <strong>block</strong> someone to cut their access without deleting their history (they can be reactivated any time), or <strong>remove</strong> them for good. You can never demote, block, or remove the club's last admin — the app blocks it on purpose. Someone requesting to join for the first time shows up on your dashboard, not here.</li>
+        <li><strong>Exercise sharing</strong> — the two buttons here set ALL your exercises to either "Pivot Community" (everyone) or "My team" at once. To choose more precisely, set the sharing circle exercise by exercise in the Exercise creator: <strong>Only me</strong> (private, even from your own teammates), <strong>My team</strong> (your whole club), <strong>My club association</strong> (a small group of clubes who agreed to share, needs the platform controller's approval), or <strong>Pivot Community</strong> (every club on Pivot, view only for them). This same choice will be added to the other modules (plays, roster, training...) next.</li>
+        <li><strong>Club association</strong> — propose a new group of clubes, or join an existing one by typing its exact name. Nothing is shared until the platform controller approves it — you'll see the request's status here, and a 🔔 on your dashboard shows you (or the controller) what's pending.</li>
+        <li><strong>Export language</strong> — the language new PDFs (roster sheets, assessments, plays, match reports...) are generated in for your club. Changing it doesn't touch PDFs you already downloaded.</li>
       </ul>`;
     box.style.display = "block";
   });

@@ -177,9 +177,14 @@
           <p class="hint" style="margin:4px 0 0;">Editing a saved exercise changes only this language's text — its translations (if any) stay untouched. To add another language, use "Duplicate as translation" in the Library.</p>
         </div>
 
-        <div class="checkbox-field" style="margin-bottom:14px;">
-          <input type="checkbox" id="ex-shared" />
-          <label for="ex-shared">Share this exercise — other clubs on Pivot will be able to see (not edit) it</label>
+        <div class="field" style="margin-bottom:14px;">
+          <label for="ex-visibility">Who can see this exercise?</label>
+          <select id="ex-visibility">
+            <option value="private">🔒 Only me</option>
+            <option value="team">👥 My team — everyone in my club</option>
+            <option value="association">🤝 My club association — clubs in my approved group</option>
+            <option value="community">🌐 Pivot Community — every club on Pivot (view only for them)</option>
+          </select>
         </div>
       </div>
 
@@ -248,7 +253,7 @@
     objectives: document.getElementById("ex-objectives"),
     description: document.getElementById("ex-description"),
     variants: document.getElementById("ex-variants"),
-    shared: document.getElementById("ex-shared"),
+    visibility: document.getElementById("ex-visibility"),
     language: document.getElementById("ex-language"),
     canvas: document.getElementById("court-canvas"),
     colorSelect: document.getElementById("color-select"),
@@ -468,7 +473,7 @@
 
   function resetForm() {
     els.number.value = ""; els.name.value = ""; els.difficulty.value = "1"; els.favorite.checked = false;
-    els.tags.value = ""; els.objectives.value = ""; els.description.value = ""; els.variants.value = ""; els.shared.checked = false;
+    els.tags.value = ""; els.objectives.value = ""; els.description.value = ""; els.variants.value = ""; els.visibility.value = "team";
     els.language.value = "en"; currentTranslationGroupId = null;
     setCheckedValues("age", []); setCheckedValues("categories", []); setCheckedValues("material", []);
     diagram = {}; currentStep = "court_1";
@@ -502,7 +507,7 @@
     els.tags.value = (e.tags || []).join("; ");
     els.objectives.value = (e.objectives || []).join("\n");
     els.description.value = e.description || ""; els.variants.value = e.variants || "";
-    els.shared.checked = e.is_shared;
+    els.visibility.value = e.visibility || "team";
     els.language.value = e.language || "en";
     setCheckedValues("age", e.age); setCheckedValues("categories", e.categories); setCheckedValues("material", e.material);
     diagram = e.diagram || {};
@@ -530,7 +535,7 @@
       objectives: els.objectives.value.split("\n").map((t) => t.trim()).filter(Boolean).slice(0, 4),
       description: els.description.value.trim() || null,
       variants: els.variants.value.trim() || null,
-      is_shared: els.shared.checked,
+      visibility: els.visibility.value,
       language: els.language.value,
       diagram,
     };
