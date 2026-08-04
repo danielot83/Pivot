@@ -267,27 +267,33 @@
     step.actions.forEach((a) => {
       // "pass" est inclus : c'est normalement comme ça que le ballon se
       // déplace d'un joueur à l'autre -- sans ça, un ballon posé sur le
-      // terrain ne suivait jamais la jugada.
-      if ((a.type === "arrow" || a.type === "dribble" || a.type === "pass") && a.pointId && a.points) {
+      // terrain ne suivait jamais la jugada. "shot" aussi : un tir, c'est
+      // en fait une passe vers le panier -- le ballon doit finir au
+      // cercle, pas rester collé au tireur.
+      if ((a.type === "arrow" || a.type === "dribble" || a.type === "pass" || a.type === "shot") && a.pointId && a.points) {
         const p = resolved.find((pp) => pp.id === a.pointId);
         if (p) {
           const dx = a.points[1][0] - p.x;
           const dy = a.points[1][1] - p.y;
           // Mouvement/dribble : le ballon et le joueur qui le porte
-          // avancent ensemble. Passe : seul le ballon vole.
-          if (a.type !== "pass") {
+          // avancent ensemble. Passe et tir : seul le ballon vole.
+          if (a.type !== "pass" && a.type !== "shot") {
             const companion = findAttachedCompanion(resolved, p);
             if (companion) { companion.x += dx; companion.y += dy; }
           }
           p.x = a.points[1][0]; p.y = a.points[1][1];
-          // Une passe change de main : le ballon appartient maintenant à
-          // qui se trouve à l'endroit où il atterrit (le receveur), plus
-          // à celui qui vient de l'envoyer -- sinon l'étape suivante
-          // "pense" encore que l'ancien porteur l'a, même s'il est resté
-          // loin derrière.
           if (a.type === "pass" && p.type === "ball") {
+            // Une passe change de main : le ballon appartient maintenant
+            // à qui se trouve à l'endroit où il atterrit (le receveur),
+            // plus à celui qui vient de l'envoyer -- sinon l'étape
+            // suivante "pense" encore que l'ancien porteur l'a, même
+            // s'il est resté loin derrière.
             const receiver = resolved.find((o) => o.id !== p.id && (o.type === "player" || o.type === "defender") && Math.hypot(o.x - p.x, o.y - p.y) < ATTACH_RADIUS);
             p.carriedBy = receiver ? receiver.id : undefined;
+          } else if (a.type === "shot" && p.type === "ball") {
+            // Après un tir, le ballon est au panier -- personne ne le
+            // "porte" plus.
+            p.carriedBy = undefined;
           }
         }
       }
@@ -405,7 +411,7 @@
     });
     return best;
   }
-  let nextPointNum = 1;
+  const pointCounters = { nextPlayerNum: 1, nextDefenderNum: 1 };
 
   els.canvas.addEventListener("mousedown", onPointerDown);
   els.canvas.addEventListener("touchstart", onPointerDown);
@@ -432,10 +438,16 @@
       const id = "p" + Date.now() + Math.floor(Math.random() * 1000);
       const el = { id, type: activeTool, x, y, color: els.colorSelect.value };
       if (activeTool === "player" || activeTool === "defender") {
-        const label = prompt("Number/label for this " + activeTool + ":", String(nextPointNum));
+        // Attaque et défense comptent chacune à partir de 1 -- avant, un
+        // seul compteur partagé faisait que le premier défenseur posé
+        // héritait du prochain numéro de l'attaque (ex: "5") au lieu de
+        // recommencer à 1, alors que visuellement ce sont deux groupes
+        // séparés (couleur/contour différents).
+        const counter = activeTool === "player" ? "nextPlayerNum" : "nextDefenderNum";
+        const label = prompt("Number/label for this " + activeTool + ":", String(pointCounters[counter]));
         if (label === null) return; // annulé
         el.label = label.trim();
-        nextPointNum++;
+        pointCounters[counter]++;
       }
       // Si on pose un ballon juste à côté d'un joueur/défenseur, on note
       // explicitement "ce joueur le porte" -- ce lien reste vrai même si
@@ -457,14 +469,15 @@
     // "orpheline" : elle se voit très bien à l'écran, mais comme elle
     // n'est rattachée à personne, rien ne bouge à l'étape suivante, en
     // silence, sans aucun message d'erreur.
-    const isMovementTool = activeTool === "arrow" || activeTool === "dribble" || activeTool === "pass";
+    const isMovementTool = activeTool === "arrow" || activeTool === "dribble" || activeTool === "pass" || activeTool === "shot";
     let startPoint = pointAt(x, y, isMovementTool ? 0.09 : 0.045);
-    // Une PASSE, c'est toujours le ballon qui vole -- jamais le joueur
-    // qui l'envoie. Si le clic a "attrapé" le joueur (parce que le
-    // ballon est collé dessus, à quelques pixels près), on redirige vers
-    // le ballon : sinon, selon la précision du clic, c'était parfois le
-    // joueur qui se retrouvait déplacé à la place du ballon.
-    if (activeTool === "pass" && startPoint && (startPoint.type === "player" || startPoint.type === "defender")) {
+    // Une PASSE (ou un TIR, qui est en fait une passe vers le panier),
+    // c'est toujours le ballon qui vole -- jamais le joueur qui l'envoie.
+    // Si le clic a "attrapé" le joueur (parce que le ballon est collé
+    // dessus, à quelques pixels près), on redirige vers le ballon :
+    // sinon, selon la précision du clic, c'était parfois le joueur qui
+    // se retrouvait déplacé à la place du ballon.
+    if ((activeTool === "pass" || activeTool === "shot") && startPoint && (startPoint.type === "player" || startPoint.type === "defender")) {
       const step2 = currentStep();
       const ball = step2.points.find((b) => b.type === "ball" && (b.carriedBy === startPoint.id || (b.id !== startPoint.id && Math.hypot(b.x - startPoint.x, b.y - startPoint.y) < ATTACH_RADIUS)));
       if (ball) startPoint = ball;
@@ -618,13 +631,13 @@
         step.actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, a, t));
         const moved = step.points.map((p) => ({ ...p }));
         step.actions.forEach((a) => {
-          if ((a.type === "arrow" || a.type === "dribble" || a.type === "pass") && a.pointId && a.points) {
+          if ((a.type === "arrow" || a.type === "dribble" || a.type === "pass" || a.type === "shot") && a.pointId && a.points) {
             const p = moved.find((pp) => pp.id === a.pointId);
             if (p) {
               const newX = a.points[0][0] + (a.points[1][0] - a.points[0][0]) * t;
               const newY = a.points[0][1] + (a.points[1][1] - a.points[0][1]) * t;
               const dx = newX - p.x, dy = newY - p.y;
-              if (a.type !== "pass") {
+              if (a.type !== "pass" && a.type !== "shot") {
                 const companion = findAttachedCompanion(moved, p);
                 if (companion) { companion.x += dx; companion.y += dy; }
               }
@@ -738,6 +751,8 @@
     els.playCategory.value = "";
     steps = [newStep()];
     currentStepIndex = 0;
+    pointCounters.nextPlayerNum = 1;
+    pointCounters.nextDefenderNum = 1;
     buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
     document.getElementById("delete-play-btn").style.display = "none";
     showMessage("New blank play — pick a tool and draw on the court, then Save when ready.", "success");
@@ -756,6 +771,17 @@
       ? data.diagram.steps.map((s) => ({ courtType: s.courtType || "half", note: s.note || "", points: s.points || [], actions: s.actions || [] }))
       : [newStep()];
     currentStepIndex = 0;
+    // Reprend la numérotation là où la jugada l'avait laissée -- sinon,
+    // ouvrir une jugada qui a déjà les joueurs 1 à 5 et en ajouter un
+    // nouveau proposait à nouveau "1", au lieu de "6".
+    ["player", "defender"].forEach((kind) => {
+      const key = kind === "player" ? "nextPlayerNum" : "nextDefenderNum";
+      let max = 0;
+      steps.forEach((s) => s.points.forEach((p) => {
+        if (p.type === kind) { const n = parseInt(p.label, 10); if (!isNaN(n) && n > max) max = n; }
+      }));
+      pointCounters[key] = max + 1;
+    });
     buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
     document.getElementById("delete-play-btn").style.display = "inline-block";
     await loadPlaysList();
