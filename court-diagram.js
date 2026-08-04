@@ -105,7 +105,11 @@ function drawCourtBackground(ctx, canvas, courtType, cssW, cssH) {
       const straightBottomY = basketY + cornerReach;
       ctx.moveTo(cx - cornerX, baseY);
       ctx.lineTo(cx - cornerX, straightBottomY);
-      ctx.arc(cx, basketY, r3, phi, Math.PI - phi);
+      // sens anti-horaire ici : l'arc doit partir du point où la ligne
+      // vient de s'arrêter (coin GAUCHE, angle π-phi) et arriver au coin
+      // DROIT (angle phi) -- sinon Canvas relie les deux avec un trait
+      // droit en travers de tout le terrain (c'était le bug de la diagonale).
+      ctx.arc(cx, basketY, r3, Math.PI - phi, phi, true);
       ctx.lineTo(cx + cornerX, baseY);
     }
     ctx.stroke();
