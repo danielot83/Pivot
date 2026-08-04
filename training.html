@@ -175,6 +175,7 @@
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
+  function escapeHtml(str) { return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
   const els = {
     orgName: document.getElementById("org-name"),
@@ -365,7 +366,7 @@
     els.attendanceBody.innerHTML = "";
     teamPlayers.forEach((p) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td><input type="checkbox" ${attendance[p.id] ? "checked" : ""} data-player="${p.id}"></td><td>${p.first_name} ${p.last_name}</td>`;
+      tr.innerHTML = `<td><input type="checkbox" ${attendance[p.id] ? "checked" : ""} data-player="${p.id}"></td><td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>`;
       tr.querySelector("input").addEventListener("change", (e) => (attendance[p.id] = e.target.checked));
       els.attendanceBody.appendChild(tr);
     });

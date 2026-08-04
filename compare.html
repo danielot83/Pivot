@@ -130,6 +130,7 @@
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  function escapeHtml(str) { return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
   // Même liste de critères que assessment.html (juste le texte, pas besoin
   // du détail basic/avancé ici).
@@ -275,7 +276,7 @@
       const p = allPlayers.find((pp) => pp.id === id);
       const item = document.createElement("div");
       item.className = "legend-item";
-      item.innerHTML = `<span class="swatch" style="background:${PLAYER_COLORS[i % PLAYER_COLORS.length]}"></span> ${p ? p.name : "?"}`;
+      item.innerHTML = `<span class="swatch" style="background:${PLAYER_COLORS[i % PLAYER_COLORS.length]}"></span> ${escapeHtml(p ? p.name : "?")}`;
       els.sectorLegend.appendChild(item);
     });
   }
@@ -309,7 +310,7 @@
       const val = assessment && assessment.ratings[sectKey] && assessment.ratings[sectKey][grpKey]
         ? assessment.ratings[sectKey][grpKey][idx] : null;
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${p ? p.name : "?"}</td><td>${val !== null && val !== undefined ? val : "—"}</td><td>${assessment ? assessment.date : "—"}</td>`;
+      tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td>${val !== null && val !== undefined ? val : "—"}</td><td>${assessment ? assessment.date : "—"}</td>`;
       els.criterionBody.appendChild(tr);
     });
   }

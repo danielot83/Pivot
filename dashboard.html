@@ -242,6 +242,14 @@
   //     attente, avec Approve/Reject ;
   //   - un club normal voit juste le statut de SA propre demande.
   // -----------------------------------------------------------------------
+  // Le nom d'un club ou d'une association est choisi par SON admin --
+  // texte écrit par quelqu'un d'autre. Sans l'échapper, un club pourrait
+  // y mettre du HTML/JS qui s'exécuterait chez toi ou chez n'importe qui
+  // d'autre en attente de validation.
+  function escapeHtml(str) {
+    return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
   async function loadPendingRequestsWidget() {
     if (canValidateAssociations) {
       const { data, error } = await supabaseClient
@@ -255,7 +263,7 @@
       els.assocCount.textContent = rows.length;
       els.assocPanel.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Pending association requests</div>` + rows.map((r) => `
         <div style="padding:8px 0; border-bottom:1px solid var(--line);">
-          <div><strong>${(r.organizations && r.organizations.name) || "—"}</strong> wants to join <strong>${(r.club_associations && r.club_associations.name) || "—"}</strong></div>
+          <div><strong>${escapeHtml((r.organizations && r.organizations.name) || "—")}</strong> wants to join <strong>${escapeHtml((r.club_associations && r.club_associations.name) || "—")}</strong></div>
           <div style="margin-top:6px; display:flex; gap:6px;">
             <button class="btn btn-approve assoc-approve-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:12px;">Approve</button>
             <button class="btn btn-reject assoc-reject-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:12px;">Reject</button>
@@ -276,7 +284,7 @@
       els.assocWidget.style.display = "inline-block";
       els.assocCount.textContent = rows.length;
       els.assocPanel.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Your requests</div>` + rows.map((r) => `
-        <div style="padding:8px 0; border-bottom:1px solid var(--line);">⏳ Waiting for approval to join <strong>${(r.club_associations && r.club_associations.name) || "—"}</strong></div>
+        <div style="padding:8px 0; border-bottom:1px solid var(--line);">⏳ Waiting for approval to join <strong>${escapeHtml((r.club_associations && r.club_associations.name) || "—")}</strong></div>
       `).join("");
     }
   }
@@ -322,7 +330,7 @@
     if (!data || data.length === 0) { list.innerHTML = '<p class="hint" style="margin:0;">Nobody else yet — just you.</p>'; return; }
     list.innerHTML = data.map((p) => `
       <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line);">
-        <span>${p.full_name || p.email}</span>
+        <span>${escapeHtml(p.full_name || p.email)}</span>
         <button class="btn-reject remove-validator-btn" data-id="${p.id}" style="padding:4px 10px; font-size:12px;">Remove</button>
       </div>`).join("");
     list.querySelectorAll(".remove-validator-btn").forEach((btn) => btn.addEventListener("click", () => setValidator(btn.dataset.id, false)));

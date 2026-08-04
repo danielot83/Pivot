@@ -226,6 +226,7 @@
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  function escapeHtml(str) { return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
   const els = {
     orgName: document.getElementById("org-name"),
@@ -389,7 +390,7 @@
     list.innerHTML = data.map((row) => {
       const a = row.club_associations;
       const label = row.status === "pending" ? "⏳ Pending approval" : row.status === "approved" ? "✅ Member" : "❌ Rejected";
-      return `<div style="padding:8px 0; border-bottom:1px solid var(--line);"><strong>${a ? a.name : "—"}</strong> — ${label}</div>`;
+      return `<div style="padding:8px 0; border-bottom:1px solid var(--line);"><strong>${escapeHtml(a ? a.name : "—")}</strong> — ${label}</div>`;
     }).join("");
   }
 

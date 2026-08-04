@@ -169,6 +169,7 @@
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
+  function escapeHtml(str) { return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
   const els = {
     orgName: document.getElementById("org-name"),
@@ -353,7 +354,7 @@
       tr.innerHTML = `
         <td><input type="checkbox" data-player="${p.id}" data-field="called_up" ${s.called_up ? "checked" : ""}></td>
         <td><input type="checkbox" data-player="${p.id}" data-field="started" ${s.started ? "checked" : ""}></td>
-        <td>${p.first_name} ${p.last_name}</td>
+        <td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>
         <td class="editable" data-player="${p.id}" data-field="minutes">${s.minutes ?? ""}</td>
         <td class="editable" data-player="${p.id}" data-field="points">${s.points ?? 0}</td>
         <td class="editable" data-player="${p.id}" data-field="rebounds">${s.rebounds ?? 0}</td>
@@ -462,7 +463,7 @@
       const b = byPlayer[p.id];
       if (!b) return;
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${p.first_name} ${p.last_name}</td><td>${b.gp}</td><td>${(b.points / b.gp).toFixed(1)}</td><td>${(b.rebounds / b.gp).toFixed(1)}</td><td>${(b.assists / b.gp).toFixed(1)}</td><td>${(b.fouls / b.gp).toFixed(1)}</td>`;
+      tr.innerHTML = `<td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td><td>${b.gp}</td><td>${(b.points / b.gp).toFixed(1)}</td><td>${(b.rebounds / b.gp).toFixed(1)}</td><td>${(b.assists / b.gp).toFixed(1)}</td><td>${(b.fouls / b.gp).toFixed(1)}</td>`;
       els.summaryBody.appendChild(tr);
     });
   }

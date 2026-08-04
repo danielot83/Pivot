@@ -229,6 +229,12 @@
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
+  // Un ejercicio compartido puede venir de otro club -- su nombre es
+  // texto escrito por otra persona. Sin escapar, podría inyectar HTML/JS
+  // que se ejecutara en el navegador de quien lo mire.
+  function escapeHtml(str) {
+    return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
 
   // Mêmes listes exactes que Pivot.py (CATEGORIES / AGE_GROUPS / MATERIALS)
   const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Defense","1v1","2v2","Fast break","Competition","Fun"];
@@ -466,7 +472,7 @@
         row.className = "ex-item" + (e.id === currentExId ? " active" : "");
         const owned = e.organization_id === currentOrgId;
         const fav = e.favorite ? "★ " : "";
-        row.innerHTML = `<span>${fav}${e.number ? e.number + ". " : ""}${VISIBILITY_ICONS[e.visibility || "team"] || ""} ${e.name}${!owned ? " 🌐" : ""}</span><span class="stars">${"★".repeat(e.difficulty)}${"☆".repeat(3 - e.difficulty)}</span>`;
+        row.innerHTML = `<span>${fav}${e.number ? e.number + ". " : ""}${VISIBILITY_ICONS[e.visibility || "team"] || ""} ${escapeHtml(e.name)}${!owned ? " 🌐" : ""}</span><span class="stars">${"★".repeat(e.difficulty)}${"☆".repeat(3 - e.difficulty)}</span>`;
         row.addEventListener("click", () => openExercise(e.id));
         els.exercisesList.appendChild(row);
       });
