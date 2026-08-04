@@ -126,6 +126,14 @@
         <div class="field"><label for="tr-title">Title</label><input id="tr-title" type="text" placeholder="e.g. Tuesday practice" /></div>
         <div class="field"><label for="tr-date">Date</label><input id="tr-date" type="date" /></div>
         <div class="field"><label for="tr-planned">Planned length (min)</label><input id="tr-planned" type="number" style="width:90px;" value="90" /></div>
+        <div class="field"><label for="tr-visibility">Who can see it?</label>
+          <select id="tr-visibility">
+            <option value="private">🔒 Only me</option>
+            <option value="team">👥 My team</option>
+            <option value="association">🤝 My club association</option>
+            <option value="community">🌐 Pivot Community</option>
+          </select>
+        </div>
       </div>
 
       <div class="duration-banner" id="duration-banner"></div>
@@ -178,6 +186,7 @@
     title: document.getElementById("tr-title"),
     date: document.getElementById("tr-date"),
     planned: document.getElementById("tr-planned"),
+    visibility: document.getElementById("tr-visibility"),
     durationBanner: document.getElementById("duration-banner"),
     addExerciseSelect: document.getElementById("add-exercise-select"),
     sessionBody: document.getElementById("session-exercises-body"),
@@ -277,6 +286,7 @@
     if (!currentTeam) { showMessage("Pick a season/team on the left first.", "error"); return; }
     currentTrainingId = null;
     els.title.value = ""; els.date.value = new Date().toISOString().slice(0, 10); els.planned.value = "90";
+    els.visibility.value = "team";
     sessionExercises = [];
     attendance = {}; teamPlayers.forEach((p) => (attendance[p.id] = true));
     renderSessionTable(); renderAttendanceTable(); updateDurationBanner();
@@ -289,6 +299,7 @@
     if (error) { showMessage(error.message, "error"); return; }
     currentTrainingId = id;
     els.title.value = training.title || ""; els.date.value = training.date; els.planned.value = training.planned_minutes || 90;
+    els.visibility.value = training.visibility || "team";
 
     const { data: exRows } = await supabaseClient
       .from("training_exercises").select("id, exercise_id, order_index, duration_minutes, exercises(name)")
@@ -358,6 +369,7 @@
       organization_id: currentOrgId, season: currentSeason, team: currentTeam,
       date: els.date.value, title: els.title.value.trim() || null,
       planned_minutes: parseInt(els.planned.value, 10) || null,
+      visibility: els.visibility.value,
     };
     try {
       let trainingId = currentTrainingId;

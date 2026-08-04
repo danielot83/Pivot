@@ -170,6 +170,14 @@
       <div class="toolbar">
         <div class="field"><label for="date">Date</label><input id="date" type="date" /></div>
         <div class="field"><label for="location">Location</label><input id="location" type="text" placeholder="Optional" /></div>
+        <div class="field"><label for="assess-visibility">Who can see it?</label>
+          <select id="assess-visibility">
+            <option value="private">🔒 Only me</option>
+            <option value="team">👥 My team</option>
+            <option value="association">🤝 My club association</option>
+            <option value="community">🌐 Pivot Community</option>
+          </select>
+        </div>
       </div>
 
       <div class="side-card" style="margin-bottom:16px;">
@@ -336,6 +344,7 @@
     playerSelect: document.getElementById("player-select"),
     date: document.getElementById("date"),
     location: document.getElementById("location"),
+    visibility: document.getElementById("assess-visibility"),
     heightPlayer: document.getElementById("height_player"),
     heightFather: document.getElementById("height_father"),
     heightMother: document.getElementById("height_mother"),
@@ -735,6 +744,7 @@
     currentRatings = emptyRatings();
     els.date.value = new Date().toISOString().slice(0, 10);
     els.location.value = "";
+    els.visibility.value = "team";
     els.heightPlayer.value = ""; els.heightFather.value = ""; els.heightMother.value = "";
     els.positivePoints.value = ""; els.negativePoints.value = ""; els.toImprove.value = "";
     document.getElementById("ai-response-input").value = "";
@@ -753,6 +763,7 @@
     currentRatings = data.ratings;
     els.date.value = data.date;
     els.location.value = data.location || "";
+    els.visibility.value = data.visibility || "team";
     els.heightPlayer.value = data.height_player || "";
     els.heightFather.value = data.height_father || "";
     els.heightMother.value = data.height_mother || "";
@@ -941,6 +952,7 @@
     const payload = {
       organization_id: currentOrgId, player_id: playerId,
       date: els.date.value, location: els.location.value.trim() || null,
+      visibility: els.visibility.value,
       height_player: els.heightPlayer.value.trim() || null,
       height_father: els.heightFather.value.trim() || null,
       height_mother: els.heightMother.value.trim() || null,

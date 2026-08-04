@@ -129,6 +129,14 @@
         </div>
         <div class="field"><label for="match-team-score">Score (us)</label><input id="match-team-score" type="number" style="width:70px;" /></div>
         <div class="field"><label for="match-opponent-score">Score (them)</label><input id="match-opponent-score" type="number" style="width:70px;" /></div>
+        <div class="field"><label for="match-visibility">Who can see it?</label>
+          <select id="match-visibility">
+            <option value="private">🔒 Only me</option>
+            <option value="team">👥 My team</option>
+            <option value="association">🤝 My club association</option>
+            <option value="community">🌐 Pivot Community</option>
+          </select>
+        </div>
       </div>
       <div class="toolbar">
         <button class="btn btn-primary" id="save-match-btn">Save match details</button>
@@ -175,6 +183,7 @@
     matchHomeAway: document.getElementById("match-home-away"),
     matchTeamScore: document.getElementById("match-team-score"),
     matchOpponentScore: document.getElementById("match-opponent-score"),
+    matchVisibility: document.getElementById("match-visibility"),
     callupBody: document.getElementById("callup-body"),
     summaryBody: document.getElementById("summary-body"),
     summaryEmpty: document.getElementById("summary-empty"),
@@ -277,6 +286,7 @@
     els.matchHomeAway.value = "home";
     els.matchTeamScore.value = "";
     els.matchOpponentScore.value = "";
+    els.matchVisibility.value = "team";
     statsByPlayer = {};
     teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0 }));
     renderCallupTable();
@@ -293,6 +303,7 @@
     els.matchHomeAway.value = match.home_away || "home";
     els.matchTeamScore.value = match.team_score ?? "";
     els.matchOpponentScore.value = match.opponent_score ?? "";
+    els.matchVisibility.value = match.visibility || "team";
 
     const { data: statRows } = await supabaseClient.from("match_player_stats").select("*").eq("match_id", id);
     statsByPlayer = {};
@@ -356,6 +367,7 @@
       location: els.matchLocation.value.trim() || null, home_away: els.matchHomeAway.value,
       team_score: els.matchTeamScore.value ? parseInt(els.matchTeamScore.value, 10) : null,
       opponent_score: els.matchOpponentScore.value ? parseInt(els.matchOpponentScore.value, 10) : null,
+      visibility: els.matchVisibility.value,
     };
     try {
       let matchId = currentMatchId;
