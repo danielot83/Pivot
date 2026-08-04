@@ -68,6 +68,7 @@
   <div class="nav-right">
     <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
+    <a href="./settings.html" class="nav-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">⚙ Settings</a>
     <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
       <option value="">Go to…</option>
       <option value="roster.html">Roster</option>
@@ -452,16 +453,29 @@
     }
   });
 
+  // Toutes les données d'exemple connues -- y compris celles qu'on ne
+  // peut charger que depuis Roster/Assessment (les autres saisons Bulls,
+  // les Celtics), pour que "Remove example data" nettoie vraiment tout,
+  // peu importe par où l'exemple a été ajouté.
+  const ALL_EXAMPLE_TEAMS = [
+    { season: "1995-1996", team: "Chicago Bulls" },
+    { season: "1994-1995", team: "Chicago Bulls" },
+    { season: "1993-1994", team: "Chicago Bulls" },
+    { season: "2007-2008", team: "Boston Celtics" },
+  ];
+
   document.getElementById("remove-example-btn").addEventListener("click", async () => {
     if (!currentOrgId) return;
-    if (!confirm(`Remove all example data (${EXAMPLE_TEAM}, ${EXAMPLE_SEASON}) from your club? Their assessments go with them.`)) return;
+    if (!confirm("Remove all example data (any Bulls season, the Celtics) from your club? Their assessments go with them.")) return;
     try {
       // supprimer les joueurs suffit : les évaluations liées disparaissent
       // automatiquement (contrainte "on delete cascade" côté base de données)
-      const { error } = await supabaseClient
-        .from("players").delete()
-        .eq("organization_id", currentOrgId).eq("season", EXAMPLE_SEASON).eq("team", EXAMPLE_TEAM);
-      if (error) throw error;
+      for (const ex of ALL_EXAMPLE_TEAMS) {
+        const { error } = await supabaseClient
+          .from("players").delete()
+          .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
+        if (error) throw error;
+      }
       showMessage("Example data removed.", "success");
       await loadStats();
     } catch (err) {
