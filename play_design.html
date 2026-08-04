@@ -420,7 +420,18 @@
       return;
     }
     // outils de ligne/écran/zone : clic-glisser
-    drawingFrom = { x, y, pointId: (pointAt(x, y) || {}).id };
+    let startPoint = pointAt(x, y);
+    // Une PASSE, c'est toujours le ballon qui vole -- jamais le joueur
+    // qui l'envoie. Si le clic a "attrapé" le joueur (parce que le
+    // ballon est collé dessus, à quelques pixels près), on redirige vers
+    // le ballon : sinon, selon la précision du clic, c'était parfois le
+    // joueur qui se retrouvait déplacé à la place du ballon.
+    if (activeTool === "pass" && startPoint && (startPoint.type === "player" || startPoint.type === "defender")) {
+      const step2 = currentStep();
+      const ball = step2.points.find((b) => b.type === "ball" && b.id !== startPoint.id && Math.hypot(b.x - startPoint.x, b.y - startPoint.y) < 0.05);
+      if (ball) startPoint = ball;
+    }
+    drawingFrom = { x, y, pointId: (startPoint || {}).id };
   }
   els.canvas.addEventListener("mousemove", onPointerMove);
   els.canvas.addEventListener("touchmove", onPointerMove);
