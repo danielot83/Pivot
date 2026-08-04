@@ -67,7 +67,7 @@ function drawCourtBackground(ctx, canvas, courtType, cssW, cssH) {
     // cercle de lancer franc -- cercle complet, centré sur la ligne de
     // lancer franc (bord de la raquette côté terrain)
     const ftY = basketAtBottom ? keyY : keyY + keyH;
-    const ftR = keyW / 2;
+    const ftR = keyW * 0.375; // vrai terrain : cercle de 12 pieds de diamètre pour une raquette de 16 pieds
     ctx.beginPath(); ctx.arc(cx, ftY, ftR, 0, Math.PI * 2); ctx.stroke();
 
     const basketY = basketAtBottom ? originY + courtH - 7 : originY + 7;
