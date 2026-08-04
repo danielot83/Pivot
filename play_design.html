@@ -222,7 +222,7 @@
   // et actions -- rien n'est pré-rempli, l'utilisateur ajoute ce qu'il faut.
   let steps = [];
   let currentStepIndex = 0;
-  let dragging = null, drawingFrom = null;
+  let dragging = null, drawingFrom = null, draggingBallId = null;
   let animating = false;
 
   function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
@@ -361,7 +361,16 @@
 
     if (activeTool === "select") {
       const p = pointAt(x, y);
-      if (p) dragging = p.id;
+      if (p) {
+        dragging = p.id;
+        // si un ballon est juste à côté (le joueur "l'a en main"), il
+        // doit suivre le joueur tant qu'on ne dessine pas un vrai pas/tir
+        draggingBallId = null;
+        if (p.type === "player" || p.type === "defender") {
+          const ball = step.points.find((b) => b.type === "ball" && b.id !== p.id && Math.hypot(b.x - p.x, b.y - p.y) < 0.05);
+          if (ball) draggingBallId = ball.id;
+        }
+      }
       return;
     }
     if (POINT_TOOLS.includes(activeTool)) {
@@ -389,7 +398,16 @@
     const step = currentStep();
     if (dragging) {
       const p = step.points.find((pl) => pl.id === dragging);
-      if (p) { p.x = Math.min(0.97, Math.max(0.03, x)); p.y = Math.min(0.97, Math.max(0.03, y)); render(); }
+      if (p) {
+        const dx = Math.min(0.97, Math.max(0.03, x)) - p.x;
+        const dy = Math.min(0.97, Math.max(0.03, y)) - p.y;
+        p.x += dx; p.y += dy;
+        if (draggingBallId) {
+          const ball = step.points.find((b) => b.id === draggingBallId);
+          if (ball) { ball.x += dx; ball.y += dy; }
+        }
+        render();
+      }
     } else if (drawingFrom) {
       render();
       if (activeTool === "zone") {
@@ -404,7 +422,7 @@
   window.addEventListener("mouseup", onPointerUp);
   window.addEventListener("touchend", onPointerUp);
   function onPointerUp(e) {
-    if (dragging) { dragging = null; return; }
+    if (dragging) { dragging = null; draggingBallId = null; return; }
     if (drawingFrom) {
       const { x, y } = eventToFraction(e.changedTouches ? e.changedTouches[0] : e);
       const step = currentStep();
@@ -454,13 +472,28 @@
   document.getElementById("animate-btn").addEventListener("click", () => runAnimation(false));
   document.getElementById("download-gif-btn").addEventListener("click", () => runAnimation(true));
 
+  let cachedGifWorkerUrl = null;
+  async function getGifWorkerUrl() {
+    // Un Worker ne peut pas être créé directement depuis un script d'un
+    // autre domaine (restriction de sécurité du navigateur) -- sans ça,
+    // gif.js échouait en silence et rien ne se téléchargeait jamais.
+    if (cachedGifWorkerUrl) return cachedGifWorkerUrl;
+    const resp = await fetch("https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js");
+    const text = await resp.text();
+    const blob = new Blob([text], { type: "application/javascript" });
+    cachedGifWorkerUrl = URL.createObjectURL(blob);
+    return cachedGifWorkerUrl;
+  }
+
   async function runAnimation(recordGif) {
     if (animating || steps.length === 0) return;
     animating = true;
     const speed = parseFloat(els.animSpeed.value) || 1;
     let gif = null;
     if (recordGif) {
-      gif = new GIF({ workers: 2, quality: 8, width: els.canvas.width, height: els.canvas.height, workerScript: "https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js" });
+      const workerUrl = await getGifWorkerUrl();
+      gif = new GIF({ workers: 2, quality: 8, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
+      gif.on("abort", () => showMessage("Couldn't render the GIF.", "error"));
     }
     for (let i = 0; i < steps.length; i++) {
       currentStepIndex = i;
@@ -687,45 +720,166 @@
     } catch (e) { return null; }
   }
 
+  // Dessine un arc en petits segments de droite -- jsPDF n'a pas d'arc
+  // paramétrique direct, donc on suit la même logique que la vérification
+  // Python qui a servi à corriger court-diagram.js.
+  function pdfArc(doc, cx, cy, r, a1, a2, n) {
+    n = n || 30;
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const a = a1 + (a2 - a1) * i / n;
+      pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+    }
+    for (let i = 0; i < pts.length - 1; i++) doc.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]);
+  }
+
+  // Même géométrie exacte que le terrain à l'écran (voir court-diagram.js)
+  // -- pour que le PDF ne soit jamais "différent de ce qu'on voit".
+  function drawPdfHalfCourt(doc, originX, originY, courtW, courtH, basketAtBottom) {
+    const cx = originX + courtW / 2;
+    const keyW = courtW * 0.32, keyH = courtH * 0.38;
+    const keyX = cx - keyW / 2;
+    const keyY = basketAtBottom ? originY + courtH - keyH : originY;
+    doc.rect(keyX, keyY, keyW, keyH);
+
+    const ftY = basketAtBottom ? keyY : keyY + keyH;
+    const ftR = keyW * 0.375;
+    pdfArc(doc, cx, ftY, ftR, 0, Math.PI * 2);
+
+    const basketY = basketAtBottom ? originY + courtH - 7 : originY + 7;
+    const backboardY = basketAtBottom ? basketY - 9 : basketY + 9;
+    doc.line(cx - 15, backboardY, cx + 15, backboardY);
+    pdfArc(doc, cx, basketY, 4, 0, Math.PI * 2, 16);
+
+    const raR = keyW * 0.26;
+    if (basketAtBottom) pdfArc(doc, cx, basketY, raR, Math.PI, 2 * Math.PI);
+    else pdfArc(doc, cx, basketY, raR, 0, Math.PI);
+
+    const r3 = courtW * 0.475;
+    const cornerX = courtW * 0.44;
+    const cornerReach = Math.sqrt(Math.max(r3 * r3 - cornerX * cornerX, 0));
+    const phi = Math.acos(cornerX / r3);
+    if (basketAtBottom) {
+      const baseY = originY + courtH - 3;
+      const straightTopY = basketY - cornerReach;
+      doc.line(cx - cornerX, baseY, cx - cornerX, straightTopY);
+      pdfArc(doc, cx, basketY, r3, Math.PI + phi, 2 * Math.PI - phi);
+      doc.line(cx + cornerX, straightTopY, cx + cornerX, baseY);
+    } else {
+      const baseY = originY + 3;
+      const straightBottomY = basketY + cornerReach;
+      doc.line(cx - cornerX, baseY, cx - cornerX, straightBottomY);
+      pdfArc(doc, cx, basketY, r3, Math.PI - phi, phi, 30); // même sens que le correctif de la diagonale
+      doc.line(cx + cornerX, straightBottomY, cx + cornerX, baseY);
+    }
+  }
+
+  // Même transformation vérifiée que court-diagram.js pour "full" :
+  // un point local (lx,ly) devient (ly, H-lx) une fois tourné à 90°.
+  // On dessine donc drawPdfHalfCourt dans un espace local, puis on
+  // convertit chaque primitive avec cette règle avant de l'envoyer à jsPDF.
+  // Version horizontale directe (basket a gauche ou a droite), sans
+  // passer par une rotation -- plus simple a verifier et moins risque
+  // de refaire l'erreur de transformation.
+  function drawPdfHalfCourtRotated(doc, courtX, top, courtW, courtH, basketAtLeft) {
+    const cy = top + courtH / 2;
+    const keyWidth = courtH * 0.32, keyDepth = (courtW / 2) * 0.38;
+    const keyX = basketAtLeft ? courtX : courtX + courtW - keyDepth;
+    doc.rect(keyX, cy - keyWidth / 2, keyDepth, keyWidth);
+
+    const ftX = basketAtLeft ? keyX + keyDepth : keyX;
+    const ftR = keyWidth * 0.375;
+    pdfArc(doc, ftX, cy, ftR, 0, Math.PI * 2);
+
+    const basketX = basketAtLeft ? courtX + 7 : courtX + courtW - 7;
+    const backboardX = basketAtLeft ? basketX + 9 : basketX - 9;
+    doc.line(backboardX, cy - 15, backboardX, cy + 15);
+    pdfArc(doc, basketX, cy, 4, 0, Math.PI * 2, 16);
+
+    const raR = keyWidth * 0.26;
+    if (basketAtLeft) pdfArc(doc, basketX, cy, raR, -Math.PI / 2, Math.PI / 2);
+    else pdfArc(doc, basketX, cy, raR, Math.PI / 2, Math.PI * 1.5);
+
+    const r3 = courtH * 0.475;
+    const cornerDist = courtH * 0.44;
+    const cornerReach = Math.sqrt(Math.max(r3 * r3 - cornerDist * cornerDist, 0));
+    const phi = Math.acos(cornerDist / r3);
+    const baseX = basketAtLeft ? courtX + 3 : courtX + courtW - 3;
+    if (basketAtLeft) {
+      const straightX = basketX + cornerReach;
+      doc.line(baseX, cy - cornerDist, straightX, cy - cornerDist);
+      pdfArc(doc, basketX, cy, r3, -phi, phi, 30);
+      doc.line(straightX, cy + cornerDist, baseX, cy + cornerDist);
+    } else {
+      const straightX = basketX - cornerReach;
+      doc.line(baseX, cy - cornerDist, straightX, cy - cornerDist);
+      pdfArc(doc, basketX, cy, r3, Math.PI - phi, Math.PI + phi, 30);
+      doc.line(straightX, cy + cornerDist, baseX, cy + cornerDist);
+    }
+  }
+
   function drawStepOnPdf(doc, step, marginX, top) {
     const isHalf = step.courtType === "half";
     const courtW = isHalf ? 300 : 460;
-    const courtH = isHalf ? 380 : 260;
+    const courtH = isHalf ? 280 : 240;
     const courtX = marginX + (495 - courtW) / 2;
-    doc.setDrawColor(200, 200, 205); doc.setLineWidth(1);
+    doc.setDrawColor(190, 190, 195); doc.setLineWidth(0.7);
     doc.rect(courtX, top, courtW, courtH);
+
     if (isHalf) {
-      const keyW = courtW * 0.34, keyH = courtH * 0.34;
-      doc.rect(courtX + (courtW - keyW) / 2, top + courtH - keyH, keyW, keyH);
-      doc.circle(courtX + courtW / 2, top + courtH - keyH, keyW / 2, "S");
+      pdfArc(doc, courtX + courtW / 2, top, courtW * 0.22, 0, Math.PI);
+      drawPdfHalfCourt(doc, courtX, top, courtW, courtH, true);
     } else {
-      doc.line(courtX, top + courtH / 2, courtX + courtW, top + courtH / 2);
-      doc.circle(courtX + courtW / 2, top + courtH / 2, courtH * 0.2, "S");
-      [0, 1].forEach((half) => {
-        const keyH = courtH * 0.5, keyW = courtW * 0.16;
-        const keyX = half === 0 ? courtX : courtX + courtW - keyW;
-        doc.rect(keyX, top + (courtH - keyH) / 2, keyW, keyH);
-      });
+      doc.line(courtX + courtW / 2, top, courtX + courtW / 2, top + courtH);
+      pdfArc(doc, courtX + courtW / 2, top + courtH / 2, courtH * 0.22, 0, Math.PI * 2);
+      // même rotation que le canvas : les deux moitiés partagent l'axe vertical
+      drawPdfHalfCourtRotated(doc, courtX, top, courtW, courtH, false);
+      drawPdfHalfCourtRotated(doc, courtX, top, courtW, courtH, true);
     }
 
     function toPdfXY(x, y) { return [courtX + x * courtW, top + y * courtH]; }
+
+    doc.setLineWidth(1.2);
     step.actions.forEach((a) => {
       const pts = a.points || [];
       if (pts.length < 2) return;
       const [fx, fy] = toPdfXY(pts[0][0], pts[0][1]);
       const [tx, ty] = toPdfXY(pts[pts.length - 1][0], pts[pts.length - 1][1]);
-      if (a.type === "pass" || a.type === "fake_pass") doc.setLineDash([3, 2]); else doc.setLineDash([]);
       const [r, g, b] = a.color ? hexToRgb(a.color) : [26, 26, 26];
-      doc.setDrawColor(r, g, b); doc.setLineWidth(1.3);
+      doc.setDrawColor(r, g, b); doc.setFillColor(r, g, b);
+      if (a.type === "pass" || a.type === "fake_pass") doc.setLineDash([3, 2]); else doc.setLineDash([]);
       doc.line(fx, fy, tx, ty);
       doc.setLineDash([]);
+      if (a.type !== "zone") {
+        // pointe de flèche -- c'est ce qui manquait complètement avant
+        const angle = Math.atan2(ty - fy, tx - fx);
+        const ah = 6;
+        const p1 = [tx - ah * Math.cos(angle - 0.4), ty - ah * Math.sin(angle - 0.4)];
+        const p2 = [tx - ah * Math.cos(angle + 0.4), ty - ah * Math.sin(angle + 0.4)];
+        doc.triangle(tx, ty, p1[0], p1[1], p2[0], p2[1], "F");
+      }
     });
+
     step.points.forEach((p) => {
       const [px, py] = toPdfXY(p.x, p.y);
       const [r, g, b] = p.color ? hexToRgb(p.color) : [26, 26, 26];
-      doc.setFillColor(r, g, b);
-      doc.circle(px, py, 8, "F");
-      if (p.label) { doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.text(String(p.label).slice(0, 2), px - 3, py + 3); }
+      doc.setDrawColor(r, g, b); doc.setFillColor(r, g, b);
+      if (p.type === "player") {
+        doc.circle(px, py, 8, "F");
+        if (p.label) { doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.text(String(p.label).slice(0, 2), px - 3, py + 3); }
+      } else if (p.type === "defender") {
+        doc.setLineWidth(1); doc.circle(px, py, 8, "S");
+        if (p.label) { doc.setTextColor(r, g, b); doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.text(String(p.label).slice(0, 2), px - 3, py + 3); }
+      } else if (p.type === "ball") {
+        doc.setLineWidth(1); doc.circle(px, py, 5, "S");
+      } else if (p.type === "cone") {
+        doc.triangle(px, py - 6, px + 5, py + 5, px - 5, py + 5, "F");
+      } else if (p.type === "post") {
+        doc.rect(px - 5, py - 5, 10, 10, "F");
+      } else if (p.type === "coach" || p.type === "handoff") {
+        doc.setTextColor(r, g, b); doc.setFontSize(10); doc.setFont("helvetica", "bold");
+        doc.text(p.type === "coach" ? "C" : "#", px - 3, py + 3);
+      }
     });
     return top + courtH;
   }
