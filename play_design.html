@@ -239,12 +239,25 @@
   // joueur qui porte ce ballon) -- pour que les deux se déplacent
   // ensemble sur un mouvement/dribble. Une passe ne compte pas : le
   // passeur reste sur place, seul le ballon doit voler.
+  //
+  // On préfère le lien explicite "carriedBy" (posé une fois pour toutes
+  // quand le ballon est déposé près d'un joueur) à un simple calcul de
+  // distance à chaque fois -- sinon, selon que le clic tombe à 3px ou à
+  // 8px du joueur, le lien "voyait" ou "ne voyait pas" le ballon, ce qui
+  // cassait la continuité de façon imprévisible.
+  const ATTACH_RADIUS = 0.06;
   function findAttachedCompanion(points, p) {
     if (p.type === "ball") {
-      return points.find((o) => o.id !== p.id && (o.type === "player" || o.type === "defender") && Math.hypot(o.x - p.x, o.y - p.y) < 0.05);
+      if (p.carriedBy) {
+        const owner = points.find((o) => o.id === p.carriedBy);
+        if (owner) return owner;
+      }
+      return points.find((o) => o.id !== p.id && (o.type === "player" || o.type === "defender") && Math.hypot(o.x - p.x, o.y - p.y) < ATTACH_RADIUS);
     }
     if (p.type === "player" || p.type === "defender") {
-      return points.find((o) => o.id !== p.id && o.type === "ball" && Math.hypot(o.x - p.x, o.y - p.y) < 0.05);
+      const carried = points.find((o) => o.type === "ball" && o.carriedBy === p.id);
+      if (carried) return carried;
+      return points.find((o) => o.id !== p.id && o.type === "ball" && Math.hypot(o.x - p.x, o.y - p.y) < ATTACH_RADIUS);
     }
     return null;
   }
@@ -267,6 +280,15 @@
             if (companion) { companion.x += dx; companion.y += dy; }
           }
           p.x = a.points[1][0]; p.y = a.points[1][1];
+          // Une passe change de main : le ballon appartient maintenant à
+          // qui se trouve à l'endroit où il atterrit (le receveur), plus
+          // à celui qui vient de l'envoyer -- sinon l'étape suivante
+          // "pense" encore que l'ancien porteur l'a, même s'il est resté
+          // loin derrière.
+          if (a.type === "pass" && p.type === "ball") {
+            const receiver = resolved.find((o) => o.id !== p.id && (o.type === "player" || o.type === "defender") && Math.hypot(o.x - p.x, o.y - p.y) < ATTACH_RADIUS);
+            p.carriedBy = receiver ? receiver.id : undefined;
+          }
         }
       }
     });
@@ -400,7 +422,7 @@
         // doit suivre le joueur tant qu'on ne dessine pas un vrai pas/tir
         draggingBallId = null;
         if (p.type === "player" || p.type === "defender") {
-          const ball = step.points.find((b) => b.type === "ball" && b.id !== p.id && Math.hypot(b.x - p.x, b.y - p.y) < 0.05);
+          const ball = step.points.find((b) => b.type === "ball" && (b.carriedBy === p.id || (b.id !== p.id && Math.hypot(b.x - p.x, b.y - p.y) < ATTACH_RADIUS)));
           if (ball) draggingBallId = ball.id;
         }
       }
@@ -415,6 +437,15 @@
         el.label = label.trim();
         nextPointNum++;
       }
+      // Si on pose un ballon juste à côté d'un joueur/défenseur, on note
+      // explicitement "ce joueur le porte" -- ce lien reste vrai même si
+      // plus tard les deux se retrouvent à une distance légèrement
+      // différente (au lieu de le redeviner par la distance à chaque
+      // fois, ce qui était fragile).
+      if (activeTool === "ball") {
+        const carrier = step.points.find((o) => (o.type === "player" || o.type === "defender") && Math.hypot(o.x - x, o.y - y) < ATTACH_RADIUS);
+        if (carrier) el.carriedBy = carrier.id;
+      }
       step.points.push(el);
       render();
       return;
@@ -428,7 +459,7 @@
     // joueur qui se retrouvait déplacé à la place du ballon.
     if (activeTool === "pass" && startPoint && (startPoint.type === "player" || startPoint.type === "defender")) {
       const step2 = currentStep();
-      const ball = step2.points.find((b) => b.type === "ball" && b.id !== startPoint.id && Math.hypot(b.x - startPoint.x, b.y - startPoint.y) < 0.05);
+      const ball = step2.points.find((b) => b.type === "ball" && (b.carriedBy === startPoint.id || (b.id !== startPoint.id && Math.hypot(b.x - startPoint.x, b.y - startPoint.y) < ATTACH_RADIUS)));
       if (ball) startPoint = ball;
     }
     drawingFrom = { x, y, pointId: (startPoint || {}).id };
