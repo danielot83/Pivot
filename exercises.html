@@ -167,6 +167,16 @@
         <div class="field" style="margin-bottom:12px;"><label for="ex-description">Description</label><textarea id="ex-description" rows="4"></textarea></div>
         <div class="field" style="margin-bottom:12px;"><label for="ex-variants">Variants</label><textarea id="ex-variants" rows="2"></textarea></div>
 
+        <div class="field" style="margin-bottom:12px;">
+          <label for="ex-language">Language</label>
+          <select id="ex-language">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+          </select>
+          <p class="hint" style="margin:4px 0 0;">Editing a saved exercise changes only this language's text — its translations (if any) stay untouched. To add another language, use "Duplicate as translation" in the Library.</p>
+        </div>
+
         <div class="checkbox-field" style="margin-bottom:14px;">
           <input type="checkbox" id="ex-shared" />
           <label for="ex-shared">Share this exercise — other clubs on Pivot will be able to see (not edit) it</label>
@@ -207,7 +217,7 @@
   </div>
 </div>
 
-<script src="court-diagram.js?v=5"></script>
+<script src="court-diagram.js?v=4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
@@ -239,6 +249,7 @@
     description: document.getElementById("ex-description"),
     variants: document.getElementById("ex-variants"),
     shared: document.getElementById("ex-shared"),
+    language: document.getElementById("ex-language"),
     canvas: document.getElementById("court-canvas"),
     colorSelect: document.getElementById("color-select"),
   };
@@ -247,6 +258,7 @@
 
   let currentOrgId = null;
   let currentExId = null;
+  let currentTranslationGroupId = null;
   let activeCategory = null;
   let allExercises = [];
   let activeTool = "select";
@@ -457,6 +469,7 @@
   function resetForm() {
     els.number.value = ""; els.name.value = ""; els.difficulty.value = "1"; els.favorite.checked = false;
     els.tags.value = ""; els.objectives.value = ""; els.description.value = ""; els.variants.value = ""; els.shared.checked = false;
+    els.language.value = "en"; currentTranslationGroupId = null;
     setCheckedValues("age", []); setCheckedValues("categories", []); setCheckedValues("material", []);
     diagram = {}; currentStep = "court_1";
   }
@@ -483,12 +496,14 @@
     const e = allExercises.find((ex) => ex.id === id);
     if (!e) return;
     currentExId = id;
+    currentTranslationGroupId = e.translation_group_id || null;
     els.number.value = e.number || ""; els.name.value = e.name; els.difficulty.value = String(e.difficulty || 1);
     els.favorite.checked = !!e.favorite;
     els.tags.value = (e.tags || []).join("; ");
     els.objectives.value = (e.objectives || []).join("\n");
     els.description.value = e.description || ""; els.variants.value = e.variants || "";
     els.shared.checked = e.is_shared;
+    els.language.value = e.language || "en";
     setCheckedValues("age", e.age); setCheckedValues("categories", e.categories); setCheckedValues("material", e.material);
     diagram = e.diagram || {};
     currentStep = "court_1";
@@ -516,15 +531,22 @@
       description: els.description.value.trim() || null,
       variants: els.variants.value.trim() || null,
       is_shared: els.shared.checked,
+      language: els.language.value,
       diagram,
     };
+    // Un ejercicio nuevo, escrito desde cero, empieza su propio grupo de
+    // traducción (de momento con un solo idioma dentro). Solo cuando se
+    // crea a partir de "Duplicate as translation" en la Library ese
+    // grupo viene heredado del original -- así es como varias filas se
+    // reconocen entre sí como "el mismo ejercicio, en otro idioma".
+    if (currentTranslationGroupId) payload.translation_group_id = currentTranslationGroupId;
     try {
       let error;
       if (currentExId) ({ error } = await supabaseClient.from("exercises").update(payload).eq("id", currentExId));
       else {
-        const { data, error: insErr } = await supabaseClient.from("exercises").insert(payload).select("id").single();
+        const { data, error: insErr } = await supabaseClient.from("exercises").insert(payload).select("id, translation_group_id").single();
         error = insErr;
-        if (!error) currentExId = data.id;
+        if (!error) { currentExId = data.id; currentTranslationGroupId = data.translation_group_id; }
       }
       if (error) throw error;
       showMessage("Exercise saved.", "success");

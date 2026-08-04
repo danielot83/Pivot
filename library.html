@@ -110,6 +110,7 @@
     <div class="side-card">
       <h2>Filters</h2>
       <div class="field"><label for="difficulty-filter">Difficulty</label><select id="difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
+      <div class="field"><label for="language-filter">Language</label><select id="language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
       <label class="field-label" style="font-size:12px; font-weight:600; color:var(--muted);">Category</label>
       <div class="multiselect" id="category-filter"></div>
       <label class="field-label" style="font-size:12px; font-weight:600; color:var(--muted);">Age</label>
@@ -162,6 +163,7 @@
     msg: document.getElementById("msg"),
     search: document.getElementById("search-input"),
     difficultyFilter: document.getElementById("difficulty-filter"),
+    languageFilter: document.getElementById("language-filter"),
     categoryFilter: document.getElementById("category-filter"),
     ageFilter: document.getElementById("age-filter"),
     favoritesFilter: document.getElementById("favorites-filter"),
@@ -228,6 +230,7 @@
   function refresh() {
     const text = els.search.value.toLowerCase().trim();
     const diff = els.difficultyFilter.value;
+    const lang = els.languageFilter.value;
     const cats = checkedValues("category-filter");
     const ages = checkedValues("age-filter");
     const favOnly = els.favoritesFilter.checked;
@@ -240,6 +243,7 @@
       }
       if (favOnly && !e.favorite) return false;
       if (diff && String(e.difficulty) !== diff) return false;
+      if (lang && (e.language || "en") !== lang) return false;
       if (cats.length && !cats.some((c) => (e.categories || []).includes(c))) return false;
       if (ages.length && !ages.every((a) => (e.age || []).includes(a))) return false;
       if (unusedOnly && (usageCounts[e.id] || 0) > 0) return false;
@@ -278,13 +282,16 @@
     renderDetail(e);
   }
 
+  const LANGUAGE_NAMES = { en: "English", fr: "Français", es: "Español" };
+
   function renderDetail(e) {
     if (!e) { els.detailCard.innerHTML = '<p class="sub" style="margin:0;">Pick an exercise from the list.</p>'; return; }
     const owned = e.organization_id === currentOrgId;
     const used = usageCounts[e.id] || 0;
+    const langName = LANGUAGE_NAMES[e.language || "en"] || e.language;
     els.detailCard.innerHTML = `
       <h3>${e.favorite ? "★ " : ""}${e.name}</h3>
-      <div class="meta-row">#${e.number || "—"} · ${"★".repeat(e.difficulty || 1)}${"☆".repeat(3 - (e.difficulty || 1))} · ${used === 0 ? "never used" : used + "× used"}${!owned ? " · 🌐 shared by another club" : ""}</div>
+      <div class="meta-row">#${e.number || "—"} · ${"★".repeat(e.difficulty || 1)}${"☆".repeat(3 - (e.difficulty || 1))} · ${used === 0 ? "never used" : used + "× used"} · ${langName}${!owned ? " · 🌐 shared by another club" : ""}</div>
       <div class="section"><div class="section-label">Age</div><p>${(e.age || []).map((a) => `<span class="tag-chip">${a}</span>`).join("") || "—"}</p></div>
       <div class="section"><div class="section-label">Categories</div><p>${(e.categories || []).map((c) => `<span class="tag-chip">${c}</span>`).join("") || "—"}</p></div>
       <div class="section"><div class="section-label">Material</div><p>${(e.material || []).map((m) => `<span class="tag-chip">${m}</span>`).join("") || "—"}</p></div>
@@ -296,13 +303,18 @@
         <a class="btn btn-primary" href="./exercises.html?id=${e.id}" style="text-decoration:none;">${owned ? "Edit" : "View"}</a>
         <button class="btn btn-secondary" id="fav-toggle-btn">${e.favorite ? "Unfavorite" : "★ Favorite"}</button>
         ${owned ? '<button class="btn btn-secondary" id="duplicate-btn">Duplicate</button>' : ""}
+        ${owned ? '<button class="btn btn-secondary" id="translate-btn">Duplicate as translation…</button>' : ""}
+        ${!owned ? '<button class="btn btn-secondary" id="copy-to-mine-btn">Copy to my library</button>' : ""}
         ${owned ? '<button class="btn btn-secondary" id="delete-btn" style="color:#991b1b;">Delete</button>' : ""}
       </div>
     `;
     document.getElementById("fav-toggle-btn").addEventListener("click", () => toggleFavorite(e));
     if (owned) {
       document.getElementById("duplicate-btn").addEventListener("click", () => duplicateExercise(e));
+      document.getElementById("translate-btn").addEventListener("click", () => duplicateAsTranslation(e));
       document.getElementById("delete-btn").addEventListener("click", () => deleteExercise(e));
+    } else {
+      document.getElementById("copy-to-mine-btn").addEventListener("click", () => copyToMyLibrary(e));
     }
   }
 
@@ -313,15 +325,52 @@
     selectExercise(e.id);
   }
 
-  async function duplicateExercise(e) {
-    const nextNumber = allExercises
+  function nextNumberForMyClub() {
+    return allExercises
       .filter((ex) => ex.organization_id === currentOrgId)
       .reduce((max, ex) => Math.max(max, ex.number || 0), 0) + 1;
-    const copy = { ...e, name: e.name + " (copy)", number: nextNumber, favorite: false };
+  }
+
+  async function duplicateExercise(e) {
+    const copy = { ...e, name: e.name + " (copy)", number: nextNumberForMyClub(), favorite: false };
     delete copy.id;
     const { error } = await supabaseClient.from("exercises").insert(copy);
     if (error) { showMessage(error.message, "error"); return; }
     showMessage("Exercise duplicated.", "success");
+    await loadExercises();
+  }
+
+  // -----------------------------------------------------------------------
+  // "Copiar a mi biblioteca" -- para un ejercicio compartido por OTRO
+  // club. Crea una copia propia (editable, privada por defecto) en tu
+  // organización, conservando el translation_group_id: sigue siendo
+  // reconocido como el mismo ejercicio a efectos de idioma, aunque ahora
+  // tengas tu propia copia para editar libremente.
+  // -----------------------------------------------------------------------
+  async function copyToMyLibrary(e) {
+    const copy = { ...e, organization_id: currentOrgId, number: nextNumberForMyClub(), favorite: false, is_shared: false };
+    delete copy.id;
+    const { error } = await supabaseClient.from("exercises").insert(copy);
+    if (error) { showMessage(error.message, "error"); return; }
+    showMessage("Copied to your library — it's now yours to edit.", "success");
+    await loadExercises();
+  }
+
+  // -----------------------------------------------------------------------
+  // "Duplicate as translation" -- crea una copia con el MISMO
+  // translation_group_id que el original, pero en otro idioma. Así se
+  // reconocen entre sí como distintas traducciones del mismo ejercicio,
+  // en vez de como dos ejercicios distintos sin relación.
+  // -----------------------------------------------------------------------
+  async function duplicateAsTranslation(e) {
+    const options = Object.keys(LANGUAGE_NAMES).filter((l) => l !== (e.language || "en"));
+    const choice = prompt(`Translate to which language? (${options.join(" / ")})`, options[0]);
+    if (!choice || !LANGUAGE_NAMES[choice]) { if (choice) showMessage("Unknown language code.", "error"); return; }
+    const copy = { ...e, number: nextNumberForMyClub(), favorite: false, language: choice, translation_group_id: e.translation_group_id };
+    delete copy.id;
+    const { error } = await supabaseClient.from("exercises").insert(copy);
+    if (error) { showMessage(error.message, "error"); return; }
+    showMessage(`Created a ${LANGUAGE_NAMES[choice]} copy — translate its text in the editor.`, "success");
     await loadExercises();
   }
 
@@ -342,13 +391,13 @@
   });
 
   document.getElementById("reset-filters-btn").addEventListener("click", () => {
-    els.search.value = ""; els.difficultyFilter.value = "";
+    els.search.value = ""; els.difficultyFilter.value = ""; els.languageFilter.value = "";
     els.favoritesFilter.checked = false; els.unusedFilter.checked = false;
     document.querySelectorAll("#category-filter input, #age-filter input").forEach((cb) => (cb.checked = false));
     refresh();
   });
 
-  [els.search, els.difficultyFilter, els.favoritesFilter, els.unusedFilter].forEach((el) => {
+  [els.search, els.difficultyFilter, els.languageFilter, els.favoritesFilter, els.unusedFilter].forEach((el) => {
     el.addEventListener("input", refresh);
     el.addEventListener("change", refresh);
   });
