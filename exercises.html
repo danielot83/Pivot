@@ -26,8 +26,7 @@
   .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
   .back-link:hover { color: var(--ink); }
 
-  .layout { display: grid; grid-template-columns: 240px 1fr; gap: 24px; max-width: 1080px; margin: 0 auto; padding: 24px; align-items: start; }
-  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .layout { max-width: 900px; margin: 0 auto; padding: 24px; }
 
   h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
   p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
@@ -111,28 +110,18 @@
 
 <div class="layout">
   <div>
-    <div class="side-card">
-      <h2>Categories</h2>
-      <div id="categories-list"></div>
-    </div>
-    <div class="side-card">
-      <h2>Exercises</h2>
-      <button class="new-btn" id="new-ex-btn">+ New exercise</button>
-      <div id="exercises-list"></div>
-    </div>
-  </div>
-
-  <div>
     <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
     <h1>
       Create exercise
       <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
     </h1>
-    <p class="sub">Same fields as the desktop app: number, age groups, categories, material, difficulty, tags, objectives, and a 5-step court diagram.</p>
+    <p class="sub">Same fields as the desktop app: number, age groups, categories, material, difficulty, tags, objectives, and a 5-step court diagram.
+      <a href="#" id="start-new-link" style="margin-left:8px;">+ Start a new exercise</a>
+    </p>
     <div class="help-box" id="help-box"></div>
     <div class="msg" id="msg"></div>
 
-    <div id="editor-area" style="display:none">
+    <div id="editor-area" style="display:block">
       <div class="tabs-row">
         <button class="tab-btn active" data-tab="data">Data</button>
         <button class="tab-btn" data-tab="diagram">Court diagram</button>
@@ -247,7 +236,6 @@
         <button class="btn btn-secondary" id="delete-ex-btn" style="display:none; color:#991b1b;">Delete</button>
       </div>
     </div>
-    <div class="empty-state" id="editor-empty">Pick an exercise on the left, or create a new one.</div>
   </div>
 </div>
 
@@ -278,10 +266,7 @@
     orgLogo: document.getElementById("org-logo"),
     logoutBtn: document.getElementById("logout-btn"),
     msg: document.getElementById("msg"),
-    categoriesList: document.getElementById("categories-list"),
-    exercisesList: document.getElementById("exercises-list"),
     editorArea: document.getElementById("editor-area"),
-    editorEmpty: document.getElementById("editor-empty"),
     number: document.getElementById("ex-number"),
     name: document.getElementById("ex-name"),
     difficulty: document.getElementById("ex-difficulty"),
@@ -303,7 +288,6 @@
   const canDelete = () => myRole === "admin" || myRole === "coach";
   let currentExId = null;
   let currentTranslationGroupId = null;
-  let activeCategory = null;
   let allExercises = [];
   let activeTool = "select";
   let currentStep = "court_1";
@@ -710,41 +694,7 @@
     const { data, error } = await supabaseClient.from("exercises").select("*").order("number");
     if (error) { console.error(error); return; }
     allExercises = data || [];
-    renderCategories();
-    renderExercisesList();
     populateStartFromSelect();
-  }
-
-  function renderCategories() {
-    const cats = Array.from(new Set(allExercises.flatMap((e) => e.categories || []))).sort();
-    els.categoriesList.innerHTML = "";
-    const allBtn = document.createElement("button");
-    allBtn.className = "cat-btn" + (activeCategory === null ? " active" : "");
-    allBtn.textContent = "All";
-    allBtn.addEventListener("click", () => { activeCategory = null; renderCategories(); renderExercisesList(); });
-    els.categoriesList.appendChild(allBtn);
-    cats.forEach((c) => {
-      const btn = document.createElement("button");
-      btn.className = "cat-btn" + (activeCategory === c ? " active" : "");
-      btn.textContent = c;
-      btn.addEventListener("click", () => { activeCategory = c; renderCategories(); renderExercisesList(); });
-      els.categoriesList.appendChild(btn);
-    });
-  }
-
-  function renderExercisesList() {
-    els.exercisesList.innerHTML = "";
-    allExercises
-      .filter((e) => !activeCategory || (e.categories || []).includes(activeCategory))
-      .forEach((e) => {
-        const row = document.createElement("div");
-        row.className = "ex-item" + (e.id === currentExId ? " active" : "");
-        const owned = e.organization_id === currentOrgId;
-        const fav = e.favorite ? "★ " : "";
-        row.innerHTML = `<span>${fav}${e.number ? e.number + ". " : ""}${VISIBILITY_ICONS[e.visibility || "team"] || ""} ${escapeHtml(e.name)}${!owned ? " 🌐" : ""}</span><span class="stars">${"★".repeat(e.difficulty)}${"☆".repeat(3 - e.difficulty)}</span>`;
-        row.addEventListener("click", () => openExercise(e.id));
-        els.exercisesList.appendChild(row);
-      });
   }
 
   function resetForm() {
@@ -769,7 +719,7 @@
     resetForm();
     els.number.value = nextNumber();
     buildStepTabs(); resizeCanvasForStep(); render();
-    els.editorArea.style.display = "block"; els.editorEmpty.style.display = "none";
+    els.editorArea.style.display = "block";
     document.getElementById("delete-ex-btn").style.display = "none";
     document.getElementById("save-ex-btn").style.display = "inline-block";
     [els.number, els.name, els.difficulty, els.favorite, els.tags, els.objectives, els.description, els.variants, els.language, els.visibility]
@@ -792,7 +742,7 @@
     diagram = e.diagram || {};
     currentStep = "court_1";
     buildStepTabs(); resizeCanvasForStep(); render();
-    els.editorArea.style.display = "block"; els.editorEmpty.style.display = "none";
+    els.editorArea.style.display = "block";
     const owned = e.organization_id === currentOrgId;
     document.getElementById("delete-ex-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     // Un ejercicio compartido por otro club se mira, pero no se edita ni
@@ -804,7 +754,6 @@
     [els.number, els.name, els.difficulty, els.favorite, els.tags, els.objectives, els.description, els.variants, els.language, els.visibility]
       .forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This exercise belongs to another club — you can look, but not edit or save changes.", "success");
-    renderExercisesList();
   }
 
   async function saveExercise() {
@@ -866,7 +815,7 @@
     if (!currentExId || !confirm("Delete this exercise?")) return;
     const { error } = await supabaseClient.from("exercises").delete().eq("id", currentExId);
     if (error) { showMessage(error.message, "error"); return; }
-    els.editorArea.style.display = "none"; els.editorEmpty.style.display = "block";
+    els.editorArea.style.display = "block"; newExercise();
     currentExId = null;
     await loadExercises();
   }
@@ -875,73 +824,192 @@
   // Export PDF -- portada con toda la información, y una página por cada
   // paso del diagrama que tenga algo dibujado.
   // -----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
+  // PDF fiel al modelo real del programa de escritorio (pdf_builder.py):
+  // UNA sola página, cabecera con número/nombre, columna izquierda con
+  // categorías/material marcados con check, objetivos, dificultad en
+  // estrellas; columna derecha con 4 pistas pequeñas (pasos 1-4);
+  // columna central con descripción/variantes arriba y la 5ª pista abajo.
+  // -----------------------------------------------------------------------
   async function buildExercisePdfDoc() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "pt", format: "a4" });
-    const marginX = 40;
-    const pageW = doc.internal.pageSize.getWidth();
-    let y = 54;
+    const PAGE_W = 496.8, PAGE_H = 720, MARGIN = 14, BOTTOM = PAGE_H - MARGIN;
+    const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
+    const doc = new jsPDF({ unit: "pt", format: [PAGE_W, PAGE_H] });
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(18);
-    doc.text(`#${els.number.value || "?"} — ${els.name.value || "Untitled exercise"}`, marginX, y);
-    y += 22;
-    const diff = parseInt(els.difficulty.value, 10) || 1;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(90);
-    doc.text(`Difficulty: ${"*".repeat(diff)}${"-".repeat(3 - diff)}`, marginX, y);
-    y += 20;
-    doc.setTextColor(20);
-
-    const addLine = (label, values) => {
-      if (!values || values.length === 0) return;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.text(label + ":", marginX, y);
-      doc.setFont("helvetica", "normal");
-      const lines = doc.splitTextToSize(values.join(", "), pageW - marginX - 130);
-      doc.text(lines, marginX + 90, y);
-      y += Math.max(14, lines.length * 13) + 4;
-    };
-    addLine("Age", getCheckedValues("age"));
-    addLine("Categories", getCheckedValues("categories"));
-    addLine("Material", getCheckedValues("material"));
-    addLine("Tags", els.tags.value.split(";").map((t) => t.trim()).filter(Boolean));
-    y += 6;
-
-    const objectives = els.objectives.value.split("\n").map((t) => t.trim()).filter(Boolean);
-    if (objectives.length) {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.text("Objectives", marginX, y); y += 16;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(10.5);
-      objectives.forEach((o) => {
-        const lines = doc.splitTextToSize("• " + o, pageW - marginX * 2);
-        doc.text(lines, marginX, y); y += lines.length * 13;
-      });
-      y += 8;
+    function sectionFrame(x0, y0, x1, y1, title) {
+      doc.setDrawColor(GREY); doc.setLineWidth(0.8);
+      doc.rect(x0, y0, x1 - x0, y1 - y0);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
+      const barW = Math.max(doc.getTextWidth(title) + 14, 70);
+      doc.setFillColor(ACCENT[0], ACCENT[1], ACCENT[2]);
+      doc.rect(x0 + 4, y0 - 0.1, barW, 14, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.text(title, x0 + 7, y0 + 10.5);
+      doc.setTextColor(DARK);
     }
-    const addParagraph = (label, text) => {
-      if (!text) return;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.text(label, marginX, y); y += 16;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(10.5);
-      const lines = doc.splitTextToSize(text, pageW - marginX * 2);
-      doc.text(lines, marginX, y); y += lines.length * 13 + 12;
-    };
-    addParagraph("Description", els.description.value.trim());
-    addParagraph("Variants", els.variants.value.trim());
 
-    // Une page par étape du schéma qui contient quelque chose -- on
-    // remet tout exactement comme avant une fois fini.
+    // ---------- Cabecera ----------
+    doc.setTextColor(DARK);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(13);
+    doc.text("EXERCISE N°:", MARGIN, 40);
+    const numLabelW = doc.getTextWidth("EXERCISE N°:");
+    doc.setDrawColor(DARK); doc.setLineWidth(0.8);
+    doc.line(MARGIN + numLabelW + 8, 44, 170, 44);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(14);
+    doc.text(String(els.number.value || ""), MARGIN + numLabelW + 14, 41);
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+    doc.text("NAME:", MARGIN, 66);
+    const nameLabelW = doc.getTextWidth("NAME:");
+    doc.line(MARGIN + nameLabelW + 8, 70, PAGE_W - MARGIN, 70);
+    let nameFs = 13; doc.setFont("helvetica", "normal"); doc.setFontSize(nameFs);
+    const name = els.name.value || "";
+    const nameMaxW = PAGE_W - MARGIN - (MARGIN + nameLabelW + 14) - 6;
+    while (nameFs > 7 && doc.getTextWidth(name) > nameMaxW) { nameFs -= 0.5; doc.setFontSize(nameFs); }
+    doc.text(name, MARGIN + nameLabelW + 14, 67);
+
+    const top = 90, leftX0 = MARGIN, leftX1 = 170, midX0 = 178, midX1 = 352, rightX0 = 360, rightX1 = PAGE_W - MARGIN;
+
+    // ---------- Colonne gauche : catégories / matériel / objectifs / difficulté ----------
+    const TITLE_H = 16, PAD = 6, GAP = 8;
+    const nRows = CATEGORIES.length + MATERIALS.length + 4;
+    const fixedTotal = 34 + TITLE_H + PAD;
+    const varTitles = (TITLE_H + PAD) * 3;
+    const avail = BOTTOM - top - fixedTotal - varTitles - GAP * 3;
+    const rowH = Math.max(10, Math.min(15, avail / nRows));
+
+    let ly = top;
+    function drawChecksBox(title, labels, selected) {
+      const bodyH = labels.length * rowH;
+      const y0 = ly, y1 = ly + TITLE_H + bodyH + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, title);
+      let ry = y0 + TITLE_H + PAD / 2;
+      labels.forEach((label) => {
+        doc.setDrawColor(DARK); doc.setLineWidth(0.7);
+        doc.rect(leftX0 + 7, ry + 2, 8, 8);
+        doc.setFont("helvetica", "normal");
+        let fs = 7.6; doc.setFontSize(fs);
+        const maxw = leftX1 - (leftX0 + 20) - 4;
+        while (fs > 5.5 && doc.getTextWidth(label) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
+        doc.text(label, leftX0 + 20, ry + 9.5);
+        if (selected.includes(label)) {
+          doc.setLineWidth(0.9);
+          doc.line(leftX0 + 7, ry + 2, leftX0 + 15, ry + 10);
+          doc.line(leftX0 + 7, ry + 10, leftX0 + 15, ry + 2);
+        }
+        ry += rowH;
+      });
+      ly = y1 + GAP;
+    }
+
+    const materialSelected = [...getCheckedValues("material")];
+    materialFromDiagram(diagram).forEach((m) => { if (!materialSelected.includes(m)) materialSelected.push(m); });
+    drawChecksBox("CATEGORY:", CATEGORIES, getCheckedValues("categories"));
+    drawChecksBox("MATERIAL:", MATERIALS, materialSelected);
+
+    // Objectifs : pas une liste fixe -- 4 lignes, remplies avec le texte réel.
+    {
+      const objectives = els.objectives.value.split("\n").map((t) => t.trim()).filter(Boolean).slice(0, 4);
+      const y0 = ly, y1 = ly + TITLE_H + 4 * rowH + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, "OBJECTIVES:");
+      let ry = y0 + TITLE_H + PAD / 2;
+      for (let i = 0; i < 4; i++) {
+        doc.setDrawColor(DARK); doc.setLineWidth(0.6);
+        doc.rect(leftX0 + 7, ry + 2, 8, 8);
+        doc.line(leftX0 + 20, ry + 9.5, leftX1 - 8, ry + 9.5);
+        const obj = objectives[i];
+        if (obj) {
+          doc.setLineWidth(0.9);
+          doc.line(leftX0 + 7, ry + 2, leftX0 + 15, ry + 10);
+          doc.line(leftX0 + 7, ry + 10, leftX0 + 15, ry + 2);
+          doc.setFont("helvetica", "normal");
+          let fs = 7.2; doc.setFontSize(fs);
+          const maxw = leftX1 - (leftX0 + 20) - 10;
+          while (fs > 5.5 && doc.getTextWidth(obj) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
+          doc.text(obj, leftX0 + 20, ry + 8.5);
+        }
+        ry += rowH;
+      }
+      ly = y1 + GAP;
+    }
+
+    // Difficulté : 3 étoiles.
+    {
+      const y0 = ly, y1 = ly + TITLE_H + 34 + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, "DIFFICULTY:");
+      const cy = y0 + TITLE_H + PAD / 2 + 15;
+      const filled = Math.max(0, Math.min(3, parseInt(els.difficulty.value, 10) || 1));
+      doc.setFont("helvetica", "normal"); doc.setFontSize(16);
+      [leftX0 + 28, leftX0 + 68, leftX0 + 108].forEach((cx, i) => {
+        if (i < filled) doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); else doc.setTextColor(190, 190, 190);
+        doc.text(i < filled ? "*" : "-", cx - 3, cy + 5);
+      });
+      doc.setTextColor(DARK);
+      ly = y1 + GAP;
+    }
+
+    // ---------- Colonne droite : 4 petites pistes (pasos 1-4) ----------
+    const rightW = rightX1 - rightX0;
+    const halfH = rightW / 1.06;
+    const courtRects = {};
+    let cy0 = top;
+    [1, 2, 3].forEach((i) => {
+      courtRects["court_" + i] = [rightX0, cy0, rightX1, cy0 + halfH];
+      cy0 += halfH + 8;
+    });
+    const vH = Math.min(BOTTOM - cy0, rightW / 0.5233);
+    const vW = vH * 0.5233;
+    courtRects.court_4 = [rightX1 - vW, cy0, rightX1, cy0 + vH];
+
+    // ---------- Colonne centrale : description/variantes + pista 5 ----------
+    const midW = midX1 - midX0;
+    const c5H = midW / 1.883;
+    courtRects.court_5 = [midX0, BOTTOM - c5H, midX1, BOTTOM];
+
+    function drawTextBox(x0, y0, x1, y1, title, text) {
+      sectionFrame(x0, y0, x1, y1, title);
+      if (!text) return;
+      const innerX0 = x0 + 7, innerY0 = y0 + 20, innerX1 = x1 - 7, innerY1 = y1 - 6;
+      const maxW = innerX1 - innerX0;
+      const sizes = [9, 8.5, 8, 7.5, 7, 6.5, 6];
+      for (const fs of sizes) {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(fs);
+        const lines = doc.splitTextToSize(text, maxW);
+        const lh = fs * 1.15;
+        if (lines.length * lh <= innerY1 - innerY0) { doc.text(lines, innerX0, innerY0 + fs * 0.8); return; }
+      }
+      doc.setFontSize(5.6);
+      const lines = doc.splitTextToSize(text, maxW);
+      doc.text(lines, innerX0, innerY0 + 5);
+    }
+
+    const variantsText = (els.variants.value || "").trim();
+    const textBottom = courtRects.court_5[1] - GAP;
+    let descBottom = textBottom;
+    if (variantsText) {
+      const varH = 118;
+      drawTextBox(midX0, textBottom - varH, midX1, textBottom, "VARIANTS:", variantsText);
+      descBottom = textBottom - varH - GAP;
+    }
+    drawTextBox(midX0, top, midX1, descBottom, "DESCRIPTION:", (els.description.value || "").trim());
+
+    // ---------- Les 5 pistes : capture du canvas déjà utilisé pour dessiner ----------
     const savedStep = currentStep;
-    for (let i = 0; i < COURT_IDS.length; i++) {
-      const cid = COURT_IDS[i];
-      const elements = diagram[cid] || [];
-      if (elements.length === 0) continue;
+    for (const [cid, rect] of Object.entries(courtRects)) {
+      const [x0, y0, x1, y1] = rect;
       currentStep = cid;
       resizeCanvasForStep();
       render();
       const imgData = els.canvas.toDataURL("image/png");
-      doc.addPage();
-      doc.setFont("helvetica", "bold"); doc.setFontSize(13);
-      doc.text(COURT_LABELS[i], marginX, 40);
-      const imgW = pageW - marginX * 2;
-      const imgH = imgW * (els.canvas.height / els.canvas.width);
-      doc.addImage(imgData, "PNG", marginX, 55, imgW, imgH);
+      const w = x1 - x0, h = y1 - y0;
+      const canvasAR = els.canvas.width / els.canvas.height, rectAR = w / h;
+      let dw = w, dh = h, dx = x0, dy = y0;
+      if (canvasAR > rectAR) { dh = w / canvasAR; dy = y0 + (h - dh) / 2; }
+      else { dw = h * canvasAR; dx = x0 + (w - dw) / 2; }
+      doc.addImage(imgData, "PNG", dx, dy, dw, dh);
+      doc.setDrawColor(GREY); doc.setLineWidth(0.6);
+      doc.rect(x0, y0, w, h);
     }
     currentStep = savedStep;
     resizeCanvasForStep();
@@ -964,7 +1032,7 @@
     window.open(url, "_blank");
   }
 
-  document.getElementById("new-ex-btn").addEventListener("click", newExercise);
+  document.getElementById("start-new-link").addEventListener("click", (e) => { e.preventDefault(); newExercise(); });
   document.getElementById("save-ex-btn").addEventListener("click", saveExercise);
   document.getElementById("preview-ex-btn").addEventListener("click", previewExercisePdf);
   document.getElementById("pdf-ex-btn").addEventListener("click", exportExercisePdf);
@@ -1009,6 +1077,7 @@
       const params = new URLSearchParams(window.location.search);
       const wantedId = params.get("id");
       if (wantedId && allExercises.some((e) => e.id === wantedId)) openExercise(wantedId);
+      else newExercise();
     }
   }
   init();
