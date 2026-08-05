@@ -132,36 +132,6 @@
     <div class="help-box" id="help-box"></div>
     <div class="msg" id="msg"></div>
 
-    <div id="creator-landing" style="display:none;">
-      <p class="sub" style="margin-top:0;">How do you want to start this exercise?</p>
-      <div style="display:flex; flex-direction:column; gap:10px; max-width:520px;">
-        <button class="btn btn-secondary" id="landing-manual-btn" style="text-align:left; padding:16px 18px; font-size:14px;">✍️ Fill it in by hand — the full form</button>
-        <button class="btn btn-secondary" id="landing-ai-btn" style="text-align:left; padding:16px 18px; font-size:14px;">🤖 Paste a block prepared by an AI (ChatGPT, Claude…)</button>
-      </div>
-      <p class="hint" style="margin-top:14px;"><a href="#" id="landing-from-existing-link">Or start from one of your existing exercises →</a></p>
-    </div>
-
-    <div id="ai-block-area" style="display:none;">
-      <a href="#" id="ai-block-back-link" class="back-link">&larr; Back</a>
-      <p class="sub" style="margin-top:0;">Copy this into any AI chat, describe your exercise idea on the last line, and paste its reply below.</p>
-      <div class="side-card" style="margin-bottom:14px;">
-        <textarea id="ai-block-template" readonly style="width:100%; min-height:180px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12px; font-family:inherit; color:var(--muted);"></textarea>
-        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
-          <button class="btn btn-secondary" id="copy-ai-template-btn">📋 Copy this template</button>
-          <button class="btn btn-secondary" id="copy-last-ex-btn">📎 Copy my last exercise</button>
-        </div>
-        <p class="hint" style="margin:8px 0 0;">"Copy my last exercise" gives the AI a real example of your style and picks the next number — paste it in the chat before your new idea.</p>
-      </div>
-      <div class="field" style="margin-bottom:12px;">
-        <label for="ai-block-input">Paste the AI's reply here</label>
-        <textarea id="ai-block-input" rows="10" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea>
-      </div>
-      <div class="toolbar">
-        <button class="btn btn-primary" id="ai-block-save-btn">Save to library + PDF</button>
-        <button class="btn btn-secondary" id="ai-block-edit-btn">Open in the full editor</button>
-      </div>
-    </div>
-
     <div id="editor-area" style="display:none">
       <div class="tabs-row">
         <button class="tab-btn active" data-tab="data">Data</button>
@@ -169,6 +139,32 @@
       </div>
 
       <div class="tab-pane active" id="tab-data">
+        <div class="side-card" style="margin-bottom:16px;">
+          <a href="#" id="ai-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Fill in with AI</a>
+          <div id="ai-section" style="display:none; margin-top:12px;">
+            <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">
+              Copy this template into any AI chat (ChatGPT, Claude…), describe your exercise idea on the last line, then paste its reply below. This never draws the diagram — that stays manual, in the "Court diagram" tab.
+            </p>
+            <textarea id="ai-block-template" readonly style="width:100%; min-height:120px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12px; font-family:inherit; color:var(--muted); margin-bottom:8px;"></textarea>
+            <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+              <button class="btn btn-secondary" id="copy-ai-template-btn">📋 Copy this template</button>
+              <button class="btn btn-secondary" id="copy-last-ex-btn">📎 Copy my last exercise</button>
+            </div>
+            <p class="hint" style="margin:0 0 8px;">"Copy my last exercise" gives the AI a real example of your style and the right next number — paste it in the chat before your new idea.</p>
+            <textarea id="ai-block-input" placeholder="Paste the AI's reply here…" style="width:100%; min-height:100px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit;"></textarea>
+            <button class="btn btn-primary" id="fill-from-ai-btn" style="margin-top:8px;">Fill from AI reply</button>
+          </div>
+        </div>
+
+        <div class="side-card" style="margin-bottom:16px;">
+          <label for="start-from-select" style="font-size:13px; font-weight:600; color:var(--muted); display:block; margin-bottom:8px;">Or start from one of your existing exercises</label>
+          <div style="display:flex; gap:8px;">
+            <select id="start-from-select" style="flex:1;"><option value="">Pick an exercise…</option></select>
+            <button class="btn btn-secondary" id="start-from-btn">Use as starting point</button>
+          </div>
+          <p class="hint" style="margin:8px 0 0;">Copies everything, including the diagram, into this new exercise — the original stays untouched.</p>
+        </div>
+
         <div class="field-row">
           <div class="field"><label for="ex-number">Number</label><input id="ex-number" type="number" style="width:80px;" /></div>
           <div class="field" style="flex:2;"><label for="ex-name">Name</label><input id="ex-name" type="text" placeholder="e.g. 3-man weave" /></div>
@@ -246,6 +242,7 @@
 
       <div class="toolbar" style="margin-top:16px;">
         <button class="btn btn-primary" id="save-ex-btn">Save exercise</button>
+        <button class="btn btn-secondary" id="preview-ex-btn">👁 Preview PDF</button>
         <button class="btn btn-secondary" id="pdf-ex-btn">Export PDF</button>
         <button class="btn btn-secondary" id="delete-ex-btn" style="display:none; color:#991b1b;">Delete</button>
       </div>
@@ -270,7 +267,7 @@
   }
 
   // Mêmes listes exactes que Pivot.py (CATEGORIES / AGE_GROUPS / MATERIALS)
-  const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Defense","1v1","2v2","Fast break","Competition","Fun"];
+  const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Rebounding","Footwork","Defense","Screening","1v1","2v2","Fast break","Conditioning","Competition","Fun"];
   const AGE_GROUPS = ["U6","U8","U10","U12","U14","U16","U18","U20","Seniors","All ages"];
   const MATERIALS = ["Balls","Cones","Marker cones","Rings","Coordination ladder","Bibs","Sticks","Benches","Mats","Ropes","Other"];
   // COURT_IDS, COURT_LABELS, COURT_TYPES, CANVAS_SIZES, LINE_KINDS,
@@ -325,7 +322,7 @@
   const AI_BLOCK_TEMPLATE = [
     "You're helping a basketball coach prepare a complete exercise sheet, ready to go into their training notebook.",
     "",
-    "I'll describe an exercise idea at the very bottom. Reply with a complete sheet, following EXACTLY this format (one label per line, no bold, no markdown, nothing before or after):",
+    "I'll describe an exercise idea at the very bottom. If that description is too vague to fill in every field below with real confidence (for example: no age group, no clear skill focus, no idea how many players), ask me clarifying questions FIRST, in this same conversation, before writing anything — don't guess wildly just to fill a field. Once you genuinely have enough, reply with a complete sheet, following EXACTLY this format (one label per line, no bold, no markdown, nothing before or after):",
     "",
     "NUMBER: [an exercise number; if you don't know which one to use, put 0]",
     "NAME: [invent a short, clear name for this exercise]",
@@ -341,7 +338,7 @@
     "VARIANTS:",
     "[1 to 3 possible variants of the exercise]",
     "",
-    "Important: don't worry about the court diagram (player positions, arrows, ball...) — the coach draws that themselves, directly in the app, afterwards. Focus only on the text above.",
+    "Important: don't worry about the court diagram (player positions, arrows, ball...) — the coach draws that themselves, directly in the app, afterwards. Focus only on the text above. Once you give the final sheet, give ONLY that — no extra commentary before or after it.",
     "",
     "The exercise is about: [DESCRIBE YOUR EXERCISE IDEA HERE]",
   ].join("\n");
@@ -466,46 +463,25 @@
     els.variants.value = data.variants || "";
   }
 
-  async function getLastExercise() {
+  function getLastExercise() {
     const mine = allExercises.filter((e) => e.organization_id === currentOrgId);
     if (mine.length === 0) return null;
     return mine.reduce((latest, e) => (!latest || (e.number || 0) > (latest.number || 0) ? e : latest), null);
   }
 
   // -----------------------------------------------------------------------
-  // Écran de choix ("+ New exercise") : à la main, bloc IA, ou (lien
-  // discret) à partir d'un exercice existant -- jamais la biblio par
-  // défaut.
+  // "Fill in with AI" -- repliable dans la même page, comme dans Player
+  // assessment. Le format du bloc (étiquettes, "copier mon dernier
+  // exercice") reste celui de l'app de bureau, mais l'écran ne change
+  // plus -- on reste sur le même formulaire du début à la fin.
   // -----------------------------------------------------------------------
-  function showCreatorLanding() {
-    currentExId = null; currentTranslationGroupId = null;
-    els.editorArea.style.display = "none"; els.editorEmpty.style.display = "none";
-    document.getElementById("ai-block-area").style.display = "none";
-    document.getElementById("creator-landing").style.display = "block";
-  }
-
-  document.getElementById("landing-manual-btn").addEventListener("click", () => {
-    document.getElementById("creator-landing").style.display = "none";
-    newExercise();
-  });
-
-  document.getElementById("landing-ai-btn").addEventListener("click", () => {
-    document.getElementById("creator-landing").style.display = "none";
-    document.getElementById("ai-block-area").style.display = "block";
-    document.getElementById("ai-block-template").value = AI_BLOCK_TEMPLATE;
-    document.getElementById("ai-block-input").value = "";
-  });
-
-  document.getElementById("landing-from-existing-link").addEventListener("click", (e) => {
+  document.getElementById("ai-toggle-link").addEventListener("click", (e) => {
     e.preventDefault();
-    document.getElementById("creator-landing").style.display = "none";
-    showMessage("Pick an exercise on the left, then use \"Duplicate\" in the Library to start from it.", "success");
-  });
-
-  document.getElementById("ai-block-back-link").addEventListener("click", (e) => {
-    e.preventDefault();
-    document.getElementById("ai-block-area").style.display = "none";
-    document.getElementById("creator-landing").style.display = "block";
+    const section = document.getElementById("ai-section");
+    const open = section.style.display === "block";
+    section.style.display = open ? "none" : "block";
+    e.target.textContent = open ? "▸ Fill in with AI" : "▾ Fill in with AI";
+    if (!open) document.getElementById("ai-block-template").value = AI_BLOCK_TEMPLATE;
   });
 
   document.getElementById("copy-ai-template-btn").addEventListener("click", async () => {
@@ -514,7 +490,7 @@
   });
 
   document.getElementById("copy-last-ex-btn").addEventListener("click", async () => {
-    const last = await getLastExercise();
+    const last = getLastExercise();
     if (!last) { showMessage("Your library is still empty — nothing to copy yet.", "error"); return; }
     try {
       await navigator.clipboard.writeText(formatExerciseAsBlock(last));
@@ -522,34 +498,53 @@
     } catch (e) { showMessage("Couldn't copy automatically.", "error"); }
   });
 
-  document.getElementById("ai-block-save-btn").addEventListener("click", async () => {
+  document.getElementById("fill-from-ai-btn").addEventListener("click", () => {
     const text = document.getElementById("ai-block-input").value;
     if (!text.trim()) { showMessage("Paste the AI's reply first.", "error"); return; }
     try {
       const data = parseBlock(text);
-      document.getElementById("ai-block-area").style.display = "none";
-      newExercise();
       applyParsedData(data);
-      await saveExercise();
-      const savedId = currentExId;
-      if (savedId) await exportExercisePdf();
+      showMessage("Filled in from the AI reply — review everything below, draw the diagram if you want one, then save.", "success");
     } catch (err) {
       showMessage(err.message || "Couldn't read that reply.", "error");
     }
   });
 
-  document.getElementById("ai-block-edit-btn").addEventListener("click", () => {
-    const text = document.getElementById("ai-block-input").value;
-    if (!text.trim()) { showMessage("Paste the AI's reply first.", "error"); return; }
-    try {
-      const data = parseBlock(text);
-      document.getElementById("ai-block-area").style.display = "none";
-      newExercise();
-      applyParsedData(data);
-      showMessage("Filled in from the AI reply — review everything, draw the diagram, then save.", "success");
-    } catch (err) {
-      showMessage(err.message || "Couldn't read that reply.", "error");
-    }
+  // -----------------------------------------------------------------------
+  // "Start from an existing exercise" -- une liste déroulante juste en
+  // dessous du bloc IA, pas un renvoi vers la Library. Copie tout, y
+  // compris le diagramme (contrairement au bloc IA, qui ne touche jamais
+  // au dessin) -- l'original reste intact, ça crée une fiche à part.
+  // -----------------------------------------------------------------------
+  function populateStartFromSelect() {
+    const sel = document.getElementById("start-from-select");
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Pick an exercise…</option>';
+    allExercises.slice().sort((a, b) => (a.number || 0) - (b.number || 0)).forEach((e) => {
+      const opt = document.createElement("option");
+      opt.value = e.id;
+      opt.textContent = `#${e.number || "—"} — ${e.name}${e.organization_id !== currentOrgId ? " 🌐" : ""}`;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+  }
+
+  document.getElementById("start-from-btn").addEventListener("click", () => {
+    const id = document.getElementById("start-from-select").value;
+    if (!id) { showMessage("Pick an exercise from the list first.", "error"); return; }
+    const source = allExercises.find((e) => e.id === id);
+    if (!source) return;
+    applyParsedData({
+      number: nextNumber(), name: source.name + " (copy)", difficulty: source.difficulty,
+      age: source.age, categories: source.categories, material: source.material,
+      tags: (source.tags || []).join("; "), objectives: source.objectives,
+      description: source.description, variants: source.variants,
+    });
+    diagram = JSON.parse(JSON.stringify(source.diagram || {}));
+    currentStep = "court_1";
+    buildStepTabs(); resizeCanvasForStep(); render();
+    document.getElementById("start-from-select").value = "";
+    showMessage(`Started from "${source.name}" — review everything, then save as your own.`, "success");
   });
 
   function buildCheckboxGroup(containerId, options, prefix) {
@@ -717,6 +712,7 @@
     allExercises = data || [];
     renderCategories();
     renderExercisesList();
+    populateStartFromSelect();
   }
 
   function renderCategories() {
@@ -879,7 +875,7 @@
   // Export PDF -- portada con toda la información, y una página por cada
   // paso del diagrama que tenga algo dibujado.
   // -----------------------------------------------------------------------
-  async function exportExercisePdf() {
+  async function buildExercisePdfDoc() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const marginX = 40;
@@ -951,11 +947,26 @@
     resizeCanvasForStep();
     render();
 
+    return doc;
+  }
+
+  async function exportExercisePdf() {
+    const doc = await buildExercisePdfDoc();
     doc.save(`${(els.name.value || "exercise").replace(/\s+/g, "_")}.pdf`);
   }
 
-  document.getElementById("new-ex-btn").addEventListener("click", showCreatorLanding);
+  // Comme dans l'app de bureau (l'onglet "Aperçu PDF") : voir le PDF
+  // avant de le télécharger, dans un nouvel onglet du navigateur, sans
+  // rien enregistrer sur le disque.
+  async function previewExercisePdf() {
+    const doc = await buildExercisePdfDoc();
+    const url = doc.output("bloburl");
+    window.open(url, "_blank");
+  }
+
+  document.getElementById("new-ex-btn").addEventListener("click", newExercise);
   document.getElementById("save-ex-btn").addEventListener("click", saveExercise);
+  document.getElementById("preview-ex-btn").addEventListener("click", previewExercisePdf);
   document.getElementById("pdf-ex-btn").addEventListener("click", exportExercisePdf);
   document.getElementById("delete-ex-btn").addEventListener("click", deleteExercise);
 
@@ -969,15 +980,15 @@
     box.innerHTML = `
       <strong>How to use Create exercise</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li><strong>"+ New exercise"</strong> asks how you want to start: fill it in by hand, or paste a block prepared by an AI.</li>
-        <li><strong>By hand</strong> — the full form: number, name, difficulty (1-3 stars), favorite, age groups, categories, material, tags, up to 4 objectives, description, variants, plus the court diagram.</li>
-        <li><strong>AI block</strong> — copy the ready-made template into any AI chat (ChatGPT, Claude…), describe your idea on the last line, paste the reply back. "Copy my last exercise" gives the AI a real style example and the right next number first. "Save to library + PDF" saves it directly; "Open in the full editor" lets you review everything (and draw the diagram) before saving.</li>
-        <li>Whichever way you start, anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.</li>
+        <li><strong>"+ New exercise"</strong> opens the full form directly — number, name, difficulty (1-3 stars), favorite, age groups, categories, material, tags, up to 4 objectives, description, variants, plus the court diagram.</li>
+        <li><strong>Fill in with AI</strong> (top of the form) — copy the ready-made template into any AI chat (ChatGPT, Claude…), describe your idea on the last line, paste the reply back, then "Fill from AI reply". "Copy my last exercise" gives the AI a real style example and the right next number first. It never touches the diagram — that stays manual.</li>
+        <li><strong>Start from an existing exercise</strong> (also at the top) — pick one from the dropdown and "Use as starting point": copies everything, including the diagram, into this new exercise. The original is untouched.</li>
+        <li>Anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.</li>
         <li><strong>Court diagram tab</strong> — 5 steps (3 half-court, 1 vertical, 1 full horizontal). Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
         <li><strong>Color</strong> picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).</li>
         <li><strong>Copy to next step</strong> duplicates everything into the next step, so you can draw a sequence step by step without starting from scratch each time.</li>
         <li>Double-click a player or defender to give them a label (e.g. their number).</li>
-        <li><strong>Export PDF</strong> makes a clean sheet: the info, then one page per diagram step that has something drawn.</li>
+        <li><strong>Preview PDF</strong> opens the sheet in a new browser tab so you can check it before deciding to download — same idea as the "PDF preview" tab in the desktop app. <strong>Export PDF</strong> downloads it straight away. Both make the same sheet: the info, then one page per diagram step that has something drawn.</li>
         <li>Editing an existing exercise bumps its version number (v1 at creation) — visible in the Library, handy for tracking which ones changed recently.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). The icon next to each exercise in the list shows its current circle.</li>
       </ul>`;
