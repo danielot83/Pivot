@@ -282,10 +282,9 @@
   // Un ejercicio compartido puede venir de OTRO club -- su nombre,
   // descripción, tags, etc. son texto que alguien más escribió. Sin
   // escapar, un club (malicioso, o simplemente descuidado) podría poner
-  // algo como "<script>...</script>" como nombre y que se ejecutara en
-  // el navegador de cualquier otro club que lo mire. Toda cadena que
-  // venga de una fila de la base de datos pasa por aquí antes de entrar
-  // en innerHTML.
+  // código malicioso como nombre y que se ejecutara en el navegador de
+  // cualquier otro club que lo mire. Toda cadena que venga de una fila
+  // de la base de datos pasa por aquí antes de entrar en innerHTML.
   // -----------------------------------------------------------------------
   function escapeHtml(str) {
     return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
