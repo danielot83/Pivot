@@ -667,11 +667,16 @@
     const { count: orgCount } = await supabaseClient.from("organizations").select("id", { count: "exact", head: true });
     document.getElementById("pstat-orgs").textContent = orgCount ?? 0;
 
-    const { count: playerCount } = await supabaseClient.from("players").select("id", { count: "exact", head: true });
-    document.getElementById("pstat-players").textContent = playerCount ?? 0;
+    // Même exclusion des données d'exemple (Bulls/Celtics) qu'au niveau
+    // d'un club -- sinon le total plateforme comptait les exemples de
+    // TOUS les clubes qui en ont chargé, pas juste le tien.
+    const { data: playerRows } = await supabaseClient.from("players").select("id, team, season");
+    const realPlayers = (playerRows || []).filter((p) => !isExampleTeam(p.season, p.team));
+    document.getElementById("pstat-players").textContent = realPlayers.length;
 
-    const { count: assessmentCount } = await supabaseClient.from("player_assessments").select("id", { count: "exact", head: true });
-    document.getElementById("pstat-assessments").textContent = assessmentCount ?? 0;
+    const realPlayerIds = new Set(realPlayers.map((p) => p.id));
+    const { data: assessmentRows } = await supabaseClient.from("player_assessments").select("id, player_id");
+    document.getElementById("pstat-assessments").textContent = (assessmentRows || []).filter((a) => realPlayerIds.has(a.player_id)).length;
 
     const { count: exerciseCount } = await supabaseClient.from("exercises").select("id", { count: "exact", head: true });
     document.getElementById("pstat-exercises").textContent = exerciseCount ?? 0;
