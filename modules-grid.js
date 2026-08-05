@@ -1,21 +1,27 @@
 // =============================================================================
-// Grille des 6 modules -- une seule source de vérité pour cette liste.
-// Utilisée par index.html, module.html, et (bientôt) le tableau de bord.
+// Grille des modules -- une seule source de vérité pour cette liste.
+// Utilisée par index.html, module.html, et le tableau de bord.
 // Change une icône ou un texte ici, ça change partout où ce fichier est inclus.
 // =============================================================================
 
 const PIVOT_MODULES = [
   {
+    key: "exercises",
+    title: "Create exercise",
+    blurb: "Build a drill by hand — court diagram, difficulty, tags — or fill it in with an AI prompt.",
+    icon: '<path d="M12 5v14M5 12h14"/>',
+  },
+  {
+    key: "library",
+    title: "Exercise library",
+    blurb: "Browse, search, and filter every exercise — yours and whatever your club/association/community has shared.",
+    icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13Z"/><path d="M8 7h8M8 10.5h5"/>',
+  },
+  {
     key: "roster",
     title: "Roster",
     blurb: "Players by season and team — contacts, license status, jersey numbers, one place per club.",
     icon: '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5.3 5.5-5.3s5.5 2.3 5.5 5.3"/><circle cx="18" cy="8.5" r="2.4"/><path d="M15.8 14.3c2.6.2 4.7 2.3 4.7 5"/>',
-  },
-  {
-    key: "exercises",
-    title: "Exercise library",
-    blurb: "Court diagrams, categories, difficulty — start from a shared base, or keep your own private set.",
-    icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13Z"/><path d="M8 7h8M8 10.5h5"/>',
   },
   {
     key: "training",
@@ -40,6 +46,12 @@ const PIVOT_MODULES = [
     title: "Play design",
     blurb: "Draw your team's sets and plays — offense, out-of-bounds, defense — not just individual drills.",
     icon: '<circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M5 8v4c0 2 1.5 3 3.5 3H15" stroke-dasharray="3 2.5"/><path d="M15 15l3 0 0 3" />',
+  },
+  {
+    key: "stats",
+    title: "Statistics",
+    blurb: "Compare players side by side today — matches, training sessions, and more comparisons are next.",
+    icon: '<path d="M8 3v18M16 3v18"/><path d="M4 8h4M4 14h4M16 8h4M16 14h4"/>',
   },
 ];
 

@@ -139,6 +139,18 @@
       </div>
 
       <div class="tab-pane active" id="tab-data">
+        <div class="side-card" style="margin-bottom:16px;">
+          <a href="#" id="ai-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Fill in with AI</a>
+          <div id="ai-section" style="display:none; margin-top:12px;">
+            <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">
+              Copy this prompt into any AI chat (describe the drill when it asks), then paste its reply below. This doesn't draw the diagram — that part stays manual, in the "Court diagram" tab.
+            </p>
+            <button class="btn btn-secondary" id="copy-ai-prompt-btn" style="margin-bottom:10px;">Copy prompt</button>
+            <textarea id="ai-response-input" placeholder="Paste the AI's reply here…" style="width:100%; min-height:100px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit;"></textarea>
+            <button class="btn btn-primary" id="fill-from-ai-btn" style="margin-top:8px;">Fill from AI reply</button>
+          </div>
+        </div>
+
         <div class="field-row">
           <div class="field"><label for="ex-number">Number</label><input id="ex-number" type="number" style="width:80px;" /></div>
           <div class="field" style="flex:2;"><label for="ex-name">Name</label><input id="ex-name" type="text" placeholder="e.g. 3-man weave" /></div>
@@ -281,6 +293,86 @@
   let dragging = null, drawingFrom = null;
 
   function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+
+  // -----------------------------------------------------------------------
+  // "Fill in with AI" -- même idée que Player assessment : un prompt
+  // prêt à copier, l'IA répond dans un format fixe qu'on sait relire.
+  // Ne touche jamais au diagramme -- ça reste dessiné à la main, dans
+  // l'onglet "Court diagram".
+  // -----------------------------------------------------------------------
+  function buildAiPrompt() {
+    return [
+      "You're helping a basketball coach write a training exercise for their library. I'll describe the drill — ask me clarifying questions first if you need more (age group, skill focus, number of players, how long it takes) before answering.",
+      "",
+      `Age groups to pick from (use one or more, comma-separated, exact spelling): ${AGE_GROUPS.join(", ")}`,
+      `Categories to pick from (one or more, comma-separated, exact spelling): ${CATEGORIES.join(", ")}`,
+      `Material to pick from (one or more, comma-separated, exact spelling, or "None"): ${MATERIALS.join(", ")}`,
+      "",
+      "You can ask your questions in whatever language I'm writing to you in — reply in that language for the conversation. But once (and only once) I confirm you have enough, your FINAL reply must contain ONLY these lines, in this exact format, nothing else, no matter what language we spoke in:",
+      "name: ...",
+      "difficulty: 1, 2, or 3",
+      "age: ...",
+      "categories: ...",
+      "material: ...",
+      "tags: a few short comma-separated tags",
+      "objective1: ...",
+      "objective2: ... (leave out if there isn't a second one)",
+      "objective3: ... (optional)",
+      "objective4: ... (optional)",
+      "description: one paragraph, on a single line",
+      "variants: one paragraph, on a single line (optional)",
+    ].join("\n");
+  }
+
+  function matchOptions(text, options) {
+    const parts = text.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    return options.filter((opt) => parts.includes(opt.toLowerCase()));
+  }
+
+  function parseAiResponse(text) {
+    const get = (key) => {
+      const m = text.match(new RegExp(`^${key}\\s*:\\s*(.+)$`, "im"));
+      return m ? m[1].trim() : null;
+    };
+    let filled = 0;
+    const name = get("name"); if (name) { els.name.value = name; filled++; }
+    const difficulty = get("difficulty");
+    if (difficulty) { const d = parseInt(difficulty, 10); if (d >= 1 && d <= 3) { els.difficulty.value = String(d); filled++; } }
+    const age = get("age"); if (age) { setCheckedValues("age", matchOptions(age, AGE_GROUPS)); filled++; }
+    const categories = get("categories"); if (categories) { setCheckedValues("categories", matchOptions(categories, CATEGORIES)); filled++; }
+    const material = get("material"); if (material) { setCheckedValues("material", matchOptions(material, MATERIALS)); filled++; }
+    const tags = get("tags"); if (tags) { els.tags.value = tags; filled++; }
+    const objectives = [1, 2, 3, 4].map((i) => get("objective" + i)).filter(Boolean);
+    if (objectives.length) { els.objectives.value = objectives.join("\n"); filled++; }
+    const description = get("description"); if (description) { els.description.value = description; filled++; }
+    const variants = get("variants"); if (variants) { els.variants.value = variants; filled++; }
+    return filled;
+  }
+
+  document.getElementById("ai-toggle-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    const section = document.getElementById("ai-section");
+    const open = section.style.display === "block";
+    section.style.display = open ? "none" : "block";
+    e.target.textContent = open ? "▸ Fill in with AI" : "▾ Fill in with AI";
+  });
+
+  document.getElementById("copy-ai-prompt-btn").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(buildAiPrompt());
+      showMessage("Prompt copied — paste it into any AI chat.", "success");
+    } catch (e) {
+      showMessage("Couldn't copy automatically — select and copy the prompt manually.", "error");
+    }
+  });
+
+  document.getElementById("fill-from-ai-btn").addEventListener("click", () => {
+    const text = document.getElementById("ai-response-input").value;
+    if (!text.trim()) { showMessage("Paste the AI's reply first.", "error"); return; }
+    const count = parseAiResponse(text);
+    if (count === 0) { showMessage("Couldn't find any recognizable fields in that text.", "error"); return; }
+    showMessage(`Filled in ${count} field${count === 1 ? "" : "s"} from the AI reply — review before saving.`, "success");
+  });
 
   function buildCheckboxGroup(containerId, options, prefix) {
     const el = document.getElementById(containerId);
@@ -604,8 +696,9 @@
     const box = document.getElementById("help-box");
     if (box.style.display === "block") { box.style.display = "none"; return; }
     box.innerHTML = `
-      <strong>How to use Exercise library</strong>
+      <strong>How to use Exercise creator</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li><strong>Fill in with AI</strong> — copy a ready-made prompt into any AI chat, describe the drill, paste its reply back in. It fills the name, difficulty, age/categories/material, tags, objectives, description and variants for you to review — it never draws the diagram, that stays manual.</li>
         <li><strong>Data tab</strong> — number, name, difficulty (1-3 stars), favorite, age groups, categories, material, tags, up to 4 objectives, description, variants.</li>
         <li><strong>Court diagram tab</strong> — 5 steps (3 half-court, 1 vertical, 1 full horizontal). Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
         <li><strong>Color</strong> picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).</li>

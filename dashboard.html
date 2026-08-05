@@ -200,7 +200,7 @@
   // Pages réelles pour les modules déjà construits ; les autres pointent
   // encore vers la fiche explicative (module.html) en attendant.
   // -----------------------------------------------------------------------
-  const REAL_PAGES = { roster: "roster.html", assessment: "assessment.html", plays: "play_design.html", match: "match.html", exercises: "exercises.html", training: "training.html" };
+  const REAL_PAGES = { roster: "roster.html", assessment: "assessment.html", plays: "play_design.html", match: "match.html", exercises: "exercises.html", library: "library.html", training: "training.html", stats: "compare.html" };
   function linkForModule(m) {
     return REAL_PAGES[m.key] || `module.html?m=${m.key}`;
   }
