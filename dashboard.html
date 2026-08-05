@@ -133,12 +133,25 @@
     <div class="stat-card"><div class="num" id="stat-teams">—</div><div class="label">Teams</div></div>
     <div class="stat-card"><div class="num" id="stat-players">—</div><div class="label">Players</div></div>
     <div class="stat-card"><div class="num" id="stat-assessments">—</div><div class="label">Assessments</div></div>
-    <div class="stat-card"><div class="num">—</div><div class="label">Exercises</div></div>
-    <div class="stat-card"><div class="num">—</div><div class="label">Notebooks</div></div>
-    <div class="stat-card"><div class="num">—</div><div class="label">Play designs</div></div>
-    <div class="stat-card"><div class="num">—</div><div class="label">Matches</div></div>
-    <div class="stat-card"><div class="num">—</div><div class="label">Wins</div></div>
-    <div class="stat-card"><div class="num">—</div><div class="label">Losses</div></div>
+    <div class="stat-card"><div class="num" id="stat-exercises">—</div><div class="label">Exercises</div></div>
+    <div class="stat-card"><div class="num" id="stat-notebooks">—</div><div class="label">Notebooks</div></div>
+    <div class="stat-card"><div class="num" id="stat-plays">—</div><div class="label">Play designs</div></div>
+    <div class="stat-card"><div class="num" id="stat-matches">—</div><div class="label">Matches</div></div>
+    <div class="stat-card"><div class="num" id="stat-wins">—</div><div class="label">Wins</div></div>
+    <div class="stat-card"><div class="num" id="stat-losses">—</div><div class="label">Losses</div></div>
+  </div>
+
+  <div id="platform-stats-section" style="display:none;">
+    <p class="section-label">Pivot Community — all clubs (you're the platform admin)</p>
+    <div class="stats-row" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="stat-card"><div class="num" id="pstat-orgs">—</div><div class="label">Clubs</div></div>
+      <div class="stat-card"><div class="num" id="pstat-players">—</div><div class="label">Players</div></div>
+      <div class="stat-card"><div class="num" id="pstat-assessments">—</div><div class="label">Assessments</div></div>
+      <div class="stat-card"><div class="num" id="pstat-exercises">—</div><div class="label">Exercises</div></div>
+      <div class="stat-card"><div class="num" id="pstat-plays">—</div><div class="label">Play designs</div></div>
+      <div class="stat-card"><div class="num" id="pstat-trainings">—</div><div class="label">Training sessions</div></div>
+      <div class="stat-card"><div class="num" id="pstat-matches">—</div><div class="label">Matches</div></div>
+    </div>
   </div>
 
   <p class="section-label">Tools</p>
@@ -180,6 +193,12 @@
     statPlayers: document.getElementById("stat-players"),
     statTeams: document.getElementById("stat-teams"),
     statAssessments: document.getElementById("stat-assessments"),
+    statExercises: document.getElementById("stat-exercises"),
+    statNotebooks: document.getElementById("stat-notebooks"),
+    statPlays: document.getElementById("stat-plays"),
+    statMatches: document.getElementById("stat-matches"),
+    statWins: document.getElementById("stat-wins"),
+    statLosses: document.getElementById("stat-losses"),
   };
 
   let currentOrgId = null;
@@ -657,6 +676,57 @@
     const { count: assessmentCount } = await supabaseClient
       .from("player_assessments").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
     els.statAssessments.textContent = assessmentCount ?? 0;
+
+    const { count: exerciseCount } = await supabaseClient
+      .from("exercises").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
+    els.statExercises.textContent = exerciseCount ?? 0;
+
+    // "Notebooks" = les dossiers (category) utilisés dans les jugadas --
+    // pas les jugadas elles-mêmes, ça c'est "Play designs" juste après.
+    const { data: playRows } = await supabaseClient.from("plays").select("category").eq("organization_id", currentOrgId);
+    els.statNotebooks.textContent = playRows ? new Set(playRows.filter((r) => r.category).map((r) => r.category)).size : 0;
+
+    const { count: playCount } = await supabaseClient
+      .from("plays").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
+    els.statPlays.textContent = playCount ?? 0;
+
+    const { data: matchRows } = await supabaseClient.from("matches").select("team_score, opponent_score").eq("organization_id", currentOrgId);
+    if (matchRows) {
+      els.statMatches.textContent = matchRows.length;
+      els.statWins.textContent = matchRows.filter((m) => m.team_score !== null && m.opponent_score !== null && m.team_score > m.opponent_score).length;
+      els.statLosses.textContent = matchRows.filter((m) => m.team_score !== null && m.opponent_score !== null && m.team_score < m.opponent_score).length;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Panel global -- visible UNIQUEMENT pour toi (is_platform_controller).
+  // Chiffres sur TOUT Pivot, sans filtre de club -- juste pour regarder,
+  // aucun droit d'édition n'est donné par ça.
+  // -----------------------------------------------------------------------
+  async function loadPlatformStats() {
+    if (!isPlatformController) return;
+    document.getElementById("platform-stats-section").style.display = "block";
+
+    const { count: orgCount } = await supabaseClient.from("organizations").select("id", { count: "exact", head: true });
+    document.getElementById("pstat-orgs").textContent = orgCount ?? 0;
+
+    const { count: playerCount } = await supabaseClient.from("players").select("id", { count: "exact", head: true });
+    document.getElementById("pstat-players").textContent = playerCount ?? 0;
+
+    const { count: assessmentCount } = await supabaseClient.from("player_assessments").select("id", { count: "exact", head: true });
+    document.getElementById("pstat-assessments").textContent = assessmentCount ?? 0;
+
+    const { count: exerciseCount } = await supabaseClient.from("exercises").select("id", { count: "exact", head: true });
+    document.getElementById("pstat-exercises").textContent = exerciseCount ?? 0;
+
+    const { count: playCount } = await supabaseClient.from("plays").select("id", { count: "exact", head: true });
+    document.getElementById("pstat-plays").textContent = playCount ?? 0;
+
+    const { count: trainingCount } = await supabaseClient.from("trainings").select("id", { count: "exact", head: true });
+    document.getElementById("pstat-trainings").textContent = trainingCount ?? 0;
+
+    const { count: matchCount } = await supabaseClient.from("matches").select("id", { count: "exact", head: true });
+    document.getElementById("pstat-matches").textContent = matchCount ?? 0;
   }
 
   // -----------------------------------------------------------------------
@@ -814,6 +884,7 @@
       await loadPendingRequestsForAdmin();
       await loadStats();
     }
+    await loadPlatformStats();
     await loadMessagesWidget();
   }
   init();
