@@ -26,7 +26,7 @@
   .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
   .back-link:hover { color: var(--ink); }
 
-  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; max-width: 1000px; margin: 0 auto; padding: 24px; align-items: start; }
+  .layout { display: grid; grid-template-columns: 240px 1fr; gap: 24px; max-width: 1080px; margin: 0 auto; padding: 24px; align-items: start; }
   @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
 
   h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
@@ -105,6 +105,12 @@
       <div id="tree"></div>
     </div>
     <div class="side-card">
+      <h2>Notebooks</h2>
+      <p class="hint" style="font-size:11.5px; color:var(--muted); margin:0 0 8px;">Ready-made exercise lists, grouped by theme (e.g. "Defense", "U8") — not tied to a season/team.</p>
+      <button class="new-btn" id="new-notebook-btn">+ New notebook</button>
+      <div id="notebooks-list"></div>
+    </div>
+    <div class="side-card">
       <h2>Sessions</h2>
       <button class="new-btn" id="new-training-btn">+ New session</button>
       <div id="trainings-list"></div>
@@ -125,7 +131,17 @@
       <div class="toolbar">
         <div class="field"><label for="tr-title">Title</label><input id="tr-title" type="text" placeholder="e.g. Tuesday practice" /></div>
         <div class="field"><label for="tr-date">Date</label><input id="tr-date" type="date" /></div>
+        <div class="field"><label for="tr-number">Session #</label><input id="tr-number" type="number" style="width:70px;" /></div>
+        <div class="field"><label for="tr-category">Category</label>
+          <select id="tr-category"><option value="">—</option></select>
+        </div>
         <div class="field"><label for="tr-planned">Planned length (min)</label><input id="tr-planned" type="number" style="width:90px;" value="90" /></div>
+      </div>
+      <div class="toolbar">
+        <div class="field"><label for="tr-players">Players expected</label><input id="tr-players" type="number" style="width:90px;" /></div>
+        <div class="field"><label for="tr-coach1">Coach 1</label><input id="tr-coach1" type="text" style="width:130px;" /></div>
+        <div class="field"><label for="tr-coach2">Coach 2</label><input id="tr-coach2" type="text" style="width:130px;" /></div>
+        <div class="field"><label for="tr-coach3">Coach 3</label><input id="tr-coach3" type="text" style="width:130px;" /></div>
         <div class="field"><label for="tr-visibility">Who can see it?</label>
           <select id="tr-visibility">
             <option value="private">🔒 Only me</option>
@@ -147,6 +163,10 @@
 
       <p class="section-label">Exercises in this session</p>
       <div class="toolbar">
+        <div class="field" style="min-width:170px;">
+          <label for="notebook-filter">Filter by notebook</label>
+          <select id="notebook-filter"><option value="">All exercises</option></select>
+        </div>
         <div class="field" style="flex:1; min-width:220px;">
           <label for="add-exercise-select">Add from library</label>
           <select id="add-exercise-select"><option value="">Pick an exercise…</option></select>
@@ -154,10 +174,17 @@
         <button class="btn btn-secondary" id="add-exercise-btn">+ Add</button>
       </div>
       <table>
-        <thead><tr><th>#</th><th>Exercise</th><th>Minutes</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>Exercise</th><th>Minutes</th><th></th><th></th></tr></thead>
         <tbody id="session-exercises-body"></tbody>
       </table>
       <div class="empty-state" id="session-empty">No exercises added yet.</div>
+
+      <p class="section-label">Auto-summary <span style="font-weight:400; color:var(--muted); text-transform:none; font-size:12px;">— rolled up from the exercises above, edit freely</span></p>
+      <div class="toolbar">
+        <div class="field" style="flex:1;"><label for="tr-cat-summary">Categories worked</label><textarea id="tr-cat-summary" rows="2" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea></div>
+        <div class="field" style="flex:1;"><label for="tr-mat-summary">Material needed</label><textarea id="tr-mat-summary" rows="2" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea></div>
+        <div class="field" style="flex:1;"><label for="tr-obj-summary">Objectives (up to 4)</label><textarea id="tr-obj-summary" rows="2" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea></div>
+      </div>
 
       <p class="section-label">Attendance</p>
       <table>
@@ -165,11 +192,47 @@
         <tbody id="attendance-body"></tbody>
       </table>
 
-      <div class="toolbar">
+      <div class="side-card" style="margin-top:16px;">
+        <a href="#" id="feedback-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Post-session feedback (fill in after it happened)</a>
+        <div id="feedback-section" style="display:none; margin-top:12px;">
+          <p class="hint" style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">This is separate from the plan above on purpose — the plan is what you prepared, this is what actually happened.</p>
+          <div class="field" style="margin-bottom:12px;">
+            <label>How did it go?</label>
+            <div id="rating-stars" style="font-size:22px; color:var(--line); cursor:pointer; letter-spacing:2px;"></div>
+          </div>
+          <div class="field" style="margin-bottom:12px;"><label for="tr-comments">Comments</label><textarea id="tr-comments" rows="3" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea></div>
+          <div class="field"><label for="tr-next">Ideas for next time</label><textarea id="tr-next" rows="3" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea></div>
+        </div>
+      </div>
+
+      <div class="toolbar" style="margin-top:16px;">
         <button class="btn btn-primary" id="save-training-btn">Save session</button>
         <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
         <div class="spacer"></div>
         <button class="btn btn-secondary" id="delete-training-btn" style="color:#991b1b;">Delete this session</button>
+      </div>
+    </div>
+
+    <div id="notebook-editor" style="display:none;">
+      <a href="#" id="notebook-back-link" class="back-link">&larr; Back</a>
+      <div class="toolbar" style="margin-top:8px;">
+        <div class="field" style="flex:1;"><label for="notebook-name">Notebook name</label><input id="notebook-name" type="text" placeholder="e.g. Defense, U8, Warm-ups" /></div>
+        <div class="field"><label for="notebook-visibility">Who can see it?</label>
+          <select id="notebook-visibility">
+            <option value="private">🔒 Only me</option>
+            <option value="team">👥 My team</option>
+            <option value="association">🤝 My club association</option>
+            <option value="community">🌐 Pivot Community</option>
+          </select>
+        </div>
+      </div>
+      <p class="section-label">Exercises in this notebook <span style="font-weight:400; color:var(--muted); text-transform:none; font-size:12px;">— check any from your library</span></p>
+      <input id="notebook-exercise-search" type="text" placeholder="Search exercises…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />
+      <div id="notebook-exercise-checklist" style="max-height:360px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:6px;"></div>
+      <div class="toolbar" style="margin-top:16px;">
+        <button class="btn btn-primary" id="save-notebook-btn">Save notebook</button>
+        <div class="spacer"></div>
+        <button class="btn btn-secondary" id="delete-notebook-btn" style="display:none; color:#991b1b;">Delete this notebook</button>
       </div>
     </div>
   </div>
@@ -189,21 +252,37 @@
     orgLogo: document.getElementById("org-logo"),
     logoutBtn: document.getElementById("logout-btn"),
     tree: document.getElementById("tree"),
+    notebooksList: document.getElementById("notebooks-list"),
     trainingsList: document.getElementById("trainings-list"),
     currentSelection: document.getElementById("current-selection"),
     trainingArea: document.getElementById("training-area"),
     title: document.getElementById("tr-title"),
     date: document.getElementById("tr-date"),
+    number: document.getElementById("tr-number"),
+    category: document.getElementById("tr-category"),
     planned: document.getElementById("tr-planned"),
+    players: document.getElementById("tr-players"),
+    coach1: document.getElementById("tr-coach1"),
+    coach2: document.getElementById("tr-coach2"),
+    coach3: document.getElementById("tr-coach3"),
     visibility: document.getElementById("tr-visibility"),
     language: document.getElementById("tr-language"),
     durationBanner: document.getElementById("duration-banner"),
+    notebookFilter: document.getElementById("notebook-filter"),
     addExerciseSelect: document.getElementById("add-exercise-select"),
     sessionBody: document.getElementById("session-exercises-body"),
     sessionEmpty: document.getElementById("session-empty"),
+    catSummary: document.getElementById("tr-cat-summary"),
+    matSummary: document.getElementById("tr-mat-summary"),
+    objSummary: document.getElementById("tr-obj-summary"),
     attendanceBody: document.getElementById("attendance-body"),
+    ratingStars: document.getElementById("rating-stars"),
+    comments: document.getElementById("tr-comments"),
+    nextNotes: document.getElementById("tr-next"),
     msg: document.getElementById("msg"),
   };
+
+  const SESSION_CATEGORIES = ["U6", "U8", "U10", "U12", "U14", "U16", "U18", "U20", "Seniors", "Adults"];
 
   let currentOrgId = null;
   let myRole = null;
@@ -213,10 +292,44 @@
   let currentTranslationGroupId = null;
   let teamPlayers = [];
   let allExercises = [];
-  let sessionExercises = []; // { exercise_id, name, duration_minutes }
+  let sessionExercises = []; // { exercise_id, name, duration_minutes, key_points, session_variants }
   let attendance = {}; // player_id -> boolean
+  let allNotebooks = [];
+  let currentNotebookId = null;
+  let sessionRating = 0;
+  let expandedRowIdx = null; // quelle ligne du plan a son éditeur time/points/variants ouvert
 
   function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+
+  SESSION_CATEGORIES.forEach((c) => {
+    const opt = document.createElement("option");
+    opt.value = c; opt.textContent = c;
+    els.category.appendChild(opt);
+  });
+
+  // -----------------------------------------------------------------------
+  // Étoiles cliquables pour "comment ça s'est passé" -- 0 à 5, uniquement
+  // dans "Post-session feedback", jamais mélangé avec la préparation.
+  // -----------------------------------------------------------------------
+  function renderRatingStars() {
+    els.ratingStars.innerHTML = "";
+    for (let i = 1; i <= 5; i++) {
+      const star = document.createElement("span");
+      star.textContent = i <= sessionRating ? "★" : "☆";
+      star.style.color = i <= sessionRating ? "var(--accent)" : "var(--line)";
+      star.addEventListener("click", () => { sessionRating = (sessionRating === i) ? 0 : i; renderRatingStars(); });
+      els.ratingStars.appendChild(star);
+    }
+  }
+  renderRatingStars();
+
+  document.getElementById("feedback-toggle-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    const section = document.getElementById("feedback-section");
+    const open = section.style.display === "block";
+    section.style.display = open ? "none" : "block";
+    e.target.textContent = open ? "▸ Post-session feedback (fill in after it happened)" : "▾ Post-session feedback (fill in after it happened)";
+  });
 
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
@@ -232,15 +345,165 @@
   }
 
   async function loadExerciseOptions() {
-    const { data } = await supabaseClient.from("exercises").select("id, name").order("name");
+    const { data } = await supabaseClient.from("exercises").select("id, name, categories, material, objectives").order("name");
     allExercises = data || [];
+    populateExerciseSelect();
+  }
+
+  // Remplit "Add from library" -- filtré par notebook si un est choisi
+  // dans "Filter by notebook".
+  function populateExerciseSelect() {
+    const notebookId = els.notebookFilter.value;
+    const allowedIds = notebookId ? new Set((notebookExerciseIds[notebookId] || [])) : null;
     els.addExerciseSelect.innerHTML = '<option value="">Pick an exercise…</option>';
-    allExercises.forEach((e) => {
-      const opt = document.createElement("option");
-      opt.value = e.id; opt.textContent = e.name;
-      els.addExerciseSelect.appendChild(opt);
+    allExercises
+      .filter((e) => !allowedIds || allowedIds.has(e.id))
+      .forEach((e) => {
+        const opt = document.createElement("option");
+        opt.value = e.id; opt.textContent = e.name;
+        els.addExerciseSelect.appendChild(opt);
+      });
+  }
+  els.notebookFilter.addEventListener("change", populateExerciseSelect);
+
+  // -----------------------------------------------------------------------
+  // Notebooks -- des listes toutes prêtes d'exercices, groupées par thème
+  // (pas par saison/équipe). Servent de filtre rapide quand on construit
+  // une séance.
+  // -----------------------------------------------------------------------
+  let notebookExerciseIds = {}; // notebook_id -> [exercise_id, ...]
+
+  async function loadNotebooks() {
+    const { data, error } = await supabaseClient.from("notebooks").select("*").order("name");
+    if (error) { console.error("loadNotebooks error:", error); return; }
+    allNotebooks = data || [];
+    const { data: links } = await supabaseClient.from("notebook_exercises").select("notebook_id, exercise_id").order("position");
+    notebookExerciseIds = {};
+    (links || []).forEach((l) => { (notebookExerciseIds[l.notebook_id] = notebookExerciseIds[l.notebook_id] || []).push(l.exercise_id); });
+    renderNotebooksList();
+    renderNotebookFilterOptions();
+  }
+
+  function renderNotebooksList() {
+    els.notebooksList.innerHTML = "";
+    if (allNotebooks.length === 0) { els.notebooksList.innerHTML = '<p class="hint" style="font-size:12px; color:var(--muted); margin:4px 0 0;">None yet.</p>'; return; }
+    allNotebooks.forEach((n) => {
+      const owned = n.organization_id === currentOrgId;
+      const row = document.createElement("div");
+      row.className = "item-row" + (n.id === currentNotebookId ? " active" : "");
+      row.textContent = `${VISIBILITY_ICONS[n.visibility || "team"] || ""} ${n.name} (${(notebookExerciseIds[n.id] || []).length})${!owned ? " 🌐" : ""}`;
+      row.addEventListener("click", () => openNotebook(n.id));
+      els.notebooksList.appendChild(row);
     });
   }
+
+  function renderNotebookFilterOptions() {
+    const current = els.notebookFilter.value;
+    els.notebookFilter.innerHTML = '<option value="">All exercises</option>';
+    allNotebooks.forEach((n) => {
+      const opt = document.createElement("option");
+      opt.value = n.id; opt.textContent = n.name;
+      els.notebookFilter.appendChild(opt);
+    });
+    els.notebookFilter.value = current;
+    populateExerciseSelect();
+  }
+
+  function newNotebook() {
+    currentNotebookId = null;
+    document.getElementById("notebook-name").value = "";
+    document.getElementById("notebook-visibility").value = "team";
+    document.getElementById("notebook-exercise-search").value = "";
+    document.getElementById("delete-notebook-btn").style.display = "none";
+    renderNotebookChecklist([]);
+    els.trainingArea.style.display = "none";
+    document.getElementById("notebook-editor").style.display = "block";
+  }
+
+  function openNotebook(id) {
+    const n = allNotebooks.find((x) => x.id === id);
+    if (!n) return;
+    currentNotebookId = id;
+    document.getElementById("notebook-name").value = n.name;
+    document.getElementById("notebook-visibility").value = n.visibility || "team";
+    document.getElementById("notebook-exercise-search").value = "";
+    const owned = n.organization_id === currentOrgId;
+    document.getElementById("delete-notebook-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
+    document.getElementById("save-notebook-btn").style.display = owned ? "inline-block" : "none";
+    renderNotebookChecklist(notebookExerciseIds[id] || []);
+    document.querySelectorAll("#notebook-exercise-checklist input").forEach((cb) => (cb.disabled = !owned));
+    document.getElementById("notebook-name").disabled = !owned;
+    document.getElementById("notebook-visibility").disabled = !owned;
+    if (!owned) showMessage("This notebook belongs to another club — you can look, but not edit it.", "success");
+    els.trainingArea.style.display = "none";
+    document.getElementById("notebook-editor").style.display = "block";
+    renderNotebooksList();
+  }
+
+  function renderNotebookChecklist(checkedIds) {
+    const search = (document.getElementById("notebook-exercise-search").value || "").toLowerCase().trim();
+    const checked = new Set(checkedIds);
+    const list = document.getElementById("notebook-exercise-checklist");
+    list.innerHTML = "";
+    allExercises
+      .filter((e) => !search || e.name.toLowerCase().includes(search))
+      .forEach((e) => {
+        const row = document.createElement("label");
+        row.style.cssText = "display:flex; align-items:center; gap:8px; padding:5px 8px; font-size:13px; cursor:pointer;";
+        row.innerHTML = `<input type="checkbox" value="${e.id}" ${checked.has(e.id) ? "checked" : ""}><span>${escapeHtml(e.name)}</span>`;
+        list.appendChild(row);
+      });
+  }
+  document.getElementById("notebook-exercise-search").addEventListener("input", () => {
+    const checked = new Set(Array.from(document.querySelectorAll("#notebook-exercise-checklist input:checked")).map((cb) => cb.value));
+    renderNotebookChecklist(Array.from(checked));
+  });
+
+  document.getElementById("new-notebook-btn").addEventListener("click", newNotebook);
+  document.getElementById("notebook-back-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("notebook-editor").style.display = "none";
+    currentNotebookId = null;
+    renderNotebooksList();
+    if (currentTrainingId || currentTeam) els.trainingArea.style.display = "block";
+  });
+
+  document.getElementById("save-notebook-btn").addEventListener("click", async () => {
+    const name = document.getElementById("notebook-name").value.trim();
+    if (!name) { showMessage("Give the notebook a name first.", "error"); return; }
+    const visibility = document.getElementById("notebook-visibility").value;
+    const checkedIds = Array.from(document.querySelectorAll("#notebook-exercise-checklist input:checked")).map((cb) => cb.value);
+    try {
+      let notebookId = currentNotebookId;
+      if (notebookId) {
+        const { error } = await supabaseClient.from("notebooks").update({ name, visibility }).eq("id", notebookId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabaseClient.from("notebooks").insert({ organization_id: currentOrgId, name, visibility }).select("id").single();
+        if (error) throw error;
+        notebookId = data.id; currentNotebookId = notebookId;
+      }
+      await supabaseClient.from("notebook_exercises").delete().eq("notebook_id", notebookId);
+      if (checkedIds.length > 0) {
+        const rows = checkedIds.map((exId, i) => ({ notebook_id: notebookId, exercise_id: exId, position: i }));
+        const { error } = await supabaseClient.from("notebook_exercises").insert(rows);
+        if (error) throw error;
+      }
+      showMessage("Notebook saved.", "success");
+      await loadNotebooks();
+    } catch (err) {
+      showMessage(err.message || "Couldn't save that notebook.", "error");
+    }
+  });
+
+  document.getElementById("delete-notebook-btn").addEventListener("click", async () => {
+    if (!currentNotebookId || !confirm("Delete this notebook? The exercises inside it are not deleted, just this list.")) return;
+    const { error } = await supabaseClient.from("notebooks").delete().eq("id", currentNotebookId);
+    if (error) { showMessage(error.message, "error"); return; }
+    document.getElementById("notebook-editor").style.display = "none";
+    currentNotebookId = null;
+    await loadNotebooks();
+  });
 
   async function loadTree() {
     const { data, error } = await supabaseClient.from("players").select("season, team").eq("organization_id", currentOrgId);
@@ -266,6 +529,7 @@
     currentSeason = season; currentTeam = team;
     els.currentSelection.textContent = `${team} — ${season}`;
     els.trainingArea.style.display = "none";
+    document.getElementById("notebook-editor").style.display = "none";
     currentTrainingId = null;
     await loadTree();
     await loadTeamPlayers();
@@ -280,12 +544,15 @@
     teamPlayers = data || [];
   }
 
+  let allTrainingsCache = [];
+
   async function loadTrainingsList() {
     const { data, error } = await supabaseClient
-      .from("trainings").select("id, date, title, visibility, organization_id, season, team")
+      .from("trainings").select("id, date, title, visibility, organization_id, season, team, number")
       .order("date", { ascending: false });
     els.trainingsList.innerHTML = "";
     if (error) { console.error(error); return; }
+    allTrainingsCache = data || [];
     const mine = (data || []).filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam);
     const shared = (data || []).filter((t) => t.organization_id !== currentOrgId);
 
@@ -315,19 +582,34 @@
     }
   }
 
+  function nextSessionNumber() {
+    const mine = allTrainingsCache.filter((t) => t.organization_id === currentOrgId);
+    return mine.reduce((max, t) => Math.max(max, t.number || 0), 0) + 1;
+  }
+
   function newTraining() {
     if (!currentTeam) { showMessage("Pick a season/team on the left first.", "error"); return; }
     currentTrainingId = null;
     els.title.value = ""; els.date.value = new Date().toISOString().slice(0, 10); els.planned.value = "90";
+    els.number.value = nextSessionNumber();
+    els.category.value = ""; els.players.value = "";
+    els.coach1.value = ""; els.coach2.value = ""; els.coach3.value = "";
     els.visibility.value = "team";
     els.language.value = "en"; currentTranslationGroupId = null;
+    els.catSummary.value = ""; els.matSummary.value = ""; els.objSummary.value = "";
+    sessionRating = 0; els.comments.value = ""; els.nextNotes.value = "";
+    renderRatingStars();
+    document.getElementById("feedback-section").style.display = "none";
+    document.getElementById("feedback-toggle-link").textContent = "▸ Post-session feedback (fill in after it happened)";
     sessionExercises = [];
     attendance = {}; teamPlayers.forEach((p) => (attendance[p.id] = true));
     renderSessionTable(); renderAttendanceTable(); updateDurationBanner();
+    document.getElementById("notebook-editor").style.display = "none";
     els.trainingArea.style.display = "block";
     document.getElementById("delete-training-btn").style.display = "none";
     document.getElementById("save-training-btn").style.display = "inline-block";
-    [els.title, els.date, els.planned, els.visibility, els.language].forEach((el) => (el.disabled = false));
+    [els.title, els.date, els.number, els.category, els.planned, els.players, els.coach1, els.coach2, els.coach3, els.visibility, els.language]
+      .forEach((el) => (el.disabled = false));
   }
 
   async function openTraining(id) {
@@ -335,26 +617,59 @@
     if (error) { showMessage(error.message, "error"); return; }
     currentTrainingId = id;
     els.title.value = training.title || ""; els.date.value = training.date; els.planned.value = training.planned_minutes || 90;
+    els.number.value = training.number || "";
+    els.category.value = training.category || "";
+    els.players.value = training.players_count || "";
+    const coaches = training.coaches || [];
+    els.coach1.value = coaches[0] || ""; els.coach2.value = coaches[1] || ""; els.coach3.value = coaches[2] || "";
     els.visibility.value = training.visibility || "team";
     els.language.value = training.language || "en"; currentTranslationGroupId = training.translation_group_id || null;
+    els.catSummary.value = (training.categories_summary || []).join("\n");
+    els.matSummary.value = (training.material_summary || []).join("\n");
+    els.objSummary.value = (training.objectives_summary || []).join("\n");
+    sessionRating = training.rating || 0; renderRatingStars();
+    els.comments.value = training.comments || ""; els.nextNotes.value = training.next_training_notes || "";
+    const hasFeedback = sessionRating > 0 || (training.comments || "").trim() || (training.next_training_notes || "").trim();
+    document.getElementById("feedback-section").style.display = hasFeedback ? "block" : "none";
+    document.getElementById("feedback-toggle-link").textContent = hasFeedback ? "▾ Post-session feedback (fill in after it happened)" : "▸ Post-session feedback (fill in after it happened)";
 
     const { data: exRows } = await supabaseClient
-      .from("training_exercises").select("id, exercise_id, order_index, duration_minutes, exercises(name)")
+      .from("training_exercises").select("id, exercise_id, order_index, duration_minutes, key_points, session_variants, exercises(name)")
       .eq("training_id", id).order("order_index");
-    sessionExercises = (exRows || []).map((r) => ({ id: r.id, exercise_id: r.exercise_id, name: (r.exercises && r.exercises.name) || "(deleted exercise)", duration_minutes: r.duration_minutes }));
+    sessionExercises = (exRows || []).map((r) => ({
+      id: r.id, exercise_id: r.exercise_id, name: (r.exercises && r.exercises.name) || "(deleted exercise)",
+      duration_minutes: r.duration_minutes, key_points: r.key_points || [], session_variants: r.session_variants || "",
+    }));
 
     const { data: attRows } = await supabaseClient.from("training_attendance").select("player_id, present").eq("training_id", id);
     attendance = {}; teamPlayers.forEach((p) => (attendance[p.id] = true));
     (attRows || []).forEach((r) => (attendance[r.player_id] = r.present));
 
+    expandedRowIdx = null;
     renderSessionTable(); renderAttendanceTable(); updateDurationBanner();
+    document.getElementById("notebook-editor").style.display = "none";
     els.trainingArea.style.display = "block";
     const owned = training.organization_id === currentOrgId;
     document.getElementById("delete-training-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     document.getElementById("save-training-btn").style.display = owned ? "inline-block" : "none";
-    [els.title, els.date, els.planned, els.visibility, els.language].forEach((el) => (el.disabled = !owned));
+    [els.title, els.date, els.number, els.category, els.planned, els.players, els.coach1, els.coach2, els.coach3, els.visibility, els.language]
+      .forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This session belongs to another club — you can look, but not edit or save changes.", "success");
     await loadTrainingsList();
+  }
+
+  function computeAutoSummary() {
+    const cats = [], mats = [], objs = [];
+    sessionExercises.forEach((se) => {
+      const ex = allExercises.find((e) => e.id === se.exercise_id);
+      if (!ex) return;
+      cats.push(...(ex.categories || []));
+      mats.push(...(ex.material || []));
+      objs.push(...(ex.objectives || []));
+    });
+    els.catSummary.value = Array.from(new Set(cats)).join("\n");
+    els.matSummary.value = Array.from(new Set(mats)).join("\n");
+    els.objSummary.value = Array.from(new Set(objs)).slice(0, 4).join("\n");
   }
 
   function renderSessionTable() {
@@ -363,16 +678,48 @@
     sessionExercises.forEach((se, i) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${i + 1}</td><td>${se.name}</td>
+        <td>${i + 1}</td><td>${escapeHtml(se.name)}</td>
         <td><input type="number" value="${se.duration_minutes}" data-idx="${i}"></td>
-        <td><button data-idx="${i}">Remove</button></td>
+        <td><button data-action="edit" data-idx="${i}">${expandedRowIdx === i ? "Close" : "Edit"}</button></td>
+        <td><button data-action="remove" data-idx="${i}">Remove</button></td>
       `;
       tr.querySelector("input").addEventListener("change", (e) => {
         sessionExercises[i].duration_minutes = parseInt(e.target.value, 10) || 0;
         updateDurationBanner();
       });
-      tr.querySelector("button").addEventListener("click", () => { sessionExercises.splice(i, 1); renderSessionTable(); updateDurationBanner(); });
+      tr.querySelector('[data-action="edit"]').addEventListener("click", () => {
+        expandedRowIdx = expandedRowIdx === i ? null : i;
+        renderSessionTable();
+      });
+      tr.querySelector('[data-action="remove"]').addEventListener("click", () => {
+        sessionExercises.splice(i, 1);
+        if (expandedRowIdx === i) expandedRowIdx = null;
+        renderSessionTable(); updateDurationBanner(); computeAutoSummary();
+      });
       els.sessionBody.appendChild(tr);
+
+      if (expandedRowIdx === i) {
+        const detailTr = document.createElement("tr");
+        const detailTd = document.createElement("td");
+        detailTd.colSpan = 5;
+        detailTd.style.cssText = "background:var(--paper); padding:12px;";
+        detailTd.innerHTML = `
+          <p class="hint" style="margin:0 0 8px; font-size:12px; color:var(--muted);">Just for this session — the original exercise in the library isn't touched.</p>
+          <div class="field" style="margin-bottom:8px;">
+            <label style="font-size:12px; font-weight:600; color:var(--muted);">Key points for this session (one per line)</label>
+            <textarea rows="2" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;">${escapeHtml((se.key_points || []).join("\n"))}</textarea>
+          </div>
+          <div class="field">
+            <label style="font-size:12px; font-weight:600; color:var(--muted);">Variant used today</label>
+            <textarea rows="2" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;">${escapeHtml(se.session_variants || "")}</textarea>
+          </div>
+        `;
+        const textareas = detailTd.querySelectorAll("textarea");
+        textareas[0].addEventListener("change", (e) => { sessionExercises[i].key_points = e.target.value.split("\n").map((s) => s.trim()).filter(Boolean); });
+        textareas[1].addEventListener("change", (e) => { sessionExercises[i].session_variants = e.target.value; });
+        detailTr.appendChild(detailTd);
+        els.sessionBody.appendChild(detailTr);
+      }
     });
   }
 
@@ -399,9 +746,9 @@
     const id = els.addExerciseSelect.value;
     if (!id) return;
     const ex = allExercises.find((e) => e.id === id);
-    sessionExercises.push({ exercise_id: id, name: ex.name, duration_minutes: 10 });
+    sessionExercises.push({ exercise_id: id, name: ex.name, duration_minutes: 10, key_points: [], session_variants: "" });
     els.addExerciseSelect.value = "";
-    renderSessionTable(); updateDurationBanner();
+    renderSessionTable(); updateDurationBanner(); computeAutoSummary();
   });
 
   async function saveTraining() {
@@ -409,9 +756,19 @@
     const payload = {
       organization_id: currentOrgId, season: currentSeason, team: currentTeam,
       date: els.date.value, title: els.title.value.trim() || null,
+      number: els.number.value ? parseInt(els.number.value, 10) : nextSessionNumber(),
+      category: els.category.value || null,
       planned_minutes: parseInt(els.planned.value, 10) || null,
+      players_count: els.players.value ? parseInt(els.players.value, 10) : null,
+      coaches: [els.coach1.value.trim(), els.coach2.value.trim(), els.coach3.value.trim()].filter(Boolean),
       visibility: els.visibility.value,
       language: els.language.value,
+      categories_summary: els.catSummary.value.split("\n").map((s) => s.trim()).filter(Boolean),
+      material_summary: els.matSummary.value.split("\n").map((s) => s.trim()).filter(Boolean),
+      objectives_summary: els.objSummary.value.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 4),
+      rating: sessionRating || null,
+      comments: els.comments.value.trim() || null,
+      next_training_notes: els.nextNotes.value.trim() || null,
     };
     if (currentTranslationGroupId) payload.translation_group_id = currentTranslationGroupId;
     try {
@@ -425,7 +782,10 @@
 
       await supabaseClient.from("training_exercises").delete().eq("training_id", trainingId);
       if (sessionExercises.length > 0) {
-        const rows = sessionExercises.map((se, i) => ({ training_id: trainingId, exercise_id: se.exercise_id, order_index: i, duration_minutes: se.duration_minutes }));
+        const rows = sessionExercises.map((se, i) => ({
+          training_id: trainingId, exercise_id: se.exercise_id, order_index: i, duration_minutes: se.duration_minutes,
+          key_points: se.key_points || [], session_variants: se.session_variants || null,
+        }));
         const { error } = await supabaseClient.from("training_exercises").insert(rows);
         if (error) throw error;
       }
@@ -467,36 +827,142 @@
   }
 
   async function exportToPdf() {
-    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "pt", format: "a4" });
-    const accent = [210, 20, 20], ink = [26, 26, 26], muted = [130, 130, 136];
-    const marginX = 40;
-    if (logoDataUrl) { try { doc.addImage(logoDataUrl, "PNG", 480, 30, 40, 40); } catch (e) {} }
-    let y = 50;
-    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(...ink);
-    doc.text(els.orgName.textContent || "Pivot", marginX, y);
-    y += 18;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(...muted);
-    doc.text(`Training — ${els.title.value || currentTeam} (${els.date.value})`, marginX, y);
-    y += 10;
-    doc.setDrawColor(...accent); doc.setLineWidth(1); doc.line(marginX, y, 555, y);
-    y += 22;
+    const PAGE_W = 595, PAGE_H = 842, MARGIN = 20, BOTTOM = PAGE_H - MARGIN;
+    const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
+    const doc = new jsPDF({ unit: "pt", format: [PAGE_W, PAGE_H] });
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...ink);
-    doc.text("Exercises", marginX, y); y += 16;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-    sessionExercises.forEach((se, i) => { doc.text(`${i + 1}. ${se.name} — ${se.duration_minutes} min`, marginX, y); y += 15; });
-    y += 12;
+    function sectionFrame(x0, y0, x1, y1, title) {
+      doc.setDrawColor(GREY); doc.setLineWidth(0.8);
+      doc.rect(x0, y0, x1 - x0, y1 - y0);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+      const barW = Math.max(doc.getTextWidth(title) + 14, 80);
+      doc.setFillColor(ACCENT[0], ACCENT[1], ACCENT[2]);
+      doc.rect(x0 + 4, y0 - 0.1, barW, 15, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.text(title, x0 + 7, y0 + 11);
+      doc.setTextColor(DARK);
+    }
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...ink);
-    doc.text("Attendance", marginX, y); y += 16;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-    teamPlayers.forEach((p) => { doc.text(`${attendance[p.id] ? "✓" : "—"}  ${p.first_name} ${p.last_name}`, marginX, y); y += 14; });
+    // ---------- Cabecera : logo a la derecha, título/fecha a la izquierda ----------
+    doc.setTextColor(DARK);
+    const logoSize = 60;
+    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
+    if (logoDataUrl) { try { doc.addImage(logoDataUrl, PAGE_W - MARGIN - logoSize, 10, logoSize, logoSize); } catch (e) {} }
+    const clubName = (els.orgName.textContent || "").trim();
+    if (clubName) { doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(GREY); doc.text(clubName, PAGE_W - MARGIN - logoSize, 78, { maxWidth: logoSize }); doc.setTextColor(DARK); }
 
-    doc.setFontSize(8); doc.setTextColor(...muted);
-    doc.text(`Generated by Pivot on ${new Date().toISOString().slice(0, 10)}`, marginX, 810);
-    doc.save(`${(els.title.value || currentTeam)}_${els.date.value}.pdf`);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(18);
+    doc.text(els.title.value || `Session ${els.number.value || ""}`, MARGIN, 32);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(GREY);
+    const metaLine = [
+      els.number.value ? `#${els.number.value}` : null, els.date.value, els.category.value,
+      `${els.planned.value || "?"} min`, els.players.value ? `${els.players.value} players` : null,
+    ].filter(Boolean).join("  ·  ");
+    doc.text(metaLine, MARGIN, 48);
+    const coaches = [els.coach1.value, els.coach2.value, els.coach3.value].filter(Boolean);
+    if (coaches.length) doc.text("Coaches: " + coaches.join(", "), MARGIN, 62);
+    doc.setTextColor(DARK);
+
+    const top = 84, leftX0 = MARGIN, leftX1 = 200, midX0 = 210, midX1 = 400, rightX0 = 410, rightX1 = PAGE_W - MARGIN;
+    const TITLE_H = 17, PAD = 6, GAP = 10;
+
+    // ---------- Colonne gauche : présences ----------
+    {
+      const y0 = top, y1 = BOTTOM;
+      sectionFrame(leftX0, y0, leftX1, y1, "ATTENDANCE:");
+      let ry = y0 + TITLE_H + PAD / 2;
+      const rowH = Math.max(13, Math.min(20, (y1 - y0 - TITLE_H - PAD) / Math.max(1, teamPlayers.length)));
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+      teamPlayers.forEach((p) => {
+        doc.setDrawColor(DARK); doc.setLineWidth(0.6);
+        doc.rect(leftX0 + 7, ry + 2, 7, 7);
+        if (attendance[p.id]) {
+          doc.setLineWidth(0.8);
+          doc.line(leftX0 + 7, ry + 2, leftX0 + 14, ry + 9);
+          doc.line(leftX0 + 7, ry + 9, leftX0 + 14, ry + 2);
+        }
+        let fs = 8.6; doc.setFontSize(fs);
+        const label = `${p.first_name} ${p.last_name}`;
+        const maxw = leftX1 - (leftX0 + 18) - 4;
+        while (fs > 6 && doc.getTextWidth(label) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
+        doc.text(label, leftX0 + 18, ry + 8);
+        ry += rowH;
+      });
+    }
+
+    // ---------- Colonne centrale : le plan de séance ----------
+    {
+      const y0 = top;
+      sectionFrame(midX0, y0, midX1, BOTTOM, "SESSION PLAN:");
+      let ry = y0 + TITLE_H + PAD / 2;
+      const maxw = midX1 - midX0 - 16;
+      doc.setFont("helvetica", "normal");
+      sessionExercises.forEach((se, i) => {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
+        doc.text(`${i + 1}. ${se.name}`, midX0 + 8, ry);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+        doc.setTextColor(GREY);
+        doc.text(`${se.duration_minutes} min`, midX1 - 8, ry, { align: "right" });
+        doc.setTextColor(DARK);
+        ry += 12;
+        const points = (se.key_points || []).join(" · ");
+        if (points) { const lines = doc.splitTextToSize("• " + points, maxw); doc.setFontSize(8); doc.text(lines, midX0 + 8, ry); ry += lines.length * 10; }
+        if (se.session_variants) { const lines = doc.splitTextToSize("Variant: " + se.session_variants, maxw); doc.setFontSize(8); doc.setTextColor(GREY); doc.text(lines, midX0 + 8, ry); doc.setTextColor(DARK); ry += lines.length * 10; }
+        ry += 8;
+      });
+      if (sessionExercises.length === 0) { doc.setFontSize(9); doc.setTextColor(GREY); doc.text("No exercises added.", midX0 + 8, ry); doc.setTextColor(DARK); }
+    }
+
+    // ---------- Colonne droite : résumé auto + feedback après-séance ----------
+    {
+      let ry0 = top;
+      const catList = els.catSummary.value.split("\n").map((s) => s.trim()).filter(Boolean);
+      const matList = els.matSummary.value.split("\n").map((s) => s.trim()).filter(Boolean);
+      const objList = els.objSummary.value.split("\n").map((s) => s.trim()).filter(Boolean);
+      const summaryRows = catList.length + matList.length + objList.length;
+      const summaryH = Math.min(280, TITLE_H + PAD + Math.max(30, summaryRows * 11 + 24));
+      sectionFrame(rightX0, ry0, rightX1, ry0 + summaryH, "WORKED ON:");
+      let ry = ry0 + TITLE_H + 4;
+      doc.setFontSize(8);
+      function summaryBlock(label, items) {
+        if (items.length === 0) return;
+        doc.setFont("helvetica", "bold"); doc.text(label, rightX0 + 8, ry); ry += 10;
+        doc.setFont("helvetica", "normal");
+        items.forEach((it) => { doc.text("- " + it, rightX0 + 10, ry); ry += 10.5; });
+        ry += 4;
+      }
+      summaryBlock("Categories", catList);
+      summaryBlock("Material", matList);
+      summaryBlock("Objectives", objList);
+
+      const hasFeedback = sessionRating > 0 || els.comments.value.trim() || els.nextNotes.value.trim();
+      if (hasFeedback) {
+        const fbY0 = ry0 + summaryH + GAP;
+        sectionFrame(rightX0, fbY0, rightX1, BOTTOM, "AFTER THE SESSION:");
+        let fy = fbY0 + TITLE_H + 6;
+        if (sessionRating > 0) {
+          doc.setFont("helvetica", "normal"); doc.setFontSize(13); doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]);
+          doc.text("*".repeat(sessionRating) + "-".repeat(5 - sessionRating), rightX0 + 8, fy);
+          doc.setTextColor(DARK); fy += 16;
+        }
+        const addBlock = (label, text) => {
+          if (!text) return;
+          doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.text(label, rightX0 + 8, fy); fy += 10;
+          doc.setFont("helvetica", "normal");
+          const lines = doc.splitTextToSize(text, rightX1 - rightX0 - 16);
+          doc.text(lines, rightX0 + 8, fy); fy += lines.length * 10 + 6;
+        };
+        addBlock("Comments", els.comments.value.trim());
+        addBlock("Next time", els.nextNotes.value.trim());
+      }
+    }
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(GREY);
+    doc.text("Pivot", MARGIN, BOTTOM + 12);
+    doc.setTextColor(DARK);
+
+    doc.save(`${(els.title.value || currentTeam || "session")}_${els.date.value}.pdf`);
   }
 
   document.getElementById("new-training-btn").addEventListener("click", newTraining);
@@ -514,11 +980,15 @@
     box.innerHTML = `
       <strong>How to use Training builder</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li><strong>Notebooks</strong> (top left) — ready-made exercise lists grouped by theme (e.g. "Defense", "U8"), not tied to a season or team. Build one once, reuse it in any session, in any team, forever. Check exercises from your library to fill one in.</li>
         <li>Pick a season/team on the left, then "+ New session" or an existing one from the list.</li>
-        <li><strong>Add from library</strong> pulls an exercise straight from Exercise library — set how many minutes it gets.</li>
+        <li><strong>Filter by notebook</strong> narrows "Add from library" down to just that notebook's exercises — leave it on "All exercises" to search everything.</li>
+        <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise.</li>
         <li>The banner above the exercise list tracks your running total against the planned length, and turns red if you go over.</li>
+        <li><strong>Auto-summary</strong> fills itself in from the exercises you add (categories, material, up to 4 objectives) — edit it by hand any time.</li>
         <li><strong>Attendance</strong> is pulled from the team's roster — untick anyone who wasn't there.</li>
-        <li><strong>Export to PDF</strong> makes a clean session sheet with the exercise list and attendance.</li>
+        <li><strong>Post-session feedback</strong> is deliberately separate from everything above — the rest is what you planned, this is what actually happened: a rating, comments, and ideas for next time. Fill it in after the session, whenever you're ready.</li>
+        <li><strong>Export to PDF</strong> makes a session sheet in the same style as the exercise sheets: attendance on the left, the plan in the middle, the summary and feedback on the right.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). The icon next to each session in the list shows its current circle.</li>
       </ul>`;
     box.style.display = "block";
@@ -533,7 +1003,7 @@
     const { data } = await supabaseClient.auth.getSession();
     if (!data.session) { window.location.href = "./login.html"; return; }
     const orgId = await loadMyOrganization();
-    if (orgId) { await loadExerciseOptions(); await loadTree(); }
+    if (orgId) { await loadExerciseOptions(); await loadNotebooks(); await loadTree(); }
   }
   init();
 </script>
