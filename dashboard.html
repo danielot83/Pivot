@@ -71,6 +71,10 @@
       <button id="pending-requests-btn" class="nav-btn" style="cursor:pointer;">🔔 <span id="pending-requests-count"></span></button>
       <div id="pending-requests-panel" style="display:none; position:absolute; top:36px; left:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
     </div>
+    <div id="messages-widget" style="position:relative;">
+      <button id="messages-btn" class="nav-btn" style="cursor:pointer;">✉️ <span id="messages-count"></span></button>
+      <div id="messages-panel" style="display:none; position:absolute; top:36px; left:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
+    </div>
     <span id="org-name"></span>
     <a href="./settings.html" class="nav-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">⚙ Settings</a>
     <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
@@ -169,12 +173,17 @@
     assocBtn: document.getElementById("pending-requests-btn"),
     assocCount: document.getElementById("pending-requests-count"),
     assocPanel: document.getElementById("pending-requests-panel"),
+    msgWidget: document.getElementById("messages-widget"),
+    msgBtn: document.getElementById("messages-btn"),
+    msgCount: document.getElementById("messages-count"),
+    msgPanel: document.getElementById("messages-panel"),
     statPlayers: document.getElementById("stat-players"),
     statTeams: document.getElementById("stat-teams"),
     statAssessments: document.getElementById("stat-assessments"),
   };
 
   let currentOrgId = null;
+  let currentUserId = null;
   let isPlatformController = false;
   let canValidateAssociations = false;
 
@@ -254,7 +263,7 @@
     if (canValidateAssociations) {
       const { data, error } = await supabaseClient
         .from("club_association_members")
-        .select("association_id, organization_id, created_at, club_associations(name), organizations(name)")
+        .select("association_id, organization_id, created_at, message, club_associations(name), organizations(name)")
         .eq("status", "pending");
       if (error) { console.error("loadPendingRequestsWidget error:", error); return; }
       const rows = data || [];
@@ -264,6 +273,7 @@
       els.assocPanel.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Pending association requests</div>` + rows.map((r) => `
         <div style="padding:8px 0; border-bottom:1px solid var(--line);">
           <div><strong>${escapeHtml((r.organizations && r.organizations.name) || "—")}</strong> wants to join <strong>${escapeHtml((r.club_associations && r.club_associations.name) || "—")}</strong></div>
+          ${r.message ? `<div style="font-size:12.5px; color:var(--muted); font-style:italic; margin-top:4px;">"${escapeHtml(r.message)}"</div>` : ""}
           <div style="margin-top:6px; display:flex; gap:6px;">
             <button class="btn btn-approve assoc-approve-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:12px;">Approve</button>
             <button class="btn btn-reject assoc-reject-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:12px;">Reject</button>
@@ -312,6 +322,136 @@
   });
   document.addEventListener("click", (e) => {
     if (!els.assocWidget.contains(e.target)) els.assocPanel.style.display = "none";
+  });
+
+  // -----------------------------------------------------------------------
+  // Messagerie directe -- une petite fenêtre, comme la cloche des
+  // associations. La liste montre une ligne par conversation (l'autre
+  // personne), la plus récente en premier ; cliquer dessus ouvre le fil
+  // complet avec une réponse rapide.
+  // -----------------------------------------------------------------------
+  let openConversationWith = null;
+
+  async function loadMessagesWidget() {
+    const { data, error } = await supabaseClient
+      .from("messages")
+      .select("id, sender_id, recipient_id, body, created_at, read_at, sender:sender_id(full_name), recipient:recipient_id(full_name)")
+      .or(`sender_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`)
+      .order("created_at", { ascending: false });
+    if (error) { console.error("loadMessagesWidget error:", error); return; }
+
+    const unread = (data || []).filter((m) => m.recipient_id === currentUserId && !m.read_at).length;
+    els.msgCount.textContent = unread > 0 ? unread : "";
+
+    // Regroupe par "autre personne" -- on ne garde que le message le plus
+    // récent de chaque conversation pour la liste.
+    const byPerson = {};
+    (data || []).forEach((m) => {
+      const otherId = m.sender_id === currentUserId ? m.recipient_id : m.sender_id;
+      const otherName = (m.sender_id === currentUserId ? m.recipient : m.sender)?.full_name || "Someone";
+      if (!byPerson[otherId]) byPerson[otherId] = { otherId, otherName, latest: m, unread: 0 };
+      if (m.recipient_id === currentUserId && !m.read_at) byPerson[otherId].unread++;
+    });
+    renderMessagesPanel(Object.values(byPerson));
+  }
+
+  function renderMessagesPanel(conversations) {
+    if (openConversationWith) { renderThread(openConversationWith); return; }
+    let html = `<div style="font-weight:600; margin-bottom:8px;">Messages</div>
+      <button id="new-message-btn" class="nav-btn" style="width:100%; margin-bottom:10px;">+ New message</button>`;
+    if (conversations.length === 0) {
+      html += `<p class="hint" style="margin:0;">No messages yet.</p>`;
+    } else {
+      html += conversations.sort((a, b) => new Date(b.latest.created_at) - new Date(a.latest.created_at)).map((c) => `
+        <div class="conv-row" data-other="${c.otherId}" style="padding:8px 0; border-bottom:1px solid var(--line); cursor:pointer;">
+          <div style="display:flex; justify-content:space-between;">
+            <strong>${escapeHtml(c.otherName)}</strong>
+            ${c.unread > 0 ? `<span style="background:var(--accent); color:#fff; border-radius:100px; font-size:11px; padding:1px 7px;">${c.unread}</span>` : ""}
+          </div>
+          <div style="font-size:12.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(c.latest.body)}</div>
+        </div>
+      `).join("");
+    }
+    els.msgPanel.innerHTML = html;
+    els.msgPanel.querySelectorAll(".conv-row").forEach((row) => row.addEventListener("click", () => { openConversationWith = row.dataset.other; loadMessagesWidget(); }));
+    document.getElementById("new-message-btn").addEventListener("click", showComposeNew);
+  }
+
+  async function renderThread(otherId) {
+    const { data, error } = await supabaseClient
+      .from("messages")
+      .select("id, sender_id, recipient_id, body, created_at, read_at, sender:sender_id(full_name)")
+      .or(`and(sender_id.eq.${currentUserId},recipient_id.eq.${otherId}),and(sender_id.eq.${otherId},recipient_id.eq.${currentUserId})`)
+      .order("created_at", { ascending: true });
+    if (error) { console.error("renderThread error:", error); return; }
+
+    // Marque comme lus les messages reçus dans ce fil.
+    const unreadIds = (data || []).filter((m) => m.recipient_id === currentUserId && !m.read_at).map((m) => m.id);
+    if (unreadIds.length > 0) {
+      await supabaseClient.from("messages").update({ read_at: new Date().toISOString() }).in("id", unreadIds);
+    }
+
+    const otherName = (data && data[0] && (data[0].sender_id === otherId ? data[0].sender.full_name : null)) || "Conversation";
+    els.msgPanel.innerHTML = `
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:12.5px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <div style="font-weight:600; margin-bottom:8px;">${escapeHtml(otherName)}</div>
+      <div id="thread-messages" style="max-height:220px; overflow-y:auto; margin-bottom:10px;">
+        ${(data || []).map((m) => `
+          <div style="margin-bottom:8px; text-align:${m.sender_id === currentUserId ? "right" : "left"};">
+            <div style="display:inline-block; max-width:80%; background:${m.sender_id === currentUserId ? "var(--accent-tint)" : "var(--paper)"}; border-radius:8px; padding:6px 10px; font-size:12.5px;">${escapeHtml(m.body)}</div>
+          </div>
+        `).join("")}
+      </div>
+      <div style="display:flex; gap:6px;">
+        <input id="reply-input" type="text" placeholder="Write a reply…" style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
+        <button id="reply-send-btn" class="nav-btn">Send</button>
+      </div>
+    `;
+    document.getElementById("thread-messages").scrollTop = document.getElementById("thread-messages").scrollHeight;
+    document.getElementById("back-to-inbox-btn").addEventListener("click", () => { openConversationWith = null; loadMessagesWidget(); });
+    const send = async () => {
+      const input = document.getElementById("reply-input");
+      const body = input.value.trim();
+      if (!body) return;
+      const { error: sendErr } = await supabaseClient.from("messages").insert({ sender_id: currentUserId, recipient_id: otherId, body });
+      if (sendErr) { showMessage(sendErr.message, "error"); return; }
+      input.value = "";
+      await loadMessagesWidget();
+    };
+    document.getElementById("reply-send-btn").addEventListener("click", send);
+    document.getElementById("reply-input").addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+  }
+
+  function showComposeNew() {
+    els.msgPanel.innerHTML = `
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:12.5px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <div style="font-weight:600; margin-bottom:8px;">New message</div>
+      <p class="hint" style="margin:0 0 8px;">You can message a teammate from your own club, or the Pivot admins.</p>
+      <input id="new-msg-email" type="text" placeholder="Their email" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:6px;" />
+      <textarea id="new-msg-body" rows="3" placeholder="Your message…" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:6px;"></textarea>
+      <button id="new-msg-send-btn" class="nav-btn" style="width:100%;">Send</button>
+    `;
+    document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
+    document.getElementById("new-msg-send-btn").addEventListener("click", async () => {
+      const email = document.getElementById("new-msg-email").value.trim();
+      const body = document.getElementById("new-msg-body").value.trim();
+      if (!email || !body) return;
+      const { data: recipient, error: findErr } = await supabaseClient.from("profiles").select("id").eq("email", email).maybeSingle();
+      if (findErr || !recipient) { showMessage("No Pivot account found with that email, or you're not allowed to message them yet.", "error"); return; }
+      const { error: sendErr } = await supabaseClient.from("messages").insert({ sender_id: currentUserId, recipient_id: recipient.id, body });
+      if (sendErr) { showMessage("Couldn't send — you can message teammates from your club, or a Pivot admin/validator.", "error"); return; }
+      openConversationWith = recipient.id;
+      await loadMessagesWidget();
+    });
+  }
+
+  els.msgBtn.addEventListener("click", () => {
+    const opening = els.msgPanel.style.display === "none";
+    els.msgPanel.style.display = opening ? "block" : "none";
+    if (opening) loadMessagesWidget();
+  });
+  document.addEventListener("click", (e) => {
+    if (!els.msgWidget.contains(e.target)) els.msgPanel.style.display = "none";
   });
 
   // -----------------------------------------------------------------------
@@ -379,6 +519,8 @@
     box.innerHTML = `
       <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which club or association?</label>
       <select id="join-org-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;"><option>Loading…</option></select>
+      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Message to the admin (optional)</label>
+      <textarea id="join-org-message" rows="2" placeholder="e.g. Hi, I'm the new U16 coach…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-family:inherit; font-size:13px;"></textarea>
       <button class="nav-btn" id="join-org-btn" style="width:100%;">Send request</button>
     `;
     wrap.appendChild(box);
@@ -397,8 +539,9 @@
     box.querySelector("#join-org-btn").addEventListener("click", async () => {
       const orgId = select.value;
       if (!orgId) return;
+      const message = box.querySelector("#join-org-message").value.trim() || null;
       try {
-        const { error } = await supabaseClient.from("memberships").insert({ organization_id: orgId, role: "coach", status: "pending" });
+        const { error } = await supabaseClient.from("memberships").insert({ organization_id: orgId, role: "coach", status: "pending", join_message: message });
         if (error) throw error;
         showMessage("Request sent — the admin needs to approve it.", "success");
         wrap.remove();
@@ -449,7 +592,7 @@
 
     const { data: requests } = await supabaseClient
       .from("memberships")
-      .select("id, role, organization_id, user_id, organizations(name), profiles(full_name)")
+      .select("id, role, organization_id, user_id, join_message, organizations(name), profiles(full_name)")
       .eq("status", "pending")
       .in("organization_id", myOrgIds);
     if (!requests || requests.length === 0) return;
@@ -465,6 +608,12 @@
       const detail = document.createElement("span");
       detail.textContent = `wants to join ${(req.organizations && req.organizations.name) || "your club"} as ${req.role}`;
       info.appendChild(name); info.appendChild(detail);
+      if (req.join_message) {
+        const msg = document.createElement("div");
+        msg.style.cssText = "font-size:12.5px; color:var(--muted); font-style:italic; margin-top:4px;";
+        msg.textContent = `"${req.join_message}"`;
+        info.appendChild(msg);
+      }
 
       const actions = document.createElement("div");
       actions.className = "request-actions";
@@ -653,6 +802,7 @@
   async function init() {
     const { data } = await supabaseClient.auth.getSession();
     if (!data.session) { window.location.href = "./login.html"; return; }
+    currentUserId = data.session.user.id;
 
     renderModulesGrid("modules-grid", linkForModule);
     // Terminer une création/demande de club en attente AVANT de vérifier
@@ -664,6 +814,7 @@
       await loadPendingRequestsForAdmin();
       await loadStats();
     }
+    await loadMessagesWidget();
   }
   init();
 </script>

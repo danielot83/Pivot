@@ -216,6 +216,10 @@
       <label for="assoc-name-input">Name for a new association (e.g. "Liga Cantonal U16")</label>
       <input id="assoc-name-input" type="text" placeholder="Association name" />
     </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label for="assoc-message-input">Message to whoever approves it (optional)</label>
+      <textarea id="assoc-message-input" rows="2" placeholder="e.g. We're 3 clubs in the same league, would love to share exercises…"></textarea>
+    </div>
     <button class="btn btn-primary" id="request-association-btn">Request to create it</button>
     <p class="hint" style="margin-top:10px;">Already know the name of an existing association? Ask its members, then request to join it the same way — matching names request to join the same association instead of creating a new one.</p>
   </div>
@@ -397,6 +401,7 @@
   document.getElementById("request-association-btn").addEventListener("click", async () => {
     const name = document.getElementById("assoc-name-input").value.trim();
     if (!name) { showMessage("Give the association a name first.", "error"); return; }
+    const message = document.getElementById("assoc-message-input").value.trim() || null;
     const { data: userData } = await supabaseClient.auth.getUser();
     const userId = userData && userData.user && userData.user.id;
     try {
@@ -415,10 +420,11 @@
       }
       const { error: joinErr } = await supabaseClient
         .from("club_association_members")
-        .insert({ association_id: associationId, organization_id: currentOrgId, requested_by: userId });
+        .insert({ association_id: associationId, organization_id: currentOrgId, requested_by: userId, message });
       if (joinErr) throw joinErr;
       showMessage("Request sent — waiting for the Pivot controller to approve it.", "success");
       document.getElementById("assoc-name-input").value = "";
+      document.getElementById("assoc-message-input").value = "";
       await loadAssociations();
     } catch (err) {
       showMessage(err.message || "Couldn't send that request.", "error");
