@@ -269,6 +269,8 @@
   let cssW = 300, cssH = 280;
 
   let currentOrgId = null;
+  let myRole = null;
+  const canDelete = () => myRole === "admin" || myRole === "coach";
   let currentExId = null;
   let currentTranslationGroupId = null;
   let activeCategory = null;
@@ -428,9 +430,10 @@
   // -----------------------------------------------------------------------
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active").limit(1);
     if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
     currentOrgId = data[0].organization_id;
+    myRole = data[0].role;
     els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -525,7 +528,7 @@
     buildStepTabs(); resizeCanvasForStep(); render();
     els.editorArea.style.display = "block"; els.editorEmpty.style.display = "none";
     const owned = e.organization_id === currentOrgId;
-    document.getElementById("delete-ex-btn").style.display = owned ? "inline-block" : "none";
+    document.getElementById("delete-ex-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     // Un ejercicio compartido por otro club se mira, pero no se edita ni
     // se guarda aquí -- antes solo se escondía "Delete", pero "Save" y
     // los campos seguían activos: si alguien escribía y guardaba,

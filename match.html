@@ -137,12 +137,19 @@
             <option value="community">🌐 Pivot Community</option>
           </select>
         </div>
+        <div class="field"><label for="match-language">Language</label>
+          <select id="match-language">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
       </div>
       <div class="toolbar">
         <button class="btn btn-primary" id="save-match-btn">Save match details</button>
         <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
         <div class="spacer"></div>
-        <button class="btn btn-secondary" id="delete-match-btn" style="color:#991b1b;">Delete this match</button>
+        <button class="btn btn-secondary" id="delete-match-btn" style="display:none; color:#991b1b;">Delete this match</button>
       </div>
 
       <p class="section-label">Call-up &amp; stats</p>
@@ -186,6 +193,7 @@
     matchTeamScore: document.getElementById("match-team-score"),
     matchOpponentScore: document.getElementById("match-opponent-score"),
     matchVisibility: document.getElementById("match-visibility"),
+    matchLanguage: document.getElementById("match-language"),
     callupBody: document.getElementById("callup-body"),
     summaryBody: document.getElementById("summary-body"),
     summaryEmpty: document.getElementById("summary-empty"),
@@ -194,9 +202,12 @@
   };
 
   let currentOrgId = null;
+  let myRole = null;
+  const canDelete = () => myRole === "admin" || myRole === "coach";
   let currentSeason = null;
   let currentTeam = null;
   let currentMatchId = null;
+  let currentTranslationGroupId = null;
   let teamPlayers = []; // joueurs actifs de l'équipe sélectionnée
   let statsByPlayer = {}; // player_id -> { called_up, started, minutes, points, rebounds, assists, fouls }
 
@@ -204,9 +215,10 @@
 
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active").limit(1);
     if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
     currentOrgId = data[0].organization_id;
+    myRole = data[0].role;
     els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -309,12 +321,14 @@
     els.matchTeamScore.value = "";
     els.matchOpponentScore.value = "";
     els.matchVisibility.value = "team";
+    els.matchLanguage.value = "en"; currentTranslationGroupId = null;
     statsByPlayer = {};
     teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0 }));
     renderCallupTable();
     els.matchArea.style.display = "block";
     document.getElementById("save-match-btn").style.display = "inline-block";
-    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility]
+    document.getElementById("delete-match-btn").style.display = "none";
+    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
       .forEach((el) => (el.disabled = false));
   }
 
@@ -329,6 +343,7 @@
     els.matchTeamScore.value = match.team_score ?? "";
     els.matchOpponentScore.value = match.opponent_score ?? "";
     els.matchVisibility.value = match.visibility || "team";
+    els.matchLanguage.value = match.language || "en"; currentTranslationGroupId = match.translation_group_id || null;
 
     const { data: statRows } = await supabaseClient.from("match_player_stats").select("*").eq("match_id", id);
     statsByPlayer = {};
@@ -340,7 +355,8 @@
     els.matchArea.style.display = "block";
     const owned = match.organization_id === currentOrgId;
     document.getElementById("save-match-btn").style.display = owned ? "inline-block" : "none";
-    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility]
+    document.getElementById("delete-match-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
+    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
       .forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This match belongs to another club — you can look, but not edit or save changes.", "success");
     await loadMatchesList();
@@ -398,17 +414,21 @@
       team_score: els.matchTeamScore.value ? parseInt(els.matchTeamScore.value, 10) : null,
       opponent_score: els.matchOpponentScore.value ? parseInt(els.matchOpponentScore.value, 10) : null,
       visibility: els.matchVisibility.value,
+      language: els.matchLanguage.value,
     };
+    if (currentTranslationGroupId) payload.translation_group_id = currentTranslationGroupId;
     try {
       let matchId = currentMatchId;
       if (matchId) {
         const { error } = await supabaseClient.from("matches").update(payload).eq("id", matchId);
         if (error) throw error;
       } else {
-        const { data, error } = await supabaseClient.from("matches").insert(payload).select("id").single();
+        const { data, error } = await supabaseClient.from("matches").insert(payload).select("id, translation_group_id").single();
         if (error) throw error;
         matchId = data.id;
         currentMatchId = matchId;
+        currentTranslationGroupId = data.translation_group_id;
+        document.getElementById("delete-match-btn").style.display = canDelete() ? "inline-block" : "none";
       }
 
       // remplace toutes les stats de ce match par l'état actuel (simple et sûr)

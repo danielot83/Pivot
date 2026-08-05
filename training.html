@@ -134,6 +134,13 @@
             <option value="community">🌐 Pivot Community</option>
           </select>
         </div>
+        <div class="field"><label for="tr-language">Language</label>
+          <select id="tr-language">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
       </div>
 
       <div class="duration-banner" id="duration-banner"></div>
@@ -189,6 +196,7 @@
     date: document.getElementById("tr-date"),
     planned: document.getElementById("tr-planned"),
     visibility: document.getElementById("tr-visibility"),
+    language: document.getElementById("tr-language"),
     durationBanner: document.getElementById("duration-banner"),
     addExerciseSelect: document.getElementById("add-exercise-select"),
     sessionBody: document.getElementById("session-exercises-body"),
@@ -198,8 +206,11 @@
   };
 
   let currentOrgId = null;
+  let myRole = null;
+  const canDelete = () => myRole === "admin" || myRole === "coach";
   let currentSeason = null, currentTeam = null;
   let currentTrainingId = null;
+  let currentTranslationGroupId = null;
   let teamPlayers = [];
   let allExercises = [];
   let sessionExercises = []; // { exercise_id, name, duration_minutes }
@@ -209,9 +220,10 @@
 
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active").limit(1);
     if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
     currentOrgId = data[0].organization_id;
+    myRole = data[0].role;
     els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -308,13 +320,14 @@
     currentTrainingId = null;
     els.title.value = ""; els.date.value = new Date().toISOString().slice(0, 10); els.planned.value = "90";
     els.visibility.value = "team";
+    els.language.value = "en"; currentTranslationGroupId = null;
     sessionExercises = [];
     attendance = {}; teamPlayers.forEach((p) => (attendance[p.id] = true));
     renderSessionTable(); renderAttendanceTable(); updateDurationBanner();
     els.trainingArea.style.display = "block";
     document.getElementById("delete-training-btn").style.display = "none";
     document.getElementById("save-training-btn").style.display = "inline-block";
-    [els.title, els.date, els.planned, els.visibility].forEach((el) => (el.disabled = false));
+    [els.title, els.date, els.planned, els.visibility, els.language].forEach((el) => (el.disabled = false));
   }
 
   async function openTraining(id) {
@@ -323,6 +336,7 @@
     currentTrainingId = id;
     els.title.value = training.title || ""; els.date.value = training.date; els.planned.value = training.planned_minutes || 90;
     els.visibility.value = training.visibility || "team";
+    els.language.value = training.language || "en"; currentTranslationGroupId = training.translation_group_id || null;
 
     const { data: exRows } = await supabaseClient
       .from("training_exercises").select("id, exercise_id, order_index, duration_minutes, exercises(name)")
@@ -336,9 +350,9 @@
     renderSessionTable(); renderAttendanceTable(); updateDurationBanner();
     els.trainingArea.style.display = "block";
     const owned = training.organization_id === currentOrgId;
-    document.getElementById("delete-training-btn").style.display = owned ? "inline-block" : "none";
+    document.getElementById("delete-training-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     document.getElementById("save-training-btn").style.display = owned ? "inline-block" : "none";
-    [els.title, els.date, els.planned, els.visibility].forEach((el) => (el.disabled = !owned));
+    [els.title, els.date, els.planned, els.visibility, els.language].forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This session belongs to another club — you can look, but not edit or save changes.", "success");
     await loadTrainingsList();
   }
@@ -397,14 +411,16 @@
       date: els.date.value, title: els.title.value.trim() || null,
       planned_minutes: parseInt(els.planned.value, 10) || null,
       visibility: els.visibility.value,
+      language: els.language.value,
     };
+    if (currentTranslationGroupId) payload.translation_group_id = currentTranslationGroupId;
     try {
       let trainingId = currentTrainingId;
       if (trainingId) { const { error } = await supabaseClient.from("trainings").update(payload).eq("id", trainingId); if (error) throw error; }
       else {
-        const { data, error } = await supabaseClient.from("trainings").insert(payload).select("id").single();
+        const { data, error } = await supabaseClient.from("trainings").insert(payload).select("id, translation_group_id").single();
         if (error) throw error;
-        trainingId = data.id; currentTrainingId = trainingId;
+        trainingId = data.id; currentTrainingId = trainingId; currentTranslationGroupId = data.translation_group_id;
       }
 
       await supabaseClient.from("training_exercises").delete().eq("training_id", trainingId);

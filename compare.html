@@ -123,6 +123,26 @@
     </table>
     <div class="empty-state" id="criterion-empty" style="display:none">Pick at least one player above.</div>
   </div>
+
+  <div class="card">
+    <h2>Match stats</h2>
+    <p class="hint">Career averages across every match each player was called up for.</p>
+    <table>
+      <thead><tr><th>Player</th><th>Games</th><th>PPG</th><th>RPG</th><th>APG</th><th>Fouls/g</th></tr></thead>
+      <tbody id="match-stats-body"></tbody>
+    </table>
+    <div class="empty-state" id="match-stats-empty" style="display:none">Pick at least one player above.</div>
+  </div>
+
+  <div class="card">
+    <h2>Training attendance</h2>
+    <p class="hint">How often each player showed up, across every training session they were part of.</p>
+    <table>
+      <thead><tr><th>Player</th><th>Sessions</th><th>Present</th><th>Attendance rate</th></tr></thead>
+      <tbody id="attendance-body"></tbody>
+    </table>
+    <div class="empty-state" id="attendance-empty" style="display:none">Pick at least one player above.</div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -176,6 +196,10 @@
     criterionSelect: document.getElementById("criterion-select"),
     criterionBody: document.getElementById("criterion-body"),
     criterionEmpty: document.getElementById("criterion-empty"),
+    matchStatsBody: document.getElementById("match-stats-body"),
+    matchStatsEmpty: document.getElementById("match-stats-empty"),
+    attendanceBody: document.getElementById("attendance-body"),
+    attendanceEmpty: document.getElementById("attendance-empty"),
   };
 
   let currentOrgId = null;
@@ -224,6 +248,10 @@
     await loadLatestAssessments();
     renderSectorChart();
     renderCriterionTable();
+    await loadMatchStats();
+    await loadAttendance();
+    renderMatchStats();
+    renderAttendance();
   }
 
   // -----------------------------------------------------------------------
@@ -282,6 +310,79 @@
   }
 
   // -----------------------------------------------------------------------
+  // Moyennes de match (points/rebonds/passes par match) et taux de
+  // présence aux entraînements -- même logique de cache que les
+  // évaluations : une fois calculé pour un joueur, on ne le recalcule
+  // pas à chaque fois qu'on ajoute/enlève quelqu'un d'autre.
+  // -----------------------------------------------------------------------
+  const matchStatsCache = {};
+  const attendanceCache = {};
+
+  async function loadMatchStats() {
+    for (const id of selectedIds) {
+      if (matchStatsCache[id]) continue;
+      const { data, error } = await supabaseClient.from("match_player_stats").select("points, rebounds, assists, fouls").eq("player_id", id);
+      if (error) { matchStatsCache[id] = null; continue; }
+      const rows = data || [];
+      if (rows.length === 0) { matchStatsCache[id] = { games: 0 }; continue; }
+      const sum = (key) => rows.reduce((acc, r) => acc + (r[key] || 0), 0);
+      matchStatsCache[id] = {
+        games: rows.length,
+        ppg: sum("points") / rows.length,
+        rpg: sum("rebounds") / rows.length,
+        apg: sum("assists") / rows.length,
+        fpg: sum("fouls") / rows.length,
+      };
+    }
+  }
+
+  function renderMatchStats() {
+    els.matchStatsBody.innerHTML = "";
+    if (selectedIds.length === 0) { els.matchStatsEmpty.style.display = "block"; return; }
+    els.matchStatsEmpty.style.display = "none";
+    selectedIds.forEach((id) => {
+      const p = allPlayers.find((pp) => pp.id === id);
+      const s = matchStatsCache[id];
+      const tr = document.createElement("tr");
+      if (!s || s.games === 0) {
+        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="5">No matches recorded yet</td>`;
+      } else {
+        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td>${s.games}</td><td>${s.ppg.toFixed(1)}</td><td>${s.rpg.toFixed(1)}</td><td>${s.apg.toFixed(1)}</td><td>${s.fpg.toFixed(1)}</td>`;
+      }
+      els.matchStatsBody.appendChild(tr);
+    });
+  }
+
+  async function loadAttendance() {
+    for (const id of selectedIds) {
+      if (attendanceCache[id]) continue;
+      const { data, error } = await supabaseClient.from("training_attendance").select("present").eq("player_id", id);
+      if (error) { attendanceCache[id] = null; continue; }
+      const rows = data || [];
+      const present = rows.filter((r) => r.present).length;
+      attendanceCache[id] = { sessions: rows.length, present };
+    }
+  }
+
+  function renderAttendance() {
+    els.attendanceBody.innerHTML = "";
+    if (selectedIds.length === 0) { els.attendanceEmpty.style.display = "block"; return; }
+    els.attendanceEmpty.style.display = "none";
+    selectedIds.forEach((id) => {
+      const p = allPlayers.find((pp) => pp.id === id);
+      const a = attendanceCache[id];
+      const tr = document.createElement("tr");
+      if (!a || a.sessions === 0) {
+        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="3">No training sessions recorded yet</td>`;
+      } else {
+        const rate = ((a.present / a.sessions) * 100).toFixed(0);
+        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td>${a.sessions}</td><td>${a.present}</td><td>${rate}%</td>`;
+      }
+      els.attendanceBody.appendChild(tr);
+    });
+  }
+
+  // -----------------------------------------------------------------------
   // Sélecteur de critère précis (même liste que assessment.html)
   // -----------------------------------------------------------------------
   function buildCriterionSelect() {
@@ -329,6 +430,7 @@
         <li>Click any player chip above to add them to the comparison — works across different seasons and teams, so you can put a 2024 player next to a 2019 one.</li>
         <li>The sector chart shows each selected player's <em>most recent</em> assessment, one bar color per player.</li>
         <li>The table below lets you pick one exact criterion (out of all 36) and see each player's score for just that, side by side.</li>
+        <li><strong>Match stats</strong> and <strong>Training attendance</strong> — career averages across every match/session each player has been part of, not just the latest one.</li>
         <li>Everything updates live as you add or remove players — no need to click a "compare" button.</li>
       </ul>`;
     box.style.display = "block";

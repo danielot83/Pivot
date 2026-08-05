@@ -223,6 +223,7 @@
     { key: "avs_number", label: "AVS number", default: false, type: "text" },
     { key: "has_license", label: "Has license", default: true, type: "checkbox" },
     { key: "active", label: "Active", default: true, type: "checkbox" },
+    { key: "visibility", label: "Who sees them", default: true, type: "select", options: ["team", "private"] },
   ];
   const FORM_FIELDS = ["first_name","last_name","birth_year","category","jersey_number","gender","phone","email","license","avs_number"];
 
@@ -267,6 +268,8 @@
   };
 
   let currentOrgId = null;
+  let myRole = null;
+  const canDelete = () => myRole === "admin" || myRole === "coach";
   let currentSeason = null;
   let currentTeam = null;
   let photoUploadTargetId = null;
@@ -402,12 +405,13 @@
   // ---------------------------------------------------------------------
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active").limit(1);
     if (error || !data || data.length === 0) {
       showMessage("You're not an active member of any club yet.", "error");
       return null;
     }
     currentOrgId = data[0].organization_id;
+    myRole = data[0].role;
     els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -474,10 +478,12 @@
     // -- actions --
     const actionsTd = document.createElement("td");
     actionsTd.className = "actions";
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "Delete";
-    delBtn.addEventListener("click", () => deletePlayer(p));
-    actionsTd.appendChild(delBtn);
+    if (canDelete()) {
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "Delete";
+      delBtn.addEventListener("click", () => deletePlayer(p));
+      actionsTd.appendChild(delBtn);
+    }
     tr.appendChild(actionsTd);
 
     return tr;

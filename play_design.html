@@ -138,6 +138,13 @@
           <option value="community">🌐 Pivot Community</option>
         </select>
       </div>
+      <div class="field"><label for="play-language">Language</label>
+        <select id="play-language">
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
     </div>
 
     <div class="step-tabs" id="step-tabs"></div>
@@ -212,6 +219,7 @@
     playTeam: document.getElementById("play-team"),
     playCategory: document.getElementById("play-category"),
     playVisibility: document.getElementById("play-visibility"),
+    playLanguage: document.getElementById("play-language"),
     canvas: document.getElementById("court-canvas"),
     colorSelect: document.getElementById("color-select"),
     stepCourtType: document.getElementById("step-court-type"),
@@ -224,7 +232,10 @@
   let cssW = 480, cssH = 460;
 
   let currentOrgId = null;
+  let myRole = null;
+  const canDelete = () => myRole === "admin" || myRole === "coach";
   let currentPlayId = null;
+  let currentTranslationGroupId = null;
   let rosterSeasonsTeams = [];
   let activeTool = "select";
   // steps = tableau ordonné, pas de nombre fixe. Chaque étape : son propre
@@ -675,9 +686,10 @@
   // -----------------------------------------------------------------------
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active").limit(1);
     if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
     currentOrgId = data[0].organization_id;
+    myRole = data[0].role;
     els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -783,6 +795,7 @@
     updateTeamOptions();
     els.playCategory.value = "";
     els.playVisibility.value = "team";
+    els.playLanguage.value = "en"; currentTranslationGroupId = null;
     steps = [newStep()];
     currentStepIndex = 0;
     pointCounters.nextPlayerNum = 1;
@@ -790,7 +803,7 @@
     buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
     document.getElementById("delete-play-btn").style.display = "none";
     document.getElementById("save-play-btn").style.display = "inline-block";
-    [els.playName, els.playSeason, els.playTeam, els.playCategory, els.playVisibility].forEach((el) => (el.disabled = false));
+    [els.playName, els.playSeason, els.playTeam, els.playCategory, els.playVisibility, els.playLanguage].forEach((el) => (el.disabled = false));
     showMessage("New blank play — pick a tool and draw on the court, then Save when ready.", "success");
   }
 
@@ -805,6 +818,7 @@
     els.playTeam.value = data.team || "";
     els.playCategory.value = data.category || "";
     els.playVisibility.value = data.visibility || "team";
+    els.playLanguage.value = data.language || "en"; currentTranslationGroupId = data.translation_group_id || null;
     steps = (data.diagram && Array.isArray(data.diagram.steps) && data.diagram.steps.length > 0)
       ? data.diagram.steps.map((s) => ({ courtType: s.courtType || "half", note: s.note || "", points: s.points || [], actions: s.actions || [] }))
       : [newStep()];
@@ -821,14 +835,14 @@
       pointCounters[key] = max + 1;
     });
     buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
-    document.getElementById("delete-play-btn").style.display = owned ? "inline-block" : "none";
+    document.getElementById("delete-play-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     // Une jugada partagée par un autre club se regarde, mais ne s'édite
     // ni ne se sauvegarde ici -- comme pour les exercices dans la
     // Library. Copier chez soi n'est pas encore proposé pour les
     // jugadas -- à ajouter si Daniel veut la même chose que pour les
     // exercices.
     document.getElementById("save-play-btn").style.display = owned ? "inline-block" : "none";
-    [els.playName, els.playSeason, els.playTeam, els.playCategory, els.playVisibility].forEach((el) => (el.disabled = !owned));
+    [els.playName, els.playSeason, els.playTeam, els.playCategory, els.playVisibility, els.playLanguage].forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This play belongs to another club — you can look, but not edit or save changes.", "success");
     await loadPlaysList();
   }
@@ -844,21 +858,26 @@
       team: els.playTeam.value || null,
       category: els.playCategory.value.trim() || null,
       visibility: els.playVisibility.value,
+      language: els.playLanguage.value,
       name, court_type: "multi-step",
       diagram: { steps },
       updated_at: new Date().toISOString(),
     };
+    // Una jugada nueva empieza su propio grupo de traducción (un solo
+    // idioma por ahora); solo cuando venga de un futuro "duplicar como
+    // traducción" heredaría el grupo del original.
+    if (currentTranslationGroupId) payload.translation_group_id = currentTranslationGroupId;
     try {
       let error;
       if (currentPlayId) ({ error } = await supabaseClient.from("plays").update(payload).eq("id", currentPlayId));
       else {
-        const { data, error: insErr } = await supabaseClient.from("plays").insert(payload).select("id").single();
+        const { data, error: insErr } = await supabaseClient.from("plays").insert(payload).select("id, translation_group_id").single();
         error = insErr;
-        if (!error) currentPlayId = data.id;
+        if (!error) { currentPlayId = data.id; currentTranslationGroupId = data.translation_group_id; }
       }
       if (error) throw error;
       showMessage("Play saved.", "success");
-      document.getElementById("delete-play-btn").style.display = "inline-block";
+      document.getElementById("delete-play-btn").style.display = canDelete() ? "inline-block" : "none";
       await loadPlaysList();
     } catch (err) {
       showMessage(err.message || "Couldn't save that play.", "error");

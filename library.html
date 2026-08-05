@@ -175,6 +175,8 @@
   };
 
   let currentOrgId = null;
+  let myRole = null;
+  const canDelete = () => myRole === "admin" || myRole === "coach";
   let allExercises = [];
   let usageCounts = {}; // exercise_id -> nombre de séances où il apparaît
   let selectedId = null;
@@ -200,9 +202,10 @@
 
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active").limit(1);
     if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
     currentOrgId = data[0].organization_id;
+    myRole = data[0].role;
     els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -321,14 +324,15 @@
         ${owned ? '<button class="btn btn-secondary" id="duplicate-btn">Duplicate</button>' : ""}
         ${owned ? '<button class="btn btn-secondary" id="translate-btn">Duplicate as translation…</button>' : ""}
         ${!owned ? '<button class="btn btn-secondary" id="copy-to-mine-btn">Copy to my library</button>' : ""}
-        ${owned ? '<button class="btn btn-secondary" id="delete-btn" style="color:#991b1b;">Delete</button>' : ""}
+        ${(owned && canDelete()) ? '<button class="btn btn-secondary" id="delete-btn" style="color:#991b1b;">Delete</button>' : ""}
       </div>
     `;
     document.getElementById("fav-toggle-btn").addEventListener("click", () => toggleFavorite(e));
     if (owned) {
       document.getElementById("duplicate-btn").addEventListener("click", () => duplicateExercise(e));
       document.getElementById("translate-btn").addEventListener("click", () => duplicateAsTranslation(e));
-      document.getElementById("delete-btn").addEventListener("click", () => deleteExercise(e));
+      const deleteBtn = document.getElementById("delete-btn");
+      if (deleteBtn) deleteBtn.addEventListener("click", () => deleteExercise(e));
     } else {
       document.getElementById("copy-to-mine-btn").addEventListener("click", () => copyToMyLibrary(e));
     }

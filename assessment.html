@@ -178,6 +178,13 @@
             <option value="community">🌐 Pivot Community</option>
           </select>
         </div>
+        <div class="field"><label for="assess-language">Language</label>
+          <select id="assess-language">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
       </div>
 
       <div class="side-card" style="margin-bottom:16px;">
@@ -347,6 +354,7 @@
     date: document.getElementById("date"),
     location: document.getElementById("location"),
     visibility: document.getElementById("assess-visibility"),
+    language: document.getElementById("assess-language"),
     heightPlayer: document.getElementById("height_player"),
     heightFather: document.getElementById("height_father"),
     heightMother: document.getElementById("height_mother"),
@@ -366,6 +374,8 @@
   };
 
   let currentOrgId = null;
+  let myRole = null;
+  const canDelete = () => myRole === "admin" || myRole === "coach";
   let currentSeason = null;
   let currentTeam = null;
   let currentRatings = emptyRatings();
@@ -417,12 +427,13 @@
   // ---------------------------------------------------------------------
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active").limit(1);
     if (error || !data || data.length === 0) {
       showMessage("You're not an active member of any club yet.", "error");
       return null;
     }
     currentOrgId = data[0].organization_id;
+    myRole = data[0].role;
     els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -747,6 +758,7 @@
     els.date.value = new Date().toISOString().slice(0, 10);
     els.location.value = "";
     els.visibility.value = "team";
+    els.language.value = "en";
     els.heightPlayer.value = ""; els.heightFather.value = ""; els.heightMother.value = "";
     els.positivePoints.value = ""; els.negativePoints.value = ""; els.toImprove.value = "";
     document.getElementById("ai-response-input").value = "";
@@ -766,13 +778,14 @@
     els.date.value = data.date;
     els.location.value = data.location || "";
     els.visibility.value = data.visibility || "team";
+    els.language.value = data.language || "en";
     els.heightPlayer.value = data.height_player || "";
     els.heightFather.value = data.height_father || "";
     els.heightMother.value = data.height_mother || "";
     els.positivePoints.value = data.positive_points || "";
     els.negativePoints.value = data.negative_points || "";
     els.toImprove.value = data.to_improve || "";
-    els.deleteBtn.style.display = "inline-block";
+    els.deleteBtn.style.display = canDelete() ? "inline-block" : "none";
     els.formArea.style.display = "block";
     fillFormFromRatings();
     applyAdvancedVisibility();
@@ -955,6 +968,7 @@
       organization_id: currentOrgId, player_id: playerId,
       date: els.date.value, location: els.location.value.trim() || null,
       visibility: els.visibility.value,
+      language: els.language.value,
       height_player: els.heightPlayer.value.trim() || null,
       height_father: els.heightFather.value.trim() || null,
       height_mother: els.heightMother.value.trim() || null,
