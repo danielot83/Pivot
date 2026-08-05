@@ -71,6 +71,10 @@
   .lang-cycle-btn:hover { filter: brightness(0.95); }
   .version-pill { font-size: 11.5px; font-weight: 600; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 3px 10px; cursor: pointer; margin: 0 4px 4px 0; }
   .version-pill.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .diagram-thumbs { display: flex; flex-wrap: wrap; gap: 10px; }
+  .diagram-thumb { text-align: center; }
+  .diagram-thumb canvas { border: 1px solid var(--line); border-radius: 6px; display: block; }
+  .diagram-thumb span { display: block; font-size: 10.5px; color: var(--muted); margin-top: 3px; }
   .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
 
   .detail-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
@@ -152,6 +156,7 @@
   </div>
 </div>
 
+<script src="court-diagram.js?v=4"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -277,19 +282,35 @@
       return true;
     });
 
-    els.resultCount.textContent = `${filtered.length} exercise${filtered.length === 1 ? "" : "s"} found`;
     els.listCard.innerHTML = "";
-    els.listEmpty.style.display = filtered.length === 0 ? "block" : "none";
 
+    // Une seule ligne par groupe de traduction -- avant, "Bonjour" et
+    // "Hello" (même exercice, deux langues) apparaissaient comme deux
+    // lignes séparées avec le même numéro. Maintenant, une seule ligne,
+    // avec un petit bouton pour choisir quelle langue elle affiche.
+    const seenGroups = new Set();
+    const displayList = [];
     filtered.forEach((e) => {
+      const gid = e.translation_group_id;
+      if (!gid) { displayList.push({ shown: e, groupInFiltered: [e] }); return; }
+      if (seenGroups.has(gid)) return;
+      seenGroups.add(gid);
+      const groupInFiltered = filtered.filter((f) => f.translation_group_id === gid);
+      const shown = groupInFiltered.find((g) => g.id === selectedId) || groupInFiltered.find((g) => g.language === "en") || groupInFiltered[0];
+      displayList.push({ shown, groupInFiltered });
+    });
+
+    els.resultCount.textContent = `${displayList.length} exercise${displayList.length === 1 ? "" : "s"} found`;
+    els.listEmpty.style.display = displayList.length === 0 ? "block" : "none";
+
+    displayList.forEach(({ shown: e, groupInFiltered }) => {
       const row = document.createElement("div");
       row.className = "list-row" + (e.id === selectedId ? " active" : "");
       const used = usageCounts[e.id] || 0;
       const usedTxt = used === 0 ? "never used" : `${used}×`;
-      const group = (e.translation_group_id && translationGroups[e.translation_group_id]) || [];
       const langCode = (e.language || "en").toUpperCase();
-      const langBadge = group.length > 1
-        ? `<button class="lang-cycle-btn" data-group="${e.translation_group_id}" data-current="${e.id}" title="This exercise has ${group.length} language versions — click to switch">${langCode}</button>`
+      const langBadge = groupInFiltered.length > 1
+        ? `<button class="lang-cycle-btn" data-current="${e.id}" title="This exercise has ${groupInFiltered.length} language versions — click to switch">${langCode}</button>`
         : `<span class="lang-pill-single">${langCode}</span>`;
       row.innerHTML = `
         <div>
@@ -308,8 +329,8 @@
       if (cycleBtn) {
         cycleBtn.addEventListener("click", (ev) => {
           ev.stopPropagation();
-          const idx = group.findIndex((g) => g.id === e.id);
-          const next = group[(idx + 1) % group.length];
+          const idx = groupInFiltered.findIndex((g) => g.id === e.id);
+          const next = groupInFiltered[(idx + 1) % groupInFiltered.length];
           selectExercise(next.id);
         });
       }
@@ -341,8 +362,6 @@
 
   const VISIBILITY_LABELS = { private: "🔒 Only me", team: "👥 My team", association: "🤝 Club association", community: "🌐 Pivot Community" };
 
-  const STEP_LABELS = { court_1: "Step 1", court_2: "Step 2", court_3: "Step 3", court_4: "Step 4 (vertical)", court_5: "Step 5 (full court)" };
-
   function renderDetail(e) {
     if (!e) { els.detailCard.innerHTML = '<p class="sub" style="margin:0;">Pick an exercise from the list.</p>'; return; }
     const owned = e.organization_id === currentOrgId;
@@ -355,9 +374,9 @@
         <div class="section-label">Language versions</div>
         <p>${group.map((g) => `<button class="version-pill${g.id === e.id ? " active" : ""}" data-id="${g.id}">${LANGUAGE_NAMES[g.language || "en"] || g.language}</button>`).join("")}</p>
       </div>` : "";
-    const drawnSteps = Object.keys(e.diagram || {}).filter((k) => (e.diagram[k] || []).length > 0);
+    const drawnSteps = COURT_IDS.filter((k) => ((e.diagram || {})[k] || []).length > 0);
     const diagramLine = drawnSteps.length
-      ? `<div class="section"><div class="section-label">Court diagram</div><p>${drawnSteps.map((k) => `<span class="tag-chip">✏️ ${STEP_LABELS[k] || k}</span>`).join("")}</p></div>`
+      ? `<div class="section"><div class="section-label">Court diagram</div><div class="diagram-thumbs">${drawnSteps.map((k) => `<div class="diagram-thumb"><canvas data-step="${k}" width="1" height="1"></canvas><span>${COURT_LABELS[COURT_IDS.indexOf(k)]}</span></div>`).join("")}</div></div>`
       : `<div class="section"><div class="section-label">Court diagram</div><p style="color:var(--muted); font-size:12.5px;">Nothing drawn yet.</p></div>`;
     els.detailCard.innerHTML = `
       <h3>${e.favorite ? "★ " : ""}${escapeHtml(e.name)}</h3>
@@ -381,6 +400,19 @@
       </div>
     `;
     document.getElementById("fav-toggle-btn").addEventListener("click", () => toggleFavorite(e));
+    document.querySelectorAll(".diagram-thumb canvas").forEach((canvas) => {
+      const stepId = canvas.dataset.step;
+      const courtType = COURT_TYPES[stepId];
+      const [origW, origH] = CANVAS_SIZES[courtType];
+      // Miniatura pequeña -- la misma proporción real de la pista, solo
+      // que a un tamaño que quepa varias en el panel de detalle.
+      const scale = 130 / origW;
+      const cssW = origW * scale, cssH = origH * scale;
+      const ctx = setupHiDPICanvas(canvas, cssW, cssH);
+      const toPx = (x, y) => [x * cssW, y * cssH];
+      drawCourtBackground(ctx, canvas, courtType, cssW, cssH);
+      ((e.diagram || {})[stepId] || []).forEach((el) => drawDiagramElement(ctx, toPx, canvas, el, 1));
+    });
     document.querySelectorAll(".version-pill").forEach((btn) => btn.addEventListener("click", () => selectExercise(btn.dataset.id)));
     if (owned) {
       document.getElementById("duplicate-btn").addEventListener("click", () => duplicateExercise(e));
@@ -406,7 +438,7 @@
   }
 
   async function duplicateExercise(e) {
-    const copy = { ...e, name: e.name + " (copy)", number: nextNumberForMyClub(), favorite: false };
+    const copy = { ...e, name: e.name, number: nextNumberForMyClub(), favorite: false };
     delete copy.id; delete copy.created_by;
     const { error } = await supabaseClient.from("exercises").insert(copy);
     if (error) { showMessage(error.message, "error"); return; }

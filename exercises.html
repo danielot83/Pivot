@@ -892,19 +892,21 @@
       doc.setTextColor(DARK);
     }
 
-    // ---------- Cabecera : logo + nombre del club, número, nombre ----------
+    // ---------- Cabecera : logo (derecha, más grande) + nombre del club, número, nombre ----------
     doc.setTextColor(DARK);
+    const logoSize = 70;
+    const logoX = PAGE_W - MARGIN - logoSize, logoY = MARGIN;
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     if (logoDataUrl) {
-      try { doc.addImage(logoDataUrl, MARGIN, MARGIN, 52, 52); } catch (e) { /* logo inválido, se ignora */ }
+      try { doc.addImage(logoDataUrl, logoX, logoY, logoSize, logoSize); } catch (e) { /* logo inválido, se ignora */ }
     }
     const clubName = (els.orgName.textContent || "").trim();
     if (clubName) {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
-      doc.text(clubName, MARGIN, MARGIN + 62, { maxWidth: 58 });
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+      doc.text(clubName, logoX + logoSize / 2, logoY + logoSize + 11, { align: "center", maxWidth: logoSize + 10 });
     }
 
-    const labelX = 88;
+    const labelX = MARGIN;
     doc.setFont("helvetica", "bold"); doc.setFontSize(13);
     doc.text("EXERCISE N°:", labelX, 40);
     const numLabelW = doc.getTextWidth("EXERCISE N°:");
@@ -916,10 +918,11 @@
     doc.setFont("helvetica", "bold"); doc.setFontSize(12);
     doc.text("NAME:", labelX, 66);
     const nameLabelW = doc.getTextWidth("NAME:");
-    doc.line(labelX + nameLabelW + 8, 70, PAGE_W - MARGIN, 70);
+    const nameLineEnd = logoX - 10;
+    doc.line(labelX + nameLabelW + 8, 70, nameLineEnd, 70);
     let nameFs = 13; doc.setFont("helvetica", "normal"); doc.setFontSize(nameFs);
     const name = els.name.value || "";
-    const nameMaxW = PAGE_W - MARGIN - (labelX + nameLabelW + 14) - 6;
+    const nameMaxW = nameLineEnd - (labelX + nameLabelW + 14) - 6;
     while (nameFs > 7 && doc.getTextWidth(name) > nameMaxW) { nameFs -= 0.5; doc.setFontSize(nameFs); }
     doc.text(name, labelX + nameLabelW + 14, 67);
 
