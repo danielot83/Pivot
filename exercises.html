@@ -125,12 +125,42 @@
   <div>
     <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
     <h1>
-      Exercise library
+      Create exercise
       <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
     </h1>
     <p class="sub">Same fields as the desktop app: number, age groups, categories, material, difficulty, tags, objectives, and a 5-step court diagram.</p>
     <div class="help-box" id="help-box"></div>
     <div class="msg" id="msg"></div>
+
+    <div id="creator-landing" style="display:none;">
+      <p class="sub" style="margin-top:0;">How do you want to start this exercise?</p>
+      <div style="display:flex; flex-direction:column; gap:10px; max-width:520px;">
+        <button class="btn btn-secondary" id="landing-manual-btn" style="text-align:left; padding:16px 18px; font-size:14px;">✍️ Fill it in by hand — the full form</button>
+        <button class="btn btn-secondary" id="landing-ai-btn" style="text-align:left; padding:16px 18px; font-size:14px;">🤖 Paste a block prepared by an AI (ChatGPT, Claude…)</button>
+      </div>
+      <p class="hint" style="margin-top:14px;"><a href="#" id="landing-from-existing-link">Or start from one of your existing exercises →</a></p>
+    </div>
+
+    <div id="ai-block-area" style="display:none;">
+      <a href="#" id="ai-block-back-link" class="back-link">&larr; Back</a>
+      <p class="sub" style="margin-top:0;">Copy this into any AI chat, describe your exercise idea on the last line, and paste its reply below.</p>
+      <div class="side-card" style="margin-bottom:14px;">
+        <textarea id="ai-block-template" readonly style="width:100%; min-height:180px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12px; font-family:inherit; color:var(--muted);"></textarea>
+        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+          <button class="btn btn-secondary" id="copy-ai-template-btn">📋 Copy this template</button>
+          <button class="btn btn-secondary" id="copy-last-ex-btn">📎 Copy my last exercise</button>
+        </div>
+        <p class="hint" style="margin:8px 0 0;">"Copy my last exercise" gives the AI a real example of your style and picks the next number — paste it in the chat before your new idea.</p>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label for="ai-block-input">Paste the AI's reply here</label>
+        <textarea id="ai-block-input" rows="10" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-primary" id="ai-block-save-btn">Save to library + PDF</button>
+        <button class="btn btn-secondary" id="ai-block-edit-btn">Open in the full editor</button>
+      </div>
+    </div>
 
     <div id="editor-area" style="display:none">
       <div class="tabs-row">
@@ -139,18 +169,6 @@
       </div>
 
       <div class="tab-pane active" id="tab-data">
-        <div class="side-card" style="margin-bottom:16px;">
-          <a href="#" id="ai-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Fill in with AI</a>
-          <div id="ai-section" style="display:none; margin-top:12px;">
-            <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">
-              Copy this prompt into any AI chat (describe the drill when it asks), then paste its reply below. This doesn't draw the diagram — that part stays manual, in the "Court diagram" tab.
-            </p>
-            <button class="btn btn-secondary" id="copy-ai-prompt-btn" style="margin-bottom:10px;">Copy prompt</button>
-            <textarea id="ai-response-input" placeholder="Paste the AI's reply here…" style="width:100%; min-height:100px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit;"></textarea>
-            <button class="btn btn-primary" id="fill-from-ai-btn" style="margin-top:8px;">Fill from AI reply</button>
-          </div>
-        </div>
-
         <div class="field-row">
           <div class="field"><label for="ex-number">Number</label><input id="ex-number" type="number" style="width:80px;" /></div>
           <div class="field" style="flex:2;"><label for="ex-name">Name</label><input id="ex-name" type="text" placeholder="e.g. 3-man weave" /></div>
@@ -172,6 +190,7 @@
         <div class="group-card">
           <span class="checkbox-group-label">Material</span>
           <div class="checkbox-group" id="material-group"></div>
+          <p class="hint" style="margin:8px 0 0;">Anything you place on the court diagram (cones, balls…) is added here automatically when you save.</p>
         </div>
 
         <div class="field" style="margin-bottom:12px;"><label for="ex-tags">Tags (semicolon-separated)</label><input id="ex-tags" type="text" placeholder="e.g. Footwork; Balance" /></div>
@@ -227,6 +246,7 @@
 
       <div class="toolbar" style="margin-top:16px;">
         <button class="btn btn-primary" id="save-ex-btn">Save exercise</button>
+        <button class="btn btn-secondary" id="pdf-ex-btn">Export PDF</button>
         <button class="btn btn-secondary" id="delete-ex-btn" style="display:none; color:#991b1b;">Delete</button>
       </div>
     </div>
@@ -235,6 +255,7 @@
 </div>
 
 <script src="court-diagram.js?v=4"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
@@ -295,83 +316,240 @@
   function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
 
   // -----------------------------------------------------------------------
-  // "Fill in with AI" -- même idée que Player assessment : un prompt
-  // prêt à copier, l'IA répond dans un format fixe qu'on sait relire.
-  // Ne touche jamais au diagramme -- ça reste dessiné à la main, dans
-  // l'onglet "Court diagram".
+  // Bloque IA -- même format que l'app de bureau : un prompt fixe à
+  // copier (pas une conversation), les mêmes étiquettes (avec quelques
+  // synonymes FR/ES acceptés en plus, au cas où l'IA répond dans une
+  // autre langue), et "Copier mon dernier exercice" pour donner à l'IA
+  // un exemple réel de style + le bon numéro suivant.
   // -----------------------------------------------------------------------
-  function buildAiPrompt() {
-    return [
-      "You're helping a basketball coach write a training exercise for their library. I'll describe the drill — ask me clarifying questions first if you need more (age group, skill focus, number of players, how long it takes) before answering.",
-      "",
-      `Age groups to pick from (use one or more, comma-separated, exact spelling): ${AGE_GROUPS.join(", ")}`,
-      `Categories to pick from (one or more, comma-separated, exact spelling): ${CATEGORIES.join(", ")}`,
-      `Material to pick from (one or more, comma-separated, exact spelling, or "None"): ${MATERIALS.join(", ")}`,
-      "",
-      "You can ask your questions in whatever language I'm writing to you in — reply in that language for the conversation. But once (and only once) I confirm you have enough, your FINAL reply must contain ONLY these lines, in this exact format, nothing else, no matter what language we spoke in:",
-      "name: ...",
-      "difficulty: 1, 2, or 3",
-      "age: ...",
-      "categories: ...",
-      "material: ...",
-      "tags: a few short comma-separated tags",
-      "objective1: ...",
-      "objective2: ... (leave out if there isn't a second one)",
-      "objective3: ... (optional)",
-      "objective4: ... (optional)",
-      "description: one paragraph, on a single line",
-      "variants: one paragraph, on a single line (optional)",
-    ].join("\n");
+  const AI_BLOCK_TEMPLATE = [
+    "You're helping a basketball coach prepare a complete exercise sheet, ready to go into their training notebook.",
+    "",
+    "I'll describe an exercise idea at the very bottom. Reply with a complete sheet, following EXACTLY this format (one label per line, no bold, no markdown, nothing before or after):",
+    "",
+    "NUMBER: [an exercise number; if you don't know which one to use, put 0]",
+    "NAME: [invent a short, clear name for this exercise]",
+    `CATEGORY: [one or more, separated by semicolons; choose only from: ${CATEGORIES.join(", ")}]`,
+    `MATERIAL: [one or more, separated by semicolons; choose only from: ${MATERIALS.join(", ")}]`,
+    "DIFFICULTY: [1, 2, or 3, based on how hard the exercise really is]",
+    `AGE: [age groups this fits, separated by semicolons; choose only from: ${AGE_GROUPS.join(", ")}]`,
+    "TAGS: [a few free keywords separated by semicolons, to find this exercise again later]",
+    "OBJECTIVES:",
+    "[2 to 4 concrete coaching objectives, one per line]",
+    "DESCRIPTION:",
+    "[describe exactly how the exercise runs on the court: who does what, in what order, with what rules]",
+    "VARIANTS:",
+    "[1 to 3 possible variants of the exercise]",
+    "",
+    "Important: don't worry about the court diagram (player positions, arrows, ball...) — the coach draws that themselves, directly in the app, afterwards. Focus only on the text above.",
+    "",
+    "The exercise is about: [DESCRIBE YOUR EXERCISE IDEA HERE]",
+  ].join("\n");
+
+  const LABEL_ALIASES = {
+    number: ["NUMBER", "NUMERO", "NÚMERO", "N", "N°", "Nº"],
+    name: ["NAME", "NOM", "NOM DE L'EXERCICE", "NOMBRE", "TITLE", "TITRE", "TITULO"],
+    difficulty: ["DIFFICULTY", "DIFFICULTE", "DIFFICULTÉ", "DIFICULTAD"],
+    categories: ["CATEGORY", "CATEGORIES", "CATÉGORIE", "CATEGORIE", "CATEGORIA", "CATEGORÍAS", "CATEGORIAS"],
+    material: ["MATERIAL", "MATERIEL", "MATÉRIEL"],
+    age: ["AGE", "ÂGE", "EDAD"],
+    tags: ["TAGS", "ETIQUETTES", "ÉTIQUETTES", "ETIQUETAS", "MOTS CLES", "MOTS-CLES"],
+    objectives: ["OBJECTIVES", "OBJECTIF", "OBJECTIFS", "OBJETIVO", "OBJETIVOS"],
+    description: ["DESCRIPTION", "DESCRIPCION", "DESCRIPCIÓN"],
+    variants: ["VARIANTS", "VARIANTE", "VARIANTES"],
+  };
+  const LABEL_LOOKUP = {};
+  Object.keys(LABEL_ALIASES).forEach((key) => LABEL_ALIASES[key].forEach((alias) => (LABEL_LOOKUP[normalizeLabel(alias)] = key)));
+
+  function normalizeLabel(s) {
+    return s.trim().toUpperCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z ]/g, "").replace(/\s+/g, " ").trim();
   }
 
-  function matchOptions(text, options) {
-    const parts = text.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  // Reconnaît le bloc préparé par n'importe quelle IA, que l'étiquette
+  // soit suivie du contenu sur la même ligne ou sur les lignes d'après.
+  function parseFreeBlock(text) {
+    const sections = {};
+    Object.keys(LABEL_ALIASES).forEach((k) => (sections[k] = []));
+    let current = null;
+    text.replace(/\r\n/g, "\n").split("\n").forEach((rawLine) => {
+      const line = rawLine.replace(/\s+$/, "");
+      const stripped = line.trim();
+      let candidate = stripped, inlineValue = null;
+      if (stripped.includes(":")) {
+        const idx = stripped.indexOf(":");
+        candidate = stripped.slice(0, idx);
+        inlineValue = stripped.slice(idx + 1).trim();
+      }
+      const key = candidate.length <= 40 ? LABEL_LOOKUP[normalizeLabel(candidate)] : null;
+      if (key) {
+        current = key;
+        if (inlineValue) sections[current].push(inlineValue);
+        return;
+      }
+      if (current) sections[current].push(line);
+    });
+    const out = {};
+    Object.keys(sections).forEach((k) => (out[k] = sections[k].join("\n").trim()));
+    return out;
+  }
+
+  function parseBlock(text) {
+    const sections = parseFreeBlock(text);
+    const digits = (sections.number || "").replace(/\D/g, "");
+    const nameLines = (sections.name || "").split("\n").map((l) => l.trim()).filter(Boolean);
+    if (!nameLines.length) throw new Error("Couldn't find the exercise's NAME in that text. Use the template above so the AI replies in the right format.");
+    const diffDigits = (sections.difficulty || "").replace(/\D/g, "");
+    const objectives = (sections.objectives || "").split("\n").map((l) => l.replace(/^[\s\-]+/, "").trim()).filter(Boolean).slice(0, 4);
+    return {
+      number: digits ? parseInt(digits, 10) : null,
+      name: nameLines[0],
+      difficulty: diffDigits ? Math.max(1, Math.min(3, parseInt(diffDigits, 10))) : 1,
+      age: matchOptions(sections.age || "", AGE_GROUPS, ";"),
+      categories: matchOptions(sections.categories || "", CATEGORIES, ";"),
+      material: matchOptions(sections.material || "", MATERIALS, ";"),
+      tags: (sections.tags || "").split(";").map((t) => t.trim()).filter(Boolean).join("; "),
+      objectives,
+      description: sections.description || "",
+      variants: sections.variants || "Adapt the instructions to the group's level.",
+    };
+  }
+
+  function matchOptions(text, options, sep) {
+    const parts = text.split(sep || ",").map((s) => s.trim().toLowerCase()).filter(Boolean);
     return options.filter((opt) => parts.includes(opt.toLowerCase()));
   }
 
-  function parseAiResponse(text) {
-    const get = (key) => {
-      const m = text.match(new RegExp(`^${key}\\s*:\\s*(.+)$`, "im"));
-      return m ? m[1].trim() : null;
-    };
-    let filled = 0;
-    const name = get("name"); if (name) { els.name.value = name; filled++; }
-    const difficulty = get("difficulty");
-    if (difficulty) { const d = parseInt(difficulty, 10); if (d >= 1 && d <= 3) { els.difficulty.value = String(d); filled++; } }
-    const age = get("age"); if (age) { setCheckedValues("age", matchOptions(age, AGE_GROUPS)); filled++; }
-    const categories = get("categories"); if (categories) { setCheckedValues("categories", matchOptions(categories, CATEGORIES)); filled++; }
-    const material = get("material"); if (material) { setCheckedValues("material", matchOptions(material, MATERIALS)); filled++; }
-    const tags = get("tags"); if (tags) { els.tags.value = tags; filled++; }
-    const objectives = [1, 2, 3, 4].map((i) => get("objective" + i)).filter(Boolean);
-    if (objectives.length) { els.objectives.value = objectives.join("\n"); filled++; }
-    const description = get("description"); if (description) { els.description.value = description; filled++; }
-    const variants = get("variants"); if (variants) { els.variants.value = variants; filled++; }
-    return filled;
+  // L'inverse de parseBlock -- pour "Copier mon dernier exercice" : donne
+  // à l'IA un exemple réel de style et le prochain numéro à utiliser.
+  function formatExerciseAsBlock(e) {
+    return [
+      `NUMBER: ${e.number || 0}`,
+      `NAME: ${e.name || ""}`,
+      `CATEGORY: ${(e.categories || []).join("; ")}`,
+      `MATERIAL: ${(e.material || []).join("; ")}`,
+      `DIFFICULTY: ${e.difficulty || 1}`,
+      `AGE: ${(e.age || []).join("; ")}`,
+      `TAGS: ${(e.tags || []).join("; ")}`,
+      "OBJECTIVES:",
+      (e.objectives || []).join("\n"),
+      "DESCRIPTION:",
+      e.description || "",
+      "VARIANTS:",
+      e.variants || "",
+    ].join("\n");
   }
 
-  document.getElementById("ai-toggle-link").addEventListener("click", (e) => {
-    e.preventDefault();
-    const section = document.getElementById("ai-section");
-    const open = section.style.display === "block";
-    section.style.display = open ? "none" : "block";
-    e.target.textContent = open ? "▸ Fill in with AI" : "▾ Fill in with AI";
+  // Ce que voit le schéma (cônes, plots, ballons) s'ajoute automatiquement
+  // au matériel -- même correspondance que l'app de bureau.
+  const DIAGRAM_MATERIAL_MAP = { cone: "Cones", post: "Marker cones", ball: "Balls" };
+  function materialFromDiagram(diagramObj) {
+    const found = [];
+    Object.values(diagramObj || {}).forEach((elements) => {
+      (elements || []).forEach((el) => {
+        const mat = DIAGRAM_MATERIAL_MAP[el && el.type];
+        if (mat && !found.includes(mat)) found.push(mat);
+      });
+    });
+    return found;
+  }
+
+  function applyParsedData(data) {
+    els.number.value = data.number || nextNumber();
+    els.name.value = data.name || "";
+    els.difficulty.value = String(data.difficulty || 1);
+    setCheckedValues("age", data.age || []);
+    setCheckedValues("categories", data.categories || []);
+    setCheckedValues("material", data.material || []);
+    els.tags.value = data.tags || "";
+    els.objectives.value = (data.objectives || []).join("\n");
+    els.description.value = data.description || "";
+    els.variants.value = data.variants || "";
+  }
+
+  async function getLastExercise() {
+    const mine = allExercises.filter((e) => e.organization_id === currentOrgId);
+    if (mine.length === 0) return null;
+    return mine.reduce((latest, e) => (!latest || (e.number || 0) > (latest.number || 0) ? e : latest), null);
+  }
+
+  // -----------------------------------------------------------------------
+  // Écran de choix ("+ New exercise") : à la main, bloc IA, ou (lien
+  // discret) à partir d'un exercice existant -- jamais la biblio par
+  // défaut.
+  // -----------------------------------------------------------------------
+  function showCreatorLanding() {
+    currentExId = null; currentTranslationGroupId = null;
+    els.editorArea.style.display = "none"; els.editorEmpty.style.display = "none";
+    document.getElementById("ai-block-area").style.display = "none";
+    document.getElementById("creator-landing").style.display = "block";
+  }
+
+  document.getElementById("landing-manual-btn").addEventListener("click", () => {
+    document.getElementById("creator-landing").style.display = "none";
+    newExercise();
   });
 
-  document.getElementById("copy-ai-prompt-btn").addEventListener("click", async () => {
+  document.getElementById("landing-ai-btn").addEventListener("click", () => {
+    document.getElementById("creator-landing").style.display = "none";
+    document.getElementById("ai-block-area").style.display = "block";
+    document.getElementById("ai-block-template").value = AI_BLOCK_TEMPLATE;
+    document.getElementById("ai-block-input").value = "";
+  });
+
+  document.getElementById("landing-from-existing-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("creator-landing").style.display = "none";
+    showMessage("Pick an exercise on the left, then use \"Duplicate\" in the Library to start from it.", "success");
+  });
+
+  document.getElementById("ai-block-back-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("ai-block-area").style.display = "none";
+    document.getElementById("creator-landing").style.display = "block";
+  });
+
+  document.getElementById("copy-ai-template-btn").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(AI_BLOCK_TEMPLATE); showMessage("Template copied — paste it into any AI chat and finish the last line.", "success"); }
+    catch (e) { showMessage("Couldn't copy automatically — select and copy the text manually.", "error"); }
+  });
+
+  document.getElementById("copy-last-ex-btn").addEventListener("click", async () => {
+    const last = await getLastExercise();
+    if (!last) { showMessage("Your library is still empty — nothing to copy yet.", "error"); return; }
     try {
-      await navigator.clipboard.writeText(buildAiPrompt());
-      showMessage("Prompt copied — paste it into any AI chat.", "success");
-    } catch (e) {
-      showMessage("Couldn't copy automatically — select and copy the prompt manually.", "error");
+      await navigator.clipboard.writeText(formatExerciseAsBlock(last));
+      showMessage(`Copied exercise #${last.number} ("${last.name}") — paste it in the chat before your new idea, so the AI keeps the same style and picks the right next number.`, "success");
+    } catch (e) { showMessage("Couldn't copy automatically.", "error"); }
+  });
+
+  document.getElementById("ai-block-save-btn").addEventListener("click", async () => {
+    const text = document.getElementById("ai-block-input").value;
+    if (!text.trim()) { showMessage("Paste the AI's reply first.", "error"); return; }
+    try {
+      const data = parseBlock(text);
+      document.getElementById("ai-block-area").style.display = "none";
+      newExercise();
+      applyParsedData(data);
+      await saveExercise();
+      const savedId = currentExId;
+      if (savedId) await exportExercisePdf();
+    } catch (err) {
+      showMessage(err.message || "Couldn't read that reply.", "error");
     }
   });
 
-  document.getElementById("fill-from-ai-btn").addEventListener("click", () => {
-    const text = document.getElementById("ai-response-input").value;
+  document.getElementById("ai-block-edit-btn").addEventListener("click", () => {
+    const text = document.getElementById("ai-block-input").value;
     if (!text.trim()) { showMessage("Paste the AI's reply first.", "error"); return; }
-    const count = parseAiResponse(text);
-    if (count === 0) { showMessage("Couldn't find any recognizable fields in that text.", "error"); return; }
-    showMessage(`Filled in ${count} field${count === 1 ? "" : "s"} from the AI reply — review before saving.`, "success");
+    try {
+      const data = parseBlock(text);
+      document.getElementById("ai-block-area").style.display = "none";
+      newExercise();
+      applyParsedData(data);
+      showMessage("Filled in from the AI reply — review everything, draw the diagram, then save.", "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't read that reply.", "error");
+    }
   });
 
   function buildCheckboxGroup(containerId, options, prefix) {
@@ -636,6 +814,14 @@
   async function saveExercise() {
     const name = els.name.value.trim();
     if (!name) { showMessage("Give the exercise a name first.", "error"); return; }
+    // Le matériel visible sur le schéma (cônes, plots, ballons) s'ajoute
+    // automatiquement, comme dans l'app de bureau -- sinon la fiche
+    // pourrait montrer des cônes sur le dessin sans les lister.
+    const checkedMaterial = getCheckedValues("material");
+    const inferredMaterial = materialFromDiagram(diagram);
+    const material = [...checkedMaterial];
+    inferredMaterial.forEach((m) => { if (!material.includes(m)) material.push(m); });
+    setCheckedValues("material", material);
     const payload = {
       organization_id: currentOrgId,
       number: els.number.value ? parseInt(els.number.value, 10) : nextNumber(),
@@ -644,7 +830,7 @@
       difficulty: parseInt(els.difficulty.value, 10),
       age: getCheckedValues("age"),
       categories: getCheckedValues("categories"),
-      material: getCheckedValues("material"),
+      material,
       tags: els.tags.value.split(";").map((t) => t.trim()).filter(Boolean),
       objectives: els.objectives.value.split("\n").map((t) => t.trim()).filter(Boolean).slice(0, 4),
       description: els.description.value.trim() || null,
@@ -661,8 +847,13 @@
     if (currentTranslationGroupId) payload.translation_group_id = currentTranslationGroupId;
     try {
       let error;
-      if (currentExId) ({ error } = await supabaseClient.from("exercises").update(payload).eq("id", currentExId));
-      else {
+      if (currentExId) {
+        // Chaque modification d'une fiche déjà existante fait avancer sa
+        // version (jamais à la création) -- comme dans l'app de bureau.
+        const existing = allExercises.find((e) => e.id === currentExId);
+        payload.version = (existing && existing.version ? existing.version : 1) + 1;
+        ({ error } = await supabaseClient.from("exercises").update(payload).eq("id", currentExId));
+      } else {
         const { data, error: insErr } = await supabaseClient.from("exercises").insert(payload).select("id, translation_group_id").single();
         error = insErr;
         if (!error) { currentExId = data.id; currentTranslationGroupId = data.translation_group_id; }
@@ -684,8 +875,88 @@
     await loadExercises();
   }
 
-  document.getElementById("new-ex-btn").addEventListener("click", newExercise);
+  // -----------------------------------------------------------------------
+  // Export PDF -- portada con toda la información, y una página por cada
+  // paso del diagrama que tenga algo dibujado.
+  // -----------------------------------------------------------------------
+  async function exportExercisePdf() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const marginX = 40;
+    const pageW = doc.internal.pageSize.getWidth();
+    let y = 54;
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(18);
+    doc.text(`#${els.number.value || "?"} — ${els.name.value || "Untitled exercise"}`, marginX, y);
+    y += 22;
+    const diff = parseInt(els.difficulty.value, 10) || 1;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(90);
+    doc.text(`Difficulty: ${"*".repeat(diff)}${"-".repeat(3 - diff)}`, marginX, y);
+    y += 20;
+    doc.setTextColor(20);
+
+    const addLine = (label, values) => {
+      if (!values || values.length === 0) return;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.text(label + ":", marginX, y);
+      doc.setFont("helvetica", "normal");
+      const lines = doc.splitTextToSize(values.join(", "), pageW - marginX - 130);
+      doc.text(lines, marginX + 90, y);
+      y += Math.max(14, lines.length * 13) + 4;
+    };
+    addLine("Age", getCheckedValues("age"));
+    addLine("Categories", getCheckedValues("categories"));
+    addLine("Material", getCheckedValues("material"));
+    addLine("Tags", els.tags.value.split(";").map((t) => t.trim()).filter(Boolean));
+    y += 6;
+
+    const objectives = els.objectives.value.split("\n").map((t) => t.trim()).filter(Boolean);
+    if (objectives.length) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.text("Objectives", marginX, y); y += 16;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(10.5);
+      objectives.forEach((o) => {
+        const lines = doc.splitTextToSize("• " + o, pageW - marginX * 2);
+        doc.text(lines, marginX, y); y += lines.length * 13;
+      });
+      y += 8;
+    }
+    const addParagraph = (label, text) => {
+      if (!text) return;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.text(label, marginX, y); y += 16;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(10.5);
+      const lines = doc.splitTextToSize(text, pageW - marginX * 2);
+      doc.text(lines, marginX, y); y += lines.length * 13 + 12;
+    };
+    addParagraph("Description", els.description.value.trim());
+    addParagraph("Variants", els.variants.value.trim());
+
+    // Une page par étape du schéma qui contient quelque chose -- on
+    // remet tout exactement comme avant une fois fini.
+    const savedStep = currentStep;
+    for (let i = 0; i < COURT_IDS.length; i++) {
+      const cid = COURT_IDS[i];
+      const elements = diagram[cid] || [];
+      if (elements.length === 0) continue;
+      currentStep = cid;
+      resizeCanvasForStep();
+      render();
+      const imgData = els.canvas.toDataURL("image/png");
+      doc.addPage();
+      doc.setFont("helvetica", "bold"); doc.setFontSize(13);
+      doc.text(COURT_LABELS[i], marginX, 40);
+      const imgW = pageW - marginX * 2;
+      const imgH = imgW * (els.canvas.height / els.canvas.width);
+      doc.addImage(imgData, "PNG", marginX, 55, imgW, imgH);
+    }
+    currentStep = savedStep;
+    resizeCanvasForStep();
+    render();
+
+    doc.save(`${(els.name.value || "exercise").replace(/\s+/g, "_")}.pdf`);
+  }
+
+  document.getElementById("new-ex-btn").addEventListener("click", showCreatorLanding);
   document.getElementById("save-ex-btn").addEventListener("click", saveExercise);
+  document.getElementById("pdf-ex-btn").addEventListener("click", exportExercisePdf);
   document.getElementById("delete-ex-btn").addEventListener("click", deleteExercise);
 
   document.getElementById("nav-menu").addEventListener("change", (e) => {
@@ -696,14 +967,18 @@
     const box = document.getElementById("help-box");
     if (box.style.display === "block") { box.style.display = "none"; return; }
     box.innerHTML = `
-      <strong>How to use Exercise creator</strong>
+      <strong>How to use Create exercise</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li><strong>Fill in with AI</strong> — copy a ready-made prompt into any AI chat, describe the drill, paste its reply back in. It fills the name, difficulty, age/categories/material, tags, objectives, description and variants for you to review — it never draws the diagram, that stays manual.</li>
-        <li><strong>Data tab</strong> — number, name, difficulty (1-3 stars), favorite, age groups, categories, material, tags, up to 4 objectives, description, variants.</li>
+        <li><strong>"+ New exercise"</strong> asks how you want to start: fill it in by hand, or paste a block prepared by an AI.</li>
+        <li><strong>By hand</strong> — the full form: number, name, difficulty (1-3 stars), favorite, age groups, categories, material, tags, up to 4 objectives, description, variants, plus the court diagram.</li>
+        <li><strong>AI block</strong> — copy the ready-made template into any AI chat (ChatGPT, Claude…), describe your idea on the last line, paste the reply back. "Copy my last exercise" gives the AI a real style example and the right next number first. "Save to library + PDF" saves it directly; "Open in the full editor" lets you review everything (and draw the diagram) before saving.</li>
+        <li>Whichever way you start, anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.</li>
         <li><strong>Court diagram tab</strong> — 5 steps (3 half-court, 1 vertical, 1 full horizontal). Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
         <li><strong>Color</strong> picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).</li>
         <li><strong>Copy to next step</strong> duplicates everything into the next step, so you can draw a sequence step by step without starting from scratch each time.</li>
         <li>Double-click a player or defender to give them a label (e.g. their number).</li>
+        <li><strong>Export PDF</strong> makes a clean sheet: the info, then one page per diagram step that has something drawn.</li>
+        <li>Editing an existing exercise bumps its version number (v1 at creation) — visible in the Library, handy for tracking which ones changed recently.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). The icon next to each exercise in the list shows its current circle.</li>
       </ul>`;
     box.style.display = "block";
