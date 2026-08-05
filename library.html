@@ -65,6 +65,12 @@
   .list-row .meta { font-size: 11.5px; color: var(--muted); }
   .list-row .stars { color: var(--accent); font-size: 11px; white-space: nowrap; }
   .list-row .usage { font-size: 10.5px; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 1px 8px; white-space: nowrap; }
+  .lang-badge-slot { flex: 0 0 auto; }
+  .lang-pill-single { font-size: 10px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 2px 7px; }
+  .lang-cycle-btn { font-size: 10px; font-weight: 700; color: var(--accent-deep); background: var(--accent-tint); border: 1px solid var(--accent); border-radius: 100px; padding: 2px 7px; cursor: pointer; }
+  .lang-cycle-btn:hover { filter: brightness(0.95); }
+  .version-pill { font-size: 11.5px; font-weight: 600; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 3px 10px; cursor: pointer; margin: 0 4px 4px 0; }
+  .version-pill.active { color: #fff; background: var(--accent); border-color: var(--accent); }
   .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
 
   .detail-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
@@ -154,7 +160,7 @@
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Rebounding","Footwork","Defense","Screening","1v1","2v2","Fast break","Conditioning","Competition","Fun"];
-  const AGE_GROUPS = ["U6","U8","U10","U12","U14","U16","U18","U20","Seniors","All ages"];
+  const AGE_GROUPS = ["U6","U7","U8","U9","U10","U11","U12","U13","U14","U15","U16","U17","U18","U19","U20","Seniors","All ages"];
 
   const els = {
     orgName: document.getElementById("org-name"),
@@ -222,12 +228,30 @@
     const { data, error } = await supabaseClient.from("exercises").select("*").order("number");
     if (error) { console.error(error); return; }
     allExercises = data || [];
+    buildTranslationGroups();
 
     const { data: usageRows } = await supabaseClient.from("training_exercises").select("exercise_id");
     usageCounts = {};
     (usageRows || []).forEach((r) => { if (r.exercise_id) usageCounts[r.exercise_id] = (usageCounts[r.exercise_id] || 0) + 1; });
 
     refresh();
+  }
+
+  // -----------------------------------------------------------------------
+  // Regroupe les traductions d'un même exercice (même translation_group_id)
+  // pour le petit bouton de langue dans la liste, et pour le sélecteur de
+  // versions dans le détail.
+  // -----------------------------------------------------------------------
+  let translationGroups = {};
+  function buildTranslationGroups() {
+    translationGroups = {};
+    const langOrder = { en: 0, fr: 1, es: 2 };
+    allExercises.forEach((e) => {
+      const gid = e.translation_group_id;
+      if (!gid) return;
+      (translationGroups[gid] = translationGroups[gid] || []).push(e);
+    });
+    Object.values(translationGroups).forEach((arr) => arr.sort((a, b) => (langOrder[a.language] ?? 9) - (langOrder[b.language] ?? 9)));
   }
 
   function refresh() {
@@ -247,7 +271,7 @@
       if (favOnly && !e.favorite) return false;
       if (diff && String(e.difficulty) !== diff) return false;
       if (lang && (e.language || "en") !== lang) return false;
-      if (cats.length && !cats.some((c) => (e.categories || []).includes(c))) return false;
+      if (cats.length && !cats.every((c) => (e.categories || []).includes(c))) return false;
       if (ages.length && !ages.every((a) => (e.age || []).includes(a))) return false;
       if (unusedOnly && (usageCounts[e.id] || 0) > 0) return false;
       return true;
@@ -262,17 +286,33 @@
       row.className = "list-row" + (e.id === selectedId ? " active" : "");
       const used = usageCounts[e.id] || 0;
       const usedTxt = used === 0 ? "never used" : `${used}×`;
+      const group = (e.translation_group_id && translationGroups[e.translation_group_id]) || [];
+      const langCode = (e.language || "en").toUpperCase();
+      const langBadge = group.length > 1
+        ? `<button class="lang-cycle-btn" data-group="${e.translation_group_id}" data-current="${e.id}" title="This exercise has ${group.length} language versions — click to switch">${langCode}</button>`
+        : `<span class="lang-pill-single">${langCode}</span>`;
       row.innerHTML = `
         <div>
           <div class="name">${e.favorite ? "★ " : ""}${e.number ? e.number + ". " : ""}${escapeHtml(e.name)}</div>
           <div class="meta">${escapeHtml((e.categories || []).join(", "))}</div>
         </div>
+        <div class="lang-badge-slot"></div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
           <span class="stars">${"★".repeat(e.difficulty || 1)}${"☆".repeat(3 - (e.difficulty || 1))}</span>
           <span class="usage">${usedTxt}</span>
         </div>
       `;
+      row.querySelector(".lang-badge-slot").innerHTML = langBadge;
       row.addEventListener("click", () => selectExercise(e.id));
+      const cycleBtn = row.querySelector(".lang-cycle-btn");
+      if (cycleBtn) {
+        cycleBtn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          const idx = group.findIndex((g) => g.id === e.id);
+          const next = group[(idx + 1) % group.length];
+          selectExercise(next.id);
+        });
+      }
       els.listCard.appendChild(row);
     });
     return filtered;
@@ -301,15 +341,28 @@
 
   const VISIBILITY_LABELS = { private: "🔒 Only me", team: "👥 My team", association: "🤝 Club association", community: "🌐 Pivot Community" };
 
+  const STEP_LABELS = { court_1: "Step 1", court_2: "Step 2", court_3: "Step 3", court_4: "Step 4 (vertical)", court_5: "Step 5 (full court)" };
+
   function renderDetail(e) {
     if (!e) { els.detailCard.innerHTML = '<p class="sub" style="margin:0;">Pick an exercise from the list.</p>'; return; }
     const owned = e.organization_id === currentOrgId;
     const used = usageCounts[e.id] || 0;
     const langName = LANGUAGE_NAMES[e.language || "en"] || e.language;
     const visLabel = VISIBILITY_LABELS[e.visibility || "team"] || e.visibility;
+    const group = (e.translation_group_id && translationGroups[e.translation_group_id]) || [];
+    const versionSwitcher = group.length > 1 ? `
+      <div class="section">
+        <div class="section-label">Language versions</div>
+        <p>${group.map((g) => `<button class="version-pill${g.id === e.id ? " active" : ""}" data-id="${g.id}">${LANGUAGE_NAMES[g.language || "en"] || g.language}</button>`).join("")}</p>
+      </div>` : "";
+    const drawnSteps = Object.keys(e.diagram || {}).filter((k) => (e.diagram[k] || []).length > 0);
+    const diagramLine = drawnSteps.length
+      ? `<div class="section"><div class="section-label">Court diagram</div><p>${drawnSteps.map((k) => `<span class="tag-chip">✏️ ${STEP_LABELS[k] || k}</span>`).join("")}</p></div>`
+      : `<div class="section"><div class="section-label">Court diagram</div><p style="color:var(--muted); font-size:12.5px;">Nothing drawn yet.</p></div>`;
     els.detailCard.innerHTML = `
       <h3>${e.favorite ? "★ " : ""}${escapeHtml(e.name)}</h3>
       <div class="meta-row">#${e.number || "—"} · ${"★".repeat(e.difficulty || 1)}${"☆".repeat(3 - (e.difficulty || 1))} · ${used === 0 ? "never used" : used + "× used"} · ${langName} · ${visLabel}${!owned ? " · shared by another club" : ""}</div>
+      ${versionSwitcher}
       <div class="section"><div class="section-label">Age</div><p>${(e.age || []).map((a) => `<span class="tag-chip">${escapeHtml(a)}</span>`).join("") || "—"}</p></div>
       <div class="section"><div class="section-label">Categories</div><p>${(e.categories || []).map((c) => `<span class="tag-chip">${escapeHtml(c)}</span>`).join("") || "—"}</p></div>
       <div class="section"><div class="section-label">Material</div><p>${(e.material || []).map((m) => `<span class="tag-chip">${escapeHtml(m)}</span>`).join("") || "—"}</p></div>
@@ -317,6 +370,7 @@
       <div class="section"><div class="section-label">Objectives</div><p>${escapeHtml((e.objectives || []).join("\n")) || "—"}</p></div>
       <div class="section"><div class="section-label">Description</div><p>${escapeHtml(e.description) || "—"}</p></div>
       <div class="section"><div class="section-label">Variants</div><p>${escapeHtml(e.variants) || "—"}</p></div>
+      ${diagramLine}
       <div class="toolbar" style="margin-top:14px;">
         <a class="btn btn-primary" href="./exercises.html?id=${e.id}" style="text-decoration:none;">${owned ? "Edit" : "View"}</a>
         <button class="btn btn-secondary" id="fav-toggle-btn">${e.favorite ? "Unfavorite" : "★ Favorite"}</button>
@@ -327,6 +381,7 @@
       </div>
     `;
     document.getElementById("fav-toggle-btn").addEventListener("click", () => toggleFavorite(e));
+    document.querySelectorAll(".version-pill").forEach((btn) => btn.addEventListener("click", () => selectExercise(btn.dataset.id)));
     if (owned) {
       document.getElementById("duplicate-btn").addEventListener("click", () => duplicateExercise(e));
       document.getElementById("translate-btn").addEventListener("click", () => duplicateAsTranslation(e));

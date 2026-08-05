@@ -26,7 +26,8 @@
   .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
   .back-link:hover { color: var(--ink); }
 
-  .layout { max-width: 900px; margin: 0 auto; padding: 24px; }
+  .layout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; max-width: 1180px; margin: 0 auto; padding: 24px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
 
   h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
   p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
@@ -109,6 +110,14 @@
 </nav>
 
 <div class="layout">
+  <div class="side-card" style="position:sticky; top:16px;">
+    <h2>PDF preview</h2>
+    <p class="hint" style="margin:0 0 10px;">Not live as you type — click "Update PDF" whenever you want to see your latest changes.</p>
+    <button class="btn btn-primary" id="update-pdf-btn" style="width:100%; margin-bottom:10px;">🔄 Update PDF</button>
+    <div id="pdf-preview-empty" class="hint" style="text-align:center; padding:30px 8px; border:1px dashed var(--line); border-radius:8px;">Click "Update PDF" to see it here.</div>
+    <iframe id="pdf-preview-frame" style="display:none; width:100%; height:600px; border:1px solid var(--line); border-radius:8px;"></iframe>
+  </div>
+
   <div>
     <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
     <h1>
@@ -231,7 +240,6 @@
 
       <div class="toolbar" style="margin-top:16px;">
         <button class="btn btn-primary" id="save-ex-btn">Save exercise</button>
-        <button class="btn btn-secondary" id="preview-ex-btn">👁 Preview PDF</button>
         <button class="btn btn-secondary" id="pdf-ex-btn">Export PDF</button>
         <button class="btn btn-secondary" id="delete-ex-btn" style="display:none; color:#991b1b;">Delete</button>
       </div>
@@ -256,8 +264,8 @@
 
   // Mêmes listes exactes que Pivot.py (CATEGORIES / AGE_GROUPS / MATERIALS)
   const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Rebounding","Footwork","Defense","Screening","1v1","2v2","Fast break","Conditioning","Competition","Fun"];
-  const AGE_GROUPS = ["U6","U8","U10","U12","U14","U16","U18","U20","Seniors","All ages"];
-  const MATERIALS = ["Balls","Cones","Marker cones","Rings","Coordination ladder","Bibs","Sticks","Benches","Mats","Ropes","Other"];
+  const AGE_GROUPS = ["U6","U7","U8","U9","U10","U11","U12","U13","U14","U15","U16","U17","U18","U19","U20","Seniors","All ages"];
+  const MATERIALS = ["Balls","Cones","Marker cones","Rings","Coordination ladder","Bibs","Sticks","Chairs","Resistance bands","Benches","Mats","Ropes","Other"];
   // COURT_IDS, COURT_LABELS, COURT_TYPES, CANVAS_SIZES, LINE_KINDS,
   // TOOLS_ROW1/2/3 now come from the shared court-diagram.js.
 
@@ -290,6 +298,7 @@
   let currentTranslationGroupId = null;
   let allExercises = [];
   let activeTool = "select";
+  const pointCounters = { nextPlayerNum: 1, nextDefenderNum: 1 };
   let currentStep = "court_1";
   let diagram = {}; // { court_1: [...elements], court_2: [...], ... }
   let dragging = null, drawingFrom = null;
@@ -615,7 +624,10 @@
     if (activeTool === "select") { dragging = elementAt(x, y); return; }
     if (["player","defender","coach","cone","ball","post","handoff"].includes(activeTool)) {
       const el = { type: activeTool, x, y, color: els.colorSelect.value };
-      if (activeTool === "player" || activeTool === "defender") el.label = "";
+      // Même auto-numérotation que dans Play design : attaque et défense
+      // comptent chacune à partir de 1, séparément.
+      if (activeTool === "player") { el.label = String(pointCounters.nextPlayerNum); pointCounters.nextPlayerNum++; }
+      else if (activeTool === "defender") { el.label = String(pointCounters.nextDefenderNum); pointCounters.nextDefenderNum++; }
       currentElements().push(el);
       render();
       return;
@@ -703,6 +715,7 @@
     els.language.value = "en"; currentTranslationGroupId = null;
     setCheckedValues("age", []); setCheckedValues("categories", []); setCheckedValues("material", []);
     diagram = {}; currentStep = "court_1";
+    pointCounters.nextPlayerNum = 1; pointCounters.nextDefenderNum = 1;
   }
 
   function nextNumber() {
@@ -712,6 +725,11 @@
     return allExercises
       .filter((e) => e.organization_id === currentOrgId)
       .reduce((max, e) => Math.max(max, e.number || 0), 0) + 1;
+  }
+
+  function resetPdfPreview() {
+    document.getElementById("pdf-preview-frame").style.display = "none";
+    document.getElementById("pdf-preview-empty").style.display = "block";
   }
 
   function newExercise() {
@@ -724,6 +742,7 @@
     document.getElementById("save-ex-btn").style.display = "inline-block";
     [els.number, els.name, els.difficulty, els.favorite, els.tags, els.objectives, els.description, els.variants, els.language, els.visibility]
       .forEach((el) => (el.disabled = false));
+    resetPdfPreview();
   }
 
   function openExercise(id) {
@@ -741,8 +760,18 @@
     setCheckedValues("age", e.age); setCheckedValues("categories", e.categories); setCheckedValues("material", e.material);
     diagram = e.diagram || {};
     currentStep = "court_1";
+    // Continue la numérotation là où l'ejercicio l'avait laissée --
+    // même logique que Play design.
+    pointCounters.nextPlayerNum = 1; pointCounters.nextDefenderNum = 1;
+    Object.values(diagram).forEach((elements) => (elements || []).forEach((el) => {
+      const n = parseInt(el.label, 10);
+      if (isNaN(n)) return;
+      if (el.type === "player" && n >= pointCounters.nextPlayerNum) pointCounters.nextPlayerNum = n + 1;
+      if (el.type === "defender" && n >= pointCounters.nextDefenderNum) pointCounters.nextDefenderNum = n + 1;
+    }));
     buildStepTabs(); resizeCanvasForStep(); render();
     els.editorArea.style.display = "block";
+    resetPdfPreview();
     const owned = e.organization_id === currentOrgId;
     document.getElementById("delete-ex-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     // Un ejercicio compartido por otro club se mira, pero no se edita ni
@@ -831,6 +860,20 @@
   // estrellas; columna derecha con 4 pistas pequeñas (pasos 1-4);
   // columna central con descripción/variantes arriba y la 5ª pista abajo.
   // -----------------------------------------------------------------------
+  async function loadLogoDataUrl(orgId) {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`);
+      if (!resp.ok) return null;
+      const blob = await resp.blob();
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) { return null; }
+  }
+
   async function buildExercisePdfDoc() {
     const { jsPDF } = window.jspdf;
     const PAGE_W = 496.8, PAGE_H = 720, MARGIN = 14, BOTTOM = PAGE_H - MARGIN;
@@ -849,70 +892,96 @@
       doc.setTextColor(DARK);
     }
 
-    // ---------- Cabecera ----------
+    // ---------- Cabecera : logo + nombre del club, número, nombre ----------
     doc.setTextColor(DARK);
+    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
+    if (logoDataUrl) {
+      try { doc.addImage(logoDataUrl, MARGIN, MARGIN, 52, 52); } catch (e) { /* logo inválido, se ignora */ }
+    }
+    const clubName = (els.orgName.textContent || "").trim();
+    if (clubName) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
+      doc.text(clubName, MARGIN, MARGIN + 62, { maxWidth: 58 });
+    }
+
+    const labelX = 88;
     doc.setFont("helvetica", "bold"); doc.setFontSize(13);
-    doc.text("EXERCISE N°:", MARGIN, 40);
+    doc.text("EXERCISE N°:", labelX, 40);
     const numLabelW = doc.getTextWidth("EXERCISE N°:");
     doc.setDrawColor(DARK); doc.setLineWidth(0.8);
-    doc.line(MARGIN + numLabelW + 8, 44, 170, 44);
+    doc.line(labelX + numLabelW + 8, 44, 260, 44);
     doc.setFont("helvetica", "normal"); doc.setFontSize(14);
-    doc.text(String(els.number.value || ""), MARGIN + numLabelW + 14, 41);
+    doc.text(String(els.number.value || ""), labelX + numLabelW + 14, 41);
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(12);
-    doc.text("NAME:", MARGIN, 66);
+    doc.text("NAME:", labelX, 66);
     const nameLabelW = doc.getTextWidth("NAME:");
-    doc.line(MARGIN + nameLabelW + 8, 70, PAGE_W - MARGIN, 70);
+    doc.line(labelX + nameLabelW + 8, 70, PAGE_W - MARGIN, 70);
     let nameFs = 13; doc.setFont("helvetica", "normal"); doc.setFontSize(nameFs);
     const name = els.name.value || "";
-    const nameMaxW = PAGE_W - MARGIN - (MARGIN + nameLabelW + 14) - 6;
+    const nameMaxW = PAGE_W - MARGIN - (labelX + nameLabelW + 14) - 6;
     while (nameFs > 7 && doc.getTextWidth(name) > nameMaxW) { nameFs -= 0.5; doc.setFontSize(nameFs); }
-    doc.text(name, MARGIN + nameLabelW + 14, 67);
+    doc.text(name, labelX + nameLabelW + 14, 67);
 
     const top = 90, leftX0 = MARGIN, leftX1 = 170, midX0 = 178, midX1 = 352, rightX0 = 360, rightX1 = PAGE_W - MARGIN;
 
-    // ---------- Colonne gauche : catégories / matériel / objectifs / difficulté ----------
+    // ---------- Colonne gauche : SEULEMENT ce qui est vraiment utilisé ----------
+    // Avant, la liste montrait les 14 catégories et les 13 matériels
+    // possibles, cochés ou pas -- illisible. Maintenant, seules les
+    // catégories et le matériel réellement choisis apparaissent.
     const TITLE_H = 16, PAD = 6, GAP = 8;
-    const nRows = CATEGORIES.length + MATERIALS.length + 4;
-    const fixedTotal = 34 + TITLE_H + PAD;
+    const categoriesUsed = getCheckedValues("categories");
+    const materialUsed = [...getCheckedValues("material")];
+    materialFromDiagram(diagram).forEach((m) => { if (!materialUsed.includes(m)) materialUsed.push(m); });
+
+    const nRows = categoriesUsed.length + materialUsed.length + 4;
+    const DIFF_BODY_H = 42;
+    const fixedTotal = DIFF_BODY_H + TITLE_H + PAD;
     const varTitles = (TITLE_H + PAD) * 3;
     const avail = BOTTOM - top - fixedTotal - varTitles - GAP * 3;
-    const rowH = Math.max(10, Math.min(15, avail / nRows));
+    const rowH = Math.max(10, Math.min(15, avail / Math.max(1, nRows)));
 
     let ly = top;
-    function drawChecksBox(title, labels, selected) {
-      const bodyH = labels.length * rowH;
+    function drawUsedList(title, items) {
+      if (items.length === 0) return;
+      const bodyH = items.length * rowH;
       const y0 = ly, y1 = ly + TITLE_H + bodyH + PAD;
       sectionFrame(leftX0, y0, leftX1, y1, title);
       let ry = y0 + TITLE_H + PAD / 2;
-      labels.forEach((label) => {
+      items.forEach((label) => {
         doc.setDrawColor(DARK); doc.setLineWidth(0.7);
         doc.rect(leftX0 + 7, ry + 2, 8, 8);
+        doc.setLineWidth(0.9);
+        doc.line(leftX0 + 7, ry + 2, leftX0 + 15, ry + 10);
+        doc.line(leftX0 + 7, ry + 10, leftX0 + 15, ry + 2);
         doc.setFont("helvetica", "normal");
         let fs = 7.6; doc.setFontSize(fs);
         const maxw = leftX1 - (leftX0 + 20) - 4;
         while (fs > 5.5 && doc.getTextWidth(label) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
         doc.text(label, leftX0 + 20, ry + 9.5);
-        if (selected.includes(label)) {
-          doc.setLineWidth(0.9);
-          doc.line(leftX0 + 7, ry + 2, leftX0 + 15, ry + 10);
-          doc.line(leftX0 + 7, ry + 10, leftX0 + 15, ry + 2);
-        }
         ry += rowH;
       });
       ly = y1 + GAP;
     }
 
-    const materialSelected = [...getCheckedValues("material")];
-    materialFromDiagram(diagram).forEach((m) => { if (!materialSelected.includes(m)) materialSelected.push(m); });
-    drawChecksBox("CATEGORY:", CATEGORIES, getCheckedValues("categories"));
-    drawChecksBox("MATERIAL:", MATERIALS, materialSelected);
+    drawUsedList("CATEGORY:", categoriesUsed);
+    drawUsedList("MATERIAL:", materialUsed);
 
-    // Objectifs : pas une liste fixe -- 4 lignes, remplies avec le texte réel.
+    // Objectifs : une seule taille de police pour les 4 lignes -- avant,
+    // chaque ligne rétrécissait à sa propre taille et le résultat était
+    // visuellement incohérent (une phrase minuscule à côté d'une grande).
     {
       const objectives = els.objectives.value.split("\n").map((t) => t.trim()).filter(Boolean).slice(0, 4);
       const y0 = ly, y1 = ly + TITLE_H + 4 * rowH + PAD;
       sectionFrame(leftX0, y0, leftX1, y1, "OBJECTIVES:");
+      const maxw = leftX1 - (leftX0 + 20) - 10;
+      doc.setFont("helvetica", "normal");
+      let sharedFs = 7.2;
+      objectives.forEach((obj) => {
+        let fs = sharedFs; doc.setFontSize(fs);
+        while (fs > 5.5 && doc.getTextWidth(obj) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
+        if (fs < sharedFs) sharedFs = fs;
+      });
       let ry = y0 + TITLE_H + PAD / 2;
       for (let i = 0; i < 4; i++) {
         doc.setDrawColor(DARK); doc.setLineWidth(0.6);
@@ -923,10 +992,7 @@
           doc.setLineWidth(0.9);
           doc.line(leftX0 + 7, ry + 2, leftX0 + 15, ry + 10);
           doc.line(leftX0 + 7, ry + 10, leftX0 + 15, ry + 2);
-          doc.setFont("helvetica", "normal");
-          let fs = 7.2; doc.setFontSize(fs);
-          const maxw = leftX1 - (leftX0 + 20) - 10;
-          while (fs > 5.5 && doc.getTextWidth(obj) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
+          doc.setFont("helvetica", "normal"); doc.setFontSize(sharedFs);
           doc.text(obj, leftX0 + 20, ry + 8.5);
         }
         ry += rowH;
@@ -934,16 +1000,17 @@
       ly = y1 + GAP;
     }
 
-    // Difficulté : 3 étoiles.
+    // Difficulté : étoiles plus grandes (avant, trop petites pour se voir
+    // d'un coup d'œil).
     {
-      const y0 = ly, y1 = ly + TITLE_H + 34 + PAD;
+      const y0 = ly, y1 = ly + TITLE_H + DIFF_BODY_H + PAD;
       sectionFrame(leftX0, y0, leftX1, y1, "DIFFICULTY:");
-      const cy = y0 + TITLE_H + PAD / 2 + 15;
+      const cy = y0 + TITLE_H + PAD / 2 + 20;
       const filled = Math.max(0, Math.min(3, parseInt(els.difficulty.value, 10) || 1));
-      doc.setFont("helvetica", "normal"); doc.setFontSize(16);
-      [leftX0 + 28, leftX0 + 68, leftX0 + 108].forEach((cx, i) => {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(26);
+      [leftX0 + 32, leftX0 + 80, leftX0 + 128].forEach((cx, i) => {
         if (i < filled) doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); else doc.setTextColor(190, 190, 190);
-        doc.text(i < filled ? "*" : "-", cx - 3, cy + 5);
+        doc.text(i < filled ? "*" : "-", cx - 5, cy + 7);
       });
       doc.setTextColor(DARK);
       ly = y1 + GAP;
@@ -1026,15 +1093,28 @@
   // Comme dans l'app de bureau (l'onglet "Aperçu PDF") : voir le PDF
   // avant de le télécharger, dans un nouvel onglet du navigateur, sans
   // rien enregistrer sur le disque.
-  async function previewExercisePdf() {
-    const doc = await buildExercisePdfDoc();
-    const url = doc.output("bloburl");
-    window.open(url, "_blank");
+  // Le bouton "Update PDF" à gauche remplace l'ancien "Preview PDF" qui
+  // ouvrait un nouvel onglet -- maintenant il met à jour l'aperçu
+  // directement dans la page, sans rien ouvrir ailleurs.
+  async function updatePdfPreview() {
+    const btn = document.getElementById("update-pdf-btn");
+    const original = btn.textContent;
+    btn.textContent = "Rendering…"; btn.disabled = true;
+    try {
+      const doc = await buildExercisePdfDoc();
+      const url = doc.output("bloburl");
+      const frame = document.getElementById("pdf-preview-frame");
+      frame.src = url;
+      frame.style.display = "block";
+      document.getElementById("pdf-preview-empty").style.display = "none";
+    } finally {
+      btn.textContent = original; btn.disabled = false;
+    }
   }
+  document.getElementById("update-pdf-btn").addEventListener("click", updatePdfPreview);
 
   document.getElementById("start-new-link").addEventListener("click", (e) => { e.preventDefault(); newExercise(); });
   document.getElementById("save-ex-btn").addEventListener("click", saveExercise);
-  document.getElementById("preview-ex-btn").addEventListener("click", previewExercisePdf);
   document.getElementById("pdf-ex-btn").addEventListener("click", exportExercisePdf);
   document.getElementById("delete-ex-btn").addEventListener("click", deleteExercise);
 
@@ -1048,17 +1128,28 @@
     box.innerHTML = `
       <strong>How to use Create exercise</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li><strong>"+ New exercise"</strong> opens the full form directly — number, name, difficulty (1-3 stars), favorite, age groups, categories, material, tags, up to 4 objectives, description, variants, plus the court diagram.</li>
-        <li><strong>Fill in with AI</strong> (top of the form) — copy the ready-made template into any AI chat (ChatGPT, Claude…), describe your idea on the last line, paste the reply back, then "Fill from AI reply". "Copy my last exercise" gives the AI a real style example and the right next number first. It never touches the diagram — that stays manual.</li>
+        <li>This page always shows a ready-to-fill exercise — a fresh number is assigned automatically the moment you land here. No need to click anything first.</li>
+        <li><strong>How to use "Fill in with AI", step by step:</strong>
+          <ol style="margin:6px 0 0; padding-left:18px; line-height:1.7;">
+            <li>Click "▸ Fill in with AI" to open the section.</li>
+            <li>Click "📋 Copy this template" — it's copied to your clipboard.</li>
+            <li>Open any AI chat (ChatGPT, Claude…) in another tab, paste the template, and replace the very last line ("The exercise is about: …") with your own idea.</li>
+            <li>Send it. If your idea was vague, the AI will ask you questions first — answer them in that same chat.</li>
+            <li>Once the AI gives you the final sheet, copy its whole reply and paste it into the box on this page.</li>
+            <li>Click "Fill from AI reply" — the form fills in below. Review everything, draw the diagram yourself (the AI never touches that), then Save.</li>
+          </ol>
+        </li>
+        <li><strong>"📎 Copy my last exercise"</strong> — before describing a new idea to the AI, paste this in the chat first. It shows the AI a real exercise you already made, so it keeps the same style and picks the next free number correctly.</li>
         <li><strong>Start from an existing exercise</strong> (also at the top) — pick one from the dropdown and "Use as starting point": copies everything, including the diagram, into this new exercise. The original is untouched.</li>
+        <li>Placing a player or defender on the diagram numbers them automatically (1, 2, 3…) — attack and defense count separately, same as Play design. Double-click one to change its label by hand.</li>
         <li>Anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.</li>
         <li><strong>Court diagram tab</strong> — 5 steps (3 half-court, 1 vertical, 1 full horizontal). Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
         <li><strong>Color</strong> picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).</li>
         <li><strong>Copy to next step</strong> duplicates everything into the next step, so you can draw a sequence step by step without starting from scratch each time.</li>
-        <li>Double-click a player or defender to give them a label (e.g. their number).</li>
-        <li><strong>Preview PDF</strong> opens the sheet in a new browser tab so you can check it before deciding to download — same idea as the "PDF preview" tab in the desktop app. <strong>Export PDF</strong> downloads it straight away. Both make the same sheet: the info, then one page per diagram step that has something drawn.</li>
+        <li><strong>Preview PDF</strong> opens the sheet in a new browser tab so you can check it before deciding to download — same idea as the "PDF preview" tab in the desktop app. <strong>Export PDF</strong> downloads it straight away. Both make the same one-page sheet as the desktop app: your club's logo and name, number, name, only the categories/material you actually picked, objectives, difficulty stars, description, variants, and all 5 diagram steps.</li>
+        <li><strong>Numbering</strong> — the next free number in your own club is filled in automatically; nobody has to track it by hand. <strong>Language</strong> — this page always edits one language at a time; to add a translation of an exercise, use "Duplicate as translation" in the Library, which creates a linked copy in another language.</li>
         <li>Editing an existing exercise bumps its version number (v1 at creation) — visible in the Library, handy for tracking which ones changed recently.</li>
-        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). The icon next to each exercise in the list shows its current circle.</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them).</li>
       </ul>`;
     box.style.display = "block";
   });
