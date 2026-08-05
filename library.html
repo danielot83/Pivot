@@ -65,9 +65,10 @@
   .list-row .meta { font-size: 11.5px; color: var(--muted); }
   .list-row .stars { color: var(--accent); font-size: 11px; white-space: nowrap; }
   .list-row .usage { font-size: 10.5px; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 1px 8px; white-space: nowrap; }
-  .lang-badge-slot { flex: 0 0 auto; }
+  .lang-badge-slot { flex: 0 0 auto; display: flex; gap: 3px; }
   .lang-pill-single { font-size: 10px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 2px 7px; }
-  .lang-cycle-btn { font-size: 10px; font-weight: 700; color: var(--accent-deep); background: var(--accent-tint); border: 1px solid var(--accent); border-radius: 100px; padding: 2px 7px; cursor: pointer; }
+  .lang-cycle-btn { font-size: 10px; font-weight: 700; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 2px 7px; cursor: pointer; }
+  .lang-cycle-btn.active { color: #fff; background: var(--accent); border-color: var(--accent); }
   .lang-cycle-btn:hover { filter: brightness(0.95); }
   .version-pill { font-size: 11.5px; font-weight: 600; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 3px 10px; cursor: pointer; margin: 0 4px 4px 0; }
   .version-pill.active { color: #fff; background: var(--accent); border-color: var(--accent); }
@@ -310,7 +311,7 @@
       const usedTxt = used === 0 ? "never used" : `${used}×`;
       const langCode = (e.language || "en").toUpperCase();
       const langBadge = groupInFiltered.length > 1
-        ? `<button class="lang-cycle-btn" data-current="${e.id}" title="This exercise has ${groupInFiltered.length} language versions — click to switch">${langCode}</button>`
+        ? groupInFiltered.map((g) => `<button class="lang-cycle-btn${g.id === e.id ? " active" : ""}" data-id="${g.id}">${(g.language || "en").toUpperCase()}</button>`).join("")
         : `<span class="lang-pill-single">${langCode}</span>`;
       row.innerHTML = `
         <div>
@@ -325,15 +326,12 @@
       `;
       row.querySelector(".lang-badge-slot").innerHTML = langBadge;
       row.addEventListener("click", () => selectExercise(e.id));
-      const cycleBtn = row.querySelector(".lang-cycle-btn");
-      if (cycleBtn) {
-        cycleBtn.addEventListener("click", (ev) => {
+      row.querySelectorAll(".lang-cycle-btn").forEach((btn) => {
+        btn.addEventListener("click", (ev) => {
           ev.stopPropagation();
-          const idx = groupInFiltered.findIndex((g) => g.id === e.id);
-          const next = groupInFiltered[(idx + 1) % groupInFiltered.length];
-          selectExercise(next.id);
+          selectExercise(btn.dataset.id);
         });
-      }
+      });
       els.listCard.appendChild(row);
     });
     return filtered;
@@ -393,6 +391,7 @@
       <div class="toolbar" style="margin-top:14px;">
         <a class="btn btn-primary" href="./exercises.html?id=${e.id}" style="text-decoration:none;">${owned ? "Edit" : "View"}</a>
         <button class="btn btn-secondary" id="fav-toggle-btn">${e.favorite ? "Unfavorite" : "★ Favorite"}</button>
+        <button class="btn btn-secondary" id="pdf-export-btn">Export PDF</button>
         ${owned ? '<button class="btn btn-secondary" id="duplicate-btn">Duplicate</button>' : ""}
         ${owned ? '<button class="btn btn-secondary" id="translate-btn">Duplicate as translation…</button>' : ""}
         ${!owned ? '<button class="btn btn-secondary" id="copy-to-mine-btn">Copy to my library</button>' : ""}
@@ -400,6 +399,7 @@
       </div>
     `;
     document.getElementById("fav-toggle-btn").addEventListener("click", () => toggleFavorite(e));
+    document.getElementById("pdf-export-btn").addEventListener("click", () => exportExercisePdfFromData(e));
     document.querySelectorAll(".diagram-thumb canvas").forEach((canvas) => {
       const stepId = canvas.dataset.step;
       const courtType = COURT_TYPES[stepId];
@@ -422,6 +422,247 @@
     } else {
       document.getElementById("copy-to-mine-btn").addEventListener("click", () => copyToMyLibrary(e));
     }
+  }
+
+  async function loadLogoDataUrl(orgId) {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`);
+      if (!resp.ok) return null;
+      const blob = await resp.blob();
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (err) { return null; }
+  }
+
+  async function loadPdfSections(orgId) {
+    try {
+      const { data } = await supabaseClient.from("organizations").select("pdf_sections").eq("id", orgId).single();
+      return (data && data.pdf_sections) || {};
+    } catch (err) { return {}; }
+  }
+
+  // -----------------------------------------------------------------------
+  // Même PDF que dans Create exercise, mais à partir des données déjà
+  // enregistrées (pas d'un formulaire à l'écran) -- pour pouvoir
+  // exporter directement depuis la Library, dans la langue de la
+  // version actuellement affichée.
+  // -----------------------------------------------------------------------
+  async function exportExercisePdfFromData(e) {
+    const { jsPDF } = window.jspdf;
+    const PAGE_W = 496.8, PAGE_H = 720, MARGIN = 14, BOTTOM = PAGE_H - MARGIN;
+    const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
+    const doc = new jsPDF({ unit: "pt", format: [PAGE_W, PAGE_H] });
+    const pdfSections = await loadPdfSections(e.organization_id);
+    const show = (key) => pdfSections[key] !== false;
+
+    function sectionFrame(x0, y0, x1, y1, title) {
+      doc.setDrawColor(GREY); doc.setLineWidth(0.8);
+      doc.rect(x0, y0, x1 - x0, y1 - y0);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
+      const barW = Math.max(doc.getTextWidth(title) + 14, 70);
+      doc.setFillColor(ACCENT[0], ACCENT[1], ACCENT[2]);
+      doc.rect(x0 + 4, y0 - 0.1, barW, 14, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.text(title, x0 + 7, y0 + 10.5);
+      doc.setTextColor(DARK);
+    }
+
+    doc.setTextColor(DARK);
+    const logoSize = 76;
+    const logoX = PAGE_W - MARGIN - logoSize, logoY = 8;
+    const logoDataUrl = await loadLogoDataUrl(e.organization_id);
+    if (logoDataUrl) { try { doc.addImage(logoDataUrl, logoX, logoY, logoSize, logoSize); } catch (err) {} }
+
+    const { data: orgRow } = await supabaseClient.from("organizations").select("name").eq("id", e.organization_id).maybeSingle();
+    const clubName = (orgRow && orgRow.name) || "";
+
+    const labelX = MARGIN;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(13);
+    doc.text("EXERCISE N°:", labelX, 36);
+    const numLabelW = doc.getTextWidth("EXERCISE N°:");
+    doc.setDrawColor(DARK); doc.setLineWidth(0.8);
+    doc.line(labelX + numLabelW + 8, 40, 260, 40);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(14);
+    doc.text(String(e.number || ""), labelX + numLabelW + 14, 37);
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+    doc.text("NAME:", labelX, 58);
+    const nameLabelW = doc.getTextWidth("NAME:");
+    const nameLineEnd = logoX - 10;
+    doc.line(labelX + nameLabelW + 8, 62, nameLineEnd, 62);
+    let nameFs = 13; doc.setFont("helvetica", "normal"); doc.setFontSize(nameFs);
+    const name = e.name || "";
+    const nameMaxW = nameLineEnd - (labelX + nameLabelW + 14) - 6;
+    while (nameFs > 7 && doc.getTextWidth(name) > nameMaxW) { nameFs -= 0.5; doc.setFontSize(nameFs); }
+    doc.text(name, labelX + nameLabelW + 14, 59);
+
+    if (clubName) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(GREY);
+      let clubFs = 8; doc.setFontSize(clubFs);
+      const clubMaxW = nameLineEnd - labelX;
+      while (clubFs > 5.5 && doc.getTextWidth(clubName) > clubMaxW) { clubFs -= 0.3; doc.setFontSize(clubFs); }
+      doc.text(clubName, labelX, 76);
+      doc.setTextColor(DARK);
+    }
+
+    const top = 96, leftX0 = MARGIN, leftX1 = 170, midX0 = 178, midX1 = 352, rightX0 = 360, rightX1 = PAGE_W - MARGIN;
+
+    const TITLE_H = 16, PAD = 6, GAP = 8;
+    const ageUsed = show("age") ? (e.age || []) : [];
+    const categoriesUsed = show("categories") ? (e.categories || []) : [];
+    const materialUsed = show("material") ? (e.material || []) : [];
+    const showObjectives = show("objectives");
+    const showDifficulty = show("difficulty");
+
+    const nRows = ageUsed.length + categoriesUsed.length + materialUsed.length + (showObjectives ? 4 : 0);
+    const DIFF_BODY_H = 46;
+    const fixedTotal = showDifficulty ? (DIFF_BODY_H + TITLE_H + PAD) : 0;
+    const listSectionCount = (showObjectives ? 1 : 0) + (ageUsed.length ? 1 : 0) + (categoriesUsed.length ? 1 : 0) + (materialUsed.length ? 1 : 0);
+    const varTitles = (TITLE_H + PAD) * Math.max(1, listSectionCount);
+    const totalGaps = listSectionCount + (showDifficulty ? 1 : 0) - 1;
+    const avail = BOTTOM - top - fixedTotal - varTitles - GAP * Math.max(0, totalGaps);
+    const rowH = Math.max(1, avail / Math.max(1, nRows));
+
+    let ly = top;
+    function drawUsedList(title, items) {
+      if (items.length === 0) return;
+      const bodyH = items.length * rowH;
+      const y0 = ly, y1 = ly + TITLE_H + bodyH + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, title);
+      let ry = y0 + TITLE_H + PAD / 2;
+      items.forEach((label) => {
+        doc.setDrawColor(DARK); doc.setLineWidth(0.7);
+        doc.rect(leftX0 + 7, ry + 2, 8, 8);
+        doc.setLineWidth(0.9);
+        doc.line(leftX0 + 7, ry + 2, leftX0 + 15, ry + 10);
+        doc.line(leftX0 + 7, ry + 10, leftX0 + 15, ry + 2);
+        doc.setFont("helvetica", "normal");
+        let fs = 7.6; doc.setFontSize(fs);
+        const maxw = leftX1 - (leftX0 + 20) - 4;
+        while (fs > 5.5 && doc.getTextWidth(label) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
+        doc.text(label, leftX0 + 20, ry + rowH / 2 + 3);
+        ry += rowH;
+      });
+      ly = y1 + GAP;
+    }
+
+    drawUsedList("AGE:", ageUsed);
+    drawUsedList("CATEGORY:", categoriesUsed);
+    drawUsedList("MATERIAL:", materialUsed);
+
+    if (showObjectives) {
+      const objectives = (e.objectives || []).slice(0, 4);
+      const y0 = ly, y1 = ly + TITLE_H + 4 * rowH + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, "OBJECTIVES:");
+      const maxw = leftX1 - (leftX0 + 20) - 10;
+      doc.setFont("helvetica", "normal");
+      let sharedFs = 7.6;
+      objectives.forEach((obj) => {
+        let fs = sharedFs; doc.setFontSize(fs);
+        while (fs > 5.5 && doc.getTextWidth(obj) > maxw) { fs -= 0.3; }
+        if (fs < sharedFs) sharedFs = fs;
+      });
+      let ry = y0 + TITLE_H + PAD / 2;
+      for (let i = 0; i < 4; i++) {
+        doc.setDrawColor(DARK); doc.setLineWidth(0.6);
+        doc.rect(leftX0 + 7, ry + 2, 8, 8);
+        doc.line(leftX0 + 20, ry + rowH / 2 + 3.5, leftX1 - 8, ry + rowH / 2 + 3.5);
+        const obj = objectives[i];
+        if (obj) {
+          doc.setLineWidth(0.9);
+          doc.line(leftX0 + 7, ry + 2, leftX0 + 15, ry + 10);
+          doc.line(leftX0 + 7, ry + 10, leftX0 + 15, ry + 2);
+          doc.setFont("helvetica", "normal"); doc.setFontSize(sharedFs);
+          doc.text(obj, leftX0 + 20, ry + rowH / 2 + 2);
+        }
+        ry += rowH;
+      }
+      ly = y1 + GAP;
+    }
+
+    if (showDifficulty) {
+      const y0 = ly, y1 = ly + TITLE_H + DIFF_BODY_H + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, "DIFFICULTY:");
+      const cy = y0 + TITLE_H + PAD / 2 + 24;
+      const filled = Math.max(0, Math.min(3, e.difficulty || 1));
+      doc.setFont("helvetica", "normal"); doc.setFontSize(34);
+      [leftX0 + 34, leftX0 + 86, leftX0 + 138].forEach((cx, i) => {
+        if (i < filled) doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); else doc.setTextColor(190, 190, 190);
+        doc.text(i < filled ? "*" : "-", cx - 6, cy + 9);
+      });
+      doc.setTextColor(DARK);
+      ly = y1 + GAP;
+    }
+
+    const rightW = rightX1 - rightX0;
+    const halfH = rightW / 1.06;
+    const courtRects = {};
+    let cy0 = top;
+    [1, 2, 3].forEach((i) => { courtRects["court_" + i] = [rightX0, cy0, rightX1, cy0 + halfH]; cy0 += halfH + 8; });
+    const vH = Math.min(BOTTOM - cy0, rightW / 0.5233);
+    const vW = vH * 0.5233;
+    courtRects.court_4 = [rightX1 - vW, cy0, rightX1, cy0 + vH];
+    const midW = midX1 - midX0;
+    const c5H = midW / 1.883;
+    courtRects.court_5 = [midX0, BOTTOM - c5H, midX1, BOTTOM];
+
+    function drawTextBox(x0, y0, x1, y1, title, text) {
+      sectionFrame(x0, y0, x1, y1, title);
+      if (!text) return;
+      const innerX0 = x0 + 7, innerY0 = y0 + 20, innerX1 = x1 - 7, innerY1 = y1 - 6;
+      const maxW = innerX1 - innerX0;
+      const sizes = [9, 8.5, 8, 7.5, 7, 6.5, 6];
+      for (const fs of sizes) {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(fs);
+        const lines = doc.splitTextToSize(text, maxW);
+        const lh = fs * 1.15;
+        if (lines.length * lh <= innerY1 - innerY0) { doc.text(lines, innerX0, innerY0 + fs * 0.8); return; }
+      }
+      doc.setFontSize(5.6);
+      const lines = doc.splitTextToSize(text, maxW);
+      doc.text(lines, innerX0, innerY0 + 5);
+    }
+
+    const variantsText = (e.variants || "").trim();
+    const textBottom = courtRects.court_5[1] - GAP;
+    let descBottom = textBottom;
+    if (variantsText) {
+      const varH = 118;
+      drawTextBox(midX0, textBottom - varH, midX1, textBottom, "VARIANTS:", variantsText);
+      descBottom = textBottom - varH - GAP;
+    }
+    drawTextBox(midX0, top, midX1, descBottom, "DESCRIPTION:", (e.description || "").trim());
+
+    Object.entries(courtRects).forEach(([cid, rect]) => {
+      const [x0, y0, x1, y1] = rect;
+      const courtType = COURT_TYPES[cid];
+      const [origW, origH] = CANVAS_SIZES[courtType];
+      const tmpCanvas = document.createElement("canvas");
+      const ctx = setupHiDPICanvas(tmpCanvas, origW, origH);
+      const toPx = (x, y) => [x * origW, y * origH];
+      drawCourtBackground(ctx, tmpCanvas, courtType, origW, origH);
+      ((e.diagram || {})[cid] || []).forEach((el) => drawDiagramElement(ctx, toPx, tmpCanvas, el, 1));
+      const imgData = tmpCanvas.toDataURL("image/png");
+      const w = x1 - x0, h = y1 - y0;
+      const canvasAR = tmpCanvas.width / tmpCanvas.height, rectAR = w / h;
+      let dw = w, dh = h, dx = x0, dy = y0;
+      if (canvasAR > rectAR) { dh = w / canvasAR; dy = y0 + (h - dh) / 2; }
+      else { dw = h * canvasAR; dx = x0 + (w - dw) / 2; }
+      doc.addImage(imgData, "PNG", dx, dy, dw, dh);
+      doc.setDrawColor(GREY); doc.setLineWidth(0.6);
+      doc.rect(x0, y0, w, h);
+    });
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7);
+    doc.setTextColor(GREY);
+    doc.text("Pivot", MARGIN, BOTTOM + 8);
+    doc.setTextColor(DARK);
+
+    doc.save(`${(e.name || "exercise").replace(/\s+/g, "_")}.pdf`);
   }
 
   async function toggleFavorite(e) {

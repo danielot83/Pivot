@@ -528,7 +528,7 @@
     const source = allExercises.find((e) => e.id === id);
     if (!source) return;
     applyParsedData({
-      number: nextNumber(), name: source.name + " (copy)", difficulty: source.difficulty,
+      number: nextNumber(), name: source.name, difficulty: source.difficulty,
       age: source.age, categories: source.categories, material: source.material,
       tags: (source.tags || []).join("; "), objectives: source.objectives,
       description: source.description, variants: source.variants,
@@ -874,11 +874,20 @@
     } catch (e) { return null; }
   }
 
+  async function loadPdfSections(orgId) {
+    try {
+      const { data } = await supabaseClient.from("organizations").select("pdf_sections").eq("id", orgId).single();
+      return (data && data.pdf_sections) || {};
+    } catch (e) { return {}; }
+  }
+
   async function buildExercisePdfDoc() {
     const { jsPDF } = window.jspdf;
     const PAGE_W = 496.8, PAGE_H = 720, MARGIN = 14, BOTTOM = PAGE_H - MARGIN;
     const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
     const doc = new jsPDF({ unit: "pt", format: [PAGE_W, PAGE_H] });
+    const pdfSections = await loadPdfSections(currentOrgId);
+    const show = (key) => pdfSections[key] !== false;
 
     function sectionFrame(x0, y0, x1, y1, title) {
       doc.setDrawColor(GREY); doc.setLineWidth(0.8);
@@ -892,57 +901,74 @@
       doc.setTextColor(DARK);
     }
 
-    // ---------- Cabecera : logo (derecha, más grande) + nombre del club, número, nombre ----------
+    // ---------- Cabecera : logo (derecha, grande) + nombre del club a su
+    // lado (no debajo, para no invadir la columna derecha) ----------
     doc.setTextColor(DARK);
-    const logoSize = 70;
-    const logoX = PAGE_W - MARGIN - logoSize, logoY = MARGIN;
+    const logoSize = 76;
+    const logoX = PAGE_W - MARGIN - logoSize, logoY = 8;
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     if (logoDataUrl) {
       try { doc.addImage(logoDataUrl, logoX, logoY, logoSize, logoSize); } catch (e) { /* logo inválido, se ignora */ }
     }
     const clubName = (els.orgName.textContent || "").trim();
-    if (clubName) {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-      doc.text(clubName, logoX + logoSize / 2, logoY + logoSize + 11, { align: "center", maxWidth: logoSize + 10 });
-    }
 
     const labelX = MARGIN;
     doc.setFont("helvetica", "bold"); doc.setFontSize(13);
-    doc.text("EXERCISE N°:", labelX, 40);
+    doc.text("EXERCISE N°:", labelX, 36);
     const numLabelW = doc.getTextWidth("EXERCISE N°:");
     doc.setDrawColor(DARK); doc.setLineWidth(0.8);
-    doc.line(labelX + numLabelW + 8, 44, 260, 44);
+    doc.line(labelX + numLabelW + 8, 40, 260, 40);
     doc.setFont("helvetica", "normal"); doc.setFontSize(14);
-    doc.text(String(els.number.value || ""), labelX + numLabelW + 14, 41);
+    doc.text(String(els.number.value || ""), labelX + numLabelW + 14, 37);
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(12);
-    doc.text("NAME:", labelX, 66);
+    doc.text("NAME:", labelX, 58);
     const nameLabelW = doc.getTextWidth("NAME:");
     const nameLineEnd = logoX - 10;
-    doc.line(labelX + nameLabelW + 8, 70, nameLineEnd, 70);
+    doc.line(labelX + nameLabelW + 8, 62, nameLineEnd, 62);
     let nameFs = 13; doc.setFont("helvetica", "normal"); doc.setFontSize(nameFs);
     const name = els.name.value || "";
     const nameMaxW = nameLineEnd - (labelX + nameLabelW + 14) - 6;
     while (nameFs > 7 && doc.getTextWidth(name) > nameMaxW) { nameFs -= 0.5; doc.setFontSize(nameFs); }
-    doc.text(name, labelX + nameLabelW + 14, 67);
+    doc.text(name, labelX + nameLabelW + 14, 59);
 
-    const top = 90, leftX0 = MARGIN, leftX1 = 170, midX0 = 178, midX1 = 352, rightX0 = 360, rightX1 = PAGE_W - MARGIN;
+    if (clubName) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(GREY);
+      let clubFs = 8; doc.setFontSize(clubFs);
+      const clubMaxW = nameLineEnd - labelX;
+      while (clubFs > 5.5 && doc.getTextWidth(clubName) > clubMaxW) { clubFs -= 0.3; doc.setFontSize(clubFs); }
+      doc.text(clubName, labelX, 76);
+      doc.setTextColor(DARK);
+    }
 
-    // ---------- Colonne gauche : SEULEMENT ce qui est vraiment utilisé ----------
-    // Avant, la liste montrait les 14 catégories et les 13 matériels
-    // possibles, cochés ou pas -- illisible. Maintenant, seules les
-    // catégories et le matériel réellement choisis apparaissent.
+    const top = 96, leftX0 = MARGIN, leftX1 = 170, midX0 = 178, midX1 = 352, rightX0 = 360, rightX1 = PAGE_W - MARGIN;
+
+    // ---------- Colonne gauche : SEULEMENT ce qui est vraiment utilisé,
+    // et étirée pour occuper tout le couloir de haut en bas (avant, les
+    // lignes étaient limitées à 15pt et laissaient un vide en bas). Les
+    // sections désactivées dans Settings ne sont simplement pas dessinées.
+    // ----------
     const TITLE_H = 16, PAD = 6, GAP = 8;
-    const categoriesUsed = getCheckedValues("categories");
-    const materialUsed = [...getCheckedValues("material")];
-    materialFromDiagram(diagram).forEach((m) => { if (!materialUsed.includes(m)) materialUsed.push(m); });
+    const ageUsed = show("age") ? getCheckedValues("age") : [];
+    const categoriesUsed = show("categories") ? getCheckedValues("categories") : [];
+    const materialUsed = show("material") ? [...getCheckedValues("material")] : [];
+    if (show("material")) materialFromDiagram(diagram).forEach((m) => { if (!materialUsed.includes(m)) materialUsed.push(m); });
+    const showObjectives = show("objectives");
+    const showDifficulty = show("difficulty");
 
-    const nRows = categoriesUsed.length + materialUsed.length + 4;
-    const DIFF_BODY_H = 42;
-    const fixedTotal = DIFF_BODY_H + TITLE_H + PAD;
-    const varTitles = (TITLE_H + PAD) * 3;
-    const avail = BOTTOM - top - fixedTotal - varTitles - GAP * 3;
-    const rowH = Math.max(10, Math.min(15, avail / Math.max(1, nRows)));
+    const nRows = ageUsed.length + categoriesUsed.length + materialUsed.length + (showObjectives ? 4 : 0);
+    const DIFF_BODY_H = 46;
+    const fixedTotal = showDifficulty ? (DIFF_BODY_H + TITLE_H + PAD) : 0;
+    const listSectionCount = (showObjectives ? 1 : 0) + (ageUsed.length ? 1 : 0) + (categoriesUsed.length ? 1 : 0) + (materialUsed.length ? 1 : 0);
+    const varTitles = (TITLE_H + PAD) * Math.max(1, listSectionCount);
+    const totalGaps = listSectionCount + (showDifficulty ? 1 : 0) - 1;
+    const avail = BOTTOM - top - fixedTotal - varTitles - GAP * Math.max(0, totalGaps);
+    // Sans "plafond" artificiel : avail/nRows reconstruit exactement la
+    // hauteur disponible, donc ne peut jamais déborder de la page --
+    // avant, un plancher de 11pt forçait parfois plus de hauteur que
+    // disponible quand beaucoup de catégories/matériel/âges étaient
+    // cochés en même temps.
+    const rowH = Math.max(1, avail / Math.max(1, nRows));
 
     let ly = top;
     function drawUsedList(title, items) {
@@ -961,25 +987,26 @@
         let fs = 7.6; doc.setFontSize(fs);
         const maxw = leftX1 - (leftX0 + 20) - 4;
         while (fs > 5.5 && doc.getTextWidth(label) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
-        doc.text(label, leftX0 + 20, ry + 9.5);
+        doc.text(label, leftX0 + 20, ry + rowH / 2 + 3);
         ry += rowH;
       });
       ly = y1 + GAP;
     }
 
+    drawUsedList("AGE:", ageUsed);
     drawUsedList("CATEGORY:", categoriesUsed);
     drawUsedList("MATERIAL:", materialUsed);
 
     // Objectifs : une seule taille de police pour les 4 lignes -- avant,
     // chaque ligne rétrécissait à sa propre taille et le résultat était
     // visuellement incohérent (une phrase minuscule à côté d'une grande).
-    {
+    if (showObjectives) {
       const objectives = els.objectives.value.split("\n").map((t) => t.trim()).filter(Boolean).slice(0, 4);
       const y0 = ly, y1 = ly + TITLE_H + 4 * rowH + PAD;
       sectionFrame(leftX0, y0, leftX1, y1, "OBJECTIVES:");
       const maxw = leftX1 - (leftX0 + 20) - 10;
       doc.setFont("helvetica", "normal");
-      let sharedFs = 7.2;
+      let sharedFs = 7.6;
       objectives.forEach((obj) => {
         let fs = sharedFs; doc.setFontSize(fs);
         while (fs > 5.5 && doc.getTextWidth(obj) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
@@ -989,31 +1016,31 @@
       for (let i = 0; i < 4; i++) {
         doc.setDrawColor(DARK); doc.setLineWidth(0.6);
         doc.rect(leftX0 + 7, ry + 2, 8, 8);
-        doc.line(leftX0 + 20, ry + 9.5, leftX1 - 8, ry + 9.5);
+        doc.line(leftX0 + 20, ry + rowH / 2 + 3.5, leftX1 - 8, ry + rowH / 2 + 3.5);
         const obj = objectives[i];
         if (obj) {
           doc.setLineWidth(0.9);
           doc.line(leftX0 + 7, ry + 2, leftX0 + 15, ry + 10);
           doc.line(leftX0 + 7, ry + 10, leftX0 + 15, ry + 2);
           doc.setFont("helvetica", "normal"); doc.setFontSize(sharedFs);
-          doc.text(obj, leftX0 + 20, ry + 8.5);
+          doc.text(obj, leftX0 + 20, ry + rowH / 2 + 2);
         }
         ry += rowH;
       }
       ly = y1 + GAP;
     }
 
-    // Difficulté : étoiles plus grandes (avant, trop petites pour se voir
-    // d'un coup d'œil).
-    {
+    // Difficulté : étoiles bien plus grandes -- avant, trop petites pour
+    // se voir d'un coup d'œil.
+    if (showDifficulty) {
       const y0 = ly, y1 = ly + TITLE_H + DIFF_BODY_H + PAD;
       sectionFrame(leftX0, y0, leftX1, y1, "DIFFICULTY:");
-      const cy = y0 + TITLE_H + PAD / 2 + 20;
+      const cy = y0 + TITLE_H + PAD / 2 + 24;
       const filled = Math.max(0, Math.min(3, parseInt(els.difficulty.value, 10) || 1));
-      doc.setFont("helvetica", "normal"); doc.setFontSize(26);
-      [leftX0 + 32, leftX0 + 80, leftX0 + 128].forEach((cx, i) => {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(34);
+      [leftX0 + 34, leftX0 + 86, leftX0 + 138].forEach((cx, i) => {
         if (i < filled) doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); else doc.setTextColor(190, 190, 190);
-        doc.text(i < filled ? "*" : "-", cx - 5, cy + 7);
+        doc.text(i < filled ? "*" : "-", cx - 6, cy + 9);
       });
       doc.setTextColor(DARK);
       ly = y1 + GAP;
@@ -1084,6 +1111,14 @@
     currentStep = savedStep;
     resizeCanvasForStep();
     render();
+
+    // Petite marque Pivot, en bas à gauche -- pour que la fiche se
+    // reconnaisse comme "faite avec Pivot", pas juste une copie de
+    // l'app de bureau.
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7);
+    doc.setTextColor(GREY);
+    doc.text("Pivot", MARGIN, BOTTOM + 8);
+    doc.setTextColor(DARK);
 
     return doc;
   }

@@ -143,6 +143,16 @@
     </select>
   </div>
 
+  <div class="card" id="pdf-sections-card" style="display:none">
+    <h2>Exercise PDF — what to include</h2>
+    <p class="hint">Turn off anything you don't want printed on an exercise sheet.</p>
+    <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-age" /><label for="pdf-section-age">Age groups</label></div>
+    <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-categories" /><label for="pdf-section-categories">Categories</label></div>
+    <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-material" /><label for="pdf-section-material">Material</label></div>
+    <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-objectives" /><label for="pdf-section-objectives">Objectives</label></div>
+    <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-difficulty" /><label for="pdf-section-difficulty">Difficulty stars</label></div>
+  </div>
+
   <div class="card" id="validators-card" style="display:none">
     <h2>Association validators <span style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">Platform admin only</span></h2>
     <p class="hint">People who can approve or reject club association requests — a smaller power than yours, they can't block accounts or clubs. You're the only one who can grant or remove this.</p>
@@ -304,11 +314,13 @@
     document.querySelectorAll(".sharing-bulk-card").forEach((card) => (card.style.display = "block"));
     document.getElementById("associations-card").style.display = "block";
     document.getElementById("export-language-card").style.display = "block";
+    document.getElementById("pdf-sections-card").style.display = "block";
     applyRoleLocks();
     await loadSharingStatus();
     await loadMembers();
     await loadAssociations();
     await loadExportLanguage();
+    await loadPdfSections();
     if (isPlatformController) {
       document.getElementById("validators-card").style.display = "block";
       await loadValidatorsSection();
@@ -365,7 +377,8 @@
       "#members-card select, #members-card button, " +
       ".sharing-bulk-card select, .sharing-bulk-card button, " +
       "#associations-card input, #associations-card button, " +
-      "#export-language-card select"
+      "#export-language-card select, " +
+      "#pdf-sections-card input"
     ).forEach((el) => { el.disabled = true; });
 
     document.querySelectorAll(".card").forEach((card) => {
@@ -388,6 +401,27 @@
     const { error } = await supabaseClient.from("organizations").update({ export_language: e.target.value }).eq("id", currentOrgId);
     if (error) { showMessage(error.message, "error"); return; }
     showMessage("Export language updated — new PDFs will use it.", "success");
+  });
+
+  const PDF_SECTION_KEYS = ["age", "categories", "material", "objectives", "difficulty"];
+
+  async function loadPdfSections() {
+    const { data, error } = await supabaseClient.from("organizations").select("pdf_sections").eq("id", currentOrgId).single();
+    if (error) { console.error("loadPdfSections error:", error); return; }
+    const sections = data.pdf_sections || {};
+    PDF_SECTION_KEYS.forEach((key) => {
+      document.getElementById("pdf-section-" + key).checked = sections[key] !== false;
+    });
+  }
+
+  PDF_SECTION_KEYS.forEach((key) => {
+    document.getElementById("pdf-section-" + key).addEventListener("change", async () => {
+      const sections = {};
+      PDF_SECTION_KEYS.forEach((k) => (sections[k] = document.getElementById("pdf-section-" + k).checked));
+      const { error } = await supabaseClient.from("organizations").update({ pdf_sections: sections }).eq("id", currentOrgId);
+      if (error) { showMessage(error.message, "error"); return; }
+      showMessage("Updated — new exercise PDFs will use this.", "success");
+    });
   });
 
   // -----------------------------------------------------------------------
