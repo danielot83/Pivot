@@ -611,20 +611,28 @@
   // Statistiques simples -- seuls Roster et Suivi existent vraiment pour
   // l'instant, les autres modules restent à "—" tant qu'ils n'existent pas.
   // -----------------------------------------------------------------------
+  // Les mêmes saisons/équipes que "Remove example data" (l'exact ALL_EXAMPLE_TEAMS
+  // utilisé plus bas) -- une seule liste, pour que les stats et le bouton
+  // de suppression ne puissent jamais se désynchroniser.
+  const ALL_EXAMPLE_TEAMS = [
+    { season: "1995-1996", team: "Chicago Bulls" },
+    { season: "1994-1995", team: "Chicago Bulls" },
+    { season: "1993-1994", team: "Chicago Bulls" },
+    { season: "2007-2008", team: "Boston Celtics" },
+  ];
+  const EXAMPLE_TEAM_KEYS = new Set(ALL_EXAMPLE_TEAMS.map((ex) => `${ex.season}|${ex.team}`));
+  const isExampleTeam = (season, team) => EXAMPLE_TEAM_KEYS.has(`${season}|${team}`);
+
   async function loadStats() {
     if (!currentOrgId) return;
-    const { count: playerCount } = await supabaseClient
-      .from("players").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
-    els.statPlayers.textContent = playerCount ?? 0;
+    const { data: playerRows } = await supabaseClient.from("players").select("id, team, season").eq("organization_id", currentOrgId);
+    const realPlayers = (playerRows || []).filter((p) => !isExampleTeam(p.season, p.team));
+    els.statPlayers.textContent = realPlayers.length;
+    els.statTeams.textContent = new Set(realPlayers.map((r) => r.team)).size;
 
-    // pas de "distinct count" tout fait côté client Supabase -- on récupère
-    // juste la colonne "team" et on compte les valeurs différentes ici
-    const { data: teamRows } = await supabaseClient.from("players").select("team").eq("organization_id", currentOrgId);
-    els.statTeams.textContent = teamRows ? new Set(teamRows.map((r) => r.team)).size : 0;
-
-    const { count: assessmentCount } = await supabaseClient
-      .from("player_assessments").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
-    els.statAssessments.textContent = assessmentCount ?? 0;
+    const realPlayerIds = new Set(realPlayers.map((p) => p.id));
+    const { data: assessmentRows } = await supabaseClient.from("player_assessments").select("id, player_id").eq("organization_id", currentOrgId);
+    els.statAssessments.textContent = (assessmentRows || []).filter((a) => realPlayerIds.has(a.player_id)).length;
 
     const { count: exerciseCount } = await supabaseClient
       .from("exercises").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
@@ -765,16 +773,7 @@
     }
   });
 
-  // Toutes les données d'exemple connues -- y compris celles qu'on ne
-  // peut charger que depuis Roster/Assessment (les autres saisons Bulls,
-  // les Celtics), pour que "Remove example data" nettoie vraiment tout,
-  // peu importe par où l'exemple a été ajouté.
-  const ALL_EXAMPLE_TEAMS = [
-    { season: "1995-1996", team: "Chicago Bulls" },
-    { season: "1994-1995", team: "Chicago Bulls" },
-    { season: "1993-1994", team: "Chicago Bulls" },
-    { season: "2007-2008", team: "Boston Celtics" },
-  ];
+  // ALL_EXAMPLE_TEAMS est déclaré plus haut (réutilisé aussi par les stats).
 
   document.getElementById("remove-example-btn").addEventListener("click", async () => {
     if (!currentOrgId) return;
@@ -805,10 +804,14 @@
     box.innerHTML = `
       <strong>How to use the Dashboard</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li>This is your home screen — your club, your role, and quick stats about what's in Pivot so far.</li>
-        <li>If you're an admin, <strong>pending requests</strong> to join your club show up here, with Approve/Reject buttons.</li>
+        <li>This is your home screen — your club, your role, and quick stats about what's in Pivot so far. If you're not in any club yet, you can request to join one, or create your own club straight from here.</li>
+        <li><strong>Your stats at a glance</strong> — Teams, Players, Assessments, Exercises, Notebooks (folders in your play notebook), Play designs, Matches, Wins, Losses. All counted from your own club only. Example data (any Bulls season, the Celtics) is never counted here, even if it's still loaded.</li>
+        <li>✉️ next to your club name is your <strong>messages</strong> inbox — direct messages between you and a teammate, or you and a Pivot admin/validator. A number badge means unread messages. Click "+ New message" to start one by typing someone's email.</li>
+        <li>🔔 (only shows up when there's something) is for <strong>club association requests</strong> — if you're a platform admin or validator, you'll see every pending request here with Approve/Reject; otherwise you'll see the status of your own club's requests.</li>
+        <li>If you're an admin, <strong>pending requests</strong> to join your club show up here too, with Approve/Reject buttons — separate from the association ones above.</li>
         <li><strong>Load example data</strong> (below the tools) fills your club with a real historical roster and sample evaluations, to try everything before you have your own data. <strong>Remove example data</strong> clears it out again, cleanly.</li>
         <li>Click any tile in "Tools" to open that module, or use the "Go to…" menu at the top on any page to jump straight to another one.</li>
+        <li>If you're a Pivot platform admin, you'll also see a <strong>"Pivot Community — all clubs"</strong> section with read-only totals across every club on Pivot, not just yours.</li>
       </ul>`;
     box.style.display = "block";
   });
