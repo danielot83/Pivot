@@ -116,18 +116,6 @@
     <div class="pending-card" id="pending-requests"></div>
   </div>
 
-  <div id="validators-section" style="display:none">
-    <p class="section-label">Association validators</p>
-    <div class="pending-card" style="padding:16px 20px;">
-      <p style="font-size:13px; color:var(--muted); margin:0 0 10px;">People who can approve or reject club association requests — a smaller power than yours, they can't block accounts or clubs. You're the only one who can grant or remove this.</p>
-      <div id="validators-list" style="margin-bottom:12px;"></div>
-      <div style="display:flex; gap:8px;">
-        <input id="validator-email-input" type="text" placeholder="Their email" style="flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:6px;" />
-        <button class="nav-btn" id="add-validator-btn">Make validator</button>
-      </div>
-    </div>
-  </div>
-
   <p class="section-label">Your stats at a glance</p>
   <div class="stats-row" style="grid-template-columns: repeat(3, 1fr);">
     <div class="stat-card"><div class="num" id="stat-teams">—</div><div class="label">Teams</div></div>
@@ -224,7 +212,6 @@
     els.greeting.textContent = `Welcome, ${displayName}`;
     isPlatformController = !!(profile && profile.is_platform_controller);
     canValidateAssociations = isPlatformController || !!(profile && profile.is_association_validator);
-    if (isPlatformController) loadValidatorsSection();
 
     const { data, error } = await supabaseClient
       .from("memberships")
@@ -471,44 +458,6 @@
   });
   document.addEventListener("click", (e) => {
     if (!els.msgWidget.contains(e.target)) els.msgPanel.style.display = "none";
-  });
-
-  // -----------------------------------------------------------------------
-  // Nommer/retirer un validateur d'associations -- visible UNIQUEMENT
-  // pour toi (is_platform_controller), jamais pour un validateur
-  // lui-même, ni pour personne d'autre. C'est volontaire : ce pouvoir se
-  // donne à la main, il ne doit jamais pouvoir se donner tout seul ni se
-  // propager sans que tu le décides.
-  // -----------------------------------------------------------------------
-  async function loadValidatorsSection() {
-    document.getElementById("validators-section").style.display = "block";
-    const { data, error } = await supabaseClient
-      .from("profiles").select("id, full_name, email").eq("is_association_validator", true);
-    if (error) { console.error("loadValidatorsSection error:", error); return; }
-    const list = document.getElementById("validators-list");
-    if (!data || data.length === 0) { list.innerHTML = '<p class="hint" style="margin:0;">Nobody else yet — just you.</p>'; return; }
-    list.innerHTML = data.map((p) => `
-      <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line);">
-        <span>${escapeHtml(p.full_name || p.email)}</span>
-        <button class="btn-reject remove-validator-btn" data-id="${p.id}" style="padding:4px 10px; font-size:12px;">Remove</button>
-      </div>`).join("");
-    list.querySelectorAll(".remove-validator-btn").forEach((btn) => btn.addEventListener("click", () => setValidator(btn.dataset.id, false)));
-  }
-
-  async function setValidator(userId, value) {
-    const { error } = await supabaseClient.from("profiles").update({ is_association_validator: value }).eq("id", userId);
-    if (error) { showMessage(error.message, "error"); return; }
-    showMessage(value ? "They can now approve association requests." : "That person is no longer a validator.", "success");
-    await loadValidatorsSection();
-  }
-
-  document.getElementById("add-validator-btn").addEventListener("click", async () => {
-    const email = document.getElementById("validator-email-input").value.trim();
-    if (!email) return;
-    const { data, error } = await supabaseClient.from("profiles").select("id").eq("email", email).maybeSingle();
-    if (error || !data) { showMessage("No Pivot account found with that email.", "error"); return; }
-    document.getElementById("validator-email-input").value = "";
-    await setValidator(data.id, true);
   });
 
   // -----------------------------------------------------------------------

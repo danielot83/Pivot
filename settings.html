@@ -143,6 +143,16 @@
     </select>
   </div>
 
+  <div class="card" id="validators-card" style="display:none">
+    <h2>Association validators <span style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">Platform admin only</span></h2>
+    <p class="hint">People who can approve or reject club association requests — a smaller power than yours, they can't block accounts or clubs. You're the only one who can grant or remove this.</p>
+    <div id="validators-list" style="margin-bottom:12px;"></div>
+    <div style="display:flex; gap:8px;">
+      <input id="validator-email-input" type="text" placeholder="Their email" style="flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:6px;" />
+      <button class="btn btn-primary" id="add-validator-btn">Make validator</button>
+    </div>
+  </div>
+
   <div class="card sharing-bulk-card" data-table="exercises" style="display:none">
     <h2>Exercise sharing</h2>
     <p class="hint">Sets every exercise in your library to the chosen circle at once. You can still pick one exercise by exercise in the Exercise creator.</p>
@@ -244,6 +254,7 @@
   let currentOrgId = null;
   let myRole = null;
   let canManage = false;
+  let isPlatformController = false;
   let pendingBlob = null;
 
   function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
@@ -268,7 +279,8 @@
 
     const { data: userData } = await supabaseClient.auth.getUser();
     const { data: profRow } = await supabaseClient.from("profiles").select("is_platform_controller").eq("id", userData.user.id).maybeSingle();
-    canManage = myRole === "admin" || !!(profRow && profRow.is_platform_controller);
+    isPlatformController = !!(profRow && profRow.is_platform_controller);
+    canManage = myRole === "admin" || isPlatformController;
 
     // même logo dans la barre de navigation que sur les autres pages
     const navLogo = document.getElementById("org-logo-nav");
@@ -297,7 +309,48 @@
     await loadMembers();
     await loadAssociations();
     await loadExportLanguage();
+    if (isPlatformController) {
+      document.getElementById("validators-card").style.display = "block";
+      await loadValidatorsSection();
+    }
   }
+
+  // -----------------------------------------------------------------------
+  // Nommer/retirer un validateur d'associations -- visible UNIQUEMENT
+  // pour toi (is_platform_controller), jamais pour un validateur
+  // lui-même, ni pour personne d'autre. C'est volontaire : ce pouvoir se
+  // donne à la main, il ne doit jamais pouvoir se donner tout seul ni se
+  // propager sans que tu le décides.
+  // -----------------------------------------------------------------------
+  async function loadValidatorsSection() {
+    const { data, error } = await supabaseClient
+      .from("profiles").select("id, full_name, email").eq("is_association_validator", true);
+    if (error) { console.error("loadValidatorsSection error:", error); return; }
+    const list = document.getElementById("validators-list");
+    if (!data || data.length === 0) { list.innerHTML = '<p class="hint" style="margin:0;">Nobody else yet — just you.</p>'; return; }
+    list.innerHTML = data.map((p) => `
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line);">
+        <span>${escapeHtml(p.full_name || p.email)}</span>
+        <button class="btn btn-secondary remove-validator-btn" data-id="${p.id}" style="padding:4px 10px; font-size:12px;">Remove</button>
+      </div>`).join("");
+    list.querySelectorAll(".remove-validator-btn").forEach((btn) => btn.addEventListener("click", () => setValidator(btn.dataset.id, false)));
+  }
+
+  async function setValidator(userId, value) {
+    const { error } = await supabaseClient.from("profiles").update({ is_association_validator: value }).eq("id", userId);
+    if (error) { showMessage(error.message, "error"); return; }
+    showMessage(value ? "They can now approve association requests." : "That person is no longer a validator.", "success");
+    await loadValidatorsSection();
+  }
+
+  document.getElementById("add-validator-btn").addEventListener("click", async () => {
+    const email = document.getElementById("validator-email-input").value.trim();
+    if (!email) return;
+    const { data, error } = await supabaseClient.from("profiles").select("id").eq("email", email).maybeSingle();
+    if (error || !data) { showMessage("No Pivot account found with that email.", "error"); return; }
+    document.getElementById("validator-email-input").value = "";
+    await setValidator(data.id, true);
+  });
 
   // -----------------------------------------------------------------------
   // Verrouille les contrôles réservés à l'admin du club (ou au platform
