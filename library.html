@@ -456,8 +456,6 @@
     const PAGE_W = 496.8, PAGE_H = 720, MARGIN = 14, BOTTOM = PAGE_H - MARGIN;
     const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
     const doc = new jsPDF({ unit: "pt", format: [PAGE_W, PAGE_H] });
-    const pdfSections = await loadPdfSections(e.organization_id);
-    const show = (key) => pdfSections[key] !== false;
 
     function sectionFrame(x0, y0, x1, y1, title) {
       doc.setDrawColor(GREY); doc.setLineWidth(0.8);
@@ -511,50 +509,67 @@
 
     const top = 96, leftX0 = MARGIN, leftX1 = 170, midX0 = 178, midX1 = 352, rightX0 = 360, rightX1 = PAGE_W - MARGIN;
 
-    const TITLE_H = 16, PAD = 6, GAP = 8;
-    const ageUsed = show("age") ? (e.age || []) : [];
-    const categoriesUsed = show("categories") ? (e.categories || []) : [];
-    const materialUsed = show("material") ? (e.material || []) : [];
-    const showObjectives = show("objectives");
-    const showDifficulty = show("difficulty");
+    const TITLE_H = 16, PAD = 6, GAP = 8, DIFF_BODY_H = 46;
+    const ageChecked = e.age || [];
+    const categoriesChecked = e.categories || [];
+    const materialChecked = e.material || [];
 
-    const nRows = ageUsed.length + categoriesUsed.length + materialUsed.length + (showObjectives ? 4 : 0);
-    const DIFF_BODY_H = 46;
-    const fixedTotal = showDifficulty ? (DIFF_BODY_H + TITLE_H + PAD) : 0;
-    const listSectionCount = (showObjectives ? 1 : 0) + (ageUsed.length ? 1 : 0) + (categoriesUsed.length ? 1 : 0) + (materialUsed.length ? 1 : 0);
-    const varTitles = (TITLE_H + PAD) * Math.max(1, listSectionCount);
-    const totalGaps = listSectionCount + (showDifficulty ? 1 : 0) - 1;
-    const avail = BOTTOM - top - fixedTotal - varTitles - GAP * Math.max(0, totalGaps);
-    const rowH = Math.max(1, avail / Math.max(1, nRows));
+    const ageRows = Math.ceil(AGE_GROUPS.length / 2);
+    const nRows = ageRows + CATEGORIES.length + MATERIALS.length + 4;
+    const varTitles = (TITLE_H + PAD) * 4;
+    const fixedTotal = DIFF_BODY_H + TITLE_H + PAD;
+    const avail = BOTTOM - top - fixedTotal - varTitles - GAP * 4;
+    const rowH = avail / nRows;
 
     let ly = top;
-    function drawUsedList(title, items) {
-      if (items.length === 0) return;
-      const bodyH = items.length * rowH;
+    function drawFixedList(title, allLabels, checkedLabels) {
+      const bodyH = allLabels.length * rowH;
       const y0 = ly, y1 = ly + TITLE_H + bodyH + PAD;
       sectionFrame(leftX0, y0, leftX1, y1, title);
       let ry = y0 + TITLE_H + PAD / 2;
-      items.forEach((label) => {
-        doc.setDrawColor(DARK); doc.setLineWidth(0.7);
-        doc.rect(leftX0 + 7, ry + 2, 8, 8);
-        doc.setLineWidth(0.9);
-        doc.line(leftX0 + 7, ry + 2, leftX0 + 15, ry + 10);
-        doc.line(leftX0 + 7, ry + 10, leftX0 + 15, ry + 2);
+      allLabels.forEach((label) => {
+        doc.setDrawColor(DARK); doc.setLineWidth(0.6);
+        doc.rect(leftX0 + 7, ry + 2, 7, 7);
+        if (checkedLabels.includes(label)) {
+          doc.setLineWidth(0.8);
+          doc.line(leftX0 + 7, ry + 2, leftX0 + 14, ry + 9);
+          doc.line(leftX0 + 7, ry + 9, leftX0 + 14, ry + 2);
+        }
         doc.setFont("helvetica", "normal");
-        let fs = 7.6; doc.setFontSize(fs);
-        const maxw = leftX1 - (leftX0 + 20) - 4;
+        let fs = 7.2; doc.setFontSize(fs);
+        const maxw = leftX1 - (leftX0 + 18) - 4;
         while (fs > 5.5 && doc.getTextWidth(label) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
-        doc.text(label, leftX0 + 20, ry + rowH / 2 + 3);
+        doc.text(label, leftX0 + 18, ry + rowH / 2 + 2.5);
         ry += rowH;
       });
       ly = y1 + GAP;
     }
 
-    drawUsedList("AGE:", ageUsed);
-    drawUsedList("CATEGORY:", categoriesUsed);
-    drawUsedList("MATERIAL:", materialUsed);
+    {
+      const y0 = ly, y1 = ly + TITLE_H + ageRows * rowH + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, "AGE:");
+      const colW = (leftX1 - leftX0 - 14) / 2;
+      AGE_GROUPS.forEach((label, i) => {
+        const col = i % 2, row = Math.floor(i / 2);
+        const cx = leftX0 + 7 + col * colW;
+        const ry = y0 + TITLE_H + PAD / 2 + row * rowH;
+        doc.setDrawColor(DARK); doc.setLineWidth(0.6);
+        doc.rect(cx, ry + 2, 7, 7);
+        if (ageChecked.includes(label)) {
+          doc.setLineWidth(0.8);
+          doc.line(cx, ry + 2, cx + 7, ry + 9);
+          doc.line(cx, ry + 9, cx + 7, ry + 2);
+        }
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.2);
+        doc.text(label, cx + 11, ry + rowH / 2 + 2.5);
+      });
+      ly = y1 + GAP;
+    }
 
-    if (showObjectives) {
+    drawFixedList("CATEGORY:", CATEGORIES, categoriesChecked);
+    drawFixedList("MATERIAL:", MATERIALS, materialChecked);
+
+    {
       const objectives = (e.objectives || []).slice(0, 4);
       const y0 = ly, y1 = ly + TITLE_H + 4 * rowH + PAD;
       sectionFrame(leftX0, y0, leftX1, y1, "OBJECTIVES:");
@@ -584,7 +599,7 @@
       ly = y1 + GAP;
     }
 
-    if (showDifficulty) {
+    {
       const y0 = ly, y1 = ly + TITLE_H + DIFF_BODY_H + PAD;
       sectionFrame(leftX0, y0, leftX1, y1, "DIFFICULTY:");
       const cy = y0 + TITLE_H + PAD / 2 + 24;
@@ -655,11 +670,24 @@
       doc.addImage(imgData, "PNG", dx, dy, dw, dh);
       doc.setDrawColor(GREY); doc.setLineWidth(0.6);
       doc.rect(x0, y0, w, h);
+
+      const stepNum = COURT_IDS.indexOf(cid) + 1;
+      const badgeR = 7, badgeCx = x0 + badgeR + 3, badgeCy = y1 - badgeR - 3;
+      doc.setFillColor(DARK); doc.setDrawColor(DARK);
+      doc.circle(badgeCx, badgeCy, badgeR, "F");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(255, 255, 255);
+      doc.text(String(stepNum), badgeCx, badgeCy + 3, { align: "center" });
+      doc.setTextColor(DARK);
     });
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(7);
-    doc.setTextColor(GREY);
-    doc.text("Pivot", MARGIN, BOTTOM + 8);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+    doc.setTextColor(DARK); doc.text("Pi", MARGIN, BOTTOM + 9);
+    const w1 = doc.getTextWidth("Pi");
+    doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text("v", MARGIN + w1, BOTTOM + 9);
+    const w2 = doc.getTextWidth("v");
+    doc.setTextColor(DARK); doc.text("ot", MARGIN + w1 + w2, BOTTOM + 9);
+    const w3 = doc.getTextWidth("ot");
+    doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text(".", MARGIN + w1 + w2 + w3, BOTTOM + 9);
     doc.setTextColor(DARK);
 
     doc.save(`${(e.name || "exercise").replace(/\s+/g, "_")}.pdf`);
