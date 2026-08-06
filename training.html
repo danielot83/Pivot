@@ -118,6 +118,7 @@
       <h2>Sessions</h2>
       <button class="new-btn" id="new-training-btn">+ New session</button>
       <div id="trainings-list"></div>
+      <button class="btn btn-secondary" id="export-book-btn" style="width:100%; margin-top:10px;">📖 Export whole book (PDF)</button>
     </div>
   </div>
 
@@ -231,28 +232,29 @@
         </div>
       </div>
       <p class="section-label">Exercises in this notebook</p>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-        <div>
-          <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">Your library — click to add</p>
-          <input id="notebook-exercise-search" type="text" placeholder="Name, tag, description…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:8px;" />
-          <div class="field-row" style="display:flex; gap:8px; margin-bottom:8px;">
-            <div class="field" style="flex:1;"><label for="notebook-difficulty-filter" style="font-size:11.5px;">Difficulty</label><select id="notebook-difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
-            <div class="field" style="flex:1;"><label for="notebook-language-filter" style="font-size:11.5px;">Language</label><select id="notebook-language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
-          </div>
-          <label class="field-label" style="font-size:11.5px; font-weight:600; color:var(--muted);">Category</label>
-          <div class="multiselect" id="notebook-category-filter"></div>
-          <label class="field-label" style="font-size:11.5px; font-weight:600; color:var(--muted);">Age</label>
-          <div class="multiselect" id="notebook-age-filter"></div>
-          <div class="checkbox-field"><input type="checkbox" id="notebook-favorites-filter" /><label for="notebook-favorites-filter" style="font-size:12.5px;">Favorites only</label></div>
-          <div class="checkbox-field"><input type="checkbox" id="notebook-unused-filter" /><label for="notebook-unused-filter" style="font-size:12.5px;">Never used in a session</label></div>
-          <button class="reset-btn" id="notebook-reset-filters-btn" style="margin-bottom:10px;">Reset filters</button>
-          <div id="notebook-library-list" style="max-height:280px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
+      <p class="hint" style="margin:0 0 8px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">Your library — click to add</p>
+      <input id="notebook-exercise-search" type="text" placeholder="Name, tag, description…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:8px;" />
+      <div class="toolbar" style="margin-bottom:8px; align-items:flex-start;">
+        <div class="field"><label for="notebook-difficulty-filter" style="font-size:11.5px;">Difficulty</label><select id="notebook-difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
+        <div class="field"><label for="notebook-language-filter" style="font-size:11.5px;">Language</label><select id="notebook-language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
+        <div class="field" style="flex:1; min-width:180px;">
+          <label class="field-label" style="font-size:11.5px; font-weight:600; color:var(--muted); display:block;">Category</label>
+          <div class="multiselect" id="notebook-category-filter" style="max-height:76px;"></div>
         </div>
-        <div>
-          <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">In this notebook</p>
-          <div id="notebook-contents-list" style="max-height:520px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
+        <div class="field" style="flex:1; min-width:180px;">
+          <label class="field-label" style="font-size:11.5px; font-weight:600; color:var(--muted); display:block;">Age</label>
+          <div class="multiselect" id="notebook-age-filter" style="max-height:76px;"></div>
+        </div>
+        <div class="field">
+          <div class="checkbox-field"><input type="checkbox" id="notebook-favorites-filter" /><label for="notebook-favorites-filter" style="font-size:12.5px;">Favorites only</label></div>
+          <div class="checkbox-field"><input type="checkbox" id="notebook-unused-filter" /><label for="notebook-unused-filter" style="font-size:12.5px;">Never used</label></div>
+          <button class="reset-btn" id="notebook-reset-filters-btn">Reset filters</button>
         </div>
       </div>
+      <div id="notebook-library-list" style="max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px; margin-bottom:20px;"></div>
+
+      <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">In this notebook</p>
+      <div id="notebook-contents-list" style="max-height:340px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
       <div class="toolbar" style="margin-top:16px;">
         <button class="btn btn-primary" id="save-notebook-btn">Save notebook</button>
         <div class="spacer"></div>
@@ -517,8 +519,15 @@
       .forEach((e) => {
         const row = document.createElement("div");
         const already = inNotebook.has(e.id);
-        row.style.cssText = `display:flex; align-items:center; justify-content:space-between; gap:6px; padding:6px 8px; font-size:13px; border-radius:6px; ${already ? "opacity:.45;" : "cursor:pointer;"}`;
-        row.innerHTML = `<span>${escapeHtml(e.name)}</span>${already ? '<span class="hint" style="font-size:11px;">Added</span>' : '<span style="color:var(--accent);">+ Add</span>'}`;
+        row.style.cssText = `display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 8px; font-size:13px; border-radius:6px; border-bottom:1px solid var(--line); ${already ? "opacity:.45;" : "cursor:pointer;"}`;
+        const objSnippet = (e.objectives || []).slice(0, 2).join(" · ");
+        row.innerHTML = `
+          <div style="min-width:0;">
+            <div>${escapeHtml(e.name)}</div>
+            ${objSnippet ? `<div class="hint" style="font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(objSnippet)}</div>` : ""}
+          </div>
+          ${already ? '<span class="hint" style="font-size:11px; flex-shrink:0;">Added</span>' : '<span style="color:var(--accent); flex-shrink:0;">+ Add</span>'}
+        `;
         if (!already && notebookOwned) {
           row.addEventListener("click", () => {
             notebookContents.push(e.id);
@@ -947,11 +956,15 @@
     } catch (e) { return null; }
   }
 
-  async function exportToPdf() {
-    const { jsPDF } = window.jspdf;
+  // -----------------------------------------------------------------------
+  // Dessine UNE fiche de séance sur la page courante du document -- ne
+  // crée jamais son propre jsPDF ni ne sauvegarde rien, pour pouvoir
+  // être appelée plusieurs fois de suite (une fois par séance) dans le
+  // même PDF, pour "exporter tout le cahier".
+  // -----------------------------------------------------------------------
+  function drawSessionPage(doc, sess, logoDataUrl, clubName) {
     const PAGE_W = 595, PAGE_H = 842, MARGIN = 20, BOTTOM = PAGE_H - MARGIN;
     const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
-    const doc = new jsPDF({ unit: "pt", format: [PAGE_W, PAGE_H] });
 
     function sectionFrame(x0, y0, x1, y1, title) {
       doc.setDrawColor(GREY); doc.setLineWidth(0.8);
@@ -965,29 +978,21 @@
       doc.setTextColor(DARK);
     }
 
-    // ---------- Cabecera : logo a la izquierda + nombre del club, título,
-    // y una fila de campos con su etiqueta encima de la línea -- igual
-    // que la ficha de verdad que mandaste de ejemplo.
     doc.setTextColor(DARK);
     const logoSize = 56;
-    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     if (logoDataUrl) { try { doc.addImage(logoDataUrl, MARGIN, 14, logoSize, logoSize); } catch (e) {} }
-    const clubName = (els.orgName.textContent || "").trim();
     const textX = MARGIN + logoSize + 10;
     if (clubName) { doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text(clubName, textX, 26); }
     doc.setFont("helvetica", "bold"); doc.setFontSize(18);
     doc.text("SESSION SHEET", textX, 46);
 
-    // Fila de campos: Date / Session # / Category / Duration / Players,
-    // cada uno con su etiqueta encima de una línea -- debajo del logo,
-    // ya no debajo (con un logo más grande, antes se solapaban).
     const fieldY = 88, fieldLineY = 92;
     const fields = [
-      ["Date", els.date.value || ""],
-      ["Session #", els.number.value || ""],
-      ["Category", els.category.value || ""],
-      ["Duration", els.planned.value ? `${els.planned.value} min` : ""],
-      ["Players", els.players.value || ""],
+      ["Date", sess.date || ""],
+      ["Session #", sess.number || ""],
+      ["Category", sess.category || ""],
+      ["Duration", sess.planned_minutes ? `${sess.planned_minutes} min` : ""],
+      ["Players", sess.players_count || ""],
     ];
     let fx = MARGIN;
     const fieldGap = 16;
@@ -1003,7 +1008,7 @@
       fx += fieldW + fieldGap;
     });
 
-    const coaches = [els.coach1.value, els.coach2.value, els.coach3.value].filter(Boolean);
+    const coaches = (sess.coaches || []).filter(Boolean);
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(GREY);
     doc.text("Coach(es): " + (coaches.join(", ") || "—"), MARGIN, 112);
     doc.setTextColor(DARK);
@@ -1011,21 +1016,12 @@
     const top = 126, leftX0 = MARGIN, leftX1 = 195, midX0 = 205, rightX1 = PAGE_W - MARGIN;
     const TITLE_H = 17, PAD = 6, GAP = 10;
 
-    // ---------- Colonne gauche : catégories / matériel / objectifs --
-    // les mêmes listes fixes complètes que sur la fiche d'exercice, cochées
-    // selon le résumé auto de la séance. Comme le nombre de lignes ne
-    // change jamais (toujours 14 catégories, 13 matériels, 4 objectifs),
-    // la hauteur de chaque ligne est fixe.
-    // ----------
-    const catChecked = els.catSummary.value.split("\n").map((s) => s.trim()).filter(Boolean);
-    const matChecked = els.matSummary.value.split("\n").map((s) => s.trim()).filter(Boolean);
-    const objList = els.objSummary.value.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 4);
+    const catChecked = sess.categories_summary || [];
+    const matChecked = sess.material_summary || [];
+    const objList = (sess.objectives_summary || []).slice(0, 4);
 
     const leftNRows = CATEGORIES.length + MATERIALS.length + 4;
     const leftVarTitles = (TITLE_H + PAD) * 3;
-    // 3 gaps comptés (un après chaque boîte, y compris la dernière) --
-    // le calcul du budget doit matcher exactement l'accumulation réelle
-    // de ly plus bas, sinon ça déborde de la page.
     const leftGaps = GAP * 3;
     const leftAvail = BOTTOM - top - leftVarTitles - leftGaps;
     const leftRowH = leftAvail / leftNRows;
@@ -1082,10 +1078,7 @@
       }
     }
 
-    // ---------- Colonne principale : un vrai tableau (comme la fiche
-    // que tu as envoyée : Temps | N° | Nom de l'exercice | Points clés |
-    // Variantes) -- plus les cases COMMENTAIRES et IDÉES juste en dessous.
-    // ----------
+    const sessionExercises = sess.exercises || [];
     const colTime = 38, colNum = 22, colName = 114, colPoints = 96;
     const colX = { time: midX0, num: midX0 + colTime, name: midX0 + colTime + colNum, points: midX0 + colTime + colNum + colName, variants: midX0 + colTime + colNum + colName + colPoints };
     const tableRight = rightX1;
@@ -1099,20 +1092,17 @@
     });
     [colX.num, colX.name, colX.points, colX.variants].forEach((x) => doc.line(x, top, x, top + headerH));
 
-    // On réserve un bloc fixe en bas pour tiempo total + asistencia +
-    // comentarios/idées -- avant, le tableau remplissait tout jusqu'à
-    // BOTTOM et il ne restait plus de place pour rien de tout ça.
+    const teamPlayersList = sess.teamPlayersList || [];
+    const attendance = sess.attendance || {};
     const TOTAL_LINE_H = 16;
-    const attRowsForReserve = teamPlayers.length > 0 ? Math.ceil(teamPlayers.length / 2) : 0;
+    const attRowsForReserve = teamPlayersList.length > 0 ? Math.ceil(teamPlayersList.length / 2) : 0;
     const attRowH = 11;
-    const ATTENDANCE_H = teamPlayers.length > 0 ? (TITLE_H + PAD + attRowsForReserve * attRowH) : 0;
+    const ATTENDANCE_H = teamPlayersList.length > 0 ? (TITLE_H + PAD + attRowsForReserve * attRowH) : 0;
     const FEEDBACK_H = 140;
     const reservedBottom = GAP + TOTAL_LINE_H + GAP + ATTENDANCE_H + (ATTENDANCE_H > 0 ? GAP : 0) + FEEDBACK_H;
     const tableBottom = BOTTOM - reservedBottom;
     const tableRows = Math.max(sessionExercises.length, 6);
     const tableBodyH = tableBottom - top - headerH;
-    // On laisse au moins 3 lignes de haut à chaque ligne du tableau, pour
-    // que "Points clés"/"Variantes" aient la place de tenir sur 2-3 lignes.
     const rowsThatFit = Math.max(1, Math.floor(tableBodyH / 34));
     const nRows = Math.min(tableRows, Math.max(rowsThatFit, sessionExercises.length));
     const rowH = tableBodyH / nRows;
@@ -1124,9 +1114,6 @@
       [colX.num, colX.name, colX.points, colX.variants].forEach((x) => doc.line(x, ty, x, ty + rowH));
       const se = sessionExercises[i];
       if (se) {
-        // Temps/N°/Nom centrés verticalement dans la ligne -- avant, ils
-        // restaient collés en haut, ce qui semblait "décalé" dès que la
-        // ligne était haute (peu d'exercices = lignes très hautes).
         const midY = ty + rowH / 2 + 3;
         doc.setFont("helvetica", "normal"); doc.setFontSize(9);
         doc.text(String(se.duration_minutes || ""), colX.time + colTime / 2, midY, { align: "center" });
@@ -1145,9 +1132,8 @@
     doc.setDrawColor(DARK); doc.setLineWidth(0.7);
     doc.rect(midX0, top, tableRight - midX0, headerH + nRows * rowH);
 
-    // ---------- Tiempo total (se calcula solo, sumando cada ejercicio) ----------
     const totalMinutes = sessionExercises.reduce((sum, se) => sum + (parseInt(se.duration_minutes, 10) || 0), 0);
-    const plannedMinutes = parseInt(els.planned.value, 10) || 0;
+    const plannedMinutes = parseInt(sess.planned_minutes, 10) || 0;
     const totalLineY = tableBottom + GAP + 11;
     doc.setFont("helvetica", "bold"); doc.setFontSize(9);
     doc.text(`Total: ${totalMinutes} min`, midX0, totalLineY);
@@ -1158,14 +1144,12 @@
       doc.setTextColor(DARK);
     }
 
-    // ---------- Présences : en 2 colonnes, compact -- il restait de la
-    // place pour ça, comme tu l'as suggéré.
-    if (teamPlayers.length > 0) {
+    if (teamPlayersList.length > 0) {
       const attTop = tableBottom + GAP + TOTAL_LINE_H + GAP;
       const attBottom = attTop + ATTENDANCE_H;
       sectionFrame(midX0, attTop, tableRight, attBottom, "ATTENDANCE");
       const colW = (tableRight - midX0 - 16) / 2;
-      teamPlayers.forEach((p, i) => {
+      teamPlayersList.forEach((p, i) => {
         const col = i % 2, row = Math.floor(i / 2);
         const cx = midX0 + 8 + col * colW;
         const ry = attTop + TITLE_H + PAD / 2 + row * attRowH;
@@ -1184,26 +1168,23 @@
       });
     }
 
-    // ---------- Después de sesión : comentarios + ideas para la próxima ----------
-    // El bloque reservado (FEEDBACK_H) ya garantiza el hueco -- no hace
-    // falta compararlo con la columna izquierda, son tiras horizontales
-    // distintas que no se pisan.
     {
       const boxTop = tableBottom + GAP + TOTAL_LINE_H + GAP + ATTENDANCE_H + (ATTENDANCE_H > 0 ? GAP : 0);
       const boxH = (BOTTOM - boxTop - GAP) / 2;
       sectionFrame(midX0, boxTop, tableRight, boxTop + boxH, "AFTER SESSION: COMMENTS");
       let fy = boxTop + TITLE_H + 4;
-      if (sessionRating > 0) {
+      const rating = sess.rating || 0;
+      if (rating > 0) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]);
-        doc.text("*".repeat(sessionRating) + "-".repeat(5 - sessionRating), midX0 + 8, fy);
+        doc.text("*".repeat(rating) + "-".repeat(5 - rating), midX0 + 8, fy);
         doc.setTextColor(DARK); fy += 14;
       }
-      const comments = els.comments.value.trim();
+      const comments = (sess.comments || "").trim();
       if (comments) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text(doc.splitTextToSize(comments, tableRight - midX0 - 16), midX0 + 8, fy); }
 
       const box2Top = boxTop + boxH + GAP;
       sectionFrame(midX0, box2Top, tableRight, BOTTOM, "IDEAS FOR NEXT TIME");
-      const nextText = els.nextNotes.value.trim();
+      const nextText = (sess.next_training_notes || "").trim();
       if (nextText) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text(doc.splitTextToSize(nextText, tableRight - midX0 - 16), midX0 + 8, box2Top + TITLE_H + 4); }
     }
 
@@ -1216,8 +1197,88 @@
     const w3 = doc.getTextWidth("ot");
     doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text(".", MARGIN + w1 + w2 + w3, BOTTOM + 13);
     doc.setTextColor(DARK);
+  }
 
+  async function exportToPdf() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: [595, 842] });
+    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
+    const clubName = (els.orgName.textContent || "").trim();
+    const sess = {
+      date: els.date.value, number: els.number.value, category: els.category.value,
+      planned_minutes: els.planned.value, players_count: els.players.value,
+      coaches: [els.coach1.value, els.coach2.value, els.coach3.value],
+      categories_summary: els.catSummary.value.split("\n").map((s) => s.trim()).filter(Boolean),
+      material_summary: els.matSummary.value.split("\n").map((s) => s.trim()).filter(Boolean),
+      objectives_summary: els.objSummary.value.split("\n").map((s) => s.trim()).filter(Boolean),
+      exercises: sessionExercises, teamPlayersList: teamPlayers, attendance,
+      rating: sessionRating, comments: els.comments.value, next_training_notes: els.nextNotes.value,
+    };
+    drawSessionPage(doc, sess, logoDataUrl, clubName);
     doc.save(`${(els.title.value || currentTeam || "session")}_${els.date.value}.pdf`);
+  }
+
+  // -----------------------------------------------------------------------
+  // "Exporter tout le cahier" -- une portada (logo, saison, équipe) puis
+  // une page par séance du classeur actuel, dans un seul PDF.
+  // -----------------------------------------------------------------------
+  async function exportWholeBook() {
+    if (!currentTeam) { showMessage("Pick a season/team on the left first.", "error"); return; }
+    const mine = allTrainingsCache.filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam);
+    if (mine.length === 0) { showMessage("No sessions to export for this team yet.", "error"); return; }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: [595, 842] });
+    const PAGE_W = 595, PAGE_H = 842;
+    const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
+    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
+    const clubName = (els.orgName.textContent || "").trim();
+
+    // ---------- Portada ----------
+    if (logoDataUrl) {
+      const logoSize = 140;
+      try { doc.addImage(logoDataUrl, (PAGE_W - logoSize) / 2, 200, logoSize, logoSize); } catch (e) {}
+    }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(GREY);
+    doc.text(clubName || "Pivot", PAGE_W / 2, 370, { align: "center" });
+    doc.setFont("helvetica", "bold"); doc.setFontSize(28); doc.setTextColor(DARK);
+    doc.text("Training notebook", PAGE_W / 2, 410, { align: "center" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(15); doc.setTextColor(GREY);
+    doc.text(`${currentTeam} — ${currentSeason}`, PAGE_W / 2, 436, { align: "center" });
+    doc.setFontSize(11);
+    doc.text(`${mine.length} session${mine.length === 1 ? "" : "s"}`, PAGE_W / 2, 456, { align: "center" });
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+    doc.setTextColor(DARK); doc.text("Pi", PAGE_W / 2 - 8, 780, { align: "center" });
+
+    // ---------- Une page par séance, triée par numéro ----------
+    const sorted = [...mine].sort((a, b) => (a.number || 0) - (b.number || 0) || new Date(a.date) - new Date(b.date));
+    for (const t of sorted) {
+      const { data: training } = await supabaseClient.from("trainings").select("*").eq("id", t.id).single();
+      if (!training) continue;
+      const { data: exRows } = await supabaseClient
+        .from("training_exercises").select("exercise_id, order_index, duration_minutes, key_points, session_variants, exercises(name)")
+        .eq("training_id", t.id).order("order_index");
+      const exercises = (exRows || []).map((r) => ({
+        exercise_id: r.exercise_id, name: (r.exercises && r.exercises.name) || "(deleted exercise)",
+        duration_minutes: r.duration_minutes, key_points: r.key_points || [], session_variants: r.session_variants || "",
+      }));
+      const { data: attRows } = await supabaseClient.from("training_attendance").select("player_id, present").eq("training_id", t.id);
+      const sessAttendance = {};
+      teamPlayers.forEach((p) => (sessAttendance[p.id] = true));
+      (attRows || []).forEach((r) => (sessAttendance[r.player_id] = r.present));
+
+      doc.addPage();
+      drawSessionPage(doc, {
+        date: training.date, number: training.number, category: training.category,
+        planned_minutes: training.planned_minutes, players_count: training.players_count,
+        coaches: training.coaches || [], categories_summary: training.categories_summary || [],
+        material_summary: training.material_summary || [], objectives_summary: training.objectives_summary || [],
+        exercises, teamPlayersList: teamPlayers, attendance: sessAttendance,
+        rating: training.rating, comments: training.comments, next_training_notes: training.next_training_notes,
+      }, logoDataUrl, clubName);
+    }
+
+    doc.save(`${currentTeam}_${currentSeason}_notebook.pdf`);
   }
 
   document.getElementById("new-training-btn").addEventListener("click", newTraining);
@@ -1232,6 +1293,20 @@
     } catch (err) {
       console.error("Export PDF error:", err);
       showMessage("Couldn't generate that PDF: " + (err.message || "unknown error"), "error");
+    } finally {
+      btn.textContent = original; btn.disabled = false;
+    }
+  });
+
+  document.getElementById("export-book-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("export-book-btn");
+    const original = btn.textContent;
+    btn.textContent = "Generating…"; btn.disabled = true;
+    try {
+      await exportWholeBook();
+    } catch (err) {
+      console.error("Export whole book error:", err);
+      showMessage("Couldn't generate the notebook PDF: " + (err.message || "unknown error"), "error");
     } finally {
       btn.textContent = original; btn.disabled = false;
     }
