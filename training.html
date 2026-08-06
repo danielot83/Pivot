@@ -71,7 +71,11 @@
   td button:hover { color: var(--accent); }
   td input[type="number"] { width: 60px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; }
   .section-label { font-size: 13px; font-weight: 600; margin: 20px 0 10px; }
-  .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }
+  .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }  .checkbox-field { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .multiselect { max-height: 130px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-bottom: 12px; }
+  .multiselect label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 2px 0; }
+  .multiselect label input { width: auto; }
+  .reset-btn { width: 100%; padding: 7px; border-radius: 6px; border: 1px solid var(--line); background: none; font-size: 12.5px; cursor: pointer; color: var(--ink); }
 </style>
 </head>
 <body>
@@ -230,15 +234,23 @@
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
         <div>
           <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">Your library — click to add</p>
-          <div class="toolbar" style="margin-bottom:8px;">
-            <input id="notebook-exercise-search" type="text" placeholder="Search exercises…" style="flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
-            <select id="notebook-category-filter" style="min-width:130px;"><option value="">All categories</option></select>
+          <input id="notebook-exercise-search" type="text" placeholder="Name, tag, description…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:8px;" />
+          <div class="field-row" style="display:flex; gap:8px; margin-bottom:8px;">
+            <div class="field" style="flex:1;"><label for="notebook-difficulty-filter" style="font-size:11.5px;">Difficulty</label><select id="notebook-difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
+            <div class="field" style="flex:1;"><label for="notebook-language-filter" style="font-size:11.5px;">Language</label><select id="notebook-language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
           </div>
-          <div id="notebook-library-list" style="max-height:360px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
+          <label class="field-label" style="font-size:11.5px; font-weight:600; color:var(--muted);">Category</label>
+          <div class="multiselect" id="notebook-category-filter"></div>
+          <label class="field-label" style="font-size:11.5px; font-weight:600; color:var(--muted);">Age</label>
+          <div class="multiselect" id="notebook-age-filter"></div>
+          <div class="checkbox-field"><input type="checkbox" id="notebook-favorites-filter" /><label for="notebook-favorites-filter" style="font-size:12.5px;">Favorites only</label></div>
+          <div class="checkbox-field"><input type="checkbox" id="notebook-unused-filter" /><label for="notebook-unused-filter" style="font-size:12.5px;">Never used in a session</label></div>
+          <button class="reset-btn" id="notebook-reset-filters-btn" style="margin-bottom:10px;">Reset filters</button>
+          <div id="notebook-library-list" style="max-height:280px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
         </div>
         <div>
           <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">In this notebook</p>
-          <div id="notebook-contents-list" style="max-height:406px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
+          <div id="notebook-contents-list" style="max-height:520px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
         </div>
       </div>
       <div class="toolbar" style="margin-top:16px;">
@@ -309,6 +321,7 @@
   let sessionExercises = []; // { exercise_id, name, duration_minutes, key_points, session_variants }
   let attendance = {}; // player_id -> boolean
   let allNotebooks = [];
+  let usageCounts = {};
   let currentNotebookId = null;
   let sessionRating = 0;
   let expandedRowIdx = null; // quelle ligne du plan a son éditeur time/points/variants ouvert
@@ -359,10 +372,12 @@
   }
 
   async function loadExerciseOptions() {
-    const { data } = await supabaseClient.from("exercises").select("id, name, categories, material, objectives").order("name");
+    const { data } = await supabaseClient.from("exercises").select("id, name, categories, material, objectives, difficulty, language, favorite, age").order("name");
     allExercises = data || [];
+    const { data: usageRows } = await supabaseClient.from("training_exercises").select("exercise_id");
+    usageCounts = {};
+    (usageRows || []).forEach((r) => { if (r.exercise_id) usageCounts[r.exercise_id] = (usageCounts[r.exercise_id] || 0) + 1; });
     populateExerciseSelect();
-    populateNotebookCategoryFilter();
   }
 
   // Remplit "Add from library" -- filtré par notebook si un est choisi
@@ -432,7 +447,7 @@
     notebookContents = []; notebookOwned = true;
     document.getElementById("notebook-name").value = "";
     document.getElementById("notebook-visibility").value = "team";
-    document.getElementById("notebook-exercise-search").value = ""; document.getElementById("notebook-category-filter").value = "";
+    resetNotebookFilters();
     document.getElementById("delete-notebook-btn").style.display = "none";
     document.getElementById("save-notebook-btn").style.display = "inline-block";
     document.getElementById("notebook-name").disabled = false;
@@ -449,7 +464,7 @@
     notebookContents = [...(notebookExerciseIds[id] || [])];
     document.getElementById("notebook-name").value = n.name;
     document.getElementById("notebook-visibility").value = n.visibility || "team";
-    document.getElementById("notebook-exercise-search").value = ""; document.getElementById("notebook-category-filter").value = "";
+    resetNotebookFilters();
     notebookOwned = n.organization_id === currentOrgId;
     document.getElementById("delete-notebook-btn").style.display = (notebookOwned && canDelete()) ? "inline-block" : "none";
     document.getElementById("save-notebook-btn").style.display = notebookOwned ? "inline-block" : "none";
@@ -464,15 +479,41 @@
 
   // Colonne de gauche : la bibliothèque, filtrable -- cliquer dessus
   // l'ajoute au cahier (comme double-cliquer dans l'app de bureau).
+  function buildMultiselect(containerId, options) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = "";
+    options.forEach((opt) => {
+      const label = document.createElement("label");
+      label.innerHTML = `<input type="checkbox" value="${opt}" /> ${opt}`;
+      label.querySelector("input").addEventListener("change", renderNotebookLibraryList);
+      el.appendChild(label);
+    });
+  }
+  function checkedValues(containerId) {
+    return Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map((cb) => cb.value);
+  }
+  buildMultiselect("notebook-category-filter", CATEGORIES);
+  buildMultiselect("notebook-age-filter", AGE_GROUPS);
+
   function renderNotebookLibraryList() {
     const search = (document.getElementById("notebook-exercise-search").value || "").toLowerCase().trim();
-    const cat = document.getElementById("notebook-category-filter").value;
+    const diff = document.getElementById("notebook-difficulty-filter").value;
+    const lang = document.getElementById("notebook-language-filter").value;
+    const cats = checkedValues("notebook-category-filter");
+    const ages = checkedValues("notebook-age-filter");
+    const favOnly = document.getElementById("notebook-favorites-filter").checked;
+    const unusedOnly = document.getElementById("notebook-unused-filter").checked;
     const inNotebook = new Set(notebookContents);
     const list = document.getElementById("notebook-library-list");
     list.innerHTML = "";
     allExercises
       .filter((e) => !search || e.name.toLowerCase().includes(search))
-      .filter((e) => !cat || (e.categories || []).includes(cat))
+      .filter((e) => !diff || String(e.difficulty) === diff)
+      .filter((e) => !lang || (e.language || "en") === lang)
+      .filter((e) => cats.length === 0 || cats.every((c) => (e.categories || []).includes(c)))
+      .filter((e) => ages.length === 0 || ages.every((a) => (e.age || []).includes(a)))
+      .filter((e) => !favOnly || e.favorite)
+      .filter((e) => !unusedOnly || !usageCounts[e.id])
       .forEach((e) => {
         const row = document.createElement("div");
         const already = inNotebook.has(e.id);
@@ -522,15 +563,23 @@
     });
   }
 
-  function populateNotebookCategoryFilter() {
-    const sel = document.getElementById("notebook-category-filter");
-    const current = sel.value;
-    const cats = Array.from(new Set(allExercises.flatMap((e) => e.categories || []))).sort();
-    sel.innerHTML = '<option value="">All categories</option>' + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
-    sel.value = current;
-  }
   document.getElementById("notebook-exercise-search").addEventListener("input", renderNotebookLibraryList);
-  document.getElementById("notebook-category-filter").addEventListener("change", renderNotebookLibraryList);
+  document.getElementById("notebook-difficulty-filter").addEventListener("change", renderNotebookLibraryList);
+  document.getElementById("notebook-language-filter").addEventListener("change", renderNotebookLibraryList);
+  document.getElementById("notebook-favorites-filter").addEventListener("change", renderNotebookLibraryList);
+  document.getElementById("notebook-unused-filter").addEventListener("change", renderNotebookLibraryList);
+  function resetNotebookFilters() {
+    document.getElementById("notebook-exercise-search").value = "";
+    document.getElementById("notebook-difficulty-filter").value = "";
+    document.getElementById("notebook-language-filter").value = "";
+    document.getElementById("notebook-favorites-filter").checked = false;
+    document.getElementById("notebook-unused-filter").checked = false;
+    document.querySelectorAll("#notebook-category-filter input, #notebook-age-filter input").forEach((cb) => (cb.checked = false));
+  }
+  document.getElementById("notebook-reset-filters-btn").addEventListener("click", () => {
+    resetNotebookFilters();
+    renderNotebookLibraryList();
+  });
 
   document.getElementById("new-notebook-btn").addEventListener("click", newNotebook);
   document.getElementById("notebook-back-link").addEventListener("click", (e) => {
@@ -920,18 +969,19 @@
     // y una fila de campos con su etiqueta encima de la línea -- igual
     // que la ficha de verdad que mandaste de ejemplo.
     doc.setTextColor(DARK);
-    const logoSize = 42;
+    const logoSize = 56;
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     if (logoDataUrl) { try { doc.addImage(logoDataUrl, MARGIN, 14, logoSize, logoSize); } catch (e) {} }
     const clubName = (els.orgName.textContent || "").trim();
     const textX = MARGIN + logoSize + 10;
-    if (clubName) { doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.text(clubName, textX, 24); }
-    doc.setFont("helvetica", "bold"); doc.setFontSize(17);
-    doc.text("SESSION SHEET", textX, 42);
+    if (clubName) { doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text(clubName, textX, 26); }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(18);
+    doc.text("SESSION SHEET", textX, 46);
 
     // Fila de campos: Date / Session # / Category / Duration / Players,
-    // cada uno con su etiqueta encima de una línea.
-    const fieldY = 62, fieldLineY = 66;
+    // cada uno con su etiqueta encima de una línea -- debajo del logo,
+    // ya no debajo (con un logo más grande, antes se solapaban).
+    const fieldY = 88, fieldLineY = 92;
     const fields = [
       ["Date", els.date.value || ""],
       ["Session #", els.number.value || ""],
@@ -955,10 +1005,10 @@
 
     const coaches = [els.coach1.value, els.coach2.value, els.coach3.value].filter(Boolean);
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(GREY);
-    doc.text("Coach(es): " + (coaches.join(", ") || "—"), MARGIN, 86);
+    doc.text("Coach(es): " + (coaches.join(", ") || "—"), MARGIN, 112);
     doc.setTextColor(DARK);
 
-    const top = 100, leftX0 = MARGIN, leftX1 = 195, midX0 = 205, rightX1 = PAGE_W - MARGIN;
+    const top = 126, leftX0 = MARGIN, leftX1 = 195, midX0 = 205, rightX1 = PAGE_W - MARGIN;
     const TITLE_H = 17, PAD = 6, GAP = 10;
 
     // ---------- Colonne gauche : catégories / matériel / objectifs --
@@ -1049,11 +1099,16 @@
     });
     [colX.num, colX.name, colX.points, colX.variants].forEach((x) => doc.line(x, top, x, top + headerH));
 
-    // On réserve un bloc fixe en bas pour les commentaires/idées --
-    // avant, le tableau remplissait tout jusqu'à BOTTOM et il ne restait
-    // plus de place du tout pour ces deux boîtes.
-    const FEEDBACK_H = 170;
-    const tableBottom = BOTTOM - FEEDBACK_H - GAP;
+    // On réserve un bloc fixe en bas pour tiempo total + asistencia +
+    // comentarios/idées -- avant, le tableau remplissait tout jusqu'à
+    // BOTTOM et il ne restait plus de place pour rien de tout ça.
+    const TOTAL_LINE_H = 16;
+    const attRowsForReserve = teamPlayers.length > 0 ? Math.ceil(teamPlayers.length / 2) : 0;
+    const attRowH = 11;
+    const ATTENDANCE_H = teamPlayers.length > 0 ? (TITLE_H + PAD + attRowsForReserve * attRowH) : 0;
+    const FEEDBACK_H = 140;
+    const reservedBottom = GAP + TOTAL_LINE_H + GAP + ATTENDANCE_H + (ATTENDANCE_H > 0 ? GAP : 0) + FEEDBACK_H;
+    const tableBottom = BOTTOM - reservedBottom;
     const tableRows = Math.max(sessionExercises.length, 6);
     const tableBodyH = tableBottom - top - headerH;
     // On laisse au moins 3 lignes de haut à chaque ligne du tableau, pour
@@ -1090,12 +1145,51 @@
     doc.setDrawColor(DARK); doc.setLineWidth(0.7);
     doc.rect(midX0, top, tableRight - midX0, headerH + nRows * rowH);
 
+    // ---------- Tiempo total (se calcula solo, sumando cada ejercicio) ----------
+    const totalMinutes = sessionExercises.reduce((sum, se) => sum + (parseInt(se.duration_minutes, 10) || 0), 0);
+    const plannedMinutes = parseInt(els.planned.value, 10) || 0;
+    const totalLineY = tableBottom + GAP + 11;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+    doc.text(`Total: ${totalMinutes} min`, midX0, totalLineY);
+    if (plannedMinutes > 0) {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+      doc.setTextColor(totalMinutes > plannedMinutes ? ACCENT[0] : GREY, totalMinutes > plannedMinutes ? ACCENT[1] : GREY, totalMinutes > plannedMinutes ? ACCENT[2] : GREY);
+      doc.text(`(planned: ${plannedMinutes} min)`, midX0 + doc.getTextWidth(`Total: ${totalMinutes} min`) + 8, totalLineY);
+      doc.setTextColor(DARK);
+    }
+
+    // ---------- Présences : en 2 colonnes, compact -- il restait de la
+    // place pour ça, comme tu l'as suggéré.
+    if (teamPlayers.length > 0) {
+      const attTop = tableBottom + GAP + TOTAL_LINE_H + GAP;
+      const attBottom = attTop + ATTENDANCE_H;
+      sectionFrame(midX0, attTop, tableRight, attBottom, "ATTENDANCE");
+      const colW = (tableRight - midX0 - 16) / 2;
+      teamPlayers.forEach((p, i) => {
+        const col = i % 2, row = Math.floor(i / 2);
+        const cx = midX0 + 8 + col * colW;
+        const ry = attTop + TITLE_H + PAD / 2 + row * attRowH;
+        doc.setDrawColor(DARK); doc.setLineWidth(0.5);
+        doc.rect(cx, ry, 7, 7);
+        if (attendance[p.id]) {
+          doc.setLineWidth(0.7);
+          doc.line(cx, ry, cx + 7, ry + 7);
+          doc.line(cx, ry + 7, cx + 7, ry);
+        }
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.6);
+        let label = `${p.first_name} ${p.last_name}`;
+        const maxw = colW - 14;
+        while (doc.getTextWidth(label) > maxw && label.length > 3) label = label.slice(0, -1);
+        doc.text(label, cx + 10, ry + 6);
+      });
+    }
+
     // ---------- Después de sesión : comentarios + ideas para la próxima ----------
     // El bloque reservado (FEEDBACK_H) ya garantiza el hueco -- no hace
     // falta compararlo con la columna izquierda, son tiras horizontales
     // distintas que no se pisan.
     {
-      const boxTop = tableBottom + GAP;
+      const boxTop = tableBottom + GAP + TOTAL_LINE_H + GAP + ATTENDANCE_H + (ATTENDANCE_H > 0 ? GAP : 0);
       const boxH = (BOTTOM - boxTop - GAP) / 2;
       sectionFrame(midX0, boxTop, tableRight, boxTop + boxH, "AFTER SESSION: COMMENTS");
       let fy = boxTop + TITLE_H + 4;
