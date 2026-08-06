@@ -399,7 +399,19 @@
       </div>
     `;
     document.getElementById("fav-toggle-btn").addEventListener("click", () => toggleFavorite(e));
-    document.getElementById("pdf-export-btn").addEventListener("click", () => exportExercisePdfFromData(e));
+    document.getElementById("pdf-export-btn").addEventListener("click", async () => {
+      const btn = document.getElementById("pdf-export-btn");
+      const original = btn.textContent;
+      btn.textContent = "Generating…"; btn.disabled = true;
+      try {
+        await exportExercisePdfFromData(e);
+      } catch (err) {
+        console.error("Export PDF error:", err);
+        showMessage("Couldn't generate that PDF: " + (err.message || "unknown error"), "error");
+      } finally {
+        btn.textContent = original; btn.disabled = false;
+      }
+    });
     document.querySelectorAll(".diagram-thumb canvas").forEach((canvas) => {
       const stepId = canvas.dataset.step;
       const courtType = COURT_TYPES[stepId];
@@ -451,11 +463,26 @@
   // exporter directement depuis la Library, dans la langue de la
   // version actuellement affichée.
   // -----------------------------------------------------------------------
+  const PDF_LABELS = {
+    en: { number: "EXERCISE N°:", name: "NAME:", age: "AGE:", category: "CATEGORY:", material: "MATERIAL:", objectives: "OBJECTIVES:", difficulty: "DIFFICULTY:", description: "DESCRIPTION:", variants: "VARIANTS:" },
+    fr: { number: "EXERCICE N°:", name: "NOM DE L'EXERCICE:", age: "ÂGE:", category: "CATÉGORIE:", material: "MATÉRIEL:", objectives: "OBJECTIFS:", difficulty: "DIFFICULTÉ:", description: "DESCRIPTION:", variants: "VARIANTES:" },
+    es: { number: "EJERCICIO N°:", name: "NOMBRE:", age: "EDAD:", category: "CATEGORÍA:", material: "MATERIAL:", objectives: "OBJETIVOS:", difficulty: "DIFICULTAD:", description: "DESCRIPCIÓN:", variants: "VARIANTES:" },
+  };
+
+  // Les étiquettes fixes du PDF suivent la langue d'export CHOISIE PAR
+  // TOI (Settings), pas la langue de l'exercice -- le contenu (nom,
+  // description...) reste tel qu'il est écrit, jamais traduit tout seul.
+  async function loadPdfLabels() {
+    const { data } = await supabaseClient.from("organizations").select("export_language").eq("id", currentOrgId).maybeSingle();
+    return PDF_LABELS[(data && data.export_language) || "en"] || PDF_LABELS.en;
+  }
+
   async function exportExercisePdfFromData(e) {
     const { jsPDF } = window.jspdf;
     const PAGE_W = 496.8, PAGE_H = 720, MARGIN = 14, BOTTOM = PAGE_H - MARGIN;
     const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
     const doc = new jsPDF({ unit: "pt", format: [PAGE_W, PAGE_H] });
+    const L = await loadPdfLabels();
 
     function sectionFrame(x0, y0, x1, y1, title) {
       doc.setDrawColor(GREY); doc.setLineWidth(0.8);
@@ -480,16 +507,16 @@
 
     const labelX = MARGIN;
     doc.setFont("helvetica", "bold"); doc.setFontSize(13);
-    doc.text("EXERCISE N°:", labelX, 36);
-    const numLabelW = doc.getTextWidth("EXERCISE N°:");
+    doc.text(L.number, labelX, 36);
+    const numLabelW = doc.getTextWidth(L.number);
     doc.setDrawColor(DARK); doc.setLineWidth(0.8);
     doc.line(labelX + numLabelW + 8, 40, 260, 40);
     doc.setFont("helvetica", "normal"); doc.setFontSize(14);
     doc.text(String(e.number || ""), labelX + numLabelW + 14, 37);
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(12);
-    doc.text("NAME:", labelX, 58);
-    const nameLabelW = doc.getTextWidth("NAME:");
+    doc.text(L.name, labelX, 58);
+    const nameLabelW = doc.getTextWidth(L.name);
     const nameLineEnd = logoX - 10;
     doc.line(labelX + nameLabelW + 8, 62, nameLineEnd, 62);
     let nameFs = 13; doc.setFont("helvetica", "normal"); doc.setFontSize(nameFs);
@@ -514,7 +541,7 @@
     const categoriesChecked = e.categories || [];
     const materialChecked = e.material || [];
 
-    const ageRows = Math.ceil(AGE_GROUPS.length / 2);
+    const ageRows = Math.ceil(AGE_GROUPS.length / 3);
     const nRows = ageRows + CATEGORIES.length + MATERIALS.length + 4;
     const varTitles = (TITLE_H + PAD) * 4;
     const fixedTotal = DIFF_BODY_H + TITLE_H + PAD;
@@ -547,10 +574,10 @@
 
     {
       const y0 = ly, y1 = ly + TITLE_H + ageRows * rowH + PAD;
-      sectionFrame(leftX0, y0, leftX1, y1, "AGE:");
-      const colW = (leftX1 - leftX0 - 14) / 2;
+      sectionFrame(leftX0, y0, leftX1, y1, L.age);
+      const colW = (leftX1 - leftX0 - 14) / 3;
       AGE_GROUPS.forEach((label, i) => {
-        const col = i % 2, row = Math.floor(i / 2);
+        const col = i % 3, row = Math.floor(i / 3);
         const cx = leftX0 + 7 + col * colW;
         const ry = y0 + TITLE_H + PAD / 2 + row * rowH;
         doc.setDrawColor(DARK); doc.setLineWidth(0.6);
@@ -560,19 +587,22 @@
           doc.line(cx, ry + 2, cx + 7, ry + 9);
           doc.line(cx, ry + 9, cx + 7, ry + 2);
         }
-        doc.setFont("helvetica", "normal"); doc.setFontSize(7.2);
-        doc.text(label, cx + 11, ry + rowH / 2 + 2.5);
+        doc.setFont("helvetica", "normal");
+        let fs = 7.4; doc.setFontSize(fs);
+        const maxw = colW - 11;
+        while (fs > 5.5 && doc.getTextWidth(label) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
+        doc.text(label, cx + 10, ry + rowH / 2 + 2.5);
       });
       ly = y1 + GAP;
     }
 
-    drawFixedList("CATEGORY:", CATEGORIES, categoriesChecked);
-    drawFixedList("MATERIAL:", MATERIALS, materialChecked);
+    drawFixedList(L.category, CATEGORIES, categoriesChecked);
+    drawFixedList(L.material, MATERIALS, materialChecked);
 
     {
       const objectives = (e.objectives || []).slice(0, 4);
       const y0 = ly, y1 = ly + TITLE_H + 4 * rowH + PAD;
-      sectionFrame(leftX0, y0, leftX1, y1, "OBJECTIVES:");
+      sectionFrame(leftX0, y0, leftX1, y1, L.objectives);
       const maxw = leftX1 - (leftX0 + 20) - 10;
       doc.setFont("helvetica", "normal");
       let sharedFs = 7.6;
@@ -601,7 +631,7 @@
 
     {
       const y0 = ly, y1 = ly + TITLE_H + DIFF_BODY_H + PAD;
-      sectionFrame(leftX0, y0, leftX1, y1, "DIFFICULTY:");
+      sectionFrame(leftX0, y0, leftX1, y1, L.difficulty);
       const cy = y0 + TITLE_H + PAD / 2 + 24;
       const filled = Math.max(0, Math.min(3, e.difficulty || 1));
       doc.setFont("helvetica", "normal"); doc.setFontSize(34);
@@ -647,10 +677,10 @@
     let descBottom = textBottom;
     if (variantsText) {
       const varH = 118;
-      drawTextBox(midX0, textBottom - varH, midX1, textBottom, "VARIANTS:", variantsText);
+      drawTextBox(midX0, textBottom - varH, midX1, textBottom, L.variants, variantsText);
       descBottom = textBottom - varH - GAP;
     }
-    drawTextBox(midX0, top, midX1, descBottom, "DESCRIPTION:", (e.description || "").trim());
+    drawTextBox(midX0, top, midX1, descBottom, L.description, (e.description || "").trim());
 
     Object.entries(courtRects).forEach(([cid, rect]) => {
       const [x0, y0, x1, y1] = rect;

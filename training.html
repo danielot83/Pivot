@@ -227,7 +227,12 @@
         </div>
       </div>
       <p class="section-label">Exercises in this notebook <span style="font-weight:400; color:var(--muted); text-transform:none; font-size:12px;">— check any from your library</span></p>
-      <input id="notebook-exercise-search" type="text" placeholder="Search exercises…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />
+      <div class="toolbar" style="margin-bottom:10px;">
+        <input id="notebook-exercise-search" type="text" placeholder="Search exercises…" style="flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
+        <div class="field" style="min-width:160px;">
+          <select id="notebook-category-filter"><option value="">All categories</option></select>
+        </div>
+      </div>
       <div id="notebook-exercise-checklist" style="max-height:360px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:6px;"></div>
       <div class="toolbar" style="margin-top:16px;">
         <button class="btn btn-primary" id="save-notebook-btn">Save notebook</button>
@@ -283,6 +288,8 @@
   };
 
   const SESSION_CATEGORIES = ["U6", "U8", "U10", "U12", "U14", "U16", "U18", "U20", "Seniors", "Adults"];
+  const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Rebounding","Footwork","Defense","Screening","1v1","2v2","Fast break","Conditioning","Competition","Fun"];
+  const MATERIALS = ["Balls","Cones","Marker cones","Rings","Coordination ladder","Bibs","Sticks","Chairs","Resistance bands","Benches","Mats","Ropes","Other"];
 
   let currentOrgId = null;
   let myRole = null;
@@ -348,6 +355,7 @@
     const { data } = await supabaseClient.from("exercises").select("id, name, categories, material, objectives").order("name");
     allExercises = data || [];
     populateExerciseSelect();
+    populateNotebookCategoryFilter();
   }
 
   // Remplit "Add from library" -- filtré par notebook si un est choisi
@@ -413,7 +421,7 @@
     currentNotebookId = null;
     document.getElementById("notebook-name").value = "";
     document.getElementById("notebook-visibility").value = "team";
-    document.getElementById("notebook-exercise-search").value = "";
+    document.getElementById("notebook-exercise-search").value = ""; document.getElementById("notebook-category-filter").value = "";
     document.getElementById("delete-notebook-btn").style.display = "none";
     renderNotebookChecklist([]);
     els.trainingArea.style.display = "none";
@@ -426,7 +434,7 @@
     currentNotebookId = id;
     document.getElementById("notebook-name").value = n.name;
     document.getElementById("notebook-visibility").value = n.visibility || "team";
-    document.getElementById("notebook-exercise-search").value = "";
+    document.getElementById("notebook-exercise-search").value = ""; document.getElementById("notebook-category-filter").value = "";
     const owned = n.organization_id === currentOrgId;
     document.getElementById("delete-notebook-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     document.getElementById("save-notebook-btn").style.display = owned ? "inline-block" : "none";
@@ -442,11 +450,13 @@
 
   function renderNotebookChecklist(checkedIds) {
     const search = (document.getElementById("notebook-exercise-search").value || "").toLowerCase().trim();
+    const cat = document.getElementById("notebook-category-filter").value;
     const checked = new Set(checkedIds);
     const list = document.getElementById("notebook-exercise-checklist");
     list.innerHTML = "";
     allExercises
       .filter((e) => !search || e.name.toLowerCase().includes(search))
+      .filter((e) => !cat || (e.categories || []).includes(cat))
       .forEach((e) => {
         const row = document.createElement("label");
         row.style.cssText = "display:flex; align-items:center; gap:8px; padding:5px 8px; font-size:13px; cursor:pointer;";
@@ -454,7 +464,18 @@
         list.appendChild(row);
       });
   }
+  function populateNotebookCategoryFilter() {
+    const sel = document.getElementById("notebook-category-filter");
+    const current = sel.value;
+    const cats = Array.from(new Set(allExercises.flatMap((e) => e.categories || []))).sort();
+    sel.innerHTML = '<option value="">All categories</option>' + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    sel.value = current;
+  }
   document.getElementById("notebook-exercise-search").addEventListener("input", () => {
+    const checked = new Set(Array.from(document.querySelectorAll("#notebook-exercise-checklist input:checked")).map((cb) => cb.value));
+    renderNotebookChecklist(Array.from(checked));
+  });
+  document.getElementById("notebook-category-filter").addEventListener("change", () => {
     const checked = new Set(Array.from(document.querySelectorAll("#notebook-exercise-checklist input:checked")).map((cb) => cb.value));
     renderNotebookChecklist(Array.from(checked));
   });
@@ -886,98 +907,154 @@
     doc.text("Coach(es): " + (coaches.join(", ") || "—"), MARGIN, 86);
     doc.setTextColor(DARK);
 
-    const top = 100, leftX0 = MARGIN, leftX1 = 200, midX0 = 210, midX1 = 400, rightX0 = 410, rightX1 = PAGE_W - MARGIN;
+    const top = 100, leftX0 = MARGIN, leftX1 = 195, midX0 = 205, rightX1 = PAGE_W - MARGIN;
     const TITLE_H = 17, PAD = 6, GAP = 10;
 
-    // ---------- Colonne gauche : présences ----------
-    {
-      const y0 = top, y1 = BOTTOM;
-      sectionFrame(leftX0, y0, leftX1, y1, "ATTENDANCE:");
+    // ---------- Colonne gauche : catégories / matériel / objectifs --
+    // les mêmes listes fixes complètes que sur la fiche d'exercice, cochées
+    // selon le résumé auto de la séance. Comme le nombre de lignes ne
+    // change jamais (toujours 14 catégories, 13 matériels, 4 objectifs),
+    // la hauteur de chaque ligne est fixe.
+    // ----------
+    const catChecked = els.catSummary.value.split("\n").map((s) => s.trim()).filter(Boolean);
+    const matChecked = els.matSummary.value.split("\n").map((s) => s.trim()).filter(Boolean);
+    const objList = els.objSummary.value.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 4);
+
+    const leftNRows = CATEGORIES.length + MATERIALS.length + 4;
+    const leftVarTitles = (TITLE_H + PAD) * 3;
+    // 3 gaps comptés (un après chaque boîte, y compris la dernière) --
+    // le calcul du budget doit matcher exactement l'accumulation réelle
+    // de ly plus bas, sinon ça déborde de la page.
+    const leftGaps = GAP * 3;
+    const leftAvail = BOTTOM - top - leftVarTitles - leftGaps;
+    const leftRowH = leftAvail / leftNRows;
+
+    let ly = top;
+    function drawFixedList(title, allLabels, checkedLabels) {
+      const bodyH = allLabels.length * leftRowH;
+      const y0 = ly, y1 = ly + TITLE_H + bodyH + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, title);
       let ry = y0 + TITLE_H + PAD / 2;
-      const rowH = Math.max(13, Math.min(20, (y1 - y0 - TITLE_H - PAD) / Math.max(1, teamPlayers.length)));
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-      teamPlayers.forEach((p) => {
+      allLabels.forEach((label) => {
         doc.setDrawColor(DARK); doc.setLineWidth(0.6);
         doc.rect(leftX0 + 7, ry + 2, 7, 7);
-        if (attendance[p.id]) {
+        if (checkedLabels.includes(label)) {
           doc.setLineWidth(0.8);
           doc.line(leftX0 + 7, ry + 2, leftX0 + 14, ry + 9);
           doc.line(leftX0 + 7, ry + 9, leftX0 + 14, ry + 2);
         }
-        let fs = 8.6; doc.setFontSize(fs);
-        const label = `${p.first_name} ${p.last_name}`;
-        const maxw = leftX1 - (leftX0 + 18) - 4;
-        while (fs > 6 && doc.getTextWidth(label) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
-        doc.text(label, leftX0 + 18, ry + 8);
-        ry += rowH;
-      });
-    }
-
-    // ---------- Colonne centrale : le plan de séance ----------
-    {
-      const y0 = top;
-      sectionFrame(midX0, y0, midX1, BOTTOM, "SESSION PLAN:");
-      let ry = y0 + TITLE_H + PAD / 2;
-      const maxw = midX1 - midX0 - 16;
-      doc.setFont("helvetica", "normal");
-      sessionExercises.forEach((se, i) => {
-        doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
-        doc.text(`${i + 1}. ${se.name}`, midX0 + 8, ry);
-        doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-        doc.setTextColor(GREY);
-        doc.text(`${se.duration_minutes} min`, midX1 - 8, ry, { align: "right" });
-        doc.setTextColor(DARK);
-        ry += 12;
-        const points = (se.key_points || []).join(" · ");
-        if (points) { const lines = doc.splitTextToSize("• " + points, maxw); doc.setFontSize(8); doc.text(lines, midX0 + 8, ry); ry += lines.length * 10; }
-        if (se.session_variants) { const lines = doc.splitTextToSize("Variant: " + se.session_variants, maxw); doc.setFontSize(8); doc.setTextColor(GREY); doc.text(lines, midX0 + 8, ry); doc.setTextColor(DARK); ry += lines.length * 10; }
-        ry += 8;
-      });
-      if (sessionExercises.length === 0) { doc.setFontSize(9); doc.setTextColor(GREY); doc.text("No exercises added.", midX0 + 8, ry); doc.setTextColor(DARK); }
-    }
-
-    // ---------- Colonne droite : résumé auto + feedback après-séance ----------
-    {
-      let ry0 = top;
-      const catList = els.catSummary.value.split("\n").map((s) => s.trim()).filter(Boolean);
-      const matList = els.matSummary.value.split("\n").map((s) => s.trim()).filter(Boolean);
-      const objList = els.objSummary.value.split("\n").map((s) => s.trim()).filter(Boolean);
-      const summaryRows = catList.length + matList.length + objList.length;
-      const summaryH = Math.min(280, TITLE_H + PAD + Math.max(30, summaryRows * 11 + 24));
-      sectionFrame(rightX0, ry0, rightX1, ry0 + summaryH, "WORKED ON:");
-      let ry = ry0 + TITLE_H + 4;
-      doc.setFontSize(8);
-      function summaryBlock(label, items) {
-        if (items.length === 0) return;
-        doc.setFont("helvetica", "bold"); doc.text(label, rightX0 + 8, ry); ry += 10;
         doc.setFont("helvetica", "normal");
-        items.forEach((it) => { doc.text("- " + it, rightX0 + 10, ry); ry += 10.5; });
-        ry += 4;
-      }
-      summaryBlock("Categories", catList);
-      summaryBlock("Material", matList);
-      summaryBlock("Objectives", objList);
-
-      const hasFeedback = sessionRating > 0 || els.comments.value.trim() || els.nextNotes.value.trim();
-      if (hasFeedback) {
-        const fbY0 = ry0 + summaryH + GAP;
-        sectionFrame(rightX0, fbY0, rightX1, BOTTOM, "AFTER THE SESSION:");
-        let fy = fbY0 + TITLE_H + 6;
-        if (sessionRating > 0) {
-          doc.setFont("helvetica", "normal"); doc.setFontSize(13); doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]);
-          doc.text("*".repeat(sessionRating) + "-".repeat(5 - sessionRating), rightX0 + 8, fy);
-          doc.setTextColor(DARK); fy += 16;
+        let fs = 8; doc.setFontSize(fs);
+        const maxw = leftX1 - (leftX0 + 18) - 4;
+        while (fs > 5.5 && doc.getTextWidth(label) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
+        doc.text(label, leftX0 + 18, ry + leftRowH / 2 + 2.5);
+        ry += leftRowH;
+      });
+      ly = y1 + GAP;
+    }
+    drawFixedList("CATEGORIES WORKED:", CATEGORIES, catChecked);
+    drawFixedList("MATERIAL:", MATERIALS, matChecked);
+    {
+      const y0 = ly, y1 = ly + TITLE_H + 4 * leftRowH + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, "OBJECTIVES:");
+      const maxw = leftX1 - (leftX0 + 18) - 8;
+      let sharedFs = 8;
+      doc.setFont("helvetica", "normal");
+      objList.forEach((obj) => {
+        let fs = sharedFs; doc.setFontSize(fs);
+        while (fs > 5.5 && doc.getTextWidth(obj) > maxw) { fs -= 0.3; }
+        if (fs < sharedFs) sharedFs = fs;
+      });
+      let ry = y0 + TITLE_H + PAD / 2;
+      for (let i = 0; i < 4; i++) {
+        doc.setDrawColor(DARK); doc.setLineWidth(0.6);
+        doc.rect(leftX0 + 7, ry + 2, 7, 7);
+        const obj = objList[i];
+        if (obj) {
+          doc.setLineWidth(0.8);
+          doc.line(leftX0 + 7, ry + 2, leftX0 + 14, ry + 9);
+          doc.line(leftX0 + 7, ry + 9, leftX0 + 14, ry + 2);
+          doc.setFont("helvetica", "normal"); doc.setFontSize(sharedFs);
+          doc.text(obj, leftX0 + 18, ry + leftRowH / 2 + 2.5);
         }
-        const addBlock = (label, text) => {
-          if (!text) return;
-          doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.text(label, rightX0 + 8, fy); fy += 10;
-          doc.setFont("helvetica", "normal");
-          const lines = doc.splitTextToSize(text, rightX1 - rightX0 - 16);
-          doc.text(lines, rightX0 + 8, fy); fy += lines.length * 10 + 6;
-        };
-        addBlock("Comments", els.comments.value.trim());
-        addBlock("Next time", els.nextNotes.value.trim());
+        ry += leftRowH;
       }
+    }
+
+    // ---------- Colonne principale : un vrai tableau (comme la fiche
+    // que tu as envoyée : Temps | N° | Nom de l'exercice | Points clés |
+    // Variantes) -- plus les cases COMMENTAIRES et IDÉES juste en dessous.
+    // ----------
+    const colTime = 34, colNum = 24, colName = 118, colPoints = 100;
+    const colX = { time: midX0, num: midX0 + colTime, name: midX0 + colTime + colNum, points: midX0 + colTime + colNum + colName, variants: midX0 + colTime + colNum + colName + colPoints };
+    const tableRight = rightX1;
+    const headerH = 18;
+    doc.setDrawColor(DARK); doc.setLineWidth(0.7);
+    doc.setFillColor(240, 240, 240);
+    doc.rect(midX0, top, tableRight - midX0, headerH, "FD");
+    [["Time", colX.time], ["N°", colX.num], ["Exercise", colX.name], ["Key points", colX.points], ["Variants", colX.variants]].forEach(([label, x]) => {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(DARK);
+      doc.text(label, x + 4, top + 12);
+    });
+    [colX.num, colX.name, colX.points, colX.variants].forEach((x) => doc.line(x, top, x, top + headerH));
+
+    // On réserve un bloc fixe en bas pour les commentaires/idées --
+    // avant, le tableau remplissait tout jusqu'à BOTTOM et il ne restait
+    // plus de place du tout pour ces deux boîtes.
+    const FEEDBACK_H = 170;
+    const tableBottom = BOTTOM - FEEDBACK_H - GAP;
+    const tableRows = Math.max(sessionExercises.length, 6);
+    const tableBodyH = tableBottom - top - headerH;
+    // On laisse au moins 3 lignes de haut à chaque ligne du tableau, pour
+    // que "Points clés"/"Variantes" aient la place de tenir sur 2-3 lignes.
+    const rowsThatFit = Math.max(1, Math.floor(tableBodyH / 34));
+    const nRows = Math.min(tableRows, Math.max(rowsThatFit, sessionExercises.length));
+    const rowH = tableBodyH / nRows;
+
+    let ty = top + headerH;
+    for (let i = 0; i < nRows; i++) {
+      doc.setDrawColor(GREY); doc.setLineWidth(0.5);
+      doc.line(midX0, ty + rowH, tableRight, ty + rowH);
+      [colX.num, colX.name, colX.points, colX.variants].forEach((x) => doc.line(x, ty, x, ty + rowH));
+      const se = sessionExercises[i];
+      if (se) {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(DARK);
+        doc.text(String(se.duration_minutes || ""), colX.time + 4, ty + 12);
+        doc.text(String(i + 1), colX.num + 4, ty + 12);
+        doc.setFont("helvetica", "bold");
+        const nameLines = doc.splitTextToSize(se.name, colPoints > 0 ? colName - 8 : colName);
+        doc.text(nameLines.slice(0, 3), colX.name + 4, ty + 12);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
+        const pointsText = (se.key_points || []).join(" · ");
+        if (pointsText) doc.text(doc.splitTextToSize("- " + pointsText, colPoints - 8), colX.points + 4, ty + 11);
+        if (se.session_variants) doc.text(doc.splitTextToSize(se.session_variants, (tableRight - colX.variants) - 8), colX.variants + 4, ty + 11);
+      }
+      ty += rowH;
+    }
+    doc.setDrawColor(DARK); doc.setLineWidth(0.7);
+    doc.rect(midX0, top, tableRight - midX0, headerH + nRows * rowH);
+
+    // ---------- Después de sesión : comentarios + ideas para la próxima ----------
+    // El bloque reservado (FEEDBACK_H) ya garantiza el hueco -- no hace
+    // falta compararlo con la columna izquierda, son tiras horizontales
+    // distintas que no se pisan.
+    {
+      const boxTop = tableBottom + GAP;
+      const boxH = (BOTTOM - boxTop - GAP) / 2;
+      sectionFrame(midX0, boxTop, tableRight, boxTop + boxH, "AFTER SESSION: COMMENTS");
+      let fy = boxTop + TITLE_H + 4;
+      if (sessionRating > 0) {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]);
+        doc.text("*".repeat(sessionRating) + "-".repeat(5 - sessionRating), midX0 + 8, fy);
+        doc.setTextColor(DARK); fy += 14;
+      }
+      const comments = els.comments.value.trim();
+      if (comments) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text(doc.splitTextToSize(comments, tableRight - midX0 - 16), midX0 + 8, fy); }
+
+      const box2Top = boxTop + boxH + GAP;
+      sectionFrame(midX0, box2Top, tableRight, BOTTOM, "IDEAS FOR NEXT TIME");
+      const nextText = els.nextNotes.value.trim();
+      if (nextText) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text(doc.splitTextToSize(nextText, tableRight - midX0 - 16), midX0 + 8, box2Top + TITLE_H + 4); }
     }
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(8);
@@ -996,7 +1073,19 @@
   document.getElementById("new-training-btn").addEventListener("click", newTraining);
   document.getElementById("save-training-btn").addEventListener("click", saveTraining);
   document.getElementById("delete-training-btn").addEventListener("click", deleteTraining);
-  document.getElementById("export-pdf-btn").addEventListener("click", exportToPdf);
+  document.getElementById("export-pdf-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("export-pdf-btn");
+    const original = btn.textContent;
+    btn.textContent = "Generating…"; btn.disabled = true;
+    try {
+      await exportToPdf();
+    } catch (err) {
+      console.error("Export PDF error:", err);
+      showMessage("Couldn't generate that PDF: " + (err.message || "unknown error"), "error");
+    } finally {
+      btn.textContent = original; btn.disabled = false;
+    }
+  });
 
   document.getElementById("nav-menu").addEventListener("change", (e) => {
     if (e.target.value) window.location.href = "./" + e.target.value;
