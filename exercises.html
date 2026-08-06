@@ -947,7 +947,7 @@
       let clubFs = 7.5; doc.setFontSize(clubFs);
       const clubMaxW = logoSize + 6;
       while (clubFs > 5.5 && doc.getTextWidth(clubName) > clubMaxW) { clubFs -= 0.3; doc.setFontSize(clubFs); }
-      doc.text(clubName, logoX + logoSize / 2, logoY + logoSize + 6, { align: "center" });
+      doc.text(clubName, logoX + logoSize / 2, logoY + logoSize + 3, { align: "center" });
       doc.setTextColor(DARK);
     }
 
