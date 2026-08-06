@@ -943,11 +943,11 @@
     doc.text(name, labelX + nameLabelW + 14, 59);
 
     if (clubName) {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(GREY);
-      let clubFs = 8; doc.setFontSize(clubFs);
-      const clubMaxW = nameLineEnd - labelX;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(GREY);
+      let clubFs = 7.5; doc.setFontSize(clubFs);
+      const clubMaxW = logoSize + 6;
       while (clubFs > 5.5 && doc.getTextWidth(clubName) > clubMaxW) { clubFs -= 0.3; doc.setFontSize(clubFs); }
-      doc.text(clubName, labelX, 76);
+      doc.text(clubName, logoX + logoSize / 2, logoY + logoSize + 9, { align: "center" });
       doc.setTextColor(DARK);
     }
 
@@ -962,7 +962,7 @@
     // sélectionné. L'âge est en 2 colonnes pour ne pas prendre toute la
     // page à lui seul.
     // ----------
-    const TITLE_H = 16, PAD = 6, GAP = 8, DIFF_BODY_H = 46;
+    const TITLE_H = 16, PAD = 6, GAP = 8, DIFF_BODY_H = 28;
     const ageChecked = getCheckedValues("age");
     const categoriesChecked = getCheckedValues("categories");
     const materialChecked = [...getCheckedValues("material")];
@@ -1066,12 +1066,12 @@
     {
       const y0 = ly, y1 = ly + TITLE_H + DIFF_BODY_H + PAD;
       sectionFrame(leftX0, y0, leftX1, y1, L.difficulty);
-      const cy = y0 + TITLE_H + PAD / 2 + 24;
+      const cy = y0 + TITLE_H + PAD / 2 + 15;
       const filled = Math.max(0, Math.min(3, parseInt(els.difficulty.value, 10) || 1));
-      doc.setFont("helvetica", "normal"); doc.setFontSize(34);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(30);
       [leftX0 + 34, leftX0 + 86, leftX0 + 138].forEach((cx, i) => {
         if (i < filled) doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); else doc.setTextColor(190, 190, 190);
-        doc.text(i < filled ? "*" : "-", cx - 6, cy + 9);
+        doc.text(i < filled ? "*" : "-", cx - 5, cy + 8);
       });
       doc.setTextColor(DARK);
       ly = y1 + GAP;

@@ -226,14 +226,21 @@
           </select>
         </div>
       </div>
-      <p class="section-label">Exercises in this notebook <span style="font-weight:400; color:var(--muted); text-transform:none; font-size:12px;">— check any from your library</span></p>
-      <div class="toolbar" style="margin-bottom:10px;">
-        <input id="notebook-exercise-search" type="text" placeholder="Search exercises…" style="flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
-        <div class="field" style="min-width:160px;">
-          <select id="notebook-category-filter"><option value="">All categories</option></select>
+      <p class="section-label">Exercises in this notebook</p>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+        <div>
+          <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">Your library — click to add</p>
+          <div class="toolbar" style="margin-bottom:8px;">
+            <input id="notebook-exercise-search" type="text" placeholder="Search exercises…" style="flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
+            <select id="notebook-category-filter" style="min-width:130px;"><option value="">All categories</option></select>
+          </div>
+          <div id="notebook-library-list" style="max-height:360px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
+        </div>
+        <div>
+          <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">In this notebook</p>
+          <div id="notebook-contents-list" style="max-height:406px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
         </div>
       </div>
-      <div id="notebook-exercise-checklist" style="max-height:360px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:6px;"></div>
       <div class="toolbar" style="margin-top:16px;">
         <button class="btn btn-primary" id="save-notebook-btn">Save notebook</button>
         <div class="spacer"></div>
@@ -417,13 +424,20 @@
     populateExerciseSelect();
   }
 
+  let notebookContents = []; // [exercise_id, exercise_id, ...] dans l'ordre
+  let notebookOwned = true;
+
   function newNotebook() {
     currentNotebookId = null;
+    notebookContents = []; notebookOwned = true;
     document.getElementById("notebook-name").value = "";
     document.getElementById("notebook-visibility").value = "team";
     document.getElementById("notebook-exercise-search").value = ""; document.getElementById("notebook-category-filter").value = "";
     document.getElementById("delete-notebook-btn").style.display = "none";
-    renderNotebookChecklist([]);
+    document.getElementById("save-notebook-btn").style.display = "inline-block";
+    document.getElementById("notebook-name").disabled = false;
+    document.getElementById("notebook-visibility").disabled = false;
+    renderNotebookLibraryList(); renderNotebookContentsList();
     els.trainingArea.style.display = "none";
     document.getElementById("notebook-editor").style.display = "block";
   }
@@ -432,38 +446,82 @@
     const n = allNotebooks.find((x) => x.id === id);
     if (!n) return;
     currentNotebookId = id;
+    notebookContents = [...(notebookExerciseIds[id] || [])];
     document.getElementById("notebook-name").value = n.name;
     document.getElementById("notebook-visibility").value = n.visibility || "team";
     document.getElementById("notebook-exercise-search").value = ""; document.getElementById("notebook-category-filter").value = "";
-    const owned = n.organization_id === currentOrgId;
-    document.getElementById("delete-notebook-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
-    document.getElementById("save-notebook-btn").style.display = owned ? "inline-block" : "none";
-    renderNotebookChecklist(notebookExerciseIds[id] || []);
-    document.querySelectorAll("#notebook-exercise-checklist input").forEach((cb) => (cb.disabled = !owned));
-    document.getElementById("notebook-name").disabled = !owned;
-    document.getElementById("notebook-visibility").disabled = !owned;
-    if (!owned) showMessage("This notebook belongs to another club — you can look, but not edit it.", "success");
+    notebookOwned = n.organization_id === currentOrgId;
+    document.getElementById("delete-notebook-btn").style.display = (notebookOwned && canDelete()) ? "inline-block" : "none";
+    document.getElementById("save-notebook-btn").style.display = notebookOwned ? "inline-block" : "none";
+    document.getElementById("notebook-name").disabled = !notebookOwned;
+    document.getElementById("notebook-visibility").disabled = !notebookOwned;
+    if (!notebookOwned) showMessage("This notebook belongs to another club — you can look, but not edit it.", "success");
+    renderNotebookLibraryList(); renderNotebookContentsList();
     els.trainingArea.style.display = "none";
     document.getElementById("notebook-editor").style.display = "block";
     renderNotebooksList();
   }
 
-  function renderNotebookChecklist(checkedIds) {
+  // Colonne de gauche : la bibliothèque, filtrable -- cliquer dessus
+  // l'ajoute au cahier (comme double-cliquer dans l'app de bureau).
+  function renderNotebookLibraryList() {
     const search = (document.getElementById("notebook-exercise-search").value || "").toLowerCase().trim();
     const cat = document.getElementById("notebook-category-filter").value;
-    const checked = new Set(checkedIds);
-    const list = document.getElementById("notebook-exercise-checklist");
+    const inNotebook = new Set(notebookContents);
+    const list = document.getElementById("notebook-library-list");
     list.innerHTML = "";
     allExercises
       .filter((e) => !search || e.name.toLowerCase().includes(search))
       .filter((e) => !cat || (e.categories || []).includes(cat))
       .forEach((e) => {
-        const row = document.createElement("label");
-        row.style.cssText = "display:flex; align-items:center; gap:8px; padding:5px 8px; font-size:13px; cursor:pointer;";
-        row.innerHTML = `<input type="checkbox" value="${e.id}" ${checked.has(e.id) ? "checked" : ""}><span>${escapeHtml(e.name)}</span>`;
+        const row = document.createElement("div");
+        const already = inNotebook.has(e.id);
+        row.style.cssText = `display:flex; align-items:center; justify-content:space-between; gap:6px; padding:6px 8px; font-size:13px; border-radius:6px; ${already ? "opacity:.45;" : "cursor:pointer;"}`;
+        row.innerHTML = `<span>${escapeHtml(e.name)}</span>${already ? '<span class="hint" style="font-size:11px;">Added</span>' : '<span style="color:var(--accent);">+ Add</span>'}`;
+        if (!already && notebookOwned) {
+          row.addEventListener("click", () => {
+            notebookContents.push(e.id);
+            renderNotebookLibraryList(); renderNotebookContentsList();
+          });
+          row.addEventListener("mouseenter", () => (row.style.background = "var(--paper)"));
+          row.addEventListener("mouseleave", () => (row.style.background = ""));
+        }
         list.appendChild(row);
       });
   }
+
+  // Colonne de droite : ce qu'il y a déjà dans le cahier, avec retirer
+  // et réordonner (haut/bas) -- exactement comme "Exercices du cahier"
+  // dans l'app de bureau.
+  function renderNotebookContentsList() {
+    const list = document.getElementById("notebook-contents-list");
+    list.innerHTML = "";
+    if (notebookContents.length === 0) { list.innerHTML = '<p class="hint" style="margin:8px; font-size:12.5px;">Nothing added yet — click exercises on the left.</p>'; return; }
+    notebookContents.forEach((exId, i) => {
+      const ex = allExercises.find((e) => e.id === exId);
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex; align-items:center; justify-content:space-between; gap:6px; padding:6px 8px; font-size:13px; border-bottom:1px solid var(--line);";
+      row.innerHTML = `
+        <span>${i + 1}. ${escapeHtml(ex ? ex.name : "(deleted exercise)")}</span>
+        <span style="display:flex; gap:4px;">
+          ${notebookOwned ? `<button data-act="up" data-i="${i}" title="Move up" style="border:none; background:none; cursor:pointer; color:var(--muted);">↑</button>` : ""}
+          ${notebookOwned ? `<button data-act="down" data-i="${i}" title="Move down" style="border:none; background:none; cursor:pointer; color:var(--muted);">↓</button>` : ""}
+          ${notebookOwned ? `<button data-act="remove" data-i="${i}" title="Remove" style="border:none; background:none; cursor:pointer; color:#991b1b;">✕</button>` : ""}
+        </span>
+      `;
+      list.appendChild(row);
+    });
+    list.querySelectorAll("[data-act]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const i = parseInt(btn.dataset.i, 10);
+        if (btn.dataset.act === "remove") notebookContents.splice(i, 1);
+        else if (btn.dataset.act === "up" && i > 0) [notebookContents[i - 1], notebookContents[i]] = [notebookContents[i], notebookContents[i - 1]];
+        else if (btn.dataset.act === "down" && i < notebookContents.length - 1) [notebookContents[i + 1], notebookContents[i]] = [notebookContents[i], notebookContents[i + 1]];
+        renderNotebookLibraryList(); renderNotebookContentsList();
+      });
+    });
+  }
+
   function populateNotebookCategoryFilter() {
     const sel = document.getElementById("notebook-category-filter");
     const current = sel.value;
@@ -471,14 +529,8 @@
     sel.innerHTML = '<option value="">All categories</option>' + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
     sel.value = current;
   }
-  document.getElementById("notebook-exercise-search").addEventListener("input", () => {
-    const checked = new Set(Array.from(document.querySelectorAll("#notebook-exercise-checklist input:checked")).map((cb) => cb.value));
-    renderNotebookChecklist(Array.from(checked));
-  });
-  document.getElementById("notebook-category-filter").addEventListener("change", () => {
-    const checked = new Set(Array.from(document.querySelectorAll("#notebook-exercise-checklist input:checked")).map((cb) => cb.value));
-    renderNotebookChecklist(Array.from(checked));
-  });
+  document.getElementById("notebook-exercise-search").addEventListener("input", renderNotebookLibraryList);
+  document.getElementById("notebook-category-filter").addEventListener("change", renderNotebookLibraryList);
 
   document.getElementById("new-notebook-btn").addEventListener("click", newNotebook);
   document.getElementById("notebook-back-link").addEventListener("click", (e) => {
@@ -493,7 +545,6 @@
     const name = document.getElementById("notebook-name").value.trim();
     if (!name) { showMessage("Give the notebook a name first.", "error"); return; }
     const visibility = document.getElementById("notebook-visibility").value;
-    const checkedIds = Array.from(document.querySelectorAll("#notebook-exercise-checklist input:checked")).map((cb) => cb.value);
     try {
       let notebookId = currentNotebookId;
       if (notebookId) {
@@ -505,8 +556,8 @@
         notebookId = data.id; currentNotebookId = notebookId;
       }
       await supabaseClient.from("notebook_exercises").delete().eq("notebook_id", notebookId);
-      if (checkedIds.length > 0) {
-        const rows = checkedIds.map((exId, i) => ({ notebook_id: notebookId, exercise_id: exId, position: i }));
+      if (notebookContents.length > 0) {
+        const rows = notebookContents.map((exId, i) => ({ notebook_id: notebookId, exercise_id: exId, position: i }));
         const { error } = await supabaseClient.from("notebook_exercises").insert(rows);
         if (error) throw error;
       }
@@ -985,15 +1036,15 @@
     // que tu as envoyée : Temps | N° | Nom de l'exercice | Points clés |
     // Variantes) -- plus les cases COMMENTAIRES et IDÉES juste en dessous.
     // ----------
-    const colTime = 34, colNum = 24, colName = 118, colPoints = 100;
+    const colTime = 38, colNum = 22, colName = 114, colPoints = 96;
     const colX = { time: midX0, num: midX0 + colTime, name: midX0 + colTime + colNum, points: midX0 + colTime + colNum + colName, variants: midX0 + colTime + colNum + colName + colPoints };
     const tableRight = rightX1;
     const headerH = 18;
     doc.setDrawColor(DARK); doc.setLineWidth(0.7);
     doc.setFillColor(240, 240, 240);
     doc.rect(midX0, top, tableRight - midX0, headerH, "FD");
-    [["Time", colX.time], ["N°", colX.num], ["Exercise", colX.name], ["Key points", colX.points], ["Variants", colX.variants]].forEach(([label, x]) => {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(DARK);
+    [["Time (min)", colX.time], ["N°", colX.num], ["Exercise", colX.name], ["Key points", colX.points], ["Variants", colX.variants]].forEach(([label, x]) => {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(7.8); doc.setTextColor(DARK);
       doc.text(label, x + 4, top + 12);
     });
     [colX.num, colX.name, colX.points, colX.variants].forEach((x) => doc.line(x, top, x, top + headerH));
@@ -1018,16 +1069,21 @@
       [colX.num, colX.name, colX.points, colX.variants].forEach((x) => doc.line(x, ty, x, ty + rowH));
       const se = sessionExercises[i];
       if (se) {
-        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(DARK);
-        doc.text(String(se.duration_minutes || ""), colX.time + 4, ty + 12);
-        doc.text(String(i + 1), colX.num + 4, ty + 12);
+        // Temps/N°/Nom centrés verticalement dans la ligne -- avant, ils
+        // restaient collés en haut, ce qui semblait "décalé" dès que la
+        // ligne était haute (peu d'exercices = lignes très hautes).
+        const midY = ty + rowH / 2 + 3;
+        doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+        doc.text(String(se.duration_minutes || ""), colX.time + colTime / 2, midY, { align: "center" });
+        doc.text(String(i + 1), colX.num + colNum / 2, midY, { align: "center" });
         doc.setFont("helvetica", "bold");
-        const nameLines = doc.splitTextToSize(se.name, colPoints > 0 ? colName - 8 : colName);
-        doc.text(nameLines.slice(0, 3), colX.name + 4, ty + 12);
+        const nameLines = doc.splitTextToSize(se.name, colName - 8);
+        const nameStartY = ty + rowH / 2 - ((Math.min(nameLines.length, 3) - 1) * 10) / 2 + 3;
+        doc.text(nameLines.slice(0, 3), colX.name + 4, nameStartY);
         doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
         const pointsText = (se.key_points || []).join(" · ");
-        if (pointsText) doc.text(doc.splitTextToSize("- " + pointsText, colPoints - 8), colX.points + 4, ty + 11);
-        if (se.session_variants) doc.text(doc.splitTextToSize(se.session_variants, (tableRight - colX.variants) - 8), colX.variants + 4, ty + 11);
+        if (pointsText) doc.text(doc.splitTextToSize("- " + pointsText, colPoints - 8), colX.points + 4, ty + 14);
+        if (se.session_variants) doc.text(doc.splitTextToSize(se.session_variants, (tableRight - colX.variants) - 8), colX.variants + 4, ty + 14);
       }
       ty += rowH;
     }
