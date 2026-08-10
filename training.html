@@ -641,7 +641,15 @@
 
   async function loadTree() {
     const { data, error } = await supabaseClient.from("players").select("season, team").eq("organization_id", currentOrgId);
-    if (error) { console.error(error); return; }
+    if (error) {
+      showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error");
+      console.error("loadTree error:", error);
+      return;
+    }
+    if (!data || data.length === 0) {
+      els.tree.innerHTML = '<p class="hint" style="margin:0; font-size:12.5px; color:var(--muted);">No players in Roster yet for this club — add a player there first, and their season/team will show up here.</p>';
+      return;
+    }
     const bySeasons = {};
     (data || []).forEach((r) => (bySeasons[r.season] = bySeasons[r.season] || new Set()).add(r.team));
     els.tree.innerHTML = "";
