@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pivot — Compare players</title>
+<title>Pivot — Statistics</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -62,6 +62,16 @@
   th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
   th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; }
   .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+  .stats-grid .stat-card { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .stats-grid .stat-card .num { font-size: 22px; font-weight: 700; font-family: "Space Grotesk", sans-serif; }
+  .stats-grid .stat-card .label { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .badge-soon { display: inline-block; font-size: 10.5px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); padding: 2px 8px; border-radius: 100px; margin-left: 6px; vertical-align: middle; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12.5px; }
+  .bar-row .bar-label { width: 130px; flex-shrink: 0; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-row .bar-track { flex: 1; background: var(--paper); border-radius: 4px; height: 14px; overflow: hidden; }
+  .bar-row .bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+  .bar-row .bar-value { width: 30px; text-align: right; flex-shrink: 0; color: var(--muted); font-size: 11.5px; }
 </style>
 </head>
 <body>
@@ -71,6 +81,7 @@
   <div class="nav-right">
     <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
+    <select id="org-switcher" style="display:none; margin-left:6px; padding:2px 6px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; background:var(--card); color:var(--ink);"></select>
     <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
       <option value="">Go to…</option>
       <option value="dashboard.html">Dashboard</option>
@@ -90,16 +101,39 @@
 <div class="wrap">
   <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
   <h1>
-    Compare players
+    Statistics
     <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
   </h1>
-  <p class="sub">Pick any players — from any season or team — and compare them live.</p>
+  <p class="sub">Everything here is calculated live from your own data — nothing pre-computed, nothing stored twice.</p>
   <div class="help-box" id="help-box"></div>
   <div class="msg" id="msg"></div>
 
   <div class="card">
+    <h2>Team overview <span class="hint" style="font-weight:400;">— this club, all time</span></h2>
+    <p class="hint">Pulled straight from Training builder — log more sessions and this updates on its own.</p>
+    <div class="stats-grid" id="team-overview-grid"></div>
+    <div style="margin-top:14px;">
+      <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); text-transform:uppercase; font-size:11px;">Sessions per month</p>
+      <div id="sessions-trend-chart"></div>
+    </div>
+    <div style="margin-top:14px;">
+      <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); text-transform:uppercase; font-size:11px;">Most-worked categories</p>
+      <div id="categories-bar-chart"></div>
+    </div>
+  </div>
+
+  <div class="card" id="matches-soon-card">
+    <h2>Team performance (matches) <span class="badge-soon">Growing</span></h2>
+    <p class="hint" style="margin:0;">Win/loss record and scoring trends across the season are next on the list — for now, match stats per player already live in "Match stats" below, and each match's own page has its box score.</p>
+  </div>
+
+  <div class="card">
     <h2>Who to compare</h2>
     <p class="hint">Click players to add or remove them from the comparison. Works across different seasons and teams — that's the point.</p>
+    <div class="field" style="max-width:220px; margin-bottom:10px;">
+      <label for="season-filter">Filter matches/sessions by season</label>
+      <select id="season-filter"><option value="">All seasons</option></select>
+    </div>
     <div class="picker-row" id="player-picker"></div>
   </div>
 
@@ -108,6 +142,13 @@
     <p class="hint">Each player's most recent assessment, one color per player.</p>
     <div class="sector-chart" id="sector-chart"></div>
     <div class="legend-row" id="sector-legend"></div>
+  </div>
+
+  <div class="card">
+    <h2>Development over time <span class="hint" style="font-weight:400;">— overall assessment score, every time they were scored</span></h2>
+    <p class="hint">One line per player — climbing means real, measured improvement, not just a feeling.</p>
+    <div id="development-trend-chart"></div>
+    <div class="empty-state" id="development-empty" style="display:none">Pick at least one player above — needs 2+ assessments to draw a trend.</div>
   </div>
 
   <div class="card">
@@ -126,9 +167,9 @@
 
   <div class="card">
     <h2>Match stats</h2>
-    <p class="hint">Career averages across every match each player was called up for.</p>
+    <p class="hint">Averages across every match each player was called up for — narrowed by the season filter above, if you picked one.</p>
     <table>
-      <thead><tr><th>Player</th><th>Games</th><th>PPG</th><th>RPG</th><th>APG</th><th>Fouls/g</th></tr></thead>
+      <thead><tr id="match-stats-head"><th>Player</th><th>Games</th><th>PPG</th><th>RPG</th><th>APG</th><th>Fouls/g</th></tr></thead>
       <tbody id="match-stats-body"></tbody>
     </table>
     <div class="empty-state" id="match-stats-empty" style="display:none">Pick at least one player above.</div>
@@ -146,6 +187,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="org-switcher.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -196,6 +238,7 @@
     criterionSelect: document.getElementById("criterion-select"),
     criterionBody: document.getElementById("criterion-body"),
     criterionEmpty: document.getElementById("criterion-empty"),
+    matchStatsHead: document.getElementById("match-stats-head"),
     matchStatsBody: document.getElementById("match-stats-body"),
     matchStatsEmpty: document.getElementById("match-stats-empty"),
     attendanceBody: document.getElementById("attendance-body"),
@@ -211,10 +254,12 @@
 
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active").limit(1);
+      .from("memberships").select("organization_id, status, organizations(name)").eq("status", "active");
     if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
-    currentOrgId = data[0].organization_id;
-    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    const chosen = pivotResolveActiveOrg(data);
+    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id);
+    currentOrgId = chosen.organization_id;
+    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
     els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
@@ -241,6 +286,142 @@
     });
   }
 
+  // -----------------------------------------------------------------------
+  // "Team overview" -- calculé à la volée à partir de Training builder :
+  // aucune valeur stockée à part, tout se recalcule à chaque chargement.
+  // -----------------------------------------------------------------------
+  async function loadTeamOverview() {
+    const { data: trainings, error } = await supabaseClient
+      .from("trainings").select("id, date, planned_minutes, categories_summary")
+      .eq("organization_id", currentOrgId);
+    if (error) { console.error("loadTeamOverview error:", error); return; }
+    const trainingIds = (trainings || []).map((t) => t.id);
+
+    let totalMinutes = 0;
+    const { data: exRows } = trainingIds.length
+      ? await supabaseClient.from("training_exercises").select("training_id, duration_minutes").in("training_id", trainingIds)
+      : { data: [] };
+    (exRows || []).forEach((r) => { totalMinutes += r.duration_minutes || 0; });
+
+    let presentCount = 0, totalAttRows = 0;
+    const { data: attRows } = trainingIds.length
+      ? await supabaseClient.from("training_attendance").select("training_id, present").in("training_id", trainingIds)
+      : { data: [] };
+    (attRows || []).forEach((r) => { totalAttRows++; if (r.present) presentCount++; });
+    const attendanceRate = totalAttRows > 0 ? Math.round((presentCount / totalAttRows) * 100) : null;
+
+    renderTeamOverviewGrid({
+      sessionCount: (trainings || []).length,
+      totalMinutes,
+      avgMinutes: (trainings || []).length ? Math.round(totalMinutes / (trainings || []).length) : 0,
+      attendanceRate,
+    });
+    renderSessionsTrendChart(trainings || []);
+    renderCategoriesBarChart(trainings || []);
+  }
+
+  function renderTeamOverviewGrid({ sessionCount, totalMinutes, avgMinutes, attendanceRate }) {
+    const cards = [
+      { num: sessionCount, label: "Sessions logged" },
+      { num: totalMinutes, label: "Total minutes trained" },
+      { num: avgMinutes, label: "Avg minutes / session" },
+      { num: attendanceRate !== null ? attendanceRate + "%" : "—", label: "Avg attendance rate" },
+    ];
+    document.getElementById("team-overview-grid").innerHTML = cards
+      .map((c) => `<div class="stat-card"><div class="num">${c.num}</div><div class="label">${c.label}</div></div>`)
+      .join("");
+  }
+
+  // Barre simple : combien de séances par mois, sur les 6 derniers mois
+  // avec des données -- une manière rapide de voir si le rythme
+  // d'entraînement est régulier ou irrégulier.
+  function renderSessionsTrendChart(trainings) {
+    const el = document.getElementById("sessions-trend-chart");
+    if (trainings.length === 0) { el.innerHTML = '<p class="hint" style="margin:0;">No sessions logged yet.</p>'; return; }
+    const byMonth = {};
+    trainings.forEach((t) => {
+      if (!t.date) return;
+      const key = t.date.slice(0, 7); // "2026-08"
+      byMonth[key] = (byMonth[key] || 0) + 1;
+    });
+    const months = Object.keys(byMonth).sort().slice(-6);
+    const max = Math.max(...months.map((m) => byMonth[m]), 1);
+    el.innerHTML = months.map((m) => {
+      const [y, mo] = m.split("-");
+      const label = new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+      const pct = (byMonth[m] / max) * 100;
+      return `<div class="bar-row"><span class="bar-label">${label}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;"></div></div><span class="bar-value">${byMonth[m]}</span></div>`;
+    }).join("");
+  }
+
+  // Quelles catégories reviennent le plus dans les résumés auto des
+  // séances -- utile pour voir si le travail est équilibré ou si un
+  // thème (dribble, défense...) prend toute la place sans le vouloir.
+  function renderCategoriesBarChart(trainings) {
+    const el = document.getElementById("categories-bar-chart");
+    const counts = {};
+    trainings.forEach((t) => (t.categories_summary || []).forEach((c) => (counts[c] = (counts[c] || 0) + 1)));
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    if (top.length === 0) { el.innerHTML = '<p class="hint" style="margin:0;">Nothing to show yet — add exercises to a session and it fills in on its own.</p>'; return; }
+    const max = top[0][1];
+    el.innerHTML = top.map(([cat, count]) => {
+      const pct = (count / max) * 100;
+      return `<div class="bar-row"><span class="bar-label">${escapeHtml(cat)}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;"></div></div><span class="bar-value">${count}</span></div>`;
+    }).join("");
+  }
+
+  // -----------------------------------------------------------------------
+  // "Development over time" -- pas juste la dernière évaluation : TOUT
+  // l'historique de chaque joueur sélectionné, réduit à une moyenne
+  // générale par évaluation, pour voir une vraie courbe de progression.
+  // -----------------------------------------------------------------------
+  const assessmentHistory = {};
+
+  function overallAverage(ratings) {
+    let sum = 0, count = 0;
+    SECTOR_ORDER.forEach((sectKey) => {
+      const groups = (ratings && ratings[sectKey]) || {};
+      for (const grpKey in groups) (groups[grpKey] || []).forEach((v) => { if (v !== null && v !== undefined) { sum += v; count++; } });
+    });
+    return count > 0 ? sum / count : null;
+  }
+
+  async function loadAssessmentHistory() {
+    for (const id of selectedIds) {
+      if (assessmentHistory[id]) continue;
+      const { data, error } = await supabaseClient
+        .from("player_assessments").select("date, ratings").eq("player_id", id).order("date", { ascending: true });
+      assessmentHistory[id] = !error && data ? data.map((a) => ({ date: a.date, avg: overallAverage(a.ratings) })).filter((a) => a.avg !== null) : [];
+    }
+  }
+
+  function renderDevelopmentTrend() {
+    const el = document.getElementById("development-trend-chart");
+    const withData = selectedIds.filter((id) => (assessmentHistory[id] || []).length >= 2);
+    document.getElementById("development-empty").style.display = withData.length === 0 ? "block" : "none";
+    if (withData.length === 0) { el.innerHTML = ""; return; }
+
+    const W = 640, H = 220, padL = 30, padR = 12, padT = 12, padB = 24;
+    const allDates = Array.from(new Set(withData.flatMap((id) => assessmentHistory[id].map((a) => a.date)))).sort();
+    const x = (date) => padL + (allDates.indexOf(date) / Math.max(1, allDates.length - 1)) * (W - padL - padR);
+    const y = (val) => H - padB - ((val - 1) / 4) * (H - padT - padB); // échelle 1 à 5
+
+    let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; font-family:inherit;">`;
+    // grille : lignes horizontales à 1,2,3,4,5
+    for (let v = 1; v <= 5; v++) {
+      svg += `<line x1="${padL}" y1="${y(v)}" x2="${W - padR}" y2="${y(v)}" stroke="var(--line)" stroke-width="1" />`;
+      svg += `<text x="${padL - 6}" y="${y(v) + 3}" font-size="9" fill="var(--muted)" text-anchor="end">${v}</text>`;
+    }
+    withData.forEach((id, i) => {
+      const color = PLAYER_COLORS[selectedIds.indexOf(id) % PLAYER_COLORS.length];
+      const points = assessmentHistory[id];
+      const pathD = points.map((p, j) => `${j === 0 ? "M" : "L"} ${x(p.date)} ${y(p.avg)}`).join(" ");
+      svg += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5" />`;
+      points.forEach((p) => { svg += `<circle cx="${x(p.date)}" cy="${y(p.avg)}" r="3.5" fill="${color}" />`; });
+    });
+    svg += "</svg>";
+    el.innerHTML = svg;
+  }
   async function toggleSelected(id) {
     if (selectedIds.includes(id)) selectedIds = selectedIds.filter((x) => x !== id);
     else selectedIds.push(id);
@@ -248,6 +429,8 @@
     await loadLatestAssessments();
     renderSectorChart();
     renderCriterionTable();
+    await loadAssessmentHistory();
+    renderDevelopmentTrend();
     await loadMatchStats();
     await loadAttendance();
     renderMatchStats();
@@ -310,28 +493,58 @@
   }
 
   // -----------------------------------------------------------------------
-  // Moyennes de match (points/rebonds/passes par match) et taux de
-  // présence aux entraînements -- même logique de cache que les
-  // évaluations : une fois calculé pour un joueur, on ne le recalcule
-  // pas à chaque fois qu'on ajoute/enlève quelqu'un d'autre.
+  // Moyennes de match (points/rebonds/passes par match, plus les
+  // colonnes personnalisées de ce club) et taux de présence aux
+  // entraînements -- même logique de cache que les évaluations : une
+  // fois calculé pour un joueur, on ne le recalcule pas à chaque fois
+  // qu'on ajoute/enlève quelqu'un d'autre. Changer la saison vide le
+  // cache, puisque le résultat dépend de ce filtre.
   // -----------------------------------------------------------------------
-  const matchStatsCache = {};
-  const attendanceCache = {};
+  let matchStatsCache = {};
+  let attendanceCache = {};
+  let selectedSeason = "";
+  let matchFields = [];
+
+  async function loadMatchFields() {
+    const { data } = await supabaseClient.from("match_stat_fields").select("*").eq("organization_id", currentOrgId).eq("enabled", true).order("position");
+    matchFields = data || [];
+    els.matchStatsHead.innerHTML = `<th>Player</th><th>Games</th><th>PPG</th><th>RPG</th><th>APG</th><th>Fouls/g</th>${matchFields.map((f) => `<th>${escapeHtml(f.label)}/g</th>`).join("")}`;
+  }
+
+  function populateSeasonFilter() {
+    const sel = document.getElementById("season-filter");
+    const seasons = Array.from(new Set(allPlayers.map((p) => p.season))).sort().reverse();
+    sel.innerHTML = '<option value="">All seasons</option>' + seasons.map((s) => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
+    sel.value = selectedSeason;
+    sel.addEventListener("change", async () => {
+      selectedSeason = sel.value;
+      matchStatsCache = {}; attendanceCache = {};
+      await loadMatchStats(); await loadAttendance();
+      renderMatchStats(); renderAttendance();
+    });
+  }
 
   async function loadMatchStats() {
     for (const id of selectedIds) {
       if (matchStatsCache[id]) continue;
-      const { data, error } = await supabaseClient.from("match_player_stats").select("points, rebounds, assists, fouls").eq("player_id", id);
+      let query = supabaseClient.from("match_player_stats")
+        .select(selectedSeason ? "points, rebounds, assists, fouls, custom_stats, matches!inner(season)" : "points, rebounds, assists, fouls, custom_stats")
+        .eq("player_id", id);
+      if (selectedSeason) query = query.eq("matches.season", selectedSeason);
+      const { data, error } = await query;
       if (error) { matchStatsCache[id] = null; continue; }
       const rows = data || [];
       if (rows.length === 0) { matchStatsCache[id] = { games: 0 }; continue; }
       const sum = (key) => rows.reduce((acc, r) => acc + (r[key] || 0), 0);
+      const custom = {};
+      matchFields.forEach((f) => { custom[f.key] = rows.reduce((acc, r) => acc + ((r.custom_stats && r.custom_stats[f.key]) || 0), 0) / rows.length; });
       matchStatsCache[id] = {
         games: rows.length,
         ppg: sum("points") / rows.length,
         rpg: sum("rebounds") / rows.length,
         apg: sum("assists") / rows.length,
         fpg: sum("fouls") / rows.length,
+        custom,
       };
     }
   }
@@ -345,9 +558,10 @@
       const s = matchStatsCache[id];
       const tr = document.createElement("tr");
       if (!s || s.games === 0) {
-        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="5">No matches recorded yet</td>`;
+        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="${5 + matchFields.length}">No matches recorded${selectedSeason ? " for " + escapeHtml(selectedSeason) : " yet"}</td>`;
       } else {
-        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td>${s.games}</td><td>${s.ppg.toFixed(1)}</td><td>${s.rpg.toFixed(1)}</td><td>${s.apg.toFixed(1)}</td><td>${s.fpg.toFixed(1)}</td>`;
+        const customCells = matchFields.map((f) => `<td>${(s.custom[f.key] || 0).toFixed(1)}</td>`).join("");
+        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td>${s.games}</td><td>${s.ppg.toFixed(1)}</td><td>${s.rpg.toFixed(1)}</td><td>${s.apg.toFixed(1)}</td><td>${s.fpg.toFixed(1)}</td>${customCells}`;
       }
       els.matchStatsBody.appendChild(tr);
     });
@@ -356,7 +570,11 @@
   async function loadAttendance() {
     for (const id of selectedIds) {
       if (attendanceCache[id]) continue;
-      const { data, error } = await supabaseClient.from("training_attendance").select("present").eq("player_id", id);
+      let query = supabaseClient.from("training_attendance")
+        .select(selectedSeason ? "present, trainings!inner(season)" : "present")
+        .eq("player_id", id);
+      if (selectedSeason) query = query.eq("trainings.season", selectedSeason);
+      const { data, error } = await query;
       if (error) { attendanceCache[id] = null; continue; }
       const rows = data || [];
       const present = rows.filter((r) => r.present).length;
@@ -425,10 +643,12 @@
     const box = document.getElementById("help-box");
     if (box.style.display === "block") { box.style.display = "none"; return; }
     box.innerHTML = `
-      <strong>How to use Compare players</strong>
+      <strong>How to use Statistics</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li>Click any player chip above to add them to the comparison — works across different seasons and teams, so you can put a 2024 player next to a 2019 one.</li>
+        <li><strong>Team overview</strong> is calculated live from Training builder — sessions logged, total minutes trained, average attendance, sessions per month, and which categories get worked on the most. Log more sessions and this fills in on its own, no extra setup.</li>
+        <li>Click any player chip to add them to the comparison — works across different seasons and teams, so you can put a 2024 player next to a 2019 one.</li>
         <li>The sector chart shows each selected player's <em>most recent</em> assessment, one bar color per player.</li>
+        <li><strong>Development over time</strong> plots every assessment a selected player has ever had (not just the latest), reduced to one overall score per date — a real trend line, not a single snapshot. Needs at least 2 assessments to draw.</li>
         <li>The table below lets you pick one exact criterion (out of all 36) and see each player's score for just that, side by side.</li>
         <li><strong>Match stats</strong> and <strong>Training attendance</strong> — career averages across every match/session each player has been part of, not just the latest one.</li>
         <li>Everything updates live as you add or remove players — no need to click a "compare" button.</li>
@@ -446,7 +666,12 @@
     if (!data.session) { window.location.href = "./login.html"; return; }
     buildCriterionSelect();
     const orgId = await loadMyOrganization();
-    if (orgId) await loadAllPlayers();
+    if (orgId) {
+      await loadAllPlayers();
+      populateSeasonFilter();
+      await loadMatchFields();
+      await loadTeamOverview();
+    }
   }
   init();
 </script>

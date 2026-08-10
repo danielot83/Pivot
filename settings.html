@@ -63,6 +63,8 @@
   .btn { padding: 9px 16px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-deep); }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn-secondary:hover { border-color: var(--accent); }
   .btn:disabled { opacity: 0.5; cursor: default; }
   input[type="file"] { font-size: 13px; }
 </style>
@@ -74,13 +76,14 @@
   <div class="nav-right">
     <img id="org-logo-nav" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
+    <select id="org-switcher" style="display:none; margin-left:6px; padding:2px 6px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; background:var(--card); color:var(--ink);"></select>
     <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
       <option value="">Go to…</option>
       <option value="dashboard.html">Dashboard</option>
       <option value="roster.html">Roster</option>
       <option value="assessment.html">Player assessment</option>
       <option value="play_design.html">Play design</option>
-      <option value="compare.html">Compare players</option>
+      <option value="compare.html">Statistics</option>
       <option value="match.html">Match day</option>
       <option value="exercises.html">Exercise creator</option>
       <option value="library.html">Library</option>
@@ -151,6 +154,16 @@
     <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-material" /><label for="pdf-section-material">Material</label></div>
     <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-objectives" /><label for="pdf-section-objectives">Objectives</label></div>
     <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-difficulty" /><label for="pdf-section-difficulty">Difficulty stars</label></div>
+  </div>
+
+  <div class="card" id="match-fields-card" style="display:none">
+    <h2>Match stat columns</h2>
+    <p class="hint">Minutes, points, rebounds, assists and fouls are always there. Add whatever else your club tracks — steals, turnovers, +/-, blocks, anything — in whatever language you want to call it. Every coach can be different here.</p>
+    <div id="match-fields-list" style="margin-bottom:12px;"></div>
+    <div style="display:flex; gap:8px;">
+      <input id="match-field-input" type="text" placeholder="e.g. Steals, Pertes de balle…" style="flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:6px;" />
+      <button class="btn btn-primary" id="add-match-field-btn">+ Add column</button>
+    </div>
   </div>
 
   <div class="card" id="validators-card" style="display:none">
@@ -246,6 +259,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="org-switcher.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -277,15 +291,16 @@
     const { data, error } = await supabaseClient
       .from("memberships")
       .select("organization_id, role, status, organizations(name)")
-      .eq("status", "active")
-      .limit(1);
+      .eq("status", "active");
     if (error || !data || data.length === 0) {
       showMessage("You're not an active member of any club yet.", "error");
       return;
     }
-    currentOrgId = data[0].organization_id;
-    myRole = data[0].role;
-    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    const chosen = pivotResolveActiveOrg(data);
+    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id);
+    currentOrgId = chosen.organization_id;
+    myRole = chosen.role;
+    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
 
     const { data: userData } = await supabaseClient.auth.getUser();
     const { data: profRow } = await supabaseClient.from("profiles").select("is_platform_controller").eq("id", userData.user.id).maybeSingle();
@@ -315,12 +330,14 @@
     document.getElementById("associations-card").style.display = "block";
     document.getElementById("export-language-card").style.display = "block";
     document.getElementById("pdf-sections-card").style.display = "block";
+    document.getElementById("match-fields-card").style.display = "block";
     applyRoleLocks();
     await loadSharingStatus();
     await loadMembers();
     await loadAssociations();
     await loadExportLanguage();
     await loadPdfSections();
+    await loadMatchFields();
     if (isPlatformController) {
       document.getElementById("validators-card").style.display = "block";
       await loadValidatorsSection();
@@ -334,6 +351,72 @@
   // donne à la main, il ne doit jamais pouvoir se donner tout seul ni se
   // propager sans que tu le décides.
   // -----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
+  // Colonnes de stats de match personnalisées -- une liste toute simple,
+  // réordonnable, propre à chaque club. Les basiques (minutes/points/
+  // rebonds/passes/fautes) ne sont pas dans cette liste, elles sont
+  // toujours là par défaut dans Match day.
+  // -----------------------------------------------------------------------
+  let matchFields = [];
+
+  async function loadMatchFields() {
+    const { data, error } = await supabaseClient
+      .from("match_stat_fields").select("*").eq("organization_id", currentOrgId).order("position");
+    if (error) { console.error("loadMatchFields error:", error); return; }
+    matchFields = data || [];
+    renderMatchFields();
+  }
+
+  function renderMatchFields() {
+    const list = document.getElementById("match-fields-list");
+    if (matchFields.length === 0) { list.innerHTML = '<p class="hint" style="margin:0 0 12px;">No custom columns yet — Match day just shows the basics.</p>'; return; }
+    list.innerHTML = matchFields.map((f, i) => `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid var(--line);">
+        <span>${escapeHtml(f.label)}</span>
+        <span style="display:flex; gap:4px;">
+          <button class="btn btn-secondary match-field-btn" data-act="up" data-i="${i}" style="padding:3px 9px; font-size:12px;">↑</button>
+          <button class="btn btn-secondary match-field-btn" data-act="down" data-i="${i}" style="padding:3px 9px; font-size:12px;">↓</button>
+          <button class="btn btn-secondary match-field-btn" data-act="remove" data-i="${i}" style="padding:3px 9px; font-size:12px; color:#991b1b;">Remove</button>
+        </span>
+      </div>
+    `).join("");
+    list.querySelectorAll(".match-field-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const i = parseInt(btn.dataset.i, 10);
+        if (btn.dataset.act === "remove") {
+          if (!confirm(`Remove "${matchFields[i].label}"? Numbers already entered for past matches stay saved, just hidden.`)) return;
+          const { error } = await supabaseClient.from("match_stat_fields").delete().eq("id", matchFields[i].id);
+          if (error) { showMessage(error.message, "error"); return; }
+          await loadMatchFields();
+          return;
+        }
+        const swapWith = btn.dataset.act === "up" ? i - 1 : i + 1;
+        if (swapWith < 0 || swapWith >= matchFields.length) return;
+        const a = matchFields[i], b = matchFields[swapWith];
+        await supabaseClient.from("match_stat_fields").update({ position: swapWith }).eq("id", a.id);
+        await supabaseClient.from("match_stat_fields").update({ position: i }).eq("id", b.id);
+        await loadMatchFields();
+      });
+    });
+  }
+
+  document.getElementById("add-match-field-btn").addEventListener("click", async () => {
+    const input = document.getElementById("match-field-input");
+    const label = input.value.trim();
+    if (!label) return;
+    const key = label.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "field_" + Date.now();
+    try {
+      const { error } = await supabaseClient.from("match_stat_fields").insert({
+        organization_id: currentOrgId, key, label, position: matchFields.length,
+      });
+      if (error) throw error;
+      input.value = "";
+      await loadMatchFields();
+    } catch (err) {
+      showMessage(err.message || "Couldn't add that column.", "error");
+    }
+  });
+
   async function loadValidatorsSection() {
     const { data, error } = await supabaseClient
       .from("profiles").select("id, full_name, email").eq("is_association_validator", true);
@@ -378,7 +461,8 @@
       ".sharing-bulk-card select, .sharing-bulk-card button, " +
       "#associations-card input, #associations-card button, " +
       "#export-language-card select, " +
-      "#pdf-sections-card input"
+      "#pdf-sections-card input, " +
+      "#match-fields-card input, #match-fields-card button"
     ).forEach((el) => { el.disabled = true; });
 
     document.querySelectorAll(".card").forEach((card) => {
@@ -518,16 +602,22 @@
     }
   });
 
+  let orgPlayersForLinking = [];
+
   async function loadMembers() {
     const list = document.getElementById("members-list");
     list.innerHTML = "";
     const { data, error } = await supabaseClient
       .from("memberships")
-      .select("id, role, status, user_id, profiles(full_name)")
+      .select("id, role, status, user_id, linked_player_id, profiles(full_name)")
       .eq("organization_id", currentOrgId)
       .in("status", ["active", "blocked"])
       .order("status");
     if (error) { console.error("loadMembers error:", error); return; }
+
+    const { data: playersData } = await supabaseClient
+      .from("players").select("id, first_name, last_name, season, team").eq("organization_id", currentOrgId).order("last_name");
+    orgPlayersForLinking = playersData || [];
 
     (data || []).forEach((m) => {
       const row = document.createElement("div");
@@ -542,14 +632,24 @@
       const actions = document.createElement("div");
       actions.className = "member-actions";
       const roleSelect = document.createElement("select");
-      ["admin", "coach", "assistant", "viewer"].forEach((r) => {
+      ["admin", "coach", "assistant", "player", "viewer"].forEach((r) => {
         const opt = document.createElement("option");
         opt.value = r; opt.textContent = r;
         if (r === m.role) opt.selected = true;
         roleSelect.appendChild(opt);
       });
       roleSelect.disabled = m.status === "blocked";
-      roleSelect.addEventListener("change", () => changeRole(m.id, roleSelect.value, row));
+      roleSelect.addEventListener("change", () => { changeRole(m.id, roleSelect.value, row); linkedSelect.style.display = roleSelect.value === "player" ? "inline-block" : "none"; });
+
+      // Uniquement pour un rôle "player" : quelle fiche du roster est
+      // la sienne -- pour qu'il puisse voir sa propre évaluation, par
+      // exemple. Jamais visible/modifiable par lui-même, seulement ici.
+      const linkedSelect = document.createElement("select");
+      linkedSelect.style.display = m.role === "player" ? "inline-block" : "none";
+      linkedSelect.innerHTML = '<option value="">Not linked to a roster player</option>' +
+        orgPlayersForLinking.map((p) => `<option value="${p.id}" ${p.id === m.linked_player_id ? "selected" : ""}>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)} — ${escapeHtml(p.team)} ${escapeHtml(p.season)}</option>`).join("");
+      linkedSelect.disabled = m.status === "blocked";
+      linkedSelect.addEventListener("change", () => linkPlayer(m.id, linkedSelect.value || null));
 
       const statusBtn = document.createElement("button");
       statusBtn.textContent = m.status === "blocked" ? "Reactivate" : "Block";
@@ -560,6 +660,7 @@
       removeBtn.addEventListener("click", () => removeMember(m.id, row));
 
       actions.appendChild(roleSelect);
+      actions.appendChild(linkedSelect);
       actions.appendChild(statusBtn);
       actions.appendChild(removeBtn);
       row.appendChild(info);
@@ -567,6 +668,17 @@
       list.appendChild(row);
     });
   }
+
+  async function linkPlayer(membershipId, playerId) {
+    try {
+      const { error } = await supabaseClient.from("memberships").update({ linked_player_id: playerId }).eq("id", membershipId);
+      if (error) throw error;
+      showMessage(playerId ? "Linked to that roster player." : "Unlinked.", "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't link that player.", "error");
+    }
+  }
+
 
   async function changeStatus(membershipId, newStatus, rowEl) {
     try {
@@ -679,7 +791,10 @@
         <li><strong>Plays / Matches / Trainings / Assessments sharing</strong> — same 4 circles, same idea: set them all at once here, or pick one item at a time inside each module.</li>
         <li><strong>Club association</strong> — propose a new group of clubes, or join an existing one by typing its exact name. Nothing is shared until the platform controller approves it — you'll see the request's status here, and a 🔔 on your dashboard shows you (or the controller) what's pending.</li>
         <li><strong>Export language</strong> — the language new PDFs (roster sheets, assessments, plays, match reports...) are generated in for your club. Changing it doesn't touch PDFs you already downloaded.</li>
-        <li><strong>The 5 roles</strong>: Platform admin (Daniel, or anyone he adds) — can do anything, in any club. Team admin — full control, but only inside their own club, including this Settings page. Coach and Assistant both create/edit content; the only difference is Assistant can't delete anything. Viewer can only look.</li>
+        <li><strong>Exercise PDF — what to include</strong> — turn off any section (age, categories, material, objectives, difficulty) you don't want printed on an exercise sheet.</li>
+        <li><strong>Match stat columns</strong> — every club tracks a match differently. Minutes/points/rebounds/assists/fouls are always there in Match day; add whatever else your club needs (steals, turnovers, +/-, anything, in any language) here.</li>
+        <li><strong>The 6 roles</strong>: Platform admin (Daniel, or anyone he adds) — can do anything, in any club. Team admin — full control, but only inside their own club, including this Settings page. Coach and Assistant both create/edit content; the only difference is Assistant can't delete anything. Player — a real account for a player: sees only what a coach has explicitly chosen to share with them (like a play marked "Show to players"), never a club's private content just for being a member. Viewer can only look, nothing more.</li>
+        <li><strong>Linking a player account to the roster</strong> — once someone's role is set to Player, a new dropdown appears next to it: pick which roster entry (Roster) is actually them. This is what lets them see things tied to their own name, like their own assessment — nobody else's, and never automatic just from being on the team.</li>
       </ul>`;
     box.style.display = "block";
   });

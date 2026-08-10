@@ -67,7 +67,7 @@
   td.editable { cursor: text; }
   td.editable:hover { background: var(--accent-tint); }
   td.editable input, td.editable select { width: 100%; padding: 3px 5px; border: 1px solid var(--accent); border-radius: 4px; font-size: 13px; }
-  .empty-state { text-align: center; padding: 30px 20px; color: var(--muted); font-size: 13.5px; }
+  .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }
   .section-label { font-size: 13px; font-weight: 600; margin: 22px 0 10px; }
 </style>
 </head>
@@ -78,13 +78,14 @@
   <div class="nav-right">
     <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
+    <select id="org-switcher" style="display:none; margin-left:6px; padding:2px 6px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; background:var(--card); color:var(--ink);"></select>
     <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
       <option value="">Go to…</option>
       <option value="dashboard.html">Dashboard</option>
       <option value="roster.html">Roster</option>
       <option value="assessment.html">Player assessment</option>
       <option value="play_design.html">Play design</option>
-      <option value="compare.html">Compare players</option>
+      <option value="compare.html">Statistics</option>
       <option value="match.html" selected>Match day</option>
       <option value="exercises.html">Exercise creator</option>
       <option value="library.html">Library</option>
@@ -148,6 +149,7 @@
       <div class="toolbar">
         <button class="btn btn-primary" id="save-match-btn">Save match details</button>
         <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
+        <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
         <div class="spacer"></div>
         <button class="btn btn-secondary" id="delete-match-btn" style="display:none; color:#991b1b;">Delete this match</button>
       </div>
@@ -155,14 +157,14 @@
       <p class="section-label">Call-up &amp; stats</p>
       <p class="sub" style="margin-top:-6px;">Tick who's called up, mark starters, then fill in stats — click any cell to edit.</p>
       <table>
-        <thead><tr><th>Called up</th><th>Starter</th><th>Player</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Fouls</th></tr></thead>
+        <thead><tr id="callup-head"></tr></thead>
         <tbody id="callup-body"></tbody>
       </table>
     </div>
 
     <p class="section-label">Season summary — <span id="summary-team-label"></span></p>
     <table>
-      <thead><tr><th>Player</th><th>GP</th><th>Pts/g</th><th>Reb/g</th><th>Ast/g</th><th>Fouls/g</th></tr></thead>
+      <thead><tr id="summary-head"></tr></thead>
       <tbody id="summary-body"></tbody>
     </table>
     <div class="empty-state" id="summary-empty" style="display:none">No matches recorded yet for this team.</div>
@@ -171,6 +173,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="org-switcher.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -194,7 +197,9 @@
     matchOpponentScore: document.getElementById("match-opponent-score"),
     matchVisibility: document.getElementById("match-visibility"),
     matchLanguage: document.getElementById("match-language"),
+    callupHead: document.getElementById("callup-head"),
     callupBody: document.getElementById("callup-body"),
+    summaryHead: document.getElementById("summary-head"),
     summaryBody: document.getElementById("summary-body"),
     summaryEmpty: document.getElementById("summary-empty"),
     summaryTeamLabel: document.getElementById("summary-team-label"),
@@ -209,21 +214,48 @@
   let currentMatchId = null;
   let currentTranslationGroupId = null;
   let teamPlayers = []; // joueurs actifs de l'équipe sélectionnée
-  let statsByPlayer = {}; // player_id -> { called_up, started, minutes, points, rebounds, assists, fouls }
+  let statsByPlayer = {}; // player_id -> { called_up, started, minutes, points, rebounds, assists, fouls, custom_stats }
+  let matchFields = []; // colonnes de stats personnalisées de ce club, en plus des basiques
 
   function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
 
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active").limit(1);
+      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active");
     if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
-    currentOrgId = data[0].organization_id;
-    myRole = data[0].role;
-    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    const chosen = pivotResolveActiveOrg(data);
+    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id);
+    currentOrgId = chosen.organization_id;
+    myRole = chosen.role;
+    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
     els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
     return currentOrgId;
+  }
+
+  // -----------------------------------------------------------------------
+  // Colonnes de stats personnalisées de ce club (voir Settings) -- en
+  // plus des basiques (minutes/points/rebonds/passes/fautes), qui
+  // restent toujours là. Chaque club peut avoir une liste différente.
+  // -----------------------------------------------------------------------
+  async function loadMatchFields() {
+    const { data, error } = await supabaseClient
+      .from("match_stat_fields").select("*").eq("organization_id", currentOrgId).eq("enabled", true).order("position");
+    if (error) { console.error("loadMatchFields error:", error); return; }
+    matchFields = data || [];
+    renderTableHeads();
+  }
+
+  function renderTableHeads() {
+    els.callupHead.innerHTML = `
+      <th>Called up</th><th>Starter</th><th>Player</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Fouls</th>
+      ${matchFields.map((f) => `<th>${escapeHtml(f.label)}</th>`).join("")}
+    `;
+    els.summaryHead.innerHTML = `
+      <th>Player</th><th>GP</th><th>Pts/g</th><th>Reb/g</th><th>Ast/g</th><th>Fouls/g</th>
+      ${matchFields.map((f) => `<th>${escapeHtml(f.label)}/g</th>`).join("")}
+    `;
   }
 
   // -----------------------------------------------------------------------
@@ -323,7 +355,7 @@
     els.matchVisibility.value = "team";
     els.matchLanguage.value = "en"; currentTranslationGroupId = null;
     statsByPlayer = {};
-    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0 }));
+    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, custom_stats: {} }));
     renderCallupTable();
     els.matchArea.style.display = "block";
     document.getElementById("save-match-btn").style.display = "inline-block";
@@ -347,9 +379,9 @@
 
     const { data: statRows } = await supabaseClient.from("match_player_stats").select("*").eq("match_id", id);
     statsByPlayer = {};
-    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0 }));
+    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, custom_stats: {} }));
     (statRows || []).forEach((s) => {
-      statsByPlayer[s.player_id] = { called_up: true, started: s.started, minutes: s.minutes, points: s.points, rebounds: s.rebounds, assists: s.assists, fouls: s.fouls };
+      statsByPlayer[s.player_id] = { called_up: true, started: s.started, minutes: s.minutes, points: s.points, rebounds: s.rebounds, assists: s.assists, fouls: s.fouls, custom_stats: s.custom_stats || {} };
     });
     renderCallupTable();
     els.matchArea.style.display = "block";
@@ -376,6 +408,7 @@
         <td class="editable" data-player="${p.id}" data-field="rebounds">${s.rebounds ?? 0}</td>
         <td class="editable" data-player="${p.id}" data-field="assists">${s.assists ?? 0}</td>
         <td class="editable" data-player="${p.id}" data-field="fouls">${s.fouls ?? 0}</td>
+        ${matchFields.map((f) => `<td class="editable" data-player="${p.id}" data-custom="${escapeHtml(f.key)}">${(s.custom_stats && s.custom_stats[f.key]) ?? 0}</td>`).join("")}
       `;
       els.callupBody.appendChild(tr);
     });
@@ -398,7 +431,14 @@
     input.focus();
     const commit = () => {
       const val = input.value === "" ? null : parseFloat(input.value);
-      statsByPlayer[td.dataset.player][td.dataset.field] = val;
+      const custom = td.dataset.custom;
+      if (custom) {
+        const stats = statsByPlayer[td.dataset.player];
+        stats.custom_stats = stats.custom_stats || {};
+        stats.custom_stats[custom] = val ?? 0;
+      } else {
+        statsByPlayer[td.dataset.player][td.dataset.field] = val;
+      }
       td.textContent = val ?? "";
     };
     input.addEventListener("blur", commit);
@@ -475,15 +515,17 @@
     const { data: stats } = await supabaseClient.from("match_player_stats").select("*").in("match_id", ids);
     const byPlayer = {};
     (stats || []).forEach((s) => {
-      byPlayer[s.player_id] = byPlayer[s.player_id] || { gp: 0, points: 0, rebounds: 0, assists: 0, fouls: 0 };
+      byPlayer[s.player_id] = byPlayer[s.player_id] || { gp: 0, points: 0, rebounds: 0, assists: 0, fouls: 0, custom: {} };
       const b = byPlayer[s.player_id];
       b.gp++; b.points += s.points || 0; b.rebounds += s.rebounds || 0; b.assists += s.assists || 0; b.fouls += s.fouls || 0;
+      matchFields.forEach((f) => { b.custom[f.key] = (b.custom[f.key] || 0) + ((s.custom_stats && s.custom_stats[f.key]) || 0); });
     });
     teamPlayers.forEach((p) => {
       const b = byPlayer[p.id];
       if (!b) return;
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td><td>${b.gp}</td><td>${(b.points / b.gp).toFixed(1)}</td><td>${(b.rebounds / b.gp).toFixed(1)}</td><td>${(b.assists / b.gp).toFixed(1)}</td><td>${(b.fouls / b.gp).toFixed(1)}</td>`;
+      const customCells = matchFields.map((f) => `<td>${(b.custom[f.key] / b.gp).toFixed(1)}</td>`).join("");
+      tr.innerHTML = `<td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td><td>${b.gp}</td><td>${(b.points / b.gp).toFixed(1)}</td><td>${(b.rebounds / b.gp).toFixed(1)}</td><td>${(b.assists / b.gp).toFixed(1)}</td><td>${(b.fouls / b.gp).toFixed(1)}</td>${customCells}`;
       els.summaryBody.appendChild(tr);
     });
   }
@@ -505,8 +547,10 @@
     } catch (e) { return null; }
   }
 
-  async function exportToPdf() {
-    if (!currentMatchId) { showMessage("Save the match first.", "error"); return; }
+  // Un seul moteur pour les deux PDF (rempli après le match, ou vide à
+  // imprimer avant) -- colonnes toujours basées sur celles vraiment
+  // configurées pour ce club, jamais une liste fixe.
+  async function buildMatchPdfDoc(blank) {
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
@@ -519,36 +563,60 @@
     doc.text(els.orgName.textContent || "Pivot", marginX, y);
     y += 16;
     doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(...muted);
-    doc.text(`Match day — ${currentTeam} vs ${els.matchOpponent.value || "?"} (${els.matchDate.value})`, marginX, y);
+    const opponentLabel = els.matchOpponent.value ? `vs ${els.matchOpponent.value}` : "vs ?";
+    const dateLabel = els.matchDate.value || "date TBD";
+    doc.text(`${blank ? "Match sheet (blank)" : "Match day"} — ${currentTeam} ${opponentLabel} (${dateLabel})`, marginX, y);
     y += 8;
     doc.setDrawColor(...accent); doc.setLineWidth(1);
     doc.line(marginX, y, pageW - marginX, y);
     y += 20;
 
+    const headers = ["Player", "Min", "Pts", "Reb", "Ast", "Fouls", ...matchFields.map((f) => f.label)];
+    const colW = (pageW - marginX * 2) / headers.length;
     doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...muted);
-    ["Player", "Min", "Pts", "Reb", "Ast", "Fouls"].forEach((h, i) => doc.text(h.toUpperCase(), marginX + i * 110, y));
+    headers.forEach((h, i) => doc.text(h.toUpperCase(), marginX + i * colW, y));
     y += 14;
     doc.setDrawColor(225, 225, 225); doc.line(marginX, y, pageW - marginX, y);
     y += 14;
 
     doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(...ink);
-    teamPlayers.forEach((p) => {
-      const s = statsByPlayer[p.id];
-      if (!s.called_up) return;
-      [`${p.first_name} ${p.last_name}`, s.minutes ?? "—", s.points ?? 0, s.rebounds ?? 0, s.assists ?? 0, s.fouls ?? 0]
-        .forEach((v, i) => doc.text(String(v), marginX + i * 110, y));
-      y += 16;
+    const rowPlayers = blank ? teamPlayers : teamPlayers.filter((p) => statsByPlayer[p.id] && statsByPlayer[p.id].called_up);
+    rowPlayers.forEach((p) => {
+      const s = statsByPlayer[p.id] || {};
+      const row = blank
+        ? [`${p.first_name} ${p.last_name}`, "", "", "", "", "", ...matchFields.map(() => "")]
+        : [`${p.first_name} ${p.last_name}`, s.minutes ?? "—", s.points ?? 0, s.rebounds ?? 0, s.assists ?? 0, s.fouls ?? 0, ...matchFields.map((f) => (s.custom_stats && s.custom_stats[f.key]) ?? 0)];
+      row.forEach((v, i) => doc.text(String(v), marginX + i * colW, y));
+      if (blank) { doc.setDrawColor(225, 225, 225); doc.line(marginX, y + 5, pageW - marginX, y + 5); }
+      y += blank ? 22 : 16;
     });
 
     doc.setFontSize(8); doc.setTextColor(...muted);
     doc.text(`Generated by Pivot on ${new Date().toISOString().slice(0, 10)}`, marginX, 595 - 14);
+    return doc;
+  }
+
+  async function exportToPdf() {
+    if (!currentMatchId) { showMessage("Save the match first.", "error"); return; }
+    const doc = await buildMatchPdfDoc(false);
     doc.save(`${currentTeam}_vs_${els.matchOpponent.value || "match"}_${els.matchDate.value}.pdf`);
+  }
+
+  async function exportBlankPdf() {
+    if (!currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
+    const doc = await buildMatchPdfDoc(true);
+    doc.save(`${currentTeam}_blank_match_sheet.pdf`);
   }
 
   document.getElementById("new-match-btn").addEventListener("click", newMatch);
   document.getElementById("save-match-btn").addEventListener("click", saveMatch);
   document.getElementById("delete-match-btn").addEventListener("click", deleteMatch);
-  document.getElementById("export-pdf-btn").addEventListener("click", exportToPdf);
+  document.getElementById("export-pdf-btn").addEventListener("click", async () => {
+    try { await exportToPdf(); } catch (err) { console.error(err); showMessage("Couldn't generate that PDF: " + (err.message || "unknown error"), "error"); }
+  });
+  document.getElementById("export-blank-pdf-btn").addEventListener("click", async () => {
+    try { await exportBlankPdf(); } catch (err) { console.error(err); showMessage("Couldn't generate that PDF: " + (err.message || "unknown error"), "error"); }
+  });
 
   document.getElementById("nav-menu").addEventListener("change", (e) => {
     if (e.target.value) window.location.href = "./" + e.target.value;
@@ -563,9 +631,11 @@
         <li>Pick a season/team on the left, then "+ New match" or click an existing one from the list.</li>
         <li>Fill in date, opponent, location, and the score once you have it.</li>
         <li>Tick "Called up" for players in the roster that day, "Starter" for the five who start.</li>
-        <li>Click any stat cell (minutes, points, rebounds, assists, fouls) to edit it directly.</li>
-        <li>"Season summary" below adds up every saved match for this team — games played and per-game averages, automatically.</li>
-        <li>"Export to PDF" makes a clean box score you can print or send.</li>
+        <li>Click any stat cell (minutes, points, rebounds, assists, fouls, plus whatever custom columns your club has added) to edit it directly.</li>
+        <li><strong>Your own stat columns</strong> — every club is different. Add whatever your club tracks beyond the basics (steals, turnovers, +/-, anything, in any language) from Settings → "Match stat columns".</li>
+        <li><strong>"Print blank sheet"</strong> makes an empty box score with your columns, ready to print and fill in by hand during the game — no need to have a match saved first.</li>
+        <li>"Season summary" below adds up every saved match for this team — games played and per-game averages, automatically, custom columns included.</li>
+        <li>"Export to PDF" makes a filled-in box score, once the match is saved.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). Match reports contain real player stats, so think before sharing beyond your team.</li>
       </ul>`;
     box.style.display = "block";
@@ -580,7 +650,7 @@
     const { data } = await supabaseClient.auth.getSession();
     if (!data.session) { window.location.href = "./login.html"; return; }
     const orgId = await loadMyOrganization();
-    if (orgId) await loadTree();
+    if (orgId) { await loadMatchFields(); await loadTree(); }
   }
   init();
 </script>

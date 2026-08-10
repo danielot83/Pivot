@@ -89,13 +89,14 @@
   <div class="nav-right">
     <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
+    <select id="org-switcher" style="display:none; margin-left:6px; padding:2px 6px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; background:var(--card); color:var(--ink);"></select>
     <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
       <option value="">Go to…</option>
       <option value="dashboard.html">Dashboard</option>
       <option value="roster.html">Roster</option>
       <option value="assessment.html">Player assessment</option>
       <option value="play_design.html" selected>Play design</option>
-      <option value="compare.html">Compare players</option>
+      <option value="compare.html">Statistics</option>
       <option value="match.html">Match day</option>
       <option value="exercises.html">Exercise creator</option>
       <option value="library.html">Library</option>
@@ -137,6 +138,10 @@
           <option value="association">🤝 My club association</option>
           <option value="community">🌐 Pivot Community</option>
         </select>
+      </div>
+      <div class="checkbox-field" style="align-self:end; margin-bottom:8px;">
+        <input type="checkbox" id="play-visible-to-players" />
+        <label for="play-visible-to-players" title="Separate from the circle above — players never see 'My team' plays unless you also check this, one play at a time.">🏀 Show to players</label>
       </div>
       <div class="field"><label for="play-language">Language</label>
         <select id="play-language">
@@ -202,6 +207,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="org-switcher.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -219,6 +225,7 @@
     playTeam: document.getElementById("play-team"),
     playCategory: document.getElementById("play-category"),
     playVisibility: document.getElementById("play-visibility"),
+    playVisibleToPlayers: document.getElementById("play-visible-to-players"),
     playLanguage: document.getElementById("play-language"),
     canvas: document.getElementById("court-canvas"),
     colorSelect: document.getElementById("color-select"),
@@ -686,11 +693,13 @@
   // -----------------------------------------------------------------------
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active").limit(1);
+      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active");
     if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
-    currentOrgId = data[0].organization_id;
-    myRole = data[0].role;
-    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    const chosen = pivotResolveActiveOrg(data);
+    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id);
+    currentOrgId = chosen.organization_id;
+    myRole = chosen.role;
+    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
     els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
@@ -795,6 +804,7 @@
     updateTeamOptions();
     els.playCategory.value = "";
     els.playVisibility.value = "team";
+    els.playVisibleToPlayers.checked = false;
     els.playLanguage.value = "en"; currentTranslationGroupId = null;
     steps = [newStep()];
     currentStepIndex = 0;
@@ -803,7 +813,7 @@
     buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
     document.getElementById("delete-play-btn").style.display = "none";
     document.getElementById("save-play-btn").style.display = "inline-block";
-    [els.playName, els.playSeason, els.playTeam, els.playCategory, els.playVisibility, els.playLanguage].forEach((el) => (el.disabled = false));
+    [els.playName, els.playSeason, els.playTeam, els.playCategory, els.playVisibility, els.playVisibleToPlayers, els.playLanguage].forEach((el) => (el.disabled = false));
     showMessage("New blank play — pick a tool and draw on the court, then Save when ready.", "success");
   }
 
@@ -818,6 +828,7 @@
     els.playTeam.value = data.team || "";
     els.playCategory.value = data.category || "";
     els.playVisibility.value = data.visibility || "team";
+    els.playVisibleToPlayers.checked = !!data.visible_to_players;
     els.playLanguage.value = data.language || "en"; currentTranslationGroupId = data.translation_group_id || null;
     steps = (data.diagram && Array.isArray(data.diagram.steps) && data.diagram.steps.length > 0)
       ? data.diagram.steps.map((s) => ({ courtType: s.courtType || "half", note: s.note || "", points: s.points || [], actions: s.actions || [] }))
@@ -842,7 +853,7 @@
     // jugadas -- à ajouter si Daniel veut la même chose que pour les
     // exercices.
     document.getElementById("save-play-btn").style.display = owned ? "inline-block" : "none";
-    [els.playName, els.playSeason, els.playTeam, els.playCategory, els.playVisibility, els.playLanguage].forEach((el) => (el.disabled = !owned));
+    [els.playName, els.playSeason, els.playTeam, els.playCategory, els.playVisibility, els.playVisibleToPlayers, els.playLanguage].forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This play belongs to another club — you can look, but not edit or save changes.", "success");
     await loadPlaysList();
   }
@@ -858,6 +869,7 @@
       team: els.playTeam.value || null,
       category: els.playCategory.value.trim() || null,
       visibility: els.playVisibility.value,
+      visible_to_players: els.playVisibleToPlayers.checked,
       language: els.playLanguage.value,
       name, court_type: "multi-step",
       diagram: { steps },
@@ -1135,6 +1147,7 @@
         <li><strong>Download animation (GIF)</strong> — renders the whole sequence as a GIF file you can send or embed anywhere, not just play it here.</li>
         <li><strong>Undo</strong> removes the last action, or the last point if there are no actions left. <strong>Clear this step</strong> wipes everything on the current step only.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). The icon next to each play in the list on the left shows its current circle.</li>
+        <li><strong>🏀 Show to players</strong> — separate from the circle above. A player account never sees "My team" plays automatically, even from their own club — you turn this on one play at a time for the ones you actually want your roster to see.</li>
       </ul>`;
     box.style.display = "block";
   });

@@ -94,13 +94,14 @@
   <div class="nav-right">
     <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
+    <select id="org-switcher" style="display:none; margin-left:6px; padding:2px 6px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; background:var(--card); color:var(--ink);"></select>
     <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
       <option value="">Go to…</option>
       <option value="dashboard.html">Dashboard</option>
       <option value="roster.html">Roster</option>
       <option value="assessment.html" selected>Player assessment</option>
       <option value="play_design.html">Play design</option>
-      <option value="compare.html">Compare players</option>
+      <option value="compare.html">Statistics</option>
       <option value="match.html">Match day</option>
       <option value="exercises.html">Exercise creator</option>
       <option value="library.html">Library</option>
@@ -244,6 +245,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="org-switcher.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -427,14 +429,16 @@
   // ---------------------------------------------------------------------
   async function loadMyOrganization() {
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active").limit(1);
+      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active");
     if (error || !data || data.length === 0) {
       showMessage("You're not an active member of any club yet.", "error");
       return null;
     }
-    currentOrgId = data[0].organization_id;
-    myRole = data[0].role;
-    els.orgName.textContent = (data[0].organizations && data[0].organizations.name) || "";
+    const chosen = pivotResolveActiveOrg(data);
+    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id);
+    currentOrgId = chosen.organization_id;
+    myRole = chosen.role;
+    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
     els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
@@ -1096,6 +1100,7 @@
         <li><strong>Past assessments</strong> below are clickable — opens that one back up to review or edit.</li>
         <li><strong>Example data</strong> (left) — three real Bulls seasons and the 2008 Celtics, with sample evaluations already filled in.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). An assessment is a real player's evaluation, so think before sharing beyond your team.</li>
+        <li>A <strong>player account</strong> never sees "My team" assessments in bulk, even from their own club — that would mean seeing every teammate's evaluation. The one exception: if Settings has linked their account to their roster entry, they can see their own assessment, and only their own.</li>
       </ul>`;
     box.style.display = "block";
   });
