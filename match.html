@@ -174,6 +174,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
+<script src="team-tree.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -263,24 +264,13 @@
   // -----------------------------------------------------------------------
   async function loadTree() {
     const { data, error } = await supabaseClient
-      .from("players").select("season, team").eq("organization_id", currentOrgId);
-    if (error) { console.error("loadTree error:", error); return; }
-    const bySeasons = {};
-    (data || []).forEach((r) => (bySeasons[r.season] = bySeasons[r.season] || new Set()).add(r.team));
-    els.tree.innerHTML = "";
-    Object.keys(bySeasons).sort().reverse().forEach((season) => {
-      const seasonEl = document.createElement("div");
-      seasonEl.className = "tree-season";
-      seasonEl.textContent = season;
-      els.tree.appendChild(seasonEl);
-      Array.from(bySeasons[season]).sort().forEach((team) => {
-        const btn = document.createElement("button");
-        btn.className = "tree-team" + (season === currentSeason && team === currentTeam ? " active" : "");
-        btn.textContent = team;
-        btn.addEventListener("click", () => selectSeasonTeam(season, team));
-        els.tree.appendChild(btn);
-      });
-    });
+      .from("players").select("season, team, team_category").eq("organization_id", currentOrgId);
+    if (error) { showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error"); console.error("loadTree error:", error); return; }
+    if (!data || data.length === 0) {
+      els.tree.innerHTML = '<p class="hint" style="margin:0; font-size:12.5px; color:var(--muted);">No players in Roster yet for this club — add a player there first.</p>';
+      return;
+    }
+    renderTeamTree("tree", data, currentSeason, currentTeam, (season, team) => selectSeasonTeam(season, team));
   }
 
   async function selectSeasonTeam(season, team) {
