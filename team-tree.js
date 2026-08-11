@@ -40,7 +40,9 @@ function mergeTeamRows(playerRows, teamRows) {
 function renderTeamTree(containerId, rows, activeSeason, activeTeam, onSelect, onDelete) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  container.innerHTML = "";
+  // No limpia el contenedor -- quien llama a esto es responsable de
+  // limpiarlo antes (así puede añadir algo suyo, como "+ New
+  // season/team", sin que esta función se lo borre después).
 
   const byTeam = {};
   (rows || []).forEach((r) => {
