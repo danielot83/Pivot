@@ -43,6 +43,7 @@
   .tree-team { display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 8px; margin: 1px 0; border-radius: 6px; font-size: 13px; color: var(--ink); cursor: pointer; }
   .tree-team:hover { background: var(--paper); }
   .tree-team.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .tree-new { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
 
   .match-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 8px; border-radius: 6px; font-size: 12.5px; cursor: pointer; }
   .match-item:hover { background: var(--paper); }
@@ -266,13 +267,30 @@
     const { data, error } = await supabaseClient
       .from("players").select("season, team, team_category").eq("organization_id", currentOrgId);
     if (error) { showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error"); console.error("loadTree error:", error); return; }
-    if (!data || data.length === 0) {
-      els.tree.innerHTML = '<p class="hint" style="margin:0; font-size:12.5px; color:var(--muted);">No players in Roster yet for this club — add a player there first.</p>';
+    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category").eq("organization_id", currentOrgId);
+    const rows = mergeTeamRows(data, teamRows);
+
+    els.tree.innerHTML = "";
+    const newBtn = document.createElement("button");
+    newBtn.className = "tree-new";
+    newBtn.textContent = "+ New season/team";
+    newBtn.addEventListener("click", async () => {
+      const created = await promptNewTeam(supabaseClient, currentOrgId);
+      if (!created) return;
+      selectSeasonTeam(created.season, created.team);
+    });
+    els.tree.appendChild(newBtn);
+
+    if (rows.length === 0) {
+      const hint = document.createElement("p");
+      hint.className = "hint";
+      hint.style.cssText = "margin:8px 0 0; font-size:12.5px; color:var(--muted);";
+      hint.textContent = "No teams yet — add a player in Roster, or click \"+ New season/team\" above.";
+      els.tree.appendChild(hint);
       return;
     }
-    renderTeamTree("tree", data, currentSeason, currentTeam, (season, team) => selectSeasonTeam(season, team));
+    renderTeamTree("tree", rows, currentSeason, currentTeam, (season, team) => selectSeasonTeam(season, team));
   }
-
   async function selectSeasonTeam(season, team) {
     currentSeason = season; currentTeam = team;
     els.currentSelection.textContent = `${team} — ${season}`;

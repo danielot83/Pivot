@@ -331,30 +331,23 @@
     const { data, error } = await supabaseClient
       .from("players").select("season, team, team_category").eq("organization_id", currentOrgId);
     if (error) { showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error"); console.error("loadTree error:", error); return; }
+    const { data: teamRows } = await supabaseClient
+      .from("teams").select("season, team, team_category").eq("organization_id", currentOrgId);
 
-    const rows = [...(data || [])];
-    // le club/équipe qu'on vient de créer doit apparaître tout de suite,
-    // même à zéro joueur -- sinon il faut d'abord ajouter quelqu'un pour
-    // même le voir dans l'arbre, ce qui n'a pas de sens
-    if (currentSeason && currentTeam && !rows.some((r) => r.season === currentSeason && r.team === currentTeam)) {
-      rows.push({ season: currentSeason, team: currentTeam, team_category: currentTeamCategory });
-    }
+    const rows = mergeTeamRows(data, teamRows);
 
     els.tree.innerHTML = "";
 
     const newBtn = document.createElement("button");
     newBtn.className = "tree-new";
     newBtn.textContent = "+ New season/team";
-    newBtn.addEventListener("click", () => {
-      const team = prompt("Team name (e.g. DEL, Chicago Bulls) — this stays the same across years:");
-      if (!team) return;
-      const teamCategory = prompt(`Team category for "${team.trim()}" (e.g. U8) — optional, leave blank if this club doesn't use age brackets:`) || "";
-      const season = prompt("Season (e.g. 2026-2027):");
-      if (!season) return;
+    newBtn.addEventListener("click", async () => {
+      const created = await promptNewTeam(supabaseClient, currentOrgId);
+      if (!created) return;
       const category = prompt("Default position for new players on this team (e.g. PG) — optional, can leave blank:");
-      if (category) saveDefaultCategory(season.trim(), team.trim(), category.trim());
-      currentTeamCategory = teamCategory.trim();
-      selectSeasonTeam(season.trim(), team.trim());
+      if (category) saveDefaultCategory(created.season, created.team, category.trim());
+      currentTeamCategory = created.team_category;
+      selectSeasonTeam(created.season, created.team);
     });
     els.tree.appendChild(newBtn);
 
@@ -369,6 +362,7 @@
     const { error } = await supabaseClient.from("players").delete()
       .eq("organization_id", currentOrgId).eq("season", season).eq("team", team);
     if (error) { showMessage(error.message, "error"); return; }
+    await supabaseClient.from("teams").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team);
     if (season === currentSeason && team === currentTeam) { currentSeason = null; currentTeam = null; }
     showMessage(`"${team}" (${season}) removed.`, "success");
     await loadTree();

@@ -76,6 +76,16 @@
   .tab-btn { padding: 8px 16px; border-radius: 100px; border: 1px solid var(--line); background: var(--card); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }
   .tab-btn:hover { border-color: var(--accent); }
   .tab-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .layout { display: grid; grid-template-columns: 240px 1fr; gap: 24px; max-width: 1080px; margin: 0 auto; padding: 24px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .tree-season { font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  .tree-season:first-child { margin-top: 0; }
+  .tree-team { display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 8px; margin: 1px 0; border-radius: 6px; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .tree-team:hover { background: var(--paper); }
+  .tree-team.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .tree-new { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
 </style>
 </head>
 <body>
@@ -102,25 +112,23 @@
   </div>
 </nav>
 
-<div class="wrap">
+<div class="layout">
+  <div>
+    <div class="side-card">
+      <h2>Seasons &amp; teams</h2>
+      <div id="tree"></div>
+    </div>
+  </div>
+
+  <div>
   <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
   <h1>
     Statistics
     <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
   </h1>
-  <p class="sub">Everything here is calculated live from your own data — nothing pre-computed, nothing stored twice.</p>
+  <p class="sub" id="current-selection">Pick a season/team on the left.</p>
   <div class="help-box" id="help-box"></div>
   <div class="msg" id="msg"></div>
-
-  <div class="card">
-    <h2>Who to compare</h2>
-    <p class="hint">Click players to add or remove them from the comparison. Works across different seasons and teams — that's the point.</p>
-    <div class="field" style="max-width:220px; margin-bottom:10px;">
-      <label for="season-filter">Filter matches/sessions by season</label>
-      <select id="season-filter"><option value="">All seasons</option></select>
-    </div>
-    <div class="picker-row" id="player-picker"></div>
-  </div>
 
   <div class="tab-bar" id="stats-tab-bar">
     <button class="tab-btn active" data-tab="training">1. Training</button>
@@ -128,9 +136,16 @@
     <button class="tab-btn" data-tab="assessment">3. Assessment</button>
   </div>
 
+  <div class="card">
+    <h2>Who to compare</h2>
+    <p class="hint">Click players to add or remove them from the comparison — from the team picked on the left, that season.</p>
+    <div class="picker-row" id="player-picker"></div>
+    <div class="empty-state" id="picker-empty" style="display:none">Pick a season/team on the left first.</div>
+  </div>
+
   <div class="tab-panel" data-tab-panel="training">
     <div class="card">
-      <h2>Team overview <span class="hint" style="font-weight:400;">— this club, all time</span></h2>
+      <h2>Team overview <span class="hint" style="font-weight:400;">— this team, this season</span></h2>
       <p class="hint">Pulled straight from Training builder — log more sessions and this updates on its own.</p>
       <div class="stats-grid" id="team-overview-grid"></div>
       <div style="margin-top:14px;">
@@ -145,7 +160,7 @@
 
     <div class="card">
       <h2>Training attendance</h2>
-      <p class="hint">How often each player showed up, across every training session they were part of — narrowed by the season filter above, if you picked one.</p>
+      <p class="hint">How often each selected player showed up, across this team's sessions this season.</p>
       <table>
         <thead><tr><th>Player</th><th>Sessions</th><th>Present</th><th>Attendance rate</th></tr></thead>
         <tbody id="attendance-body"></tbody>
@@ -162,7 +177,7 @@
 
     <div class="card">
       <h2>Match stats</h2>
-      <p class="hint">Averages across every match each player was called up for — narrowed by the season filter above, if you picked one.</p>
+      <p class="hint">Averages across this team's matches this season, for each selected player.</p>
       <table>
         <thead><tr id="match-stats-head"><th>Player</th><th>Games</th><th>PPG</th><th>RPG</th><th>APG</th><th>Fouls/g</th></tr></thead>
         <tbody id="match-stats-body"></tbody>
@@ -200,10 +215,12 @@
       <div class="empty-state" id="criterion-empty" style="display:none">Pick at least one player above.</div>
     </div>
   </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
+<script src="team-tree.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -262,7 +279,8 @@
   };
 
   let currentOrgId = null;
-  let allPlayers = []; // { id, name, team, season }
+  let currentSeason = null, currentTeam = null;
+  let allPlayers = []; // { id, name, team, season } -- de l'équipe/saison choisie à gauche
   let selectedIds = [];
   let latestAssessments = {}; // player_id -> { date, ratings }
 
@@ -282,11 +300,58 @@
     return currentOrgId;
   }
 
-  async function loadAllPlayers() {
+  // -----------------------------------------------------------------------
+  // Elegir un equipo tiene sentido para comparar -- por eso ahora hay una
+  // columna de equipos a la izquierda, igual que en el resto de módulos.
+  // -----------------------------------------------------------------------
+  async function loadTree() {
+    const { data, error } = await supabaseClient
+      .from("players").select("season, team, team_category").eq("organization_id", currentOrgId);
+    if (error) { showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error"); console.error("loadTree error:", error); return; }
+    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category").eq("organization_id", currentOrgId);
+    const rows = mergeTeamRows(data, teamRows);
+
+    document.getElementById("tree").innerHTML = "";
+    const newBtn = document.createElement("button");
+    newBtn.className = "tree-new";
+    newBtn.textContent = "+ New season/team";
+    newBtn.addEventListener("click", async () => {
+      const created = await promptNewTeam(supabaseClient, currentOrgId);
+      if (!created) return;
+      await selectSeasonTeam(created.season, created.team);
+    });
+    document.getElementById("tree").appendChild(newBtn);
+
+    if (rows.length === 0) {
+      const hint = document.createElement("p");
+      hint.className = "hint";
+      hint.style.cssText = "margin:8px 0 0; font-size:12.5px; color:var(--muted);";
+      hint.textContent = "No teams yet — add a player in Roster, or click \"+ New season/team\" above.";
+      document.getElementById("tree").appendChild(hint);
+      return;
+    }
+    renderTeamTree("tree", rows, currentSeason, currentTeam, (season, team) => selectSeasonTeam(season, team));
+  }
+
+  async function selectSeasonTeam(season, team) {
+    currentSeason = season; currentTeam = team;
+    document.getElementById("current-selection").textContent = `${team} — ${season}`;
+    selectedIds = [];
+    matchStatsCache = {}; attendanceCache = {};
+    await loadTree();
+    await loadTeamPlayers();
+    await loadTeamOverview();
+    await loadMatchFields();
+    renderMatchStats(); renderAttendance(); renderDevelopmentTrend(); renderSectorChart(); renderCriterionTable();
+  }
+
+  async function loadTeamPlayers() {
+    document.getElementById("picker-empty").style.display = currentTeam ? "none" : "block";
+    if (!currentTeam) { allPlayers = []; renderPlayerPicker(); return; }
     const { data, error } = await supabaseClient
       .from("players").select("id, first_name, last_name, team, season")
-      .eq("organization_id", currentOrgId).order("season", { ascending: false });
-    if (error) { console.error("loadAllPlayers error:", error); return; }
+      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam).order("last_name");
+    if (error) { console.error("loadTeamPlayers error:", error); return; }
     allPlayers = (data || []).map((p) => ({ id: p.id, name: `${p.first_name} ${p.last_name}`, team: p.team, season: p.season }));
     renderPlayerPicker();
   }
@@ -307,9 +372,10 @@
   // aucune valeur stockée à part, tout se recalcule à chaque chargement.
   // -----------------------------------------------------------------------
   async function loadTeamOverview() {
+    if (!currentTeam) { renderTeamOverviewGrid({ sessionCount: 0, totalMinutes: 0, avgMinutes: 0, attendanceRate: null }); renderSessionsTrendChart([]); renderCategoriesBarChart([]); return; }
     const { data: trainings, error } = await supabaseClient
       .from("trainings").select("id, date, planned_minutes, categories_summary")
-      .eq("organization_id", currentOrgId);
+      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam);
     if (error) { console.error("loadTeamOverview error:", error); return; }
     const trainingIds = (trainings || []).map((t) => t.id);
 
@@ -518,7 +584,6 @@
   // -----------------------------------------------------------------------
   let matchStatsCache = {};
   let attendanceCache = {};
-  let selectedSeason = "";
   let matchFields = [];
 
   async function loadMatchFields() {
@@ -527,27 +592,12 @@
     els.matchStatsHead.innerHTML = `<th>Player</th><th>Games</th><th>PPG</th><th>RPG</th><th>APG</th><th>Fouls/g</th>${matchFields.map((f) => `<th>${escapeHtml(f.label)}/g</th>`).join("")}`;
   }
 
-  function populateSeasonFilter() {
-    const sel = document.getElementById("season-filter");
-    const seasons = Array.from(new Set(allPlayers.map((p) => p.season))).sort().reverse();
-    sel.innerHTML = '<option value="">All seasons</option>' + seasons.map((s) => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
-    sel.value = selectedSeason;
-    sel.addEventListener("change", async () => {
-      selectedSeason = sel.value;
-      matchStatsCache = {}; attendanceCache = {};
-      await loadMatchStats(); await loadAttendance();
-      renderMatchStats(); renderAttendance();
-    });
-  }
-
   async function loadMatchStats() {
     for (const id of selectedIds) {
       if (matchStatsCache[id]) continue;
-      let query = supabaseClient.from("match_player_stats")
-        .select(selectedSeason ? "points, rebounds, assists, fouls, custom_stats, matches!inner(season)" : "points, rebounds, assists, fouls, custom_stats")
-        .eq("player_id", id);
-      if (selectedSeason) query = query.eq("matches.season", selectedSeason);
-      const { data, error } = await query;
+      const { data, error } = await supabaseClient.from("match_player_stats")
+        .select("points, rebounds, assists, fouls, custom_stats, matches!inner(season, team)")
+        .eq("player_id", id).eq("matches.season", currentSeason).eq("matches.team", currentTeam);
       if (error) { matchStatsCache[id] = null; continue; }
       const rows = data || [];
       if (rows.length === 0) { matchStatsCache[id] = { games: 0 }; continue; }
@@ -574,7 +624,7 @@
       const s = matchStatsCache[id];
       const tr = document.createElement("tr");
       if (!s || s.games === 0) {
-        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="${5 + matchFields.length}">No matches recorded${selectedSeason ? " for " + escapeHtml(selectedSeason) : " yet"}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="${5 + matchFields.length}">No matches recorded for ${escapeHtml(currentTeam || "")} (${escapeHtml(currentSeason || "")})</td>`;
       } else {
         const customCells = matchFields.map((f) => `<td>${(s.custom[f.key] || 0).toFixed(1)}</td>`).join("");
         tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td>${s.games}</td><td>${s.ppg.toFixed(1)}</td><td>${s.rpg.toFixed(1)}</td><td>${s.apg.toFixed(1)}</td><td>${s.fpg.toFixed(1)}</td>${customCells}`;
@@ -586,11 +636,9 @@
   async function loadAttendance() {
     for (const id of selectedIds) {
       if (attendanceCache[id]) continue;
-      let query = supabaseClient.from("training_attendance")
-        .select(selectedSeason ? "present, trainings!inner(season)" : "present")
-        .eq("player_id", id);
-      if (selectedSeason) query = query.eq("trainings.season", selectedSeason);
-      const { data, error } = await query;
+      const { data, error } = await supabaseClient.from("training_attendance")
+        .select("present, trainings!inner(season, team)")
+        .eq("player_id", id).eq("trainings.season", currentSeason).eq("trainings.team", currentTeam);
       if (error) { attendanceCache[id] = null; continue; }
       const rows = data || [];
       const present = rows.filter((r) => r.present).length;
@@ -670,12 +718,14 @@
     box.innerHTML = `
       <strong>How to use Statistics</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li><strong>Team overview</strong> is calculated live from Training builder — sessions logged, total minutes trained, average attendance, sessions per month, and which categories get worked on the most. Log more sessions and this fills in on its own, no extra setup.</li>
-        <li>Click any player chip to add them to the comparison — works across different seasons and teams, so you can put a 2024 player next to a 2019 one.</li>
+        <li><strong>Pick a season/team on the left first</strong> — comparing players only makes sense within a team, so everything here is scoped to whichever one you pick, same as Roster or Training builder. No team yet? Click "+ New season/team" to create one.</li>
+        <li>Then pick which of the three — <strong>1. Training, 2. Matches, 3. Assessment</strong> — you want to look at. Only one shows at a time, on purpose, so numbers from different worlds don't get mixed together.</li>
+        <li><strong>Team overview</strong> is calculated live from Training builder — sessions logged, total minutes trained, average attendance, sessions per month, and which categories get worked on the most, for this team this season.</li>
+        <li>Click any player chip to add them to the comparison — from this team's roster, that season.</li>
         <li>The sector chart shows each selected player's <em>most recent</em> assessment, one bar color per player.</li>
         <li><strong>Development over time</strong> plots every assessment a selected player has ever had (not just the latest), reduced to one overall score per date — a real trend line, not a single snapshot. Needs at least 2 assessments to draw.</li>
         <li>The table below lets you pick one exact criterion (out of all 36) and see each player's score for just that, side by side.</li>
-        <li><strong>Match stats</strong> and <strong>Training attendance</strong> — career averages across every match/session each player has been part of, not just the latest one.</li>
+        <li><strong>Match stats</strong> and <strong>Training attendance</strong> — averages across this team's matches/sessions this season, for each selected player.</li>
         <li>Everything updates live as you add or remove players — no need to click a "compare" button.</li>
       </ul>`;
     box.style.display = "block";
@@ -692,10 +742,8 @@
     buildCriterionSelect();
     const orgId = await loadMyOrganization();
     if (orgId) {
-      await loadAllPlayers();
-      populateSeasonFilter();
-      await loadMatchFields();
-      await loadTeamOverview();
+      await loadTree();
+      document.getElementById("picker-empty").style.display = "block";
     }
   }
   init();

@@ -12,6 +12,23 @@
 // =============================================================================
 
 /**
+ * Combina las filas de jugadores (season/team/team_category) con las del
+ * registro de equipos (teams), sin duplicar -- así una temporada/equipo
+ * recién creada (todavía sin jugadores) aparece igual en el árbol.
+ * @param {Array<{season, team, team_category}>} playerRows
+ * @param {Array<{season, team, team_category}>} teamRows
+ */
+function mergeTeamRows(playerRows, teamRows) {
+  const merged = [...(playerRows || [])];
+  const seen = new Set(merged.map((r) => `${r.season}|${r.team}`));
+  (teamRows || []).forEach((t) => {
+    const key = `${t.season}|${t.team}`;
+    if (!seen.has(key)) { merged.push({ season: t.season, team: t.team, team_category: t.team_category }); seen.add(key); }
+  });
+  return merged;
+}
+
+/**
  * Dibuja el árbol dentro del contenedor dado.
  * @param {string} containerId - id del elemento donde dibujar.
  * @param {Array<{season, team, team_category}>} rows - filas planas (normalmente de players).
@@ -73,4 +90,23 @@ function renderTeamTree(containerId, rows, activeSeason, activeTeam, onSelect, o
       });
     });
   });
+}
+
+/**
+ * Flujo de "+ New season/team", compartido por las páginas que dejan
+ * crear un equipo (no solo elegir uno existente). Pide nombre,
+ * categoría y temporada, y lo guarda en el registro `teams` -- así el
+ * equipo existe de verdad aunque todavía no tenga jugadores.
+ * @returns {Promise<{season, team, team_category}|null>} null si se cancela.
+ */
+async function promptNewTeam(supabaseClient, organizationId) {
+  const team = prompt("Team name (e.g. DEL, Chicago Bulls) — this stays the same across years:");
+  if (!team) return null;
+  const teamCategory = prompt(`Team category for "${team.trim()}" (e.g. U8) — optional, leave blank if this club doesn't use age brackets:`) || "";
+  const season = prompt("Season (e.g. 2026-2027):");
+  if (!season) return null;
+  const row = { organization_id: organizationId, season: season.trim(), team: team.trim(), team_category: teamCategory.trim() || null };
+  const { error } = await supabaseClient.from("teams").upsert(row, { onConflict: "organization_id,season,team" });
+  if (error) { alert("Couldn't create that team: " + error.message); return null; }
+  return { season: row.season, team: row.team, team_category: row.team_category || "" };
 }

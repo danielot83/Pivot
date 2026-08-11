@@ -43,6 +43,7 @@
   .tree-team { display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 8px; margin: 1px 0; border-radius: 6px; font-size: 13px; color: var(--ink); cursor: pointer; }
   .tree-team:hover { background: var(--paper); }
   .tree-team.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .tree-new { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
   .item-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 8px; border-radius: 6px; font-size: 12.5px; cursor: pointer; }
   .item-row:hover { background: var(--paper); }
   .item-row.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
@@ -187,9 +188,10 @@
           <select id="add-exercise-select"><option value="">Pick an exercise…</option></select>
         </div>
         <button class="btn btn-secondary" id="add-exercise-btn">+ Add</button>
+        <button class="btn btn-secondary" id="add-pause-btn" title="Add a rest/break between exercises">⏸ Add pause</button>
       </div>
       <table>
-        <thead><tr><th>#</th><th>Exercise</th><th>Minutes</th><th></th><th></th></tr></thead>
+        <thead><tr><th></th><th>#</th><th>Exercise</th><th>Minutes</th><th></th><th></th></tr></thead>
         <tbody id="session-exercises-body"></tbody>
       </table>
       <div class="empty-state" id="session-empty">No exercises added yet.</div>
@@ -662,11 +664,29 @@
       console.error("loadTree error:", error);
       return;
     }
-    if (!data || data.length === 0) {
-      els.tree.innerHTML = '<p class="hint" style="margin:0; font-size:12.5px; color:var(--muted);">No players in Roster yet for this club — add a player there first, and their season/team will show up here.</p>';
+    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category").eq("organization_id", currentOrgId);
+    const rows = mergeTeamRows(data, teamRows);
+
+    els.tree.innerHTML = "";
+    const newBtn = document.createElement("button");
+    newBtn.className = "tree-new";
+    newBtn.textContent = "+ New season/team";
+    newBtn.addEventListener("click", async () => {
+      const created = await promptNewTeam(supabaseClient, currentOrgId);
+      if (!created) return;
+      selectSeasonTeam(created.season, created.team);
+    });
+    els.tree.appendChild(newBtn);
+
+    if (rows.length === 0) {
+      const hint = document.createElement("p");
+      hint.className = "hint";
+      hint.style.cssText = "margin:8px 0 0; font-size:12.5px; color:var(--muted);";
+      hint.textContent = "No teams yet — add a player in Roster, or click \"+ New season/team\" above.";
+      els.tree.appendChild(hint);
       return;
     }
-    renderTeamTree("tree", data, currentSeason, currentTeam, (season, team) => selectSeasonTeam(season, team));
+    renderTeamTree("tree", rows, currentSeason, currentTeam, (season, team) => selectSeasonTeam(season, team));
   }
 
   document.getElementById("load-example-btn").addEventListener("click", async () => {
@@ -811,10 +831,11 @@
     document.getElementById("feedback-toggle-link").textContent = hasFeedback ? "▾ Post-session feedback (fill in after it happened)" : "▸ Post-session feedback (fill in after it happened)";
 
     const { data: exRows } = await supabaseClient
-      .from("training_exercises").select("id, exercise_id, order_index, duration_minutes, key_points, session_variants, exercises(name)")
+      .from("training_exercises").select("id, exercise_id, order_index, duration_minutes, key_points, session_variants, is_pause, exercises(name)")
       .eq("training_id", id).order("order_index");
     sessionExercises = (exRows || []).map((r) => ({
-      id: r.id, exercise_id: r.exercise_id, name: (r.exercises && r.exercises.name) || "(deleted exercise)",
+      id: r.id, exercise_id: r.exercise_id, is_pause: !!r.is_pause,
+      name: r.is_pause ? "Pause" : ((r.exercises && r.exercises.name) || "(deleted exercise)"),
       duration_minutes: r.duration_minutes, key_points: r.key_points || [], session_variants: r.session_variants || "",
     }));
 
@@ -854,17 +875,35 @@
     els.sessionEmpty.style.display = sessionExercises.length === 0 ? "block" : "none";
     sessionExercises.forEach((se, i) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${i + 1}</td><td>${escapeHtml(se.name)}</td>
-        <td><input type="number" value="${se.duration_minutes}" data-idx="${i}"></td>
-        <td><button data-action="edit" data-idx="${i}">${expandedRowIdx === i ? "Close" : "Edit"}</button></td>
-        <td><button data-action="remove" data-idx="${i}">Remove</button></td>
+      const isPause = !!se.is_pause;
+      const moveButtons = `
+        <button data-action="up" data-idx="${i}" title="Move up" ${i === 0 ? "disabled" : ""} style="border:none; background:none; cursor:pointer; color:var(--muted);">↑</button>
+        <button data-action="down" data-idx="${i}" title="Move down" ${i === sessionExercises.length - 1 ? "disabled" : ""} style="border:none; background:none; cursor:pointer; color:var(--muted);">↓</button>
       `;
+      if (isPause) {
+        tr.style.background = "var(--paper)";
+        tr.innerHTML = `
+          <td>${moveButtons}</td>
+          <td>${i + 1}</td><td>⏸ <em>Pause</em></td>
+          <td><input type="number" value="${se.duration_minutes}" data-idx="${i}"></td>
+          <td></td>
+          <td><button data-action="remove" data-idx="${i}">Remove</button></td>
+        `;
+      } else {
+        tr.innerHTML = `
+          <td>${moveButtons}</td>
+          <td>${i + 1}</td><td>${escapeHtml(se.name)}</td>
+          <td><input type="number" value="${se.duration_minutes}" data-idx="${i}"></td>
+          <td><button data-action="edit" data-idx="${i}">${expandedRowIdx === i ? "Close" : "Edit"}</button></td>
+          <td><button data-action="remove" data-idx="${i}">Remove</button></td>
+        `;
+      }
       tr.querySelector("input").addEventListener("change", (e) => {
         sessionExercises[i].duration_minutes = parseInt(e.target.value, 10) || 0;
         updateDurationBanner();
       });
-      tr.querySelector('[data-action="edit"]').addEventListener("click", () => {
+      const editBtn = tr.querySelector('[data-action="edit"]');
+      if (editBtn) editBtn.addEventListener("click", () => {
         expandedRowIdx = expandedRowIdx === i ? null : i;
         renderSessionTable();
       });
@@ -873,12 +912,26 @@
         if (expandedRowIdx === i) expandedRowIdx = null;
         renderSessionTable(); updateDurationBanner(); computeAutoSummary();
       });
+      const upBtn = tr.querySelector('[data-action="up"]');
+      if (upBtn) upBtn.addEventListener("click", () => {
+        if (i === 0) return;
+        [sessionExercises[i - 1], sessionExercises[i]] = [sessionExercises[i], sessionExercises[i - 1]];
+        if (expandedRowIdx === i) expandedRowIdx = i - 1; else if (expandedRowIdx === i - 1) expandedRowIdx = i;
+        renderSessionTable();
+      });
+      const downBtn = tr.querySelector('[data-action="down"]');
+      if (downBtn) downBtn.addEventListener("click", () => {
+        if (i === sessionExercises.length - 1) return;
+        [sessionExercises[i + 1], sessionExercises[i]] = [sessionExercises[i], sessionExercises[i + 1]];
+        if (expandedRowIdx === i) expandedRowIdx = i + 1; else if (expandedRowIdx === i + 1) expandedRowIdx = i;
+        renderSessionTable();
+      });
       els.sessionBody.appendChild(tr);
 
-      if (expandedRowIdx === i) {
+      if (!isPause && expandedRowIdx === i) {
         const detailTr = document.createElement("tr");
         const detailTd = document.createElement("td");
-        detailTd.colSpan = 5;
+        detailTd.colSpan = 6;
         detailTd.style.cssText = "background:var(--paper); padding:12px;";
         detailTd.innerHTML = `
           <p class="hint" style="margin:0 0 8px; font-size:12px; color:var(--muted);">Just for this session — the original exercise in the library isn't touched.</p>
@@ -899,6 +952,11 @@
       }
     });
   }
+
+  document.getElementById("add-pause-btn").addEventListener("click", () => {
+    sessionExercises.push({ is_pause: true, name: "Pause", duration_minutes: 5 });
+    renderSessionTable(); updateDurationBanner();
+  });
 
   function renderAttendanceTable() {
     els.attendanceBody.innerHTML = "";
@@ -960,8 +1018,8 @@
       await supabaseClient.from("training_exercises").delete().eq("training_id", trainingId);
       if (sessionExercises.length > 0) {
         const rows = sessionExercises.map((se, i) => ({
-          training_id: trainingId, exercise_id: se.exercise_id, order_index: i, duration_minutes: se.duration_minutes,
-          key_points: se.key_points || [], session_variants: se.session_variants || null,
+          training_id: trainingId, exercise_id: se.is_pause ? null : se.exercise_id, order_index: i, duration_minutes: se.duration_minutes,
+          key_points: se.key_points || [], session_variants: se.session_variants || null, is_pause: !!se.is_pause,
         }));
         const { error } = await supabaseClient.from("training_exercises").insert(rows);
         if (error) throw error;
@@ -1166,7 +1224,7 @@
         doc.text(String(se.duration_minutes || ""), colX.time + colTime / 2, midY, { align: "center" });
         doc.text(String(i + 1), colX.num + colNum / 2, midY, { align: "center" });
         doc.setFont("helvetica", "bold");
-        const nameLines = doc.splitTextToSize(se.name, colName - 8);
+        const nameLines = doc.splitTextToSize(se.is_pause ? "⏸ Pause" : se.name, colName - 8);
         const nameStartY = ty + rowH / 2 - ((Math.min(nameLines.length, 3) - 1) * 10) / 2 + 3;
         doc.text(nameLines.slice(0, 3), colX.name + 4, nameStartY);
         doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
@@ -1303,10 +1361,11 @@
       const { data: training } = await supabaseClient.from("trainings").select("*").eq("id", t.id).single();
       if (!training) continue;
       const { data: exRows } = await supabaseClient
-        .from("training_exercises").select("exercise_id, order_index, duration_minutes, key_points, session_variants, exercises(name)")
+        .from("training_exercises").select("exercise_id, order_index, duration_minutes, key_points, session_variants, is_pause, exercises(name)")
         .eq("training_id", t.id).order("order_index");
       const exercises = (exRows || []).map((r) => ({
-        exercise_id: r.exercise_id, name: (r.exercises && r.exercises.name) || "(deleted exercise)",
+        exercise_id: r.exercise_id, is_pause: !!r.is_pause,
+        name: r.is_pause ? "Pause" : ((r.exercises && r.exercises.name) || "(deleted exercise)"),
         duration_minutes: r.duration_minutes, key_points: r.key_points || [], session_variants: r.session_variants || "",
       }));
       const { data: attRows } = await supabaseClient.from("training_attendance").select("player_id, present").eq("training_id", t.id);
@@ -1691,10 +1750,10 @@
       <strong>How to use Training builder</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
         <li><strong>Notebooks</strong> (top left) — ready-made exercise lists grouped by theme (e.g. "Defense", "U8"), not tied to a season or team. Build one once, reuse it in any session, in any team, forever. Check exercises from your library to fill one in, then <strong>Export whole notebook</strong> for a real printable booklet: a cover page, followed by the full sheet for every exercise in it — court diagrams included, same as exporting one from Create exercise or Library.</li>
-        <li>No teams showing up on the left? That list comes straight from Roster — add players there first, or use <strong>★ Load example</strong> below it to try everything with a sample roster (Chicago Bulls, pick a season).</li>
+        <li>No teams showing up on the left? Click <strong>"+ New season/team"</strong> to create one on the spot — no need to add players first. Or use <strong>★ Load example</strong> below it to try everything with a sample roster (Chicago Bulls, pick a season).</li>
         <li>Pick a season/team on the left, then "+ New session" or an existing one from the list.</li>
         <li><strong>Filter by notebook</strong> narrows "Add from library" down to just that notebook's exercises — leave it on "All exercises" to search everything.</li>
-        <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise.</li>
+        <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, and <strong>⏸ Add pause</strong> to drop in a rest period between exercises — it counts toward the total time same as anything else.</li>
         <li>The banner above the exercise list tracks your running total against the planned length, and turns red if you go over.</li>
         <li><strong>Auto-summary</strong> fills itself in from the exercises you add (categories, material, up to 4 objectives) — edit it by hand any time.</li>
         <li><strong>Attendance</strong> is pulled from the team's roster — untick anyone who wasn't there.</li>
