@@ -193,6 +193,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
 <script src="modules-grid.js"></script>
+<script src="example-data.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -692,17 +693,8 @@
   // Statistiques simples -- seuls Roster et Suivi existent vraiment pour
   // l'instant, les autres modules restent à "—" tant qu'ils n'existent pas.
   // -----------------------------------------------------------------------
-  // Les mêmes saisons/équipes que "Remove example data" (l'exact ALL_EXAMPLE_TEAMS
-  // utilisé plus bas) -- une seule liste, pour que les stats et le bouton
-  // de suppression ne puissent jamais se désynchroniser.
-  const ALL_EXAMPLE_TEAMS = [
-    { season: "1995-1996", team: "Chicago Bulls" },
-    { season: "1994-1995", team: "Chicago Bulls" },
-    { season: "1993-1994", team: "Chicago Bulls" },
-    { season: "2007-2008", team: "Boston Celtics" },
-  ];
-  const EXAMPLE_TEAM_KEYS = new Set(ALL_EXAMPLE_TEAMS.map((ex) => `${ex.season}|${ex.team}`));
-  const isExampleTeam = (season, team) => EXAMPLE_TEAM_KEYS.has(`${season}|${team}`);
+  // ALL_EXAMPLE_TEAMS / EXAMPLE_TEAM_KEYS / isExampleTeam viennent
+  // maintenant de example-data.js (fichier partagé).
 
   async function loadStats() {
     if (!currentOrgId) return;
@@ -809,68 +801,23 @@
   }
 
   // -----------------------------------------------------------------------
-  // Mêmes données d'exemple que dans roster.html (Bulls 95-96) -- ici,
-  // en un clic, pour remplir les statistiques d'un coup sans avoir à
-  // aller les charger séparément dans Roster.
+  // EXAMPLE_TEAMS/ALL_EXAMPLE_TEAMS/makeExampleRatings/etc. viennent de
+  // example-data.js (fichier partagé, même exemple que Roster/Training).
   // -----------------------------------------------------------------------
-  const EXAMPLE_SEASON = "1995-1996";
-  const EXAMPLE_TEAM = "Chicago Bulls";
-  const EXAMPLE_PLAYERS = [
-    { first_name: "Michael", last_name: "Jordan", jersey_number: "23", category: "SG" },
-    { first_name: "Scottie", last_name: "Pippen", jersey_number: "33", category: "SF" },
-    { first_name: "Dennis", last_name: "Rodman", jersey_number: "91", category: "PF" },
-    { first_name: "Ron", last_name: "Harper", jersey_number: "9", category: "PG" },
-    { first_name: "Luc", last_name: "Longley", jersey_number: "13", category: "C" },
-    { first_name: "Toni", last_name: "Kukoc", jersey_number: "7", category: "SF" },
-    { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
-    { first_name: "Bill", last_name: "Wennington", jersey_number: "34", category: "C" },
-    { first_name: "Jud", last_name: "Buechler", jersey_number: "30", category: "SF" },
-    { first_name: "Randy", last_name: "Brown", jersey_number: "1", category: "PG" },
-    { first_name: "Dickey", last_name: "Simpkins", jersey_number: "8", category: "PF" },
-    { first_name: "Jason", last_name: "Caffey", jersey_number: "35", category: "PF" },
-    { first_name: "James", last_name: "Edwards", jersey_number: "53", category: "C" },
-    { first_name: "Jack", last_name: "Haley", jersey_number: "4", category: "C" },
-    { first_name: "John", last_name: "Salley", jersey_number: "22", category: "PF" },
-  ].map((p) => ({ ...p, gender: "Boy", has_license: true, active: true }));
-
-  // Même forme de critères que assessment.html (juste les décomptes, pas
-  // besoin du texte complet ici) -- pour générer des notes d'exemple.
-  const CRITERIA_SHAPE = {
-    technique: { dribble: 4, tir: 4, passe: 3, defense: 3 },
-    intelligence: { sans_ballon: 4, avec_ballon: 3, defense: 5, divers: 3 },
-    personnalite: { attitude: 3 },
-    comportement: { comportement: 4 },
-  };
-  function makeExampleRatings(center, spread) {
-    const ratings = {};
-    for (const sect in CRITERIA_SHAPE) {
-      ratings[sect] = {};
-      for (const grp in CRITERIA_SHAPE[sect]) {
-        const n = CRITERIA_SHAPE[sect][grp];
-        ratings[sect][grp] = Array.from({ length: n }, () => {
-          const v = spread ? center + Math.round((Math.random() * 2 - 1) * spread) : center;
-          return Math.max(1, Math.min(5, v));
-        });
-      }
-    }
-    return ratings;
-  }
-  // centre / écart par joueur -- même logique que la démo Bulls du bureau
-  const ASSESSMENT_PATTERNS = { Jordan: [5, 0], Pippen: [5, 1], Rodman: [4, 1], Harper: [3, 1] };
-  const DEFAULT_PATTERN = [2, 1];
 
   document.getElementById("load-example-btn").addEventListener("click", async () => {
     if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
-    if (!confirm(`Add ${EXAMPLE_PLAYERS.length} example players (${EXAMPLE_TEAM}, ${EXAMPLE_SEASON}), plus a sample assessment for each, to your club?`)) return;
+    const ex = EXAMPLE_TEAMS.bulls96;
+    if (!confirm(`Add ${ex.players.length} example players (${ex.team}, ${ex.season}), plus a sample assessment for each, to your club?`)) return;
     try {
       // on retire d'abord toute donnée d'exemple déjà là (au cas où on a
       // déjà cliqué avant) -- comme ça, ce bouton ne peut jamais dupliquer
       const { error: cleanupError } = await supabaseClient
         .from("players").delete()
-        .eq("organization_id", currentOrgId).eq("season", EXAMPLE_SEASON).eq("team", EXAMPLE_TEAM);
+        .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
       if (cleanupError) throw cleanupError;
 
-      const rows = EXAMPLE_PLAYERS.map((p) => ({ ...p, organization_id: currentOrgId, season: EXAMPLE_SEASON, team: EXAMPLE_TEAM }));
+      const rows = ex.players.map((p) => ({ ...p, organization_id: currentOrgId, season: ex.season, team: ex.team }));
       const { data: inserted, error } = await supabaseClient.from("players").insert(rows).select("id, last_name");
       if (error) throw error;
 
@@ -888,18 +835,18 @@
       const { error: assessError } = await supabaseClient.from("player_assessments").insert(assessmentRows);
       if (assessError) throw assessError;
 
-      showMessage(`${EXAMPLE_PLAYERS.length} example players and assessments added — see them in Roster and Player assessment.`, "success");
+      showMessage(`${ex.players.length} example players and assessments added — see them in Roster and Player assessment.`, "success");
       await loadStats();
     } catch (err) {
       showMessage(err.message || "Couldn't load the example data.", "error");
     }
   });
 
-  // ALL_EXAMPLE_TEAMS est déclaré plus haut (réutilisé aussi par les stats).
+  // ALL_EXAMPLE_TEAMS vient de example-data.js (réutilisé aussi par les stats).
 
   document.getElementById("remove-example-btn").addEventListener("click", async () => {
     if (!currentOrgId) return;
-    if (!confirm("Remove all example data (any Bulls season, the Celtics) from your club? Their assessments go with them.")) return;
+    if (!confirm("Remove all example data (any Bulls season) from your club? Their assessments go with them.")) return;
     try {
       // supprimer les joueurs suffit : les évaluations liées disparaissent
       // automatiquement (contrainte "on delete cascade" côté base de données)

@@ -108,6 +108,15 @@
     <div class="side-card">
       <h2>Seasons &amp; teams</h2>
       <div id="tree"></div>
+      <div style="display:flex; gap:6px; margin-top:10px;">
+        <select id="example-season-select" style="flex:1; padding:5px 6px; border:1px solid var(--line); border-radius:6px; font-size:11.5px;">
+          <option value="bulls96">Bulls '95-96</option>
+          <option value="bulls95">Bulls '94-95</option>
+          <option value="bulls94">Bulls '93-94</option>
+        </select>
+        <button id="load-example-btn" title="Load example roster" style="padding:5px 8px; border:1px solid var(--line); border-radius:6px; background:none; font-size:11.5px; cursor:pointer;">★ Load</button>
+        <button id="remove-example-btn" title="Remove example data" style="padding:5px 8px; border:1px solid var(--line); border-radius:6px; background:none; font-size:11.5px; cursor:pointer; color:#991b1b;">Remove</button>
+      </div>
     </div>
     <div class="side-card">
       <h2>Notebooks</h2>
@@ -258,6 +267,7 @@
       <div id="notebook-contents-list" style="max-height:340px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
       <div class="toolbar" style="margin-top:16px;">
         <button class="btn btn-primary" id="save-notebook-btn">Save notebook</button>
+        <button class="btn btn-secondary" id="export-notebook-btn" style="display:none;">📖 Export whole notebook (PDF)</button>
         <div class="spacer"></div>
         <button class="btn btn-secondary" id="delete-notebook-btn" style="display:none; color:#991b1b;">Delete this notebook</button>
       </div>
@@ -268,6 +278,8 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
+<script src="example-data.js"></script>
+<script src="team-tree.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -457,6 +469,7 @@
     resetNotebookFilters();
     document.getElementById("delete-notebook-btn").style.display = "none";
     document.getElementById("save-notebook-btn").style.display = "inline-block";
+    document.getElementById("export-notebook-btn").style.display = "none";
     document.getElementById("notebook-name").disabled = false;
     document.getElementById("notebook-visibility").disabled = false;
     renderNotebookLibraryList(); renderNotebookContentsList();
@@ -475,6 +488,7 @@
     notebookOwned = n.organization_id === currentOrgId;
     document.getElementById("delete-notebook-btn").style.display = (notebookOwned && canDelete()) ? "inline-block" : "none";
     document.getElementById("save-notebook-btn").style.display = notebookOwned ? "inline-block" : "none";
+    document.getElementById("export-notebook-btn").style.display = "inline-block";
     document.getElementById("notebook-name").disabled = !notebookOwned;
     document.getElementById("notebook-visibility").disabled = !notebookOwned;
     if (!notebookOwned) showMessage("This notebook belongs to another club — you can look, but not edit it.", "success");
@@ -641,7 +655,7 @@
   });
 
   async function loadTree() {
-    const { data, error } = await supabaseClient.from("players").select("season, team").eq("organization_id", currentOrgId);
+    const { data, error } = await supabaseClient.from("players").select("season, team, team_category").eq("organization_id", currentOrgId);
     if (error) {
       showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error");
       console.error("loadTree error:", error);
@@ -651,22 +665,41 @@
       els.tree.innerHTML = '<p class="hint" style="margin:0; font-size:12.5px; color:var(--muted);">No players in Roster yet for this club — add a player there first, and their season/team will show up here.</p>';
       return;
     }
-    const bySeasons = {};
-    (data || []).forEach((r) => (bySeasons[r.season] = bySeasons[r.season] || new Set()).add(r.team));
-    els.tree.innerHTML = "";
-    Object.keys(bySeasons).sort().reverse().forEach((season) => {
-      const seasonEl = document.createElement("div");
-      seasonEl.className = "tree-season"; seasonEl.textContent = season;
-      els.tree.appendChild(seasonEl);
-      Array.from(bySeasons[season]).sort().forEach((team) => {
-        const btn = document.createElement("button");
-        btn.className = "tree-team" + (season === currentSeason && team === currentTeam ? " active" : "");
-        btn.textContent = team;
-        btn.addEventListener("click", () => selectSeasonTeam(season, team));
-        els.tree.appendChild(btn);
-      });
-    });
+    renderTeamTree("tree", data, currentSeason, currentTeam, (season, team) => selectSeasonTeam(season, team));
   }
+
+  document.getElementById("load-example-btn").addEventListener("click", async () => {
+    if (!currentOrgId) { showMessage("Pick a season/team on the left first.", "error"); return; }
+    const ex = EXAMPLE_TEAMS[document.getElementById("example-season-select").value];
+    if (!confirm(`Add ${ex.players.length} example players (${ex.team}, ${ex.season}) to your club?`)) return;
+    try {
+      await supabaseClient.from("players").delete()
+        .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
+      const rows = ex.players.map((p) => ({ ...p, organization_id: currentOrgId, season: ex.season, team: ex.team }));
+      const { error } = await supabaseClient.from("players").insert(rows);
+      if (error) throw error;
+      showMessage(`${ex.players.length} example players loaded — pick "${ex.team}" under "${ex.season}" on the left to start.`, "success");
+      await loadTree();
+    } catch (err) {
+      showMessage(err.message || "Couldn't load the example data.", "error");
+    }
+  });
+
+  document.getElementById("remove-example-btn").addEventListener("click", async () => {
+    const ex = EXAMPLE_TEAMS[document.getElementById("example-season-select").value];
+    if (!currentOrgId) return;
+    if (!confirm(`Remove the example data (${ex.team}, ${ex.season})? This can't be undone.`)) return;
+    const { error } = await supabaseClient.from("players").delete()
+      .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
+    if (error) { showMessage(error.message, "error"); return; }
+    if (currentSeason === ex.season && currentTeam === ex.team) {
+      currentSeason = null; currentTeam = null;
+      els.trainingArea.style.display = "none";
+      els.currentSelection.textContent = "Pick a season/team on the left.";
+    }
+    showMessage("Example data removed.", "success");
+    await loadTree();
+  });
 
   async function selectSeasonTeam(season, team) {
     currentSeason = season; currentTeam = team;
@@ -1294,6 +1327,69 @@
     doc.save(`${currentTeam}_${currentSeason}_notebook.pdf`);
   }
 
+  // -----------------------------------------------------------------------
+  // "Export whole notebook" -- portada + la lista de sus ejercicios, con
+  // lo esencial (categoría, edad, dificultad, objetivos). No dibuja las
+  // pistas (ese motor vive en Exercise creator/Library, no aquí) -- para
+  // el diagrama completo de un ejercicio en concreto, exportarlo desde
+  // Library.
+  // -----------------------------------------------------------------------
+  async function exportNotebookPdf() {
+    if (!currentNotebookId) { showMessage("Save the notebook first.", "error"); return; }
+    if (notebookContents.length === 0) { showMessage("Nothing in this notebook yet.", "error"); return; }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: [595, 842] });
+    const PAGE_W = 595, PAGE_H = 842, MARGIN = 44;
+    const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
+    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
+    const clubName = (els.orgName.textContent || "").trim();
+    const notebookName = document.getElementById("notebook-name").value || "Notebook";
+
+    // ---------- Portada ----------
+    if (logoDataUrl) {
+      const logoSize = 130;
+      try { doc.addImage(logoDataUrl, (PAGE_W - logoSize) / 2, 190, logoSize, logoSize); } catch (e) {}
+    }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(GREY);
+    doc.text(clubName || "Pivot", PAGE_W / 2, 350, { align: "center" });
+    doc.setFont("helvetica", "bold"); doc.setFontSize(28); doc.setTextColor(DARK);
+    doc.text(notebookName, PAGE_W / 2, 390, { align: "center" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(GREY);
+    doc.text(`${notebookContents.length} exercise${notebookContents.length === 1 ? "" : "s"}`, PAGE_W / 2, 412, { align: "center" });
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+    doc.setTextColor(DARK); doc.text("Pi", PAGE_W / 2 - 8, 780, { align: "center" });
+
+    // ---------- Une page-liste par exercice (sans le diagramme) ----------
+    doc.addPage();
+    let y = MARGIN;
+    const lineH = 15;
+    notebookContents.forEach((exId, i) => {
+      const ex = allExercises.find((e) => e.id === exId);
+      if (!ex) return;
+      if (y > PAGE_H - 100) { doc.addPage(); y = MARGIN; }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(DARK);
+      doc.text(`${i + 1}. ${ex.name}`, MARGIN, y);
+      y += lineH;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(GREY);
+      const meta = [
+        (ex.age || []).join(", "),
+        (ex.categories || []).join(", "),
+        ex.difficulty ? "★".repeat(ex.difficulty) + "☆".repeat(3 - ex.difficulty) : "",
+      ].filter(Boolean).join("   ·   ");
+      if (meta) { doc.text(meta, MARGIN, y); y += lineH; }
+      const objectives = (ex.objectives || []).join(" · ");
+      if (objectives) {
+        const lines = doc.splitTextToSize("Objectives: " + objectives, PAGE_W - MARGIN * 2);
+        doc.text(lines, MARGIN, y); y += lines.length * 12;
+      }
+      y += 14;
+      doc.setDrawColor(225, 225, 225); doc.line(MARGIN, y - 8, PAGE_W - MARGIN, y - 8);
+    });
+
+    doc.save(`${notebookName.replace(/\s+/g, "_")}_notebook.pdf`);
+  }
+
   document.getElementById("new-training-btn").addEventListener("click", newTraining);
   document.getElementById("save-training-btn").addEventListener("click", saveTraining);
   document.getElementById("delete-training-btn").addEventListener("click", deleteTraining);
@@ -1325,6 +1421,20 @@
     }
   });
 
+  document.getElementById("export-notebook-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("export-notebook-btn");
+    const original = btn.textContent;
+    btn.textContent = "Generating…"; btn.disabled = true;
+    try {
+      await exportNotebookPdf();
+    } catch (err) {
+      console.error("Export notebook error:", err);
+      showMessage("Couldn't generate that PDF: " + (err.message || "unknown error"), "error");
+    } finally {
+      btn.textContent = original; btn.disabled = false;
+    }
+  });
+
   document.getElementById("nav-menu").addEventListener("change", (e) => {
     if (e.target.value) window.location.href = "./" + e.target.value;
   });
@@ -1335,7 +1445,8 @@
     box.innerHTML = `
       <strong>How to use Training builder</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li><strong>Notebooks</strong> (top left) — ready-made exercise lists grouped by theme (e.g. "Defense", "U8"), not tied to a season or team. Build one once, reuse it in any session, in any team, forever. Check exercises from your library to fill one in.</li>
+        <li><strong>Notebooks</strong> (top left) — ready-made exercise lists grouped by theme (e.g. "Defense", "U8"), not tied to a season or team. Build one once, reuse it in any session, in any team, forever. Check exercises from your library to fill one in, then <strong>Export whole notebook</strong> for a printable list (name, category, age, difficulty, objectives) of everything in it.</li>
+        <li>No teams showing up on the left? That list comes straight from Roster — add players there first, or use <strong>★ Load example</strong> below it to try everything with a sample roster (Chicago Bulls, pick a season).</li>
         <li>Pick a season/team on the left, then "+ New session" or an existing one from the list.</li>
         <li><strong>Filter by notebook</strong> narrows "Add from library" down to just that notebook's exercises — leave it on "All exercises" to search everything.</li>
         <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise.</li>
@@ -1343,7 +1454,7 @@
         <li><strong>Auto-summary</strong> fills itself in from the exercises you add (categories, material, up to 4 objectives) — edit it by hand any time.</li>
         <li><strong>Attendance</strong> is pulled from the team's roster — untick anyone who wasn't there.</li>
         <li><strong>Post-session feedback</strong> is deliberately separate from everything above — the rest is what you planned, this is what actually happened: a rating, comments, and ideas for next time. Fill it in after the session, whenever you're ready.</li>
-        <li><strong>Export to PDF</strong> makes a session sheet in the same style as the exercise sheets: attendance on the left, the plan in the middle, the summary and feedback on the right.</li>
+        <li><strong>Export to PDF</strong> makes a session sheet in the same style as the exercise sheets: attendance on the left, the plan in the middle, the summary and feedback on the right. <strong>Export whole book</strong> (under Sessions) does the same for every session of the selected team/season at once, with a cover page.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). The icon next to each session in the list shows its current circle.</li>
       </ul>`;
     box.style.display = "block";

@@ -140,7 +140,7 @@
     </h1>
     <div id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px;"></div>
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-      <p class="sub" id="current-selection">Pick a season/team on the left, or create a new one.</p>
+      <p class="sub" id="current-selection" style="display:flex; align-items:center; gap:8px;">Pick a season/team on the left, or create a new one.</p>
       <select id="example-season-select" class="nav-btn" style="cursor:pointer;">
         <option value="bulls96">Chicago Bulls '95-96</option>
         <option value="bulls95">Chicago Bulls '94-95</option>
@@ -203,6 +203,8 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
+<script src="example-data.js"></script>
+<script src="team-tree.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -274,6 +276,7 @@
   const canDelete = () => myRole === "admin" || myRole === "coach";
   let currentSeason = null;
   let currentTeam = null;
+  let currentTeamCategory = ""; // categoría del equipo actualmente seleccionado (U8, U10... o "" si no aplica)
   let photoUploadTargetId = null;
   let licenseUploadTargetId = null;
 
@@ -326,18 +329,15 @@
   // ---------------------------------------------------------------------
   async function loadTree() {
     const { data, error } = await supabaseClient
-      .from("players").select("season, team").eq("organization_id", currentOrgId);
-    if (error) { console.error("loadTree error:", error); return; }
+      .from("players").select("season, team, team_category").eq("organization_id", currentOrgId);
+    if (error) { showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error"); console.error("loadTree error:", error); return; }
 
-    const bySeasons = {};
-    (data || []).forEach((r) => {
-      (bySeasons[r.season] = bySeasons[r.season] || new Set()).add(r.team);
-    });
+    const rows = [...(data || [])];
     // le club/équipe qu'on vient de créer doit apparaître tout de suite,
     // même à zéro joueur -- sinon il faut d'abord ajouter quelqu'un pour
     // même le voir dans l'arbre, ce qui n'a pas de sens
-    if (currentSeason && currentTeam) {
-      (bySeasons[currentSeason] = bySeasons[currentSeason] || new Set()).add(currentTeam);
+    if (currentSeason && currentTeam && !rows.some((r) => r.season === currentSeason && r.team === currentTeam)) {
+      rows.push({ season: currentSeason, team: currentTeam, team_category: currentTeamCategory });
     }
 
     els.tree.innerHTML = "";
@@ -346,40 +346,22 @@
     newBtn.className = "tree-new";
     newBtn.textContent = "+ New season/team";
     newBtn.addEventListener("click", () => {
+      const team = prompt("Team name (e.g. DEL, Chicago Bulls) — this stays the same across years:");
+      if (!team) return;
+      const teamCategory = prompt(`Team category for "${team.trim()}" (e.g. U8) — optional, leave blank if this club doesn't use age brackets:`) || "";
       const season = prompt("Season (e.g. 2026-2027):");
       if (!season) return;
-      const team = prompt("Team name:");
-      if (!team) return;
-      const category = prompt("Default category for this team (e.g. U15) — optional, can leave blank:");
+      const category = prompt("Default position for new players on this team (e.g. PG) — optional, can leave blank:");
       if (category) saveDefaultCategory(season.trim(), team.trim(), category.trim());
+      currentTeamCategory = teamCategory.trim();
       selectSeasonTeam(season.trim(), team.trim());
     });
     els.tree.appendChild(newBtn);
 
-    Object.keys(bySeasons).sort().reverse().forEach((season) => {
-      const seasonEl = document.createElement("div");
-      seasonEl.className = "tree-season";
-      seasonEl.textContent = season;
-      els.tree.appendChild(seasonEl);
-      Array.from(bySeasons[season]).sort().forEach((team) => {
-        const row = document.createElement("div");
-        row.style.display = "flex";
-        row.style.alignItems = "center";
-        const btn = document.createElement("button");
-        btn.className = "tree-team" + (season === currentSeason && team === currentTeam ? " active" : "");
-        btn.textContent = team;
-        btn.style.flex = "1";
-        btn.addEventListener("click", () => selectSeasonTeam(season, team));
-        const delBtn = document.createElement("button");
-        delBtn.textContent = "🗑";
-        delBtn.title = `Remove ${team} (${season}) — deletes all its players`;
-        delBtn.style.cssText = "background:none;border:none;cursor:pointer;font-size:11px;padding:4px 6px;color:var(--muted);";
-        delBtn.addEventListener("click", () => deleteTeam(season, team));
-        row.appendChild(btn);
-        row.appendChild(delBtn);
-        els.tree.appendChild(row);
-      });
-    });
+    renderTeamTree("tree", rows, currentSeason, currentTeam, (season, team, cat) => {
+      currentTeamCategory = cat || "";
+      selectSeasonTeam(season, team);
+    }, (season, team) => deleteTeam(season, team));
   }
 
   async function deleteTeam(season, team) {
@@ -397,9 +379,37 @@
   function selectSeasonTeam(season, team) {
     currentSeason = season;
     currentTeam = team;
-    els.currentSelection.textContent = `${team} — ${season}`;
+    renderCurrentSelection();
     loadTree();
     loadPlayers();
+  }
+
+  function renderCurrentSelection() {
+    els.currentSelection.innerHTML = "";
+    const label = document.createElement("span");
+    label.textContent = `${currentTeam} — ${currentSeason}`;
+    els.currentSelection.appendChild(label);
+    if (currentTeamCategory) {
+      const badge = document.createElement("span");
+      badge.textContent = currentTeamCategory;
+      badge.style.cssText = "background:var(--accent-tint); color:var(--accent-deep); font-size:11px; font-weight:600; padding:2px 8px; border-radius:100px;";
+      els.currentSelection.appendChild(badge);
+    }
+    const editBtn = document.createElement("button");
+    editBtn.textContent = currentTeamCategory ? "✎ Edit category" : "+ Add category";
+    editBtn.style.cssText = "background:none; border:none; color:var(--accent-deep); font-size:12px; cursor:pointer; padding:0;";
+    editBtn.addEventListener("click", async () => {
+      const next = prompt(`Team category for "${currentTeam}" (e.g. U8) — leave blank to remove it:`, currentTeamCategory || "");
+      if (next === null) return;
+      const { error } = await supabaseClient.from("players").update({ team_category: next.trim() || null })
+        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam);
+      if (error) { showMessage(error.message, "error"); return; }
+      currentTeamCategory = next.trim();
+      renderCurrentSelection();
+      await loadTree();
+      showMessage("Team category updated.", "success");
+    });
+    els.currentSelection.appendChild(editBtn);
   }
 
   // ---------------------------------------------------------------------
@@ -630,7 +640,7 @@
     const last_name = document.getElementById("f-last_name").value.trim();
     if (!first_name || !last_name) { showMessage("First and last name are required.", "error"); return; }
     const payload = {
-      organization_id: currentOrgId, season: currentSeason, team: currentTeam,
+      organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null,
       first_name, last_name,
       birth_year: document.getElementById("f-birth_year").value ? parseInt(document.getElementById("f-birth_year").value, 10) : null,
       category: document.getElementById("f-category").value.trim() || null,
@@ -885,7 +895,7 @@
         if (!first_name || !last_name) return; // ligne sans nom exploitable, ignorée
 
         payload.push({
-          organization_id: currentOrgId, season: currentSeason, team: currentTeam,
+          organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null,
           first_name, last_name,
           birth_year: r.birth_year ? parseInt(r.birth_year, 10) : yearFromBirthDate(r.birth_date),
           category: r.category || null,
@@ -929,73 +939,8 @@
   // Trois saisons réelles des Bulls, choisies dans le menu déroulant --
   // toujours "delete puis insert" pour ne jamais dupliquer.
   // ---------------------------------------------------------------------
-  const EXAMPLE_TEAMS = {
-    bulls96: {
-      season: "1995-1996", team: "Chicago Bulls",
-      players: [
-        { first_name: "Michael", last_name: "Jordan", jersey_number: "23", category: "SG" },
-        { first_name: "Scottie", last_name: "Pippen", jersey_number: "33", category: "SF" },
-        { first_name: "Dennis", last_name: "Rodman", jersey_number: "91", category: "PF" },
-        { first_name: "Ron", last_name: "Harper", jersey_number: "9", category: "PG" },
-        { first_name: "Luc", last_name: "Longley", jersey_number: "13", category: "C" },
-        { first_name: "Toni", last_name: "Kukoc", jersey_number: "7", category: "SF" },
-        { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
-        { first_name: "Bill", last_name: "Wennington", jersey_number: "34", category: "C" },
-        { first_name: "Jud", last_name: "Buechler", jersey_number: "30", category: "SF" },
-        { first_name: "Randy", last_name: "Brown", jersey_number: "1", category: "PG" },
-        { first_name: "Dickey", last_name: "Simpkins", jersey_number: "8", category: "PF" },
-        { first_name: "Jason", last_name: "Caffey", jersey_number: "35", category: "PF" },
-        { first_name: "James", last_name: "Edwards", jersey_number: "53", category: "C" },
-        { first_name: "Jack", last_name: "Haley", jersey_number: "4", category: "C" },
-        { first_name: "John", last_name: "Salley", jersey_number: "22", category: "PF" },
-      ],
-    },
-    bulls95: {
-      season: "1994-1995", team: "Chicago Bulls",
-      players: [
-        { first_name: "B.J.", last_name: "Armstrong", jersey_number: "10", category: "PG" },
-        { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
-        { first_name: "Toni", last_name: "Kukoc", jersey_number: "7", category: "SF" },
-        { first_name: "Scottie", last_name: "Pippen", jersey_number: "33", category: "SF" },
-        { first_name: "Will", last_name: "Perdue", jersey_number: "32", category: "C" },
-        { first_name: "Ron", last_name: "Harper", jersey_number: "9", category: "SG" },
-        { first_name: "Bill", last_name: "Wennington", jersey_number: "34", category: "C" },
-        { first_name: "Pete", last_name: "Myers", jersey_number: "20", category: "SG" },
-        { first_name: "Corie", last_name: "Blount", jersey_number: "44", category: "PF" },
-        { first_name: "Dickey", last_name: "Simpkins", jersey_number: "8", category: "PF" },
-        { first_name: "Jud", last_name: "Buechler", jersey_number: "30", category: "SF" },
-        { first_name: "Luc", last_name: "Longley", jersey_number: "13", category: "C" },
-        { first_name: "Larry", last_name: "Krystkowiak", jersey_number: "42", category: "PF" },
-        { first_name: "Greg", last_name: "Foster", jersey_number: "35", category: "PF" },
-        { first_name: "Michael", last_name: "Jordan", jersey_number: "45", category: "SG" },
-        { first_name: "Jo Jo", last_name: "English", jersey_number: "3", category: "PG" },
-      ],
-    },
-    bulls94: {
-      season: "1993-1994", team: "Chicago Bulls",
-      players: [
-        { first_name: "B.J.", last_name: "Armstrong", jersey_number: "10", category: "PG" },
-        { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
-        { first_name: "Pete", last_name: "Myers", jersey_number: "20", category: "SG" },
-        { first_name: "Bill", last_name: "Wennington", jersey_number: "34", category: "C" },
-        { first_name: "Toni", last_name: "Kukoc", jersey_number: "7", category: "SF" },
-        { first_name: "Scottie", last_name: "Pippen", jersey_number: "33", category: "SF" },
-        { first_name: "Horace", last_name: "Grant", jersey_number: "54", category: "PF" },
-        { first_name: "Corie", last_name: "Blount", jersey_number: "44", category: "PF" },
-        { first_name: "Will", last_name: "Perdue", jersey_number: "32", category: "C" },
-        { first_name: "Bill", last_name: "Cartwright", jersey_number: "24", category: "C" },
-        { first_name: "Scott", last_name: "Williams", jersey_number: "42", category: "PF" },
-        { first_name: "Jo Jo", last_name: "English", jersey_number: "3", category: "PG" },
-        { first_name: "Stacey", last_name: "King", jersey_number: "00", category: "C" },
-        { first_name: "Luc", last_name: "Longley", jersey_number: "13", category: "C" },
-        { first_name: "John", last_name: "Paxson", jersey_number: "5", category: "PG" },
-        { first_name: "Dave", last_name: "Johnson", jersey_number: "8", category: "SG" },
-      ],
-    },
-  };
-  Object.values(EXAMPLE_TEAMS).forEach((ex) => {
-    ex.players = ex.players.map((p) => ({ ...p, gender: "Boy", has_license: true, active: true }));
-  });
+  // EXAMPLE_TEAMS vient maintenant de example-data.js (fichier partagé,
+  // même exemple que Dashboard/Training builder).
 
   document.getElementById("load-example-btn").addEventListener("click", async () => {
     const key = document.getElementById("example-season-select").value;
@@ -1008,6 +953,7 @@
       const rows = ex.players.map((p) => ({ ...p, organization_id: currentOrgId, season: ex.season, team: ex.team }));
       const { error } = await supabaseClient.from("players").insert(rows);
       if (error) throw error;
+      currentTeamCategory = "";
       selectSeasonTeam(ex.season, ex.team);
       showMessage(`${ex.players.length} example players loaded.`, "success");
     } catch (err) {
