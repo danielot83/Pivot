@@ -156,16 +156,6 @@
     <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-difficulty" /><label for="pdf-section-difficulty">Difficulty stars</label></div>
   </div>
 
-  <div class="card" id="match-fields-card" style="display:none">
-    <h2>Match stat columns</h2>
-    <p class="hint">Minutes, points, rebounds, assists and fouls are always there. Add whatever else your club tracks — steals, turnovers, +/-, blocks, anything — in whatever language you want to call it. Every coach can be different here.</p>
-    <div id="match-fields-list" style="margin-bottom:12px;"></div>
-    <div style="display:flex; gap:8px;">
-      <input id="match-field-input" type="text" placeholder="e.g. Steals, Pertes de balle…" style="flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:6px;" />
-      <button class="btn btn-primary" id="add-match-field-btn">+ Add column</button>
-    </div>
-  </div>
-
   <div class="card" id="validators-card" style="display:none">
     <h2>Association validators <span style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">Platform admin only</span></h2>
     <p class="hint">People who can approve or reject club association requests — a smaller power than yours, they can't block accounts or clubs. You're the only one who can grant or remove this.</p>
@@ -330,14 +320,12 @@
     document.getElementById("associations-card").style.display = "block";
     document.getElementById("export-language-card").style.display = "block";
     document.getElementById("pdf-sections-card").style.display = "block";
-    document.getElementById("match-fields-card").style.display = "block";
     applyRoleLocks();
     await loadSharingStatus();
     await loadMembers();
     await loadAssociations();
     await loadExportLanguage();
     await loadPdfSections();
-    await loadMatchFields();
     if (isPlatformController) {
       document.getElementById("validators-card").style.display = "block";
       await loadValidatorsSection();
@@ -351,72 +339,6 @@
   // donne à la main, il ne doit jamais pouvoir se donner tout seul ni se
   // propager sans que tu le décides.
   // -----------------------------------------------------------------------
-  // -----------------------------------------------------------------------
-  // Colonnes de stats de match personnalisées -- une liste toute simple,
-  // réordonnable, propre à chaque club. Les basiques (minutes/points/
-  // rebonds/passes/fautes) ne sont pas dans cette liste, elles sont
-  // toujours là par défaut dans Match day.
-  // -----------------------------------------------------------------------
-  let matchFields = [];
-
-  async function loadMatchFields() {
-    const { data, error } = await supabaseClient
-      .from("match_stat_fields").select("*").eq("organization_id", currentOrgId).order("position");
-    if (error) { console.error("loadMatchFields error:", error); return; }
-    matchFields = data || [];
-    renderMatchFields();
-  }
-
-  function renderMatchFields() {
-    const list = document.getElementById("match-fields-list");
-    if (matchFields.length === 0) { list.innerHTML = '<p class="hint" style="margin:0 0 12px;">No custom columns yet — Match day just shows the basics.</p>'; return; }
-    list.innerHTML = matchFields.map((f, i) => `
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid var(--line);">
-        <span>${escapeHtml(f.label)}</span>
-        <span style="display:flex; gap:4px;">
-          <button class="btn btn-secondary match-field-btn" data-act="up" data-i="${i}" style="padding:3px 9px; font-size:12px;">↑</button>
-          <button class="btn btn-secondary match-field-btn" data-act="down" data-i="${i}" style="padding:3px 9px; font-size:12px;">↓</button>
-          <button class="btn btn-secondary match-field-btn" data-act="remove" data-i="${i}" style="padding:3px 9px; font-size:12px; color:#991b1b;">Remove</button>
-        </span>
-      </div>
-    `).join("");
-    list.querySelectorAll(".match-field-btn").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const i = parseInt(btn.dataset.i, 10);
-        if (btn.dataset.act === "remove") {
-          if (!confirm(`Remove "${matchFields[i].label}"? Numbers already entered for past matches stay saved, just hidden.`)) return;
-          const { error } = await supabaseClient.from("match_stat_fields").delete().eq("id", matchFields[i].id);
-          if (error) { showMessage(error.message, "error"); return; }
-          await loadMatchFields();
-          return;
-        }
-        const swapWith = btn.dataset.act === "up" ? i - 1 : i + 1;
-        if (swapWith < 0 || swapWith >= matchFields.length) return;
-        const a = matchFields[i], b = matchFields[swapWith];
-        await supabaseClient.from("match_stat_fields").update({ position: swapWith }).eq("id", a.id);
-        await supabaseClient.from("match_stat_fields").update({ position: i }).eq("id", b.id);
-        await loadMatchFields();
-      });
-    });
-  }
-
-  document.getElementById("add-match-field-btn").addEventListener("click", async () => {
-    const input = document.getElementById("match-field-input");
-    const label = input.value.trim();
-    if (!label) return;
-    const key = label.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "field_" + Date.now();
-    try {
-      const { error } = await supabaseClient.from("match_stat_fields").insert({
-        organization_id: currentOrgId, key, label, position: matchFields.length,
-      });
-      if (error) throw error;
-      input.value = "";
-      await loadMatchFields();
-    } catch (err) {
-      showMessage(err.message || "Couldn't add that column.", "error");
-    }
-  });
-
   async function loadValidatorsSection() {
     const { data, error } = await supabaseClient
       .from("profiles").select("id, full_name, email").eq("is_association_validator", true);
@@ -461,8 +383,7 @@
       ".sharing-bulk-card select, .sharing-bulk-card button, " +
       "#associations-card input, #associations-card button, " +
       "#export-language-card select, " +
-      "#pdf-sections-card input, " +
-      "#match-fields-card input, #match-fields-card button"
+      "#pdf-sections-card input"
     ).forEach((el) => { el.disabled = true; });
 
     document.querySelectorAll(".card").forEach((card) => {
@@ -792,7 +713,6 @@
         <li><strong>Club association</strong> — propose a new group of clubes, or join an existing one by typing its exact name. Nothing is shared until the platform controller approves it — you'll see the request's status here, and a 🔔 on your dashboard shows you (or the controller) what's pending.</li>
         <li><strong>Export language</strong> — the language new PDFs (roster sheets, assessments, plays, match reports...) are generated in for your club. Changing it doesn't touch PDFs you already downloaded.</li>
         <li><strong>Exercise PDF — what to include</strong> — turn off any section (age, categories, material, objectives, difficulty) you don't want printed on an exercise sheet.</li>
-        <li><strong>Match stat columns</strong> — every club tracks a match differently. Minutes/points/rebounds/assists/fouls are always there in Match day; add whatever else your club needs (steals, turnovers, +/-, anything, in any language) here.</li>
         <li><strong>The 6 roles</strong>: Platform admin (Daniel, or anyone he adds) — can do anything, in any club. Team admin — full control, but only inside their own club, including this Settings page. Coach and Assistant both create/edit content; the only difference is Assistant can't delete anything. Player — a real account for a player: sees only what a coach has explicitly chosen to share with them (like a play marked "Show to players"), never a club's private content just for being a member. Viewer can only look, nothing more.</li>
         <li><strong>Linking a player account to the roster</strong> — once someone's role is set to Player, a new dropdown appears next to it: pick which roster entry (Roster) is actually them. This is what lets them see things tied to their own name, like their own assessment — nobody else's, and never automatic just from being on the team.</li>
       </ul>`;

@@ -85,7 +85,7 @@
   .tree-team { display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 8px; margin: 1px 0; border-radius: 6px; font-size: 13px; color: var(--ink); cursor: pointer; }
   .tree-team:hover { background: var(--paper); }
   .tree-team.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
-  .tree-new { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
+  .tree-new, .tree-example { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
 </style>
 </head>
 <body>
@@ -118,6 +118,7 @@
       <h2>Seasons &amp; teams</h2>
       <div id="tree"></div>
     </div>
+    <div class="side-card" id="example-data-card"></div>
   </div>
 
   <div>
@@ -221,6 +222,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
 <script src="team-tree.js"></script>
+<script src="example-data.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -332,6 +334,37 @@
     }
     renderTeamTree("tree", rows, currentSeason, currentTeam, (season, team) => selectSeasonTeam(season, team));
   }
+
+  async function loadExampleTeam(key) {
+    const ex = EXAMPLE_TEAMS[key];
+    if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
+    if (!confirm(`Add ${ex.players.length} example players (${ex.team}, ${ex.season}) to your club?`)) return;
+    try {
+      await supabaseClient.from("players").delete()
+        .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
+      const rows2 = ex.players.map((p) => ({ ...p, organization_id: currentOrgId, season: ex.season, team: ex.team }));
+      const { error } = await supabaseClient.from("players").insert(rows2);
+      if (error) throw error;
+      await selectSeasonTeam(ex.season, ex.team);
+      showMessage(`${ex.players.length} example players loaded.`, "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't load the example data.", "error");
+    }
+  }
+
+  async function removeExampleTeam(key) {
+    const ex = EXAMPLE_TEAMS[key];
+    if (!currentOrgId) return;
+    if (!confirm(`Remove the example data (${ex.team}, ${ex.season})? This can't be undone.`)) return;
+    const { error } = await supabaseClient.from("players").delete()
+      .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
+    if (error) { showMessage(error.message, "error"); return; }
+    if (currentSeason === ex.season && currentTeam === ex.team) { currentSeason = null; currentTeam = null; }
+    showMessage("Example data removed.", "success");
+    await loadTree();
+  }
+
+  renderExampleDataCard("example-data-card", { onLoad: loadExampleTeam, onRemove: removeExampleTeam });
 
   async function selectSeasonTeam(season, team) {
     currentSeason = season; currentTeam = team;

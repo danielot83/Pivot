@@ -1,13 +1,16 @@
 // =============================================================================
-// Datos de ejemplo (Chicago Bulls, 3 temporadas) -- una sola fuente de
-// verdad, incluida donde haga falta cargar/quitar el ejemplo (como
-// modules-grid.js, org-switcher.js), para no tener el mismo roster
-// copiado a mano en varios archivos.
+// Datos de ejemplo (Chicago Bulls x3 temporadas + Boston Celtics '08) --
+// una sola fuente de verdad, incluida donde haga falta cargar/quitar el
+// ejemplo, para no tener el mismo roster copiado a mano en varios
+// archivos. Cada equipo lleva también su "date" y "patterns" (para
+// generar evaluaciones de ejemplo realistas), aunque solo Player
+// assessment los use -- las demás páginas simplemente los ignoran.
 // =============================================================================
 
 const EXAMPLE_TEAMS = {
   bulls96: {
-    season: "1995-1996", team: "Chicago Bulls",
+    season: "1995-1996", team: "Chicago Bulls", date: "1996-04-21",
+    patterns: { Jordan: [5, 0], Pippen: [5, 1], Rodman: [4, 1], Harper: [3, 1] },
     players: [
       { first_name: "Michael", last_name: "Jordan", jersey_number: "23", category: "SG" },
       { first_name: "Scottie", last_name: "Pippen", jersey_number: "33", category: "SF" },
@@ -27,7 +30,8 @@ const EXAMPLE_TEAMS = {
     ],
   },
   bulls95: {
-    season: "1994-1995", team: "Chicago Bulls",
+    season: "1994-1995", team: "Chicago Bulls", date: "1995-04-15",
+    patterns: { Jordan: [5, 0], Pippen: [5, 1], Kukoc: [4, 1], Armstrong: [3, 1] },
     players: [
       { first_name: "B.J.", last_name: "Armstrong", jersey_number: "10", category: "PG" },
       { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
@@ -48,7 +52,8 @@ const EXAMPLE_TEAMS = {
     ],
   },
   bulls94: {
-    season: "1993-1994", team: "Chicago Bulls",
+    season: "1993-1994", team: "Chicago Bulls", date: "1994-04-20",
+    patterns: { Pippen: [5, 0], Grant: [4, 1], Armstrong: [3, 1] },
     players: [
       { first_name: "B.J.", last_name: "Armstrong", jersey_number: "10", category: "PG" },
       { first_name: "Steve", last_name: "Kerr", jersey_number: "25", category: "PG" },
@@ -66,6 +71,27 @@ const EXAMPLE_TEAMS = {
       { first_name: "Luc", last_name: "Longley", jersey_number: "13", category: "C" },
       { first_name: "John", last_name: "Paxson", jersey_number: "5", category: "PG" },
       { first_name: "Dave", last_name: "Johnson", jersey_number: "8", category: "SG" },
+    ],
+  },
+  celtics: {
+    season: "2007-2008", team: "Boston Celtics", date: "2008-04-16",
+    patterns: { Garnett: [5, 0], Pierce: [4, 1], Allen: [3, 1] },
+    players: [
+      { first_name: "Ray", last_name: "Allen", jersey_number: "20", category: "SG" },
+      { first_name: "Tony", last_name: "Allen", jersey_number: "42", category: "SG" },
+      { first_name: "P.J.", last_name: "Brown", jersey_number: "93", category: "PF" },
+      { first_name: "Sam", last_name: "Cassell", jersey_number: "28", category: "PG" },
+      { first_name: "Glen", last_name: "Davis", jersey_number: "11", category: "F/C" },
+      { first_name: "Kevin", last_name: "Garnett", jersey_number: "5", category: "PF" },
+      { first_name: "Eddie", last_name: "House", jersey_number: "50", category: "SG" },
+      { first_name: "Kendrick", last_name: "Perkins", jersey_number: "43", category: "C" },
+      { first_name: "Paul", last_name: "Pierce", jersey_number: "34", category: "SF" },
+      { first_name: "Scot", last_name: "Pollard", jersey_number: "66", category: "C" },
+      { first_name: "James", last_name: "Posey", jersey_number: "41", category: "SF" },
+      { first_name: "Leon", last_name: "Powe", jersey_number: "0", category: "PF/C" },
+      { first_name: "Gabe", last_name: "Pruitt", jersey_number: "13", category: "PG" },
+      { first_name: "Rajon", last_name: "Rondo", jersey_number: "9", category: "PG" },
+      { first_name: "Brian", last_name: "Scalabrine", jersey_number: "44", category: "PF" },
     ],
   },
 };
@@ -99,6 +125,32 @@ function makeExampleRatings(center, spread) {
   }
   return ratings;
 }
-// centre / écart par joueur -- même logique que la démo Bulls du bureau
-const ASSESSMENT_PATTERNS = { Jordan: [5, 0], Pippen: [5, 1], Rodman: [4, 1], Harper: [3, 1] };
 const DEFAULT_PATTERN = [2, 1];
+
+// -----------------------------------------------------------------------
+// La tarjeta "Example data" -- misma pinta en cualquier página que la
+// use (desplegable de temporada Bulls + Cargar/Quitar, más Celtics
+// aparte). Cada página decide QUÉ pasa al cargar/quitar (jugadores
+// solos, o jugadores + evaluaciones de ejemplo) mediante los callbacks.
+// -----------------------------------------------------------------------
+function renderExampleDataCard(containerId, { onLoad, onRemove }) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `
+    <h2>Example data</h2>
+    <select id="${containerId}-bulls-select" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; margin-bottom:6px;">
+      <option value="bulls96">Chicago Bulls '95-96</option>
+      <option value="bulls95">Chicago Bulls '94-95</option>
+      <option value="bulls94">Chicago Bulls '93-94</option>
+    </select>
+    <button class="tree-example" id="${containerId}-load-bulls">★ Load selected Bulls season</button>
+    <button class="tree-example" id="${containerId}-remove-bulls" style="color:#991b1b;">Remove selected Bulls season</button>
+    <button class="tree-example" id="${containerId}-load-celtics" style="margin-top:6px;">★ Load Boston Celtics '08</button>
+    <button class="tree-example" id="${containerId}-remove-celtics" style="color:#991b1b;">Remove Celtics example</button>
+  `;
+  const bullsSelect = document.getElementById(`${containerId}-bulls-select`);
+  document.getElementById(`${containerId}-load-bulls`).addEventListener("click", () => onLoad(bullsSelect.value));
+  document.getElementById(`${containerId}-remove-bulls`).addEventListener("click", () => onRemove(bullsSelect.value));
+  document.getElementById(`${containerId}-load-celtics`).addEventListener("click", () => onLoad("celtics"));
+  document.getElementById(`${containerId}-remove-celtics`).addEventListener("click", () => onRemove("celtics"));
+}
