@@ -192,6 +192,19 @@
       <input id="full_name" type="text" placeholder="Your name" />
     </div>
 
+    <div id="terms-field" style="display:none; background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:16px;">
+      <p style="font-size:13px; margin:0 0 8px; color:var(--ink);">Before you continue — a few sentences that matter, wherever you're signing up from:</p>
+      <ul style="font-size:12.5px; color:var(--muted); margin:0 0 10px; padding-left:18px; line-height:1.6;">
+        <li>Pivot doesn't decide which data protection law applies to you — <strong>the laws of your own country do</strong>, whether that's Switzerland, France, Bangladesh, or anywhere else. You're responsible for following them.</li>
+        <li>If you add data about someone else — a player, and especially a minor — you're confirming you already have the right to do so under whatever law applies where you are (a club's own registration process, a parent/guardian's consent, however that normally works for you).</li>
+        <li>Pivot stores what you enter and only acts on your club's instructions — it doesn't sell data or share it beyond what you choose.</li>
+      </ul>
+      <label class="radio-option">
+        <input type="checkbox" id="terms_accept_check" />
+        I've read this and the full <a href="./privacy.html" target="_blank" style="color:var(--accent-deep);">Privacy &amp; Terms</a>, and I agree.
+      </label>
+    </div>
+
     <div id="club-choice-field" style="display:none">
       <label>Your club or association</label>
       <div class="radio-row">
@@ -287,6 +300,7 @@
       els.title.textContent = "Log in";
       els.sub.textContent = "Access your Pivot workspace.";
       els.nameField.style.display = "none";
+      document.getElementById("terms-field").style.display = "none";
       els.clubChoiceField.style.display = "none";
       els.submitBtn.textContent = "Log in";
       els.toggleText.textContent = "Don't have an account yet?";
@@ -295,6 +309,7 @@
       els.title.textContent = "Create an account";
       els.sub.textContent = "Your account, then create your own club/association or join one that's already on Pivot.";
       els.nameField.style.display = "block";
+      document.getElementById("terms-field").style.display = "block";
       els.clubChoiceField.style.display = "block";
       els.submitBtn.textContent = "Create my account";
       els.toggleText.textContent = "Already have an account?";
@@ -371,6 +386,10 @@
 
     if (!email || !password) {
       showMessage("Email and password are required.", "error");
+      return;
+    }
+    if (mode === "signup" && !document.getElementById("terms_accept_check").checked) {
+      showMessage("Please read and accept the Privacy & Terms box above first.", "error");
       return;
     }
 

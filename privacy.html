@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pivot — Privacy &amp; Terms</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6; }
+  h1, h2, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  a { color: inherit; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
+  .logotype { font-size: 20px; font-weight: 700; }
+  .v-red { color: var(--accent); }
+  .dot { color: var(--accent); }
+  .back-link { color: var(--muted); text-decoration: none; font-size: 13.5px; }
+  .back-link:hover { color: var(--ink); }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 30px; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 32px; font-size: 14px; }
+  h2 { font-size: 18px; margin: 36px 0 10px; }
+  h3 { font-size: 14.5px; margin: 20px 0 6px; color: var(--ink); }
+  p { font-size: 14.5px; color: var(--ink); margin: 0 0 12px; }
+  ul { font-size: 14.5px; margin: 0 0 12px; padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; margin-bottom: 16px; }
+  .badge { display: inline-block; font-size: 11.5px; font-weight: 600; color: var(--accent-deep); background: var(--accent-tint); padding: 2px 10px; border-radius: 100px; margin-bottom: 16px; }
+  .toc { font-size: 13.5px; }
+  .toc a { color: var(--accent-deep); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+</nav>
+
+<div class="wrap">
+  <span class="badge">Last updated: August 2026</span>
+  <h1>Privacy &amp; Terms</h1>
+  <p class="sub">Plain language first, the legal shape underneath. If anything here is unclear, ask — see "Contact" at the bottom.</p>
+
+  <div class="card toc">
+    <strong>On this page:</strong>
+    <ul style="margin-top:8px;">
+      <li><a href="#roles">Who's responsible for what</a></li>
+      <li><a href="#data">What Pivot stores, and what it doesn't</a></li>
+      <li><a href="#minors">Data about minors specifically</a></li>
+      <li><a href="#sharing">Who can see what</a></li>
+      <li><a href="#rights">Access, correction, and deletion</a></li>
+      <li><a href="#security">Security</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </div>
+
+  <h2 id="roles">Who's responsible for what</h2>
+  <p>Pivot is used by clubs all over the world — and data protection law isn't the same everywhere. <strong>Pivot doesn't decide which law applies to you: the laws of your own country do</strong>, whether that's an EU country, Switzerland, Bangladesh, or anywhere else. This page can't list every country's rules, so instead here's the principle that holds regardless of where you are:</p>
+  <ul>
+    <li><strong>Your club is the data controller.</strong> Your club decides which players to register, what to record about them, and why. That's true whether the data lives in Pivot, a spreadsheet, or a paper folder — the club, through its admin and coaches, is responsible for having a valid reason (and where required by the law that applies to you, valid consent) to hold that data in the first place.</li>
+    <li><strong>Pivot is the data processor.</strong> We provide the tool that stores and organizes what your club enters, and we only act on your club's instructions. We don't sell data, we don't use it for advertising, and we don't share it with anyone your club hasn't chosen to share it with (see "Who can see what" below).</li>
+  </ul>
+  <p>Practically: <strong>if you're a club admin or coach adding a player, you're confirming you already have the right to hold that player's information under the law that applies where you are</strong> — through the club's own registration process, a parent/guardian's consent, or however that normally works in your country or federation. Pivot doesn't verify this for you, the same way a spreadsheet or a paper folder never did either.</p>
+  <p class="sub" style="margin-top:-4px;">Two examples of what "the law that applies to you" can look like, since they come up often for clubs using Pivot: the EU's GDPR generally requires parental consent for a child's data below age 16 (countries can lower this to 13); Switzerland's data protection act treats a child's own consent as valid only once they have "capacity of judgement" (usually around 13), with a parent or guardian deciding below that. These are examples, not a summary of every country's law — check what applies to you specifically if you're unsure.</p>
+
+  <h2 id="data">What Pivot stores, and what it doesn't</h2>
+  <p>We try to collect the minimum needed to run a team, not everything that's technically possible to collect. A few concrete choices:</p>
+  <ul>
+    <li><strong>No player photos.</strong> Pivot doesn't store or upload pictures of players.</li>
+    <li><strong>No license documents, license numbers, phone numbers, emails, or national ID numbers</strong> (like Switzerland's AVS number) in Roster. Roster only has a simple "Ready" checkbox — whether a player is cleared to play — with nothing behind it. Keep license paperwork and contact details wherever your federation or club already handles that.</li>
+    <li>Everything else in Roster (name, birth year, category, gender) is there because a club needs it to run a team — and every field is optional except a first and last name.</li>
+  </ul>
+
+  <h2 id="minors">Data about minors specifically</h2>
+  <p>Most players in a youth basketball club are minors, so this matters more here than in most software. A few things worth knowing:</p>
+  <ul>
+    <li><strong>Player assessment</strong> — technique, game IQ, personality, and attitude scores — counts as evaluative data about a minor. Get comfortable with your club's own policy on this before filling one in; it's not something to enter casually.</li>
+    <li>Adding a minor's data may legally require a parent or guardian's consent before you enter it, depending on where your club and its players are based — see the examples above. This is the club's responsibility to obtain, not something Pivot checks for you.</li>
+    <li>A parent or guardian can ask their club to show them, correct, or delete everything Pivot holds about their child — see "Access, correction, and deletion" below.</li>
+  </ul>
+
+  <h2 id="sharing">Who can see what</h2>
+  <p>Nothing in Pivot is shared more widely than you choose. Almost everything you create has its own "Who can see it?" setting:</p>
+  <ul>
+    <li>🔒 <strong>Only me</strong> — private, not even your own teammates see it.</li>
+    <li>👥 <strong>My team</strong> — everyone active in your club (the default for most things).</li>
+    <li>🤝 <strong>My club association</strong> — a small group of clubs who agreed to share, needs approval.</li>
+    <li>🌐 <strong>Pivot Community</strong> — every club on Pivot can see it (view only).</li>
+  </ul>
+  <p>Two things this circle system does <em>not</em> apply to, on purpose: <strong>Player assessment</strong> never gets shared in bulk with a "player" account, even if a coach sets it to "My team" — a linked player can only ever see their own. And a player account never sees anything just from being on the team — a coach has to explicitly choose to share it with them (for example, turning on "Show to players" on a specific play).</p>
+
+  <h2 id="rights">Access, correction, and deletion</h2>
+  <p>A parent, guardian, or player old enough to act for themselves can ask their club (or Pivot directly — see Contact) for:</p>
+  <ul>
+    <li>A copy of everything held about that player.</li>
+    <li>A correction to anything inaccurate.</li>
+    <li>Deletion of that player's data. A club admin can remove a player from Roster at any time, which removes their record and everything tied to it (assessments, attendance, match stats).</li>
+  </ul>
+  <p>We aim to act on these within a reasonable time, and always within what local law requires (for example, one month under GDPR).</p>
+
+  <h2 id="security">Security</h2>
+  <p>Data is stored with row-level access rules, meaning the database itself — not just the app's interface — enforces who can read or write what, based on their role in the club. Passwords are never visible to us; authentication is handled by our database provider's standard login system.</p>
+
+  <h2 id="contact">Contact</h2>
+  <p>Questions about your data, or a request to access/correct/delete something? Use the <strong>"💬 Contact us"</strong> link at the bottom of the Dashboard to message the Pivot team directly, or ask your club admin — they can usually resolve most of this themselves, right from Settings.</p>
+</div>
+
+</body>
+</html>
