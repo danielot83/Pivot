@@ -4,17 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Pivot — Training builder</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
     --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
-  h1, h2, h3, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
+  h1, h2, h3, .logotype { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
 
   nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
@@ -62,7 +59,7 @@
 
   .duration-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: var(--paper); border: 1px solid var(--line); font-size: 13px; margin-bottom: 14px; }
   .duration-banner.over { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
-  .duration-banner strong { font-family: "Space Grotesk", sans-serif; }
+  .duration-banner strong { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
   table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 13px; margin-bottom: 16px; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
@@ -99,6 +96,7 @@
       <option value="library.html">Library</option>
       <option value="training.html" selected>Training builder</option>
       <option value="settings.html">Settings</option>
+      <option value="privacy.html">Privacy &amp; Terms</option>
     </select>
     <button class="nav-btn" id="logout-btn">Log out</button>
   </div>
@@ -155,8 +153,8 @@
             <option value="private">🔒 Only me</option>
             <option value="team">👥 My team</option>
             <option value="association">🤝 My club association</option>
-            <option value="community">🌐 Pivot Community</option>
           </select>
+          <p class="hint" style="margin:2px 0 0; font-size:11px;">No "Community" here — attendance names real players.</p>
         </div>
         <div class="field"><label for="tr-language">Language</label>
           <select id="tr-language">

@@ -4,17 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Pivot — Play design</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
     --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
-  h1, h2, h3, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
+  h1, h2, h3, .logotype { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
 
   nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
@@ -102,6 +99,7 @@
       <option value="library.html">Library</option>
       <option value="training.html">Training builder</option>
       <option value="settings.html">Settings</option>
+      <option value="privacy.html">Privacy &amp; Terms</option>
     </select>
     <button class="nav-btn" id="logout-btn">Log out</button>
   </div>

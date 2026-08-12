@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pivot — Legal architecture (internal)</title>
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; }
+  h1, h2, .logotype { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  a { color: inherit; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
+  .logotype { font-size: 20px; font-weight: 700; }
+  .v-red { color: var(--accent); }
+  .dot { color: var(--accent); }
+  .back-link { color: var(--muted); text-decoration: none; font-size: 13.5px; }
+  .back-link:hover { color: var(--ink); }
+
+  .wrap { max-width: 820px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+  h2 { font-size: 17px; margin: 34px 0 8px; }
+  .clause-num { color: var(--accent-deep); margin-right: 6px; }
+  h3 { font-size: 14px; margin: 16px 0 6px; color: var(--ink); }
+  p { font-size: 14px; color: var(--ink); margin: 0 0 12px; }
+  ul, ol { font-size: 14px; margin: 0 0 12px; padding-left: 20px; }
+  li { margin-bottom: 5px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; margin-bottom: 16px; }
+  .badge { display: inline-block; font-size: 11.5px; font-weight: 600; color: var(--accent-deep); background: var(--accent-tint); padding: 2px 10px; border-radius: 100px; margin-bottom: 16px; }
+  .internal-badge { display: inline-block; font-size: 11px; font-weight: 700; color: #fff; background: var(--ink); padding: 3px 10px; border-radius: 100px; margin-left: 8px; letter-spacing: .04em; text-transform: uppercase; vertical-align: middle; }
+  .toc { font-size: 13px; }
+  .toc a { color: var(--accent-deep); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .chain { text-align: center; font-weight: 600; font-size: 13.5px; color: var(--muted); margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0 16px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .02em; }
+  .disclaimer { background: var(--accent-tint); border-radius: 8px; padding: 14px 16px; font-size: 13px; color: var(--accent-deep); }
+  .source-list a { color: var(--accent-deep); font-size: 12.5px; word-break: break-all; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="back-link" href="./settings.html">&larr; Back to Settings</a>
+  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+</nav>
+
+<div class="wrap">
+  <span class="badge">Working document — August 2026</span><span class="internal-badge">Internal</span>
+  <h1>Legal architecture &amp; data protection</h1>
+  <p class="sub">Swiss-hosted model (Infomaniak), built for international use. This is Pivot's own planning reference — not the public Privacy &amp; Terms of Service players and coaches see (that's <a href="./privacy.html" style="color:var(--accent-deep);">here</a>).</p>
+
+  <div class="card disclaimer">
+    <strong>Goal:</strong> clearly define who's responsible for what data, what role Pivot plays, what role Infomaniak plays, and what documents and mechanisms need to exist to operate in Switzerland and open the service to clubs in other countries.
+  </div>
+
+  <div class="card toc">
+    <strong>On this page:</strong>
+    <ul style="margin-top:8px; columns:2;">
+      <li><a href="#summary">1. Executive summary</a></li>
+      <li><a href="#tiers">2. The three legal tiers</a></li>
+      <li><a href="#club">3. Tier 1 — the club as controller</a></li>
+      <li><a href="#pivot-processor">4. Tier 2 — Pivot as processor</a></li>
+      <li><a href="#pivot-controller">5. Where Pivot is also a controller</a></li>
+      <li><a href="#infomaniak">6. Tier 3 — Infomaniak</a></li>
+      <li><a href="#international">7. Swiss hosting, international context</a></li>
+      <li><a href="#minors">8. Special attention to minors</a></li>
+      <li><a href="#documents">9. Legal documents Pivot should have</a></li>
+      <li><a href="#dpa-contents">10. What the DPA should contain</a></li>
+      <li><a href="#acceptance">11. Digital acceptance model</a></li>
+      <li><a href="#clause">12. Recommended clause wording</a></li>
+      <li><a href="#incidents">13. Responsibility flow when something goes wrong</a></li>
+      <li><a href="#technical">14. Technical decisions with legal consequences</a></li>
+      <li><a href="#plan">15. Practical implementation plan</a></li>
+      <li><a href="#sources">16. Sources</a></li>
+    </ul>
+  </div>
+
+  <h2 id="summary"><span class="clause-num">1.</span>Executive summary</h2>
+  <p>The most coherent structure for Pivot separates data that belongs to a club's sporting context from data Pivot needs to run its own platform.</p>
+  <p>For player data entered by a club, the club is normally the <strong>controller</strong>. Pivot normally acts as <strong>processor</strong>: it processes that data on the club's behalf and instructions. Infomaniak acts as infrastructure provider and, for that same data, as Pivot's <strong>sub-processor</strong>.</p>
+  <p>For certain platform-specific data — user accounts, security, administration, billing, or necessary technical logs — Pivot can itself act as <strong>controller</strong>.</p>
+  <p>The .ch domain reinforces the project's Swiss identity, but doesn't by itself determine which data protection law applies. If Pivot serves people or organizations in the EU under circumstances covered by GDPR, GDPR applies alongside the Swiss FADP.</p>
+  <p><strong>Guiding principle:</strong> Pivot shouldn't promise it "only stores" data. It's more accurate to state that it processes data exclusively to provide the requested service and per the client's instructions, without selling it or using it for advertising or other incompatible purposes of its own.</p>
+
+  <h2 id="tiers"><span class="clause-num">2.</span>The three legal tiers</h2>
+  <table>
+    <thead><tr><th>Tier</th><th>Actor</th><th>Main function</th><th>Legal relationship</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Club / organization</td><td>Decides why its players' sporting data is collected and used.</td><td>Controller</td></tr>
+      <tr><td>2</td><td>Pivot</td><td>Provides the app and processes the club's data to deliver the contracted features.</td><td>Processor (for club data)</td></tr>
+      <tr><td>3</td><td>Infomaniak</td><td>Hosting, infrastructure, and technical services contracted by Pivot.</td><td>Sub-processor</td></tr>
+    </tbody>
+  </table>
+  <p class="chain">Player / family &nbsp;→&nbsp; Club &nbsp;→&nbsp; Pivot &nbsp;→&nbsp; Infomaniak</p>
+
+  <h2 id="club"><span class="clause-num">3.</span>Tier 1 — the club as controller</h2>
+  <p>The controller is whoever determines the purposes and essential means of processing. In this model, the club decides which players it registers, what sporting information it needs, what it's used for, who can see it, and how long it should be kept.</p>
+  <h3>Example</h3>
+  <p>A coach registers in Pivot: a player's name, U10 category, attendance, an assessment of dribbling/shooting/passing, and follow-up notes. The reason that information exists comes from the club's own activity — Pivot doesn't decide which child gets assessed or for what sporting purpose.</p>
+  <h3>Responsibilities that stay with the club</h3>
+  <ul>
+    <li>Having a valid legal basis to collect and use the data.</li>
+    <li>Properly informing players, legal guardians, or families where relevant.</li>
+    <li>Deciding who within the club can access each piece of information.</li>
+    <li>Avoiding unnecessary or excessive data entry.</li>
+    <li>Handling access, correction, deletion, and other rights requests.</li>
+    <li>Defining appropriate retention periods for its data.</li>
+  </ul>
+
+  <h2 id="pivot-processor"><span class="clause-num">4.</span>Tier 2 — Pivot as processor</h2>
+  <p>Swiss authority guidance establishes that a processor must process data following the controller's instructions and, in principle, must not use it for its own purposes. The relationship should be organized contractually, covering security, confidentiality, sub-processing, and cooperation.</p>
+  <h3>What Pivot can do within this model</h3>
+  <ul>
+    <li>Store the information.</li>
+    <li>Organize and display it across profiles, teams, seasons, and sessions.</li>
+    <li>Run calculations and statistics the user requests.</li>
+    <li>Generate documents, assessments, reports, or exports.</li>
+    <li>Perform backups and necessary technical operations.</li>
+    <li>Apply automated or AI features when they're part of the contracted service and legally covered.</li>
+  </ul>
+  <h3>What Pivot should commit to never doing with a club's data</h3>
+  <ul>
+    <li>Selling it.</li>
+    <li>Using it for targeted advertising.</li>
+    <li>Building commercial profiles of minors.</li>
+    <li>Passing it to third parties for Pivot's own unrelated purposes.</li>
+    <li>Using it to train general-purpose AI models without a specific legal and contractual basis.</li>
+    <li>Keeping it indefinitely after the contractual relationship ends.</li>
+  </ul>
+
+  <h2 id="pivot-controller"><span class="clause-num">5.</span>Where Pivot is also a controller</h2>
+  <p>The classification doesn't apply uniformly across the whole company. Pivot can be a processor for a club's sporting data and, at the same time, a controller for processing it carries out for its own needs.</p>
+  <table>
+    <thead><tr><th>Data / processing</th><th>Pivot's likely role</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Player assessments entered by the club</td><td>Processor</td><td>The club determines the purpose.</td></tr>
+      <tr><td>Attendance and team composition</td><td>Processor</td><td>Managed on the club's behalf.</td></tr>
+      <tr><td>A coach's Pivot account</td><td>Controller</td><td>Pivot needs to manage access, identity, and account security.</td></tr>
+      <tr><td>Billing / subscription</td><td>Controller</td><td>Pivot determines the processing needed to administer the service.</td></tr>
+      <tr><td>Security logs</td><td>Controller (or own necessary processing)</td><td>Pivot must protect its infrastructure and prevent abuse.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="infomaniak"><span class="clause-num">6.</span>Tier 3 — Infomaniak as infrastructure provider</h2>
+  <p>Pivot plans to use Infomaniak as its server/infrastructure provider. Infomaniak's public documentation states its data and infrastructure are located in Switzerland and that its data centers are operated in Switzerland. From Pivot's side, this relationship needs to be covered by the terms and processing agreement applicable to the specific contracted service.</p>
+  <p><strong>Contract chain:</strong> Club ↔ Pivot (DPA) and Pivot ↔ Infomaniak (DPA / processing terms).</p>
+  <p>Pivot should also maintain an up-to-date list of sub-processors who can actually access or process data. Infomaniak shouldn't be assumed to be the only one: transactional email, analytics, support, AI, external backups, or monitoring services could also become sub-processors if they receive personal data.</p>
+
+  <h2 id="international"><span class="clause-num">7.</span>Swiss hosting and international context</h2>
+  <p>Hosting data in Switzerland simplifies the starting point and reduces certain international transfers, but doesn't automatically make the service exclusively Swiss. Each provider and each data flow needs its own analysis.</p>
+  <ul>
+    <li><strong>Swiss FADP</strong> — the central framework for a Swiss entity.</li>
+    <li><strong>GDPR</strong> — can apply to a Swiss company in certain circumstances, e.g. offering goods or services to people in the EU, or monitoring their behavior.</li>
+    <li><strong>International transfers</strong> — if any sub-processor processes data outside Switzerland or an adequate jurisdiction, applicable legal safeguards need reviewing.</li>
+  </ul>
+  <p>The .ch domain is an identity and digital-presence decision; it doesn't replace analysis of establishment, users, processing activities, and where data actually resides.</p>
+
+  <h2 id="minors"><span class="clause-num">8.</span>Special attention to minors</h2>
+  <p>Pivot is designed for sporting contexts where data about children and teenagers can exist. That calls for a deliberately conservative approach: data minimization, limited access, no profile-based advertising, and clear rules for photos, comments, and assessments.</p>
+  <ul>
+    <li>Collect only the information needed for the sporting purpose.</li>
+    <li>Avoid free-text fields that invite sensitive or unnecessary observations.</li>
+    <li>Separate parent/guardian contact data from sporting assessments where possible.</li>
+    <li>Apply role-based permissions: club admin, coach, assistant, etc.</li>
+    <li>Provide for deletion or anonymization when a player leaves the club or a defined period expires.</li>
+    <li>Never use identifiable minors' data for advertising or general-purpose AI training.</li>
+  </ul>
+
+  <h2 id="documents"><span class="clause-num">9.</span>Legal documents Pivot should have</h2>
+  <ol>
+    <li><strong>Terms of Service</strong> — governs the commercial/usage relationship: accounts, access, obligations, availability, IP, liability, suspension, termination.</li>
+    <li><strong>Privacy Policy</strong> — explains processing where Pivot is controller: account data, contact, billing, security, cookies/analytics if any, retention, recipients, and rights.</li>
+    <li><strong>Data Processing Agreement (DPA), Pivot–Club</strong> — governs processing Pivot does on the club's behalf: object, duration, data categories, instructions, confidentiality, security, sub-processors, incidents, rights, deletion/return.</li>
+    <li><strong>Sub-processor list</strong> — identifies vendors that can process client data, starting with Infomaniak and adding any future service that actually touches data.</li>
+    <li><strong>Retention &amp; deletion policy</strong> — defines what's kept, for how long, what happens when an account ends, and how backups work.</li>
+    <li><strong>Technical and organizational measures (TOMs)</strong> — internal/contractual document: access controls, encryption, backups, incident management, logging, patching, segregation, recovery.</li>
+  </ol>
+  <p class="sub">Pivot's current public Privacy &amp; Terms of Service page combines (1) and (2) into one accessible document, with elements of (3) referenced conceptually. Items 3–6 as standalone formal documents are not yet drafted — see section 15.</p>
+
+  <h2 id="dpa-contents"><span class="clause-num">10.</span>What the Pivot–Club DPA should contain</h2>
+  <ul>
+    <li>Identification of the controller (club) and processor (Pivot).</li>
+    <li>Object and duration of processing.</li>
+    <li>Nature and purpose of processing.</li>
+    <li>Types of personal data and categories of data subjects.</li>
+    <li>Obligation to process data only per documented instructions.</li>
+    <li>Confidentiality of authorized personnel.</li>
+    <li>Technical and organizational security measures.</li>
+    <li>Rules for authorizing and communicating sub-processors.</li>
+    <li>Assistance to the club with rights requests.</li>
+    <li>Incident and breach procedure.</li>
+    <li>Assistance with compliance obligations where relevant.</li>
+    <li>Deletion or return of data at the end of the relationship.</li>
+    <li>Reasonable information/evidence of compliance (audit).</li>
+    <li>International transfer regime, where applicable.</li>
+  </ul>
+
+  <h2 id="acceptance"><span class="clause-num">11.</span>Digital acceptance model</h2>
+  <p>For an online platform, acceptance can be organized traceably during club sign-up. The interface should distinguish between accepting the Terms of Service and acknowledging/entering into the DPA where applicable.</p>
+  <ol>
+    <li>The admin creates the organization account.</li>
+    <li>The club or organization contracting Pivot is identified.</li>
+    <li>Links to the Terms of Service, Privacy Policy, and DPA are shown.</li>
+    <li>The admin confirms they're authorized to act on the club's behalf.</li>
+    <li>The version of the documents accepted, date/time, and appropriate technical evidence are recorded.</li>
+    <li>Material changes are notified and, where necessary, re-acceptance is requested.</li>
+  </ol>
+  <p class="sub">Pivot's current implementation covers steps 1, 2, 3 (partially — Terms of Service and Privacy Policy are combined into one document; a standalone DPA link is not yet in place), 5 (a versioned, timestamped log — see <code>terms_acceptances</code>), and 6 (the version constant exists to support this, though the re-prompt flow itself isn't built yet). Step 4 — an explicit "I'm authorized to act for this club" confirmation, distinct from the general terms checkbox — is not yet implemented.</p>
+
+  <h2 id="clause"><span class="clause-num">12.</span>Recommended clause wording (draft concept)</h2>
+  <p style="font-style:italic; border-left:3px solid var(--accent-tint); padding-left:14px;">"The Client determines the purposes of processing the personal data it enters into Pivot and warrants it has the legal bases necessary for that processing. Pivot processes that data on the Client's behalf and solely to provide the service's features, per the Client's documented instructions and the applicable data processing agreement."</p>
+  <p class="sub">This is a working concept, not a final contractual clause. The final version needs to be adapted to the legal entity operating Pivot, the business model, and the actual features offered.</p>
+
+  <h2 id="incidents"><span class="clause-num">13.</span>Responsibility flow when something goes wrong</h2>
+  <table>
+    <thead><tr><th>Situation</th><th>Main actor</th><th>Pivot's role</th></tr></thead>
+    <tbody>
+      <tr><td>A parent asks to correct a player's assessment.</td><td>Club</td><td>Provide the technical means to correct it, where needed.</td></tr>
+      <tr><td>A club asks to export all its data.</td><td>Club / Pivot</td><td>Provide export mechanisms per contract and features.</td></tr>
+      <tr><td>A breach is detected at Pivot.</td><td>Pivot</td><td>Act immediately, contain, document, and notify the club per law and the DPA.</td></tr>
+      <tr><td>A security issue at a sub-processor.</td><td>Pivot + provider</td><td>Manage the incident and pass on necessary information to the club.</td></tr>
+      <tr><td>A club ends its subscription.</td><td>Club / Pivot</td><td>Apply the return, export, deletion, and backup-cycle procedure.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="technical"><span class="clause-num">14.</span>Technical decisions with legal consequences</h2>
+  <ul>
+    <li>Where the primary database lives.</li>
+    <li>Where backups live.</li>
+    <li>Which provider sends emails.</li>
+    <li>Whether Google Analytics, Matomo, or other analytics is used.</li>
+    <li>Whether an external AI provider is used, and what data is sent to it.</li>
+    <li>Whether player photos or videos exist.</li>
+    <li>Whether coaches can download data to personal devices.</li>
+    <li>How users authenticate, and whether two-factor auth exists.</li>
+    <li>What happens to an account when a coach leaves the club.</li>
+    <li>How long data stays in backups after logical deletion.</li>
+  </ul>
+  <p class="sub">Current state, for reference: primary database and file storage run on Supabase infrastructure; no email-sending, analytics, or external AI vendor is integrated yet; no player photos are stored (removed by design — see Privacy &amp; Terms section 4); authentication is email/password via Supabase Auth, no 2FA yet; row-level security (not just app-layer checks) enforces access by role.</p>
+
+  <h2 id="plan"><span class="clause-num">15.</span>Practical implementation plan</h2>
+  <ol>
+    <li>Define the legal entity that will own and operate Pivot.</li>
+    <li>Finalize the data map: exactly what information can be entered in each module.</li>
+    <li>Confirm the specific Infomaniak service and keep its applicable terms/DPA.</li>
+    <li>Create the sub-processor registry.</li>
+    <li>Draft the Terms of Service, Privacy Policy, and Pivot–Club DPA.</li>
+    <li>Create a retention and deletion policy.</li>
+    <li>Design in-app roles and permissions.</li>
+    <li>Implement traceability of document acceptance.</li>
+    <li>Define an incident/breach procedure.</li>
+    <li>Review any future integration before sending it personal data.</li>
+    <li>Get a professional legal review before public launch — especially given minors' data and international expansion.</li>
+  </ol>
+
+  <h2 id="sources"><span class="clause-num">16.</span>Sources consulted</h2>
+  <ul class="source-list">
+    <li>FDPIC/PFPDT — Outsourcing of data processing: <a href="https://www.edoeb.admin.ch/en/outsourcing-of-data-processing" target="_blank">edoeb.admin.ch/en/outsourcing-of-data-processing</a></li>
+    <li>FDPIC/PFPDT — Data processing in the cloud: <a href="https://www.edoeb.admin.ch/en/data-processing-in-the-cloud" target="_blank">edoeb.admin.ch/en/data-processing-in-the-cloud</a></li>
+    <li>FDPIC/PFPDT — FAQ data protection (incl. possible GDPR application to Swiss companies): <a href="https://www.edoeb.admin.ch/en/faq-data-protection" target="_blank">edoeb.admin.ch/en/faq-data-protection</a></li>
+    <li>European Commission — What is a data controller or a data processor?: <a href="https://commission.europa.eu/law/law-topic/data-protection/rules-business-and-organisations/obligations/controllerprocessor/what-data-controller-or-data-processor_en" target="_blank">commission.europa.eu — controller/processor</a></li>
+    <li>Infomaniak — Security and data protection: <a href="https://news.infomaniak.com/en/security-and-data-protection/" target="_blank">news.infomaniak.com/en/security-and-data-protection</a></li>
+    <li>Infomaniak — Sovereign cloud: <a href="https://news.infomaniak.com/en/sovereign-cloud/" target="_blank">news.infomaniak.com/en/sovereign-cloud</a></li>
+  </ul>
+
+  <div class="card disclaimer">
+    This document is a legal and product architecture to prepare Pivot. It does not replace individualized legal advice and is not itself the final contracts.
+  </div>
+</div>
+
+</body>
+</html>

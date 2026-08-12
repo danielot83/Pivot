@@ -4,17 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Pivot — Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
     --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
-  h1, h2, h3, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
+  h1, h2, h3, .logotype { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
 
   nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
@@ -45,7 +42,7 @@
   .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
   .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
   .tree-new, .tree-example { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
-  .stat-card .num { font-size: 26px; font-weight: 700; font-family: "Space Grotesk", sans-serif; }
+  .stat-card .num { font-size: 26px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   .stat-card .label { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
 
   .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
@@ -69,7 +66,7 @@
   .btn-reject { background: transparent; color: #991b1b; border: 1px solid var(--line); }
   .onboard-overlay { position: fixed; inset: 0; background: rgba(20,20,22,0.55); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 20px; }
   .onboard-card { background: var(--card); border-radius: 14px; max-width: 480px; width: 100%; padding: 28px 26px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); max-height: 88vh; overflow-y: auto; }
-  .onboard-card h2 { margin: 0 0 4px; font-family: "Space Grotesk", sans-serif; font-size: 21px; }
+  .onboard-card h2 { margin: 0 0 4px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 21px; }
   .onboard-card p { font-size: 13.5px; line-height: 1.6; color: var(--muted); margin: 8px 0; }
   .onboard-circle-row { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0; font-size: 13px; }
   .onboard-circle-row .emoji { font-size: 17px; flex-shrink: 0; }
@@ -131,11 +128,9 @@
       <h1 style="display:flex; align-items:center; gap:8px;">
         <span id="greeting">Welcome</span>
         <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
-        <button id="privacy-help-btn" title="Privacy & who's responsible for what" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--accent-deep); font-size:13px; cursor:pointer; line-height:1;">🔒</button>
       </h1>
       <p class="sub" id="club-status-text"></p>
       <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
-      <div class="help-box" id="privacy-help-box" style="display:none; background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
     </div>
     <div style="text-align:center; flex-shrink:0;">
       <img id="org-logo-big" style="width:64px; height:64px; border-radius:10px; object-fit:cover; display:none;" />
@@ -181,6 +176,8 @@
 
   <p class="section-label">Tools</p>
   <div class="grid" id="modules-grid"></div>
+
+  <div class="side-card" id="privacy-status-card" style="max-width:420px;"></div>
 
   <div class="side-card" id="example-data-card" style="max-width:320px;"></div>
 
@@ -253,6 +250,7 @@
     // le nom du profil, pour dire "Welcome, Daniel" plutôt que l'email
     const { data: profile } = await supabaseClient.from("profiles").select("full_name, is_platform_controller, is_association_validator, onboarded_at, newsletter_opt_in, terms_accepted_at").eq("id", user.id).maybeSingle();
     myTermsAcceptedAt = profile && profile.terms_accepted_at;
+    renderPrivacyStatusCard();
     document.getElementById("newsletter-opt-in").checked = !!(profile && profile.newsletter_opt_in);
     const displayName = (profile && profile.full_name) || user.email;
     els.greeting.textContent = `Welcome, ${displayName}`;
@@ -883,25 +881,21 @@
 
   let myTermsAcceptedAt = null;
 
-  document.getElementById("privacy-help-btn").addEventListener("click", () => {
-    const box = document.getElementById("privacy-help-box");
-    if (box.style.display === "block") { box.style.display = "none"; return; }
-    const acceptedText = myTermsAcceptedAt
-      ? `You accepted version ${TERMS_VERSION} on ${new Date(myTermsAcceptedAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}.`
-      : `We don't have a record of you accepting this yet (your account may predate this page) — worth a read anyway.`;
-    box.innerHTML = `
-      <strong>Privacy — the short version</strong>
-      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li>Pivot doesn't decide which data protection law applies to you — the laws of your own country do, wherever that is. You're responsible for following them.</li>
-        <li>If you add data about someone else — a player, especially a minor — you're confirming you already have the right to do so where you are (your club's own process, a parent/guardian's consent, however that works for you).</li>
-        <li>Pivot only acts on your club's instructions and never shares data beyond what you choose.</li>
-        <li><strong>Allowed:</strong> data about players you actually coach, sharing your own content at whatever circle you choose. <strong>Not allowed:</strong> data you don't have the right to hold, or republishing someone else's shared content outside Pivot as your own.</li>
+  function renderPrivacyStatusCard() {
+    const acceptedLine = myTermsAcceptedAt
+      ? `<strong style="color:var(--ink);">✓ You accepted version ${TERMS_VERSION}</strong> on ${new Date(myTermsAcceptedAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}.`
+      : `<strong style="color:var(--accent-deep);">No record of you accepting this yet</strong> (your account may predate this page) — worth a read.`;
+    document.getElementById("privacy-status-card").innerHTML = `
+      <h2>Privacy &amp; consent</h2>
+      <p style="font-size:13px; margin:0 0 8px;">${acceptedLine}</p>
+      <ul style="margin:0 0 10px; padding-left:18px; font-size:12.5px; color:var(--muted); line-height:1.6;">
+        <li>Your club is responsible for the sporting data it enters; Pivot processes it on your club's instructions.</li>
+        <li>Adding a minor's data confirms you already have the right to do so where you are.</li>
+        <li><strong>Allowed:</strong> data about players you actually coach. <strong>Not allowed:</strong> data you don't have the right to hold, or republishing someone else's shared content as your own.</li>
       </ul>
-      <p style="margin:10px 0 0; color:var(--muted); font-size:12.5px;">${acceptedText}</p>
-      <p style="margin:6px 0 0;"><a href="./privacy.html" style="color:var(--accent-deep);">Read the full Privacy &amp; Terms of Service →</a></p>
+      <a href="./privacy.html" style="color:var(--accent-deep); font-size:13px;">Read the full Privacy &amp; Terms of Service →</a>
     `;
-    box.style.display = "block";
-  });
+  }
 
   document.getElementById("help-btn").addEventListener("click", () => {
     const box = document.getElementById("help-box");

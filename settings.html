@@ -4,17 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Pivot — Settings</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
     --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.5; }
-  h1, h2, .logotype { font-family: "Space Grotesk", "Inter", sans-serif; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
+  h1, h2, .logotype { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
 
   nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
@@ -88,6 +85,7 @@
       <option value="exercises.html">Exercise creator</option>
       <option value="library.html">Library</option>
       <option value="training.html">Training builder</option>
+      <option value="privacy.html">Privacy &amp; Terms</option>
     </select>
     <button class="nav-btn" id="logout-btn">Log out</button>
   </div>
@@ -156,6 +154,12 @@
     <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-difficulty" /><label for="pdf-section-difficulty">Difficulty stars</label></div>
   </div>
 
+  <div class="card" id="legal-architecture-card" style="display:none">
+    <h2>Legal architecture <span style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">Platform admin only</span></h2>
+    <p class="hint">The full data-protection and legal-structure reference document — who's controller, who's processor, sub-processors, DPA contents, implementation plan. Internal, not what coaches/players see.</p>
+    <a class="nav-btn" href="./legal-architecture.html" style="display:inline-block; text-decoration:none; text-align:center;">Open document →</a>
+  </div>
+
   <div class="card" id="validators-card" style="display:none">
     <h2>Association validators <span style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">Platform admin only</span></h2>
     <p class="hint">People who can approve or reject club association requests — a smaller power than yours, they can't block accounts or clubs. You're the only one who can grant or remove this.</p>
@@ -194,39 +198,36 @@
 
   <div class="card sharing-bulk-card" data-table="matches" style="display:none">
     <h2>Match reports sharing</h2>
-    <p class="hint">Match reports contain real player stats — think about whether other clubs should see them before sharing beyond your team.</p>
+    <p class="hint">Match reports contain real player stats, so "Pivot Community" isn't offered here on purpose.</p>
     <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
     <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
       <option value="team">👥 My team</option>
       <option value="association">🤝 My club association</option>
-      <option value="community">🌐 Pivot Community</option>
     </select>
     <button class="btn btn-primary apply-bulk-btn">Set all matches to this</button>
   </div>
 
   <div class="card sharing-bulk-card" data-table="trainings" style="display:none">
     <h2>Training sessions sharing</h2>
-    <p class="hint">Sets every training session to the chosen circle at once. You can still pick one session at a time in Training builder.</p>
+    <p class="hint">Sessions include real attendance, so "Pivot Community" isn't offered here on purpose. You can still pick one session at a time in Training builder.</p>
     <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
     <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
       <option value="team">👥 My team</option>
       <option value="association">🤝 My club association</option>
-      <option value="community">🌐 Pivot Community</option>
     </select>
     <button class="btn btn-primary apply-bulk-btn">Set all sessions to this</button>
   </div>
 
   <div class="card sharing-bulk-card" data-table="player_assessments" style="display:none">
     <h2>Player assessments sharing</h2>
-    <p class="hint">Assessments contain a real player's evaluation — think about whether other clubs should see them before sharing beyond your team.</p>
+    <p class="hint">Assessments are always a real player's evaluation, so "Pivot Community" isn't offered here on purpose.</p>
     <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
     <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
       <option value="team">👥 My team</option>
       <option value="association">🤝 My club association</option>
-      <option value="community">🌐 Pivot Community</option>
     </select>
     <button class="btn btn-primary apply-bulk-btn">Set all assessments to this</button>
   </div>
@@ -245,6 +246,14 @@
     </div>
     <button class="btn btn-primary" id="request-association-btn">Request to create it</button>
     <p class="hint" style="margin-top:10px;">Already know the name of an existing association? Ask its members, then request to join it the same way — matching names request to join the same association instead of creating a new one.</p>
+  </div>
+
+  <div class="card" id="delete-account-card">
+    <h2>Delete my account &amp; data</h2>
+    <p class="hint">Choose what to remove. This isn't reversible, so we ask what exactly before doing anything.</p>
+    <div id="delete-account-memberships" style="margin-bottom:12px;"></div>
+    <button class="btn btn-secondary" id="request-login-deletion-btn" style="color:#991b1b;">Request deletion of my login itself</button>
+    <p class="hint" style="margin-top:8px; font-size:11.5px;">Deleting the login credentials themselves needs a person on our side to action it — this sends that request directly, it isn't just a message.</p>
   </div>
 </div>
 
@@ -327,6 +336,7 @@
     await loadExportLanguage();
     await loadPdfSections();
     if (isPlatformController) {
+      document.getElementById("legal-architecture-card").style.display = "block";
       document.getElementById("validators-card").style.display = "block";
       await loadValidatorsSection();
     }
@@ -724,10 +734,80 @@
     window.location.href = "./login.html";
   });
 
+  // -----------------------------------------------------------------------
+  // Borrar mi cuenta y mis datos -- se pregunta QUÉ, no se borra todo a
+  // ciegas. Salir de un club (o borrarlo entero si soy el único admin)
+  // se puede hacer al instante desde aquí. Borrar el propio inicio de
+  // sesión necesita permisos que el navegador nunca tiene por diseño de
+  // seguridad -- eso se convierte en una solicitud real, no un mensaje
+  // cualquiera.
+  // -----------------------------------------------------------------------
+  let myUserId = null;
+
+  async function loadDeleteAccountSection() {
+    const { data: mine } = await supabaseClient
+      .from("memberships").select("id, organization_id, role, organizations(name)")
+      .eq("user_id", myUserId).eq("status", "active");
+    const container = document.getElementById("delete-account-memberships");
+    if (!mine || mine.length === 0) { container.innerHTML = '<p class="hint" style="margin:0;">You\'re not an active member of any club.</p>'; return; }
+
+    container.innerHTML = "";
+    for (const m of mine) {
+      const { count: otherAdmins } = m.role === "admin"
+        ? await supabaseClient.from("memberships").select("id", { count: "exact", head: true })
+            .eq("organization_id", m.organization_id).eq("role", "admin").eq("status", "active").neq("user_id", myUserId)
+        : { count: null };
+      const isSoleAdmin = m.role === "admin" && (otherAdmins || 0) === 0;
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;";
+      const orgName = (m.organizations && m.organizations.name) || "?";
+      const btnLabel = isSoleAdmin ? "Delete this club entirely" : "Leave this club";
+      row.innerHTML = `<span>${escapeHtml(orgName)} <span class="hint" style="font-size:11.5px;">(${m.role}${isSoleAdmin ? ", only admin" : ""})</span></span>
+        <button data-id="${m.id}" data-org="${m.organization_id}" data-sole="${isSoleAdmin}" data-name="${escapeHtml(orgName)}" style="background:none; border:1px solid var(--line); border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer; color:${isSoleAdmin ? "#991b1b" : "var(--ink)"};">${btnLabel}</button>`;
+      container.appendChild(row);
+    }
+    container.querySelectorAll("button[data-id]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const isSole = btn.dataset.sole === "true";
+        const name = btn.dataset.name;
+        if (isSole) {
+          if (!confirm(`Delete "${name}" ENTIRELY? This removes the club and everything in it — roster, exercises, assessments, matches, everything. This can't be undone.`)) return;
+          if (!confirm(`Really sure? Type-to-confirm isn't available here, so this is your last check: delete "${name}" for good?`)) return;
+          const { error } = await supabaseClient.from("organizations").delete().eq("id", btn.dataset.org);
+          if (error) { showMessage(error.message, "error"); return; }
+          showMessage(`"${name}" has been deleted.`, "success");
+        } else {
+          if (!confirm(`Leave "${name}"? You'll lose access, but the club's data stays intact for the rest of its members.`)) return;
+          const { error } = await supabaseClient.from("memberships").delete().eq("id", btn.dataset.id);
+          if (error) { showMessage(error.message, "error"); return; }
+          showMessage(`You've left "${name}".`, "success");
+        }
+        await loadDeleteAccountSection();
+      });
+    });
+  }
+
+  document.getElementById("request-login-deletion-btn").addEventListener("click", async () => {
+    if (!confirm("Send a request to delete your Pivot login itself (your email/password, not just club memberships)? A person on our side needs to complete this manually.")) return;
+    try {
+      const { data: admins, error: adminErr } = await supabaseClient.rpc("get_platform_admin_contact");
+      if (adminErr || !admins || admins.length === 0) throw new Error("Couldn't find anyone to send this to right now — try again later.");
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      const body = `[ACCOUNT DELETION REQUEST] Please delete the login itself for ${user.email} (user id: ${myUserId}). Any club memberships have already been handled by this person from Settings.`;
+      const { error } = await supabaseClient.from("messages").insert({ sender_id: myUserId, recipient_id: admins[0].id, body });
+      if (error) throw error;
+      showMessage("Request sent — we'll action it and follow up by email once it's done.", "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't send that request.", "error");
+    }
+  });
+
   async function init() {
     const { data } = await supabaseClient.auth.getSession();
     if (!data.session) { window.location.href = "./login.html"; return; }
+    myUserId = data.session.user.id;
     await loadOrgAndLogo();
+    await loadDeleteAccountSection();
   }
   init();
 </script>

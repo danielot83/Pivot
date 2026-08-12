@@ -16,9 +16,6 @@
   with your email, check your inbox for the confirmation Supabase sends
   automatically, click the link, come back here and log in.
 -->
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   /* Minimalist style, ChemCalc/shadcn-ui inspired: lots of white,
      little color, thin borders, no gradients or heavy shadows. */
@@ -38,7 +35,7 @@
     align-items: center;
     justify-content: center;
     background: var(--bg);
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: var(--text);
   }
   .card {
@@ -50,7 +47,7 @@
     padding: 32px;
   }
   h1 {
-    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 20px;
     font-weight: 600;
     margin: 0 0 4px;
@@ -403,7 +400,14 @@
         const { data, error } = await supabaseClient.auth.signUp({
           email,
           password,
-          options: { data: { full_name } },
+          options: {
+            data: { full_name },
+            // Sans ceci, Supabase renvoie vers la "Site URL" par défaut du
+            // projet (souvent localhost si jamais configurée) après avoir
+            // cliqué le lien de confirmation dans l'email -- ce qui
+            // ressemble à une erreur alors que le compte est bien créé.
+            emailRedirectTo: window.location.origin + window.location.pathname.replace(/[^/]*$/, "login.html"),
+          },
         });
         if (error) throw error;
         localStorage.setItem("pivot_pending_terms_accept", TERMS_VERSION);
