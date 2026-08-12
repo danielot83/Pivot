@@ -409,6 +409,7 @@
           options: { data: { full_name } },
         });
         if (error) throw error;
+        localStorage.setItem("pivot_pending_terms_accept", "1");
         // on garde toujours l'action de côté de la même façon, que la
         // session soit immédiate ou non -- un seul chemin de code, plus
         // simple à suivre et moins risqué qu'avoir deux mécanismes différents

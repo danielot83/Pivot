@@ -167,6 +167,7 @@
           <label>Gender</label>
           <select id="f-gender"><option value="">—</option><option value="Girl">Girl</option><option value="Boy">Boy</option></select>
         </div>
+        <div class="field"><label>License #</label><input id="f-license_number" type="text" /></div>
       </div>
       <div class="panel-actions">
         <button class="btn btn-primary" id="save-btn">Save</button>
@@ -205,11 +206,12 @@
     { key: "birth_year", label: "Birth year", default: false, type: "number" },
     { key: "category", label: "Category", default: true, type: "text" },
     { key: "gender", label: "Gender", default: false, type: "select", options: ["", "Girl", "Boy"] },
+    { key: "license_number", label: "License #", default: false, type: "text" },
     { key: "has_license", label: "Ready", default: true, type: "checkbox" },
     { key: "active", label: "Active", default: true, type: "checkbox" },
     { key: "visibility", label: "Who sees them", default: true, type: "select", options: ["team", "private"] },
   ];
-  const FORM_FIELDS = ["first_name","last_name","birth_year","category","jersey_number","gender"];
+  const FORM_FIELDS = ["first_name","last_name","birth_year","category","jersey_number","gender","license_number"];
 
   function saveDefaultCategory(season, team, category) {
     const store = JSON.parse(localStorage.getItem("pivot_roster_default_categories") || "{}");
@@ -515,6 +517,7 @@
       category: document.getElementById("f-category").value.trim() || null,
       jersey_number: document.getElementById("f-jersey_number").value.trim() || null,
       gender: document.getElementById("f-gender").value || null,
+      license_number: document.getElementById("f-license_number").value.trim() || null,
       has_license: false, active: true,
     };
     try {
@@ -539,7 +542,7 @@
   // Excel : toutes les colonnes (pas juste celles affichées à l'écran),
   // pour que l'export serve aussi d'archive/sauvegarde complète.
   // ---------------------------------------------------------------------
-  const EXCEL_COLUMNS = ["jersey_number","first_name","last_name","birth_year","category","gender","has_license","active"];
+  const EXCEL_COLUMNS = ["jersey_number","first_name","last_name","birth_year","category","gender","license_number","has_license","active"];
 
   // -----------------------------------------------------------------------
   // Export PDF vectoriel (texte et lignes dessinés directement, pas une
@@ -605,12 +608,13 @@
     const fontSize = Math.max(6.5, Math.min(9.5, rowH * 0.55));
 
     const cols = [
-      { key: "jersey_number", label: "#", w: 0.06 },
-      { key: "first_name", label: "First name", w: 0.22 },
-      { key: "last_name", label: "Last name", w: 0.24 },
-      { key: "birth_year", label: "Birth", w: 0.1 },
-      { key: "category", label: "Cat.", w: 0.1 },
-      { key: "gender", label: "Gender", w: 0.12 },
+      { key: "jersey_number", label: "#", w: 0.05 },
+      { key: "first_name", label: "First name", w: 0.18 },
+      { key: "last_name", label: "Last name", w: 0.2 },
+      { key: "birth_year", label: "Birth", w: 0.08 },
+      { key: "category", label: "Cat.", w: 0.08 },
+      { key: "gender", label: "Gender", w: 0.1 },
+      { key: "license_number", label: "License #", w: 0.13 },
       { key: "has_license", label: "Ready", w: 0.08 },
       { key: "active", label: "Active", w: 0.08 },
     ];
@@ -680,6 +684,7 @@
     category: ["category", "categorie", "catégorie"],
     jersey_number: ["jersey_number", "n maillot", "numero maillot", "n° maillot", "dossard", "number"],
     gender: ["gender", "sexe", "genre"],
+    license_number: ["license_number", "license", "licence", "n licence", "n° licence"],
     has_license: ["has_license", "licencie", "licencié"],
     active: ["active", "actif"],
   };
@@ -761,6 +766,7 @@
           category: r.category || null,
           jersey_number: r.jersey_number ? String(r.jersey_number) : null,
           gender: parseGender(r.gender),
+          license_number: r.license_number ? String(r.license_number) : null,
           has_license: r.has_license === true || r.has_license === "TRUE" || r.has_license === 1,
           active: !(r.active === false || r.active === "FALSE" || r.active === 0),
         });

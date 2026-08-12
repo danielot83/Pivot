@@ -42,6 +42,9 @@
   .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
   @media (max-width: 640px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
   .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .tree-new, .tree-example { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
   .stat-card .num { font-size: 26px; font-weight: 700; font-family: "Space Grotesk", sans-serif; }
   .stat-card .label { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
 
@@ -115,6 +118,7 @@
       <option value="library.html">Library</option>
       <option value="training.html">Training builder</option>
       <option value="settings.html">Settings</option>
+      <option value="privacy.html">Privacy &amp; Terms</option>
     </select>
     <button class="nav-btn" id="logout-btn">Log out</button>
   </div>
@@ -126,9 +130,11 @@
       <h1 style="display:flex; align-items:center; gap:8px;">
         <span id="greeting">Welcome</span>
         <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+        <button id="privacy-help-btn" title="Privacy & who's responsible for what" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--accent-deep); font-size:13px; cursor:pointer; line-height:1;">🔒</button>
       </h1>
       <p class="sub" id="club-status-text"></p>
       <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
+      <div class="help-box" id="privacy-help-box" style="display:none; background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
     </div>
     <div style="text-align:center; flex-shrink:0;">
       <img id="org-logo-big" style="width:64px; height:64px; border-radius:10px; object-fit:cover; display:none;" />
@@ -175,11 +181,7 @@
   <p class="section-label">Tools</p>
   <div class="grid" id="modules-grid"></div>
 
-  <p class="section-label">Example data (Chicago Bulls '96)</p>
-  <div style="display:flex; gap:10px;">
-    <button class="nav-btn" id="load-example-btn" style="text-transform:none; letter-spacing:normal; font-weight:600; font-size:13px;">Load example data</button>
-    <button class="nav-btn" id="remove-example-btn" style="text-transform:none; letter-spacing:normal; font-weight:600; font-size:13px; color:#991b1b;">Remove example data</button>
-  </div>
+  <div class="side-card" id="example-data-card" style="max-width:320px;"></div>
 
   <div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
     <label style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); cursor:pointer;">
@@ -247,7 +249,8 @@
 
   async function loadMyOrganization(user) {
     // le nom du profil, pour dire "Welcome, Daniel" plutôt que l'email
-    const { data: profile } = await supabaseClient.from("profiles").select("full_name, is_platform_controller, is_association_validator, onboarded_at, newsletter_opt_in").eq("id", user.id).maybeSingle();
+    const { data: profile } = await supabaseClient.from("profiles").select("full_name, is_platform_controller, is_association_validator, onboarded_at, newsletter_opt_in, terms_accepted_at").eq("id", user.id).maybeSingle();
+    myTermsAcceptedAt = profile && profile.terms_accepted_at;
     document.getElementById("newsletter-opt-in").checked = !!(profile && profile.newsletter_opt_in);
     const displayName = (profile && profile.full_name) || user.email;
     els.greeting.textContent = `Welcome, ${displayName}`;
@@ -631,6 +634,13 @@
     }
   }
 
+  async function completePendingTermsAccept(userId) {
+    if (!localStorage.getItem("pivot_pending_terms_accept")) return;
+    localStorage.removeItem("pivot_pending_terms_accept");
+    try { await supabaseClient.from("profiles").update({ terms_accepted_at: new Date().toISOString() }).eq("id", userId); }
+    catch (e) { /* pas grave si ça rate -- pas bloquant pour le reste */ }
+  }
+
   // -----------------------------------------------------------------------
   // Demandes en attente pour les clubs que je dirige
   // -----------------------------------------------------------------------
@@ -701,7 +711,7 @@
     const { data: playerRows } = await supabaseClient.from("players").select("id, team, season").eq("organization_id", currentOrgId);
     const realPlayers = (playerRows || []).filter((p) => !isExampleTeam(p.season, p.team));
     els.statPlayers.textContent = realPlayers.length;
-    els.statTeams.textContent = new Set(realPlayers.map((r) => r.team)).size;
+    els.statTeams.textContent = new Set(realPlayers.map((r) => `${r.season}|${r.team}`)).size;
 
     const realPlayerIds = new Set(realPlayers.map((p) => p.id));
     const { data: assessmentRows } = await supabaseClient.from("player_assessments").select("id, player_id").eq("organization_id", currentOrgId);
@@ -805,9 +815,9 @@
   // example-data.js (fichier partagé, même exemple que Roster/Training).
   // -----------------------------------------------------------------------
 
-  document.getElementById("load-example-btn").addEventListener("click", async () => {
+  async function loadExampleTeam(key) {
+    const ex = EXAMPLE_TEAMS[key];
     if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
-    const ex = EXAMPLE_TEAMS.bulls96;
     if (!confirm(`Add ${ex.players.length} example players (${ex.team}, ${ex.season}), plus a sample assessment for each, to your club?`)) return;
     try {
       // on retire d'abord toute donnée d'exemple déjà là (au cas où on a
@@ -822,12 +832,11 @@
       if (error) throw error;
 
       const assessmentRows = (inserted || []).map((p) => {
-        const [center, spread] = ASSESSMENT_PATTERNS[p.last_name] || DEFAULT_PATTERN;
+        const [center, spread] = ex.patterns[p.last_name] || DEFAULT_PATTERN;
         return {
           organization_id: currentOrgId,
           player_id: p.id,
-          date: "1996-04-21",
-          location: "Chicago (United Center)",
+          date: ex.date,
           ratings: makeExampleRatings(center, spread),
           positive_points: "Example assessment, for demo purposes.",
         };
@@ -840,31 +849,49 @@
     } catch (err) {
       showMessage(err.message || "Couldn't load the example data.", "error");
     }
-  });
+  }
 
-  // ALL_EXAMPLE_TEAMS vient de example-data.js (réutilisé aussi par les stats).
-
-  document.getElementById("remove-example-btn").addEventListener("click", async () => {
+  async function removeExampleTeam(key) {
+    const ex = EXAMPLE_TEAMS[key];
     if (!currentOrgId) return;
-    if (!confirm("Remove all example data (any Bulls season) from your club? Their assessments go with them.")) return;
+    if (!confirm(`Remove ${ex.team} (${ex.season}) and all its data? Can't be undone.`)) return;
     try {
-      // supprimer les joueurs suffit : les évaluations liées disparaissent
-      // automatiquement (contrainte "on delete cascade" côté base de données)
-      for (const ex of ALL_EXAMPLE_TEAMS) {
-        const { error } = await supabaseClient
-          .from("players").delete()
-          .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
-        if (error) throw error;
-      }
+      const { error } = await supabaseClient
+        .from("players").delete()
+        .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
+      if (error) throw error;
       showMessage("Example data removed.", "success");
       await loadStats();
     } catch (err) {
-      showMessage(err.message || "Couldn't remove the example data.", "error");
+      showMessage(err.message || "Couldn't remove that.", "error");
     }
-  });
+  }
+
+  renderExampleDataCard("example-data-card", { onLoad: loadExampleTeam, onRemove: removeExampleTeam });
 
   document.getElementById("nav-menu").addEventListener("change", (e) => {
     if (e.target.value) window.location.href = "./" + e.target.value;
+  });
+
+  let myTermsAcceptedAt = null;
+
+  document.getElementById("privacy-help-btn").addEventListener("click", () => {
+    const box = document.getElementById("privacy-help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    const acceptedText = myTermsAcceptedAt
+      ? `You agreed to this on ${new Date(myTermsAcceptedAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}.`
+      : `We don't have a record of you accepting this yet (your account may predate this page) — worth a read anyway.`;
+    box.innerHTML = `
+      <strong>Privacy — the short version</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li>Pivot doesn't decide which data protection law applies to you — the laws of your own country do, wherever that is. You're responsible for following them.</li>
+        <li>If you add data about someone else — a player, especially a minor — you're confirming you already have the right to do so where you are (your club's own process, a parent/guardian's consent, however that works for you).</li>
+        <li>Pivot only acts on your club's instructions and never shares data beyond what you choose.</li>
+      </ul>
+      <p style="margin:10px 0 0; color:var(--muted); font-size:12.5px;">${acceptedText}</p>
+      <p style="margin:6px 0 0;"><a href="./privacy.html" style="color:var(--accent-deep);">Read the full Privacy &amp; Terms →</a></p>
+    `;
+    box.style.display = "block";
   });
 
   document.getElementById("help-btn").addEventListener("click", () => {
@@ -878,7 +905,7 @@
         <li>✉️ next to your club name is your <strong>messages</strong> inbox — direct messages between you and a teammate, or you and a Pivot admin/validator. A number badge means unread messages. Click "+ New message" to start one by typing someone's email.</li>
         <li>🔔 (only shows up when there's something) is for <strong>club association requests</strong> — if you're a platform admin or validator, you'll see every pending request here with Approve/Reject; otherwise you'll see the status of your own club's requests.</li>
         <li>If you're an admin, <strong>pending requests</strong> to join your club show up here too, with Approve/Reject buttons — separate from the association ones above.</li>
-        <li><strong>Load example data</strong> (below the tools) fills your club with a real historical roster and sample evaluations, to try everything before you have your own data. <strong>Remove example data</strong> clears it out again, cleanly.</li>
+        <li><strong>Example data</strong> (below the tools) fills your club with a real historical roster and sample evaluations — pick a Bulls season, or the Celtics — to try everything before you have your own data. "Remove" clears it out again, cleanly.</li>
         <li>Click any tile in "Tools" to open that module, or use the "Go to…" menu at the top on any page to jump straight to another one.</li>
         <li>If you're a Pivot platform admin, you'll also see a <strong>"Pivot Community — all clubs"</strong> section with read-only totals across every club on Pivot, not just yours.</li>
       </ul>`;
@@ -916,6 +943,7 @@
     // si on appartient déjà à un club -- sinon on vérifie trop tôt et ça
     // affiche à tort "pas encore membre" alors que le club vient d'être créé.
     await completePendingClubAction();
+    await completePendingTermsAccept(data.session.user.id);
     const orgId = await loadMyOrganization(data.session.user);
     if (orgId) {
       await loadPendingRequestsForAdmin();
