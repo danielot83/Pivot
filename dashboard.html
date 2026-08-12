@@ -87,6 +87,7 @@
     <div class="onboard-circle-row"><span class="emoji">🤝</span><span><strong>My club association</strong> — a small group of clubs who agreed to share, needs approval.</span></div>
     <div class="onboard-circle-row"><span class="emoji">🌐</span><span><strong>Pivot Community</strong> — every club on Pivot can see it (view only).</span></div>
     <p>If you're a club admin, <strong>Settings</strong> also lets you set all of a type at once (e.g. every exercise), manage who's in your club and their role, and — for players specifically — link their account to their roster entry so they can see what's meant for them, and nothing more.</p>
+    <p style="font-size:12.5px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; margin-top:14px;"><strong>Worth knowing too:</strong> only add data about players you actually coach, and you're responsible for having the right to hold it (a guardian's consent, especially for a minor — see <a href="./privacy.html" target="_blank" style="color:var(--accent-deep);">Privacy &amp; Terms</a>). Don't republish someone else's shared content outside Pivot as your own.</p>
     <button class="btn btn-primary" id="onboard-close-btn">Got it, let's go</button>
   </div>
 </div>
@@ -196,6 +197,7 @@
 <script src="org-switcher.js"></script>
 <script src="modules-grid.js"></script>
 <script src="example-data.js"></script>
+<script src="terms-version.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -635,10 +637,16 @@
   }
 
   async function completePendingTermsAccept(userId) {
-    if (!localStorage.getItem("pivot_pending_terms_accept")) return;
+    const version = localStorage.getItem("pivot_pending_terms_accept");
+    if (!version) return;
     localStorage.removeItem("pivot_pending_terms_accept");
-    try { await supabaseClient.from("profiles").update({ terms_accepted_at: new Date().toISOString() }).eq("id", userId); }
-    catch (e) { /* pas grave si ça rate -- pas bloquant pour le reste */ }
+    const now = new Date().toISOString();
+    try {
+      // le vrai registre (une ligne par acceptation, jamais écrasée)
+      await supabaseClient.from("terms_acceptances").insert({ user_id: userId, terms_version: version, accepted_at: now });
+      // + une case rapide à lire sur le profil, pour l'affichage (section 1 du document reste la source de vérité)
+      await supabaseClient.from("profiles").update({ terms_accepted_at: now }).eq("id", userId);
+    } catch (e) { /* pas grave si ça rate -- pas bloquant pour le reste */ }
   }
 
   // -----------------------------------------------------------------------
@@ -879,7 +887,7 @@
     const box = document.getElementById("privacy-help-box");
     if (box.style.display === "block") { box.style.display = "none"; return; }
     const acceptedText = myTermsAcceptedAt
-      ? `You agreed to this on ${new Date(myTermsAcceptedAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}.`
+      ? `You accepted version ${TERMS_VERSION} on ${new Date(myTermsAcceptedAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}.`
       : `We don't have a record of you accepting this yet (your account may predate this page) — worth a read anyway.`;
     box.innerHTML = `
       <strong>Privacy — the short version</strong>
@@ -887,9 +895,10 @@
         <li>Pivot doesn't decide which data protection law applies to you — the laws of your own country do, wherever that is. You're responsible for following them.</li>
         <li>If you add data about someone else — a player, especially a minor — you're confirming you already have the right to do so where you are (your club's own process, a parent/guardian's consent, however that works for you).</li>
         <li>Pivot only acts on your club's instructions and never shares data beyond what you choose.</li>
+        <li><strong>Allowed:</strong> data about players you actually coach, sharing your own content at whatever circle you choose. <strong>Not allowed:</strong> data you don't have the right to hold, or republishing someone else's shared content outside Pivot as your own.</li>
       </ul>
       <p style="margin:10px 0 0; color:var(--muted); font-size:12.5px;">${acceptedText}</p>
-      <p style="margin:6px 0 0;"><a href="./privacy.html" style="color:var(--accent-deep);">Read the full Privacy &amp; Terms →</a></p>
+      <p style="margin:6px 0 0;"><a href="./privacy.html" style="color:var(--accent-deep);">Read the full Privacy &amp; Terms of Service →</a></p>
     `;
     box.style.display = "block";
   });
