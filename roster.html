@@ -82,15 +82,6 @@
   td.editable input, td.editable select { width: 100%; padding: 3px 5px; border: 1px solid var(--accent); border-radius: 4px; font-size: 13px; font-family: inherit; }
   td.editable input[type="checkbox"] { width: auto; }
 
-  /* -------- photo -------- */
-  .photo-thumb {
-    width: 32px; height: 32px; border-radius: 50%; object-fit: cover; cursor: pointer;
-    border: 1px solid var(--line); background: var(--paper); display: block;
-  }
-  .photo-thumb.placeholder { display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted); }
-  .license-btn { font-size: 11.5px; background: none; border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; cursor: pointer; color: var(--muted); }
-  .license-btn.has-file { color: var(--accent-deep); border-color: var(--accent-tint); }
-
   /* -------- panneau d'ajout (nouveau joueur uniquement) -------- */
   .panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; margin-bottom: 16px; }
   .panel.open { display: block; }
@@ -123,6 +114,7 @@
       <option value="library.html">Library</option>
       <option value="training.html">Training builder</option>
       <option value="settings.html">Settings</option>
+      <option value="privacy.html">Privacy &amp; Terms</option>
     </select>
     <button class="nav-btn" id="logout-btn">Log out</button>
   </div>
@@ -175,10 +167,6 @@
           <label>Gender</label>
           <select id="f-gender"><option value="">—</option><option value="Girl">Girl</option><option value="Boy">Boy</option></select>
         </div>
-        <div class="field"><label>Phone</label><input id="f-phone" type="text" /></div>
-        <div class="field"><label>Email</label><input id="f-email" type="email" /></div>
-        <div class="field"><label>License number</label><input id="f-license" type="text" /></div>
-        <div class="field"><label>AVS number</label><input id="f-avs_number" type="text" /></div>
       </div>
       <div class="panel-actions">
         <button class="btn btn-primary" id="save-btn">Save</button>
@@ -194,8 +182,6 @@
   </div>
 </div>
 
-<input type="file" id="photo-file-input" accept="image/png, image/jpeg, image/webp" style="display:none" />
-<input type="file" id="license-file-input" accept="image/png, image/jpeg, image/webp" style="display:none" />
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -219,15 +205,11 @@
     { key: "birth_year", label: "Birth year", default: false, type: "number" },
     { key: "category", label: "Category", default: true, type: "text" },
     { key: "gender", label: "Gender", default: false, type: "select", options: ["", "Girl", "Boy"] },
-    { key: "phone", label: "Phone", default: false, type: "text" },
-    { key: "email", label: "Email", default: false, type: "text" },
-    { key: "license", label: "License #", default: false, type: "text" },
-    { key: "avs_number", label: "AVS number", default: false, type: "text" },
-    { key: "has_license", label: "Has license", default: true, type: "checkbox" },
+    { key: "has_license", label: "Ready", default: true, type: "checkbox" },
     { key: "active", label: "Active", default: true, type: "checkbox" },
     { key: "visibility", label: "Who sees them", default: true, type: "select", options: ["team", "private"] },
   ];
-  const FORM_FIELDS = ["first_name","last_name","birth_year","category","jersey_number","gender","phone","email","license","avs_number"];
+  const FORM_FIELDS = ["first_name","last_name","birth_year","category","jersey_number","gender"];
 
   function saveDefaultCategory(season, team, category) {
     const store = JSON.parse(localStorage.getItem("pivot_roster_default_categories") || "{}");
@@ -265,8 +247,6 @@
     body: document.getElementById("players-body"),
     emptyState: document.getElementById("empty-state"),
     msg: document.getElementById("msg"),
-    photoFileInput: document.getElementById("photo-file-input"),
-    licenseFileInput: document.getElementById("license-file-input"),
   };
 
   let currentOrgId = null;
@@ -275,8 +255,6 @@
   let currentSeason = null;
   let currentTeam = null;
   let currentTeamCategory = ""; // categoría del equipo actualmente seleccionado (U8, U10... o "" si no aplica)
-  let photoUploadTargetId = null;
-  let licenseUploadTargetId = null;
 
   function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
   function clearMessage() { els.msg.className = "msg"; els.msg.textContent = ""; }
@@ -308,17 +286,11 @@
 
   function renderTableHead() {
     els.tableHead.innerHTML = "";
-    const photoTh = document.createElement("th");
-    photoTh.textContent = "Photo";
-    els.tableHead.appendChild(photoTh);
     COLUMN_DEFS.filter((c) => visibleColumns.includes(c.key)).forEach((c) => {
       const th = document.createElement("th");
       th.textContent = c.label;
       els.tableHead.appendChild(th);
     });
-    const licenseTh = document.createElement("th");
-    licenseTh.textContent = "License doc.";
-    els.tableHead.appendChild(licenseTh);
     els.tableHead.appendChild(document.createElement("th"));
   }
 
@@ -448,17 +420,6 @@
     const tr = document.createElement("tr");
     if (!p.active) tr.className = "inactive-row";
 
-    // -- photo --
-    const photoTd = document.createElement("td");
-    const img = document.createElement("img");
-    img.className = "photo-thumb";
-    img.title = "Click to change photo";
-    img.onerror = () => { img.replaceWith(placeholderPhoto(p)); };
-    img.addEventListener("click", () => { photoUploadTargetId = p.id; els.photoFileInput.click(); });
-    photoTd.appendChild(img);
-    tr.appendChild(photoTd);
-    loadSignedPhoto("player-photos", p.id, img);
-
     // -- colonnes visibles, éditables directement --
     COLUMN_DEFS.filter((c) => visibleColumns.includes(c.key)).forEach((col) => {
       const td = document.createElement("td");
@@ -467,19 +428,6 @@
       td.addEventListener("click", () => makeCellEditable(td, p, col));
       tr.appendChild(td);
     });
-
-    // -- document de licence --
-    const licenseTd = document.createElement("td");
-    const licenseBtn = document.createElement("button");
-    licenseBtn.className = "license-btn";
-    licenseBtn.textContent = "Upload";
-    // on essaie de savoir s'il y en a déjà un (juste pour l'indication visuelle)
-    checkLicenseExists(p.id).then((exists) => {
-      if (exists) { licenseBtn.textContent = "View / replace"; licenseBtn.classList.add("has-file"); }
-    });
-    licenseBtn.addEventListener("click", () => { licenseUploadTargetId = p.id; els.licenseFileInput.click(); });
-    licenseTd.appendChild(licenseBtn);
-    tr.appendChild(licenseTd);
 
     // -- actions --
     const actionsTd = document.createElement("td");
@@ -493,15 +441,6 @@
     tr.appendChild(actionsTd);
 
     return tr;
-  }
-
-  function placeholderPhoto(p) {
-    const div = document.createElement("div");
-    div.className = "photo-thumb placeholder";
-    div.title = "Click to add a photo";
-    div.textContent = (p.first_name || "?")[0] + (p.last_name || "?")[0];
-    div.addEventListener("click", () => { photoUploadTargetId = p.id; els.photoFileInput.click(); });
-    return div;
   }
 
   function formatCellValue(value, col) {
@@ -548,74 +487,12 @@
   }
 
   // ---------------------------------------------------------------------
-  // Photos (bucket privé -- URL signée, pas d'accès public direct)
-  // ---------------------------------------------------------------------
-  async function loadSignedPhoto(bucket, playerId, imgEl) {
-    const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(`${playerId}/photo.png`, 300);
-    if (error || !data) { imgEl.onerror(); return; }
-    imgEl.src = data.signedUrl;
-  }
-
-  async function checkLicenseExists(playerId) {
-    const { data } = await supabaseClient.storage.from("license-photos").list(String(playerId));
-    return !!(data && data.length > 0);
-  }
-
-  function fileToResizedPngBlob(file, maxSize) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const reader = new FileReader();
-      reader.onload = () => {
-        img.onload = () => {
-          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-          const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
-          const canvas = document.createElement("canvas");
-          canvas.width = w; canvas.height = h;
-          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-          canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't process that image."))), "image/png");
-        };
-        img.onerror = () => reject(new Error("That doesn't look like a valid image."));
-        img.src = reader.result;
-      };
-      reader.onerror = () => reject(new Error("Couldn't read that file."));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  els.photoFileInput.addEventListener("change", async () => {
-    const file = els.photoFileInput.files[0];
-    els.photoFileInput.value = "";
-    if (!file || !photoUploadTargetId) return;
-    try {
-      const blob = await fileToResizedPngBlob(file, 400);
-      const { error } = await supabaseClient.storage.from("player-photos")
-        .upload(`${photoUploadTargetId}/photo.png`, blob, { upsert: true, contentType: "image/png" });
-      if (error) throw error;
-      showMessage("Photo updated.", "success");
-      await loadPlayers();
-    } catch (err) {
-      showMessage(err.message || "Couldn't upload the photo.", "error");
-    }
-  });
-
-  els.licenseFileInput.addEventListener("change", async () => {
-    const file = els.licenseFileInput.files[0];
-    els.licenseFileInput.value = "";
-    if (!file || !licenseUploadTargetId) return;
-    if (file.size > 2 * 1024 * 1024) { showMessage("That file is over 2 MB.", "error"); return; }
-    try {
-      const blob = await fileToResizedPngBlob(file, 1200);
-      const { error } = await supabaseClient.storage.from("license-photos")
-        .upload(`${licenseUploadTargetId}/license.png`, blob, { upsert: true, contentType: "image/png" });
-      if (error) throw error;
-      showMessage("License document uploaded.", "success");
-      await loadPlayers();
-    } catch (err) {
-      showMessage(err.message || "Couldn't upload the license photo.", "error");
-    }
-  });
-
-  // ---------------------------------------------------------------------
+  // Fotos y documentos de licencia -- QUITADOS a propósito. Guardar una
+  // foto de un menor, y sobre todo el escaneado de un documento de
+  // licencia (que suele llevar datos médicos/identificativos), es de
+  // los datos más sensibles que puede tener esta app. Se sustituye por
+  // una simple casilla "Ready" -- sin ningún documento detrás.
+  // ---------------------------------------------------------------------  // ---------------------------------------------------------------------
   // Ajouter / supprimer un joueur
   // ---------------------------------------------------------------------
   function openAdd() {
@@ -638,10 +515,6 @@
       category: document.getElementById("f-category").value.trim() || null,
       jersey_number: document.getElementById("f-jersey_number").value.trim() || null,
       gender: document.getElementById("f-gender").value || null,
-      phone: document.getElementById("f-phone").value.trim() || null,
-      email: document.getElementById("f-email").value.trim() || null,
-      license: document.getElementById("f-license").value.trim() || null,
-      avs_number: document.getElementById("f-avs_number").value.trim() || null,
       has_license: false, active: true,
     };
     try {
@@ -666,7 +539,7 @@
   // Excel : toutes les colonnes (pas juste celles affichées à l'écran),
   // pour que l'export serve aussi d'archive/sauvegarde complète.
   // ---------------------------------------------------------------------
-  const EXCEL_COLUMNS = ["jersey_number","first_name","last_name","birth_year","category","gender","phone","email","license","avs_number","has_license","active"];
+  const EXCEL_COLUMNS = ["jersey_number","first_name","last_name","birth_year","category","gender","has_license","active"];
 
   // -----------------------------------------------------------------------
   // Export PDF vectoriel (texte et lignes dessinés directement, pas une
@@ -732,15 +605,14 @@
     const fontSize = Math.max(6.5, Math.min(9.5, rowH * 0.55));
 
     const cols = [
-      { key: "jersey_number", label: "#", w: 0.05 },
-      { key: "first_name", label: "First name", w: 0.16 },
-      { key: "last_name", label: "Last name", w: 0.18 },
-      { key: "birth_year", label: "Birth", w: 0.08 },
-      { key: "category", label: "Cat.", w: 0.08 },
-      { key: "gender", label: "Gender", w: 0.1 },
-      { key: "phone", label: "Phone", w: 0.15 },
-      { key: "has_license", label: "License", w: 0.1 },
-      { key: "active", label: "Active", w: 0.1 },
+      { key: "jersey_number", label: "#", w: 0.06 },
+      { key: "first_name", label: "First name", w: 0.22 },
+      { key: "last_name", label: "Last name", w: 0.24 },
+      { key: "birth_year", label: "Birth", w: 0.1 },
+      { key: "category", label: "Cat.", w: 0.1 },
+      { key: "gender", label: "Gender", w: 0.12 },
+      { key: "has_license", label: "Ready", w: 0.08 },
+      { key: "active", label: "Active", w: 0.08 },
     ];
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(7, fontSize - 0.5)); doc.setTextColor(...muted);
@@ -808,10 +680,6 @@
     category: ["category", "categorie", "catégorie"],
     jersey_number: ["jersey_number", "n maillot", "numero maillot", "n° maillot", "dossard", "number"],
     gender: ["gender", "sexe", "genre"],
-    phone: ["phone", "mobile", "telephone", "téléphone", "tel"],
-    email: ["email", "e-mail", "e-mail parents 1", "mail", "courriel"],
-    license: ["license", "licence", "n licence", "n° licence"],
-    avs_number: ["avs_number", "n avs", "n° avs", "n securite sociale", "n° sécurité sociale", "ahv", "ssn", "social security"],
     has_license: ["has_license", "licencie", "licencié"],
     active: ["active", "actif"],
   };
@@ -893,10 +761,6 @@
           category: r.category || null,
           jersey_number: r.jersey_number ? String(r.jersey_number) : null,
           gender: parseGender(r.gender),
-          phone: r.phone ? String(r.phone) : null,
-          email: r.email || null,
-          license: r.license ? String(r.license) : null,
-          avs_number: r.avs_number ? String(r.avs_number) : null,
           has_license: r.has_license === true || r.has_license === "TRUE" || r.has_license === 1,
           active: !(r.active === false || r.active === "FALSE" || r.active === 0),
         });
@@ -982,8 +846,8 @@
         <li><strong>Pick or create a team</strong> — on the left, click an existing season/team, or "+ New season/team" (top) and answer the three questions: season, team name, and an optional default category (pre-fills new players, saves you retyping it each time).</li>
         <li><strong>Add a player</strong> — click "+ Add player" above the table, fill in the panel, Save. Needs at least a first and last name.</li>
         <li><strong>Edit a player</strong> — no separate edit screen: just click any cell in the table (name, category, checkboxes...), type the new value, and click away or press Enter. It saves right away.</li>
-        <li><strong>Show/hide columns</strong> — click "Columns ▾", tick what you want to see (e.g. add AVS number or birth year, hide category). Remembered next time you open Roster.</li>
-        <li><strong>Add a photo</strong> — click the round photo icon on a player's row, pick an image. Same for the license document, via its "Upload" button in that column.</li>
+        <li><strong>Show/hide columns</strong> — click "Columns ▾", tick what you want to see (e.g. add birth year, hide category). Remembered next time you open Roster.</li>
+        <li><strong>Ready</strong> is a simple yes/no — whether this player is cleared to play. Pivot doesn't store any license number or scanned document; that stays with whatever official system your federation already uses.</li>
         <li><strong>Export to Excel</strong> — click the button, get a spreadsheet of the currently selected team, ready to send or archive.</li>
         <li><strong>Import from Excel</strong> — click the button, pick a file. It recognizes common column names automatically (English or French, a combined "Last, First" name column, full birth dates instead of just the year...). Rows without a usable name are skipped, not imported.</li>
         <li><strong>Remove a team</strong> — click the small 🗑 next to a team's name in the left list. This deletes all its players too, so it asks to confirm first.</li>
