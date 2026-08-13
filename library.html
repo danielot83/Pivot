@@ -28,9 +28,9 @@
 
   h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
   p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
-  .msg { margin-bottom: 14px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
-  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
-  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+  .msg { margin-bottom: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
   .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--ink); margin-bottom: 12px; }
 
   .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
@@ -87,7 +87,7 @@
 <body>
 
 <nav>
-  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+  <a href="./dashboard.html" class="logotype" style="text-decoration:none; color:inherit;">Pi<span class="v-red">v</span>ot<span class="dot">.</span></a>
   <div class="nav-right">
     <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
@@ -194,7 +194,7 @@
   let usageCounts = {}; // exercise_id -> nombre de séances où il apparaît
   let selectedId = null;
 
-  function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
 
   function buildMultiselect(containerId, options) {
     const el = document.getElementById(containerId);

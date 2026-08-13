@@ -29,9 +29,9 @@
   .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 60px; }
   h1 { font-size: 24px; margin: 0 0 4px; }
   p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
-  .msg { margin-bottom: 16px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
-  .msg.error { background: #fef2f2; color: #991b1b; display: block; }
-  .msg.success { background: #f0fdf4; color: #166534; display: block; }
+  .msg { margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
 
   .section-label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 32px 0 14px; }
   .section-label:first-of-type { margin-top: 0; }
@@ -91,7 +91,7 @@
 
 
 <nav>
-  <div class="logotype">Pi<span class="v-red">v</span>ot<span class="dot">.</span></div>
+  <a href="./dashboard.html" class="logotype" style="text-decoration:none; color:inherit;">Pi<span class="v-red">v</span>ot<span class="dot">.</span></a>
   <div class="nav-right">
     <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <div id="pending-requests-widget" style="position:relative; display:none;">
@@ -235,7 +235,7 @@
   let isPlatformController = false;
   let canValidateAssociations = false;
 
-  function showMessage(text, type) { els.msg.textContent = text; els.msg.className = "msg " + type; }
+  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
 
   // -----------------------------------------------------------------------
   // Pages réelles pour les modules déjà construits ; les autres pointent
