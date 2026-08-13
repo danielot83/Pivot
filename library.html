@@ -23,8 +23,10 @@
   .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
   .back-link:hover { color: var(--ink); }
 
-  .layout { display: grid; grid-template-columns: 240px 1fr 340px; gap: 20px; max-width: 1200px; margin: 0 auto; padding: 24px; align-items: start; }
-  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+  .layout { display: grid; grid-template-columns: 240px 1fr; gap: 20px; max-width: 1000px; margin: 0 auto; padding: 24px; align-items: start; }
+  @media (max-width: 700px) { .layout { grid-template-columns: 1fr; } }
+  .filters-col { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
+  @media (max-width: 700px) { .filters-col { position: static; max-height: none; } }
 
   h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
   p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
@@ -75,7 +77,11 @@
   .diagram-thumb span { display: block; font-size: 10.5px; color: var(--muted); margin-top: 3px; }
   .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }
 
-  .detail-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+  .detail-overlay { position: fixed; inset: 0; background: rgba(20,20,22,0.55); display: none; align-items: center; justify-content: center; z-index: 999; padding: 16px; }
+  .detail-overlay.open { display: flex; }
+  .detail-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; max-width: 560px; width: 100%; max-height: 88vh; overflow-y: auto; position: relative; }
+  .detail-close-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--muted); font-size: 16px; cursor: pointer; line-height: 1; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+  .category-icon { font-size: 15px; margin-right: 4px; filter: grayscale(1) contrast(0.9) brightness(0.75); opacity: 0.75; }
   .detail-card h3 { font-size: 16px; margin: 0 0 4px; }
   .detail-card .meta-row { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
   .detail-card .section { margin-bottom: 12px; }
@@ -112,7 +118,7 @@
 
 <div class="layout">
   <!-- Filtres -->
-  <div>
+  <div class="filters-col">
     <div class="side-card">
       <h2>Search</h2>
       <div class="field"><input id="search-input" type="text" placeholder="Name, tag, description…" /></div>
@@ -147,9 +153,13 @@
     <div class="list-card" id="list-card"></div>
     <div class="empty-state" id="list-empty" style="display:none">No exercise matches the current filters.</div>
   </div>
+</div>
 
-  <!-- Détail -->
-  <div>
+<!-- Détail -- en popup, pour que ça marche pareil sur mobile: pas besoin
+     de scroller pour le trouver, il apparaît juste au-dessus. -->
+<div class="detail-overlay" id="detail-overlay">
+  <div style="position:relative; max-width:560px; width:100%;">
+    <button class="detail-close-btn" id="detail-close-btn" style="position:absolute; top:8px; right:8px; z-index:1;">✕</button>
     <div class="detail-card" id="detail-card">
       <p class="sub" style="margin:0;">Pick an exercise from the list to see its details here.</p>
     </div>
@@ -166,6 +176,12 @@
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Rebounding","Footwork","Defense","Screening","1v1","2v2","Fast break","Conditioning","Competition","Fun"];
+  const CATEGORY_ICONS = {
+    "Warm-up": "🔥", "Dribble": "⛹️", "Shooting": "🎯", "Passing": "🤝",
+    "Rebounding": "💪", "Footwork": "👟", "Defense": "🛡️", "Screening": "🧱",
+    "1v1": "⚔️", "2v2": "👥", "Fast break": "⚡", "Conditioning": "🏃",
+    "Competition": "🏆", "Fun": "🎉",
+  };
   const MATERIALS = ["Balls","Cones","Marker cones","Rings","Coordination ladder","Bibs","Sticks","Chairs","Resistance bands","Benches","Mats","Ropes","Other"];
   const AGE_GROUPS = ["U6","U7","U8","U9","U10","U11","U12","U13","U14","U15","U16","U17","U18","U19","U20","Seniors","All ages"];
 
@@ -316,10 +332,14 @@
       const langBadge = groupInFiltered.length > 1
         ? groupInFiltered.map((g) => `<button class="lang-cycle-btn${g.id === e.id ? " active" : ""}" data-id="${g.id}">${(g.language || "en").toUpperCase()}</button>`).join("")
         : `<span class="lang-pill-single">${langCode}</span>`;
+      const catIcons = (e.categories || []).map((c) => CATEGORY_ICONS[c] || "").filter(Boolean).join(" ");
+      const ageText = (e.age || []).join(", ");
+      const objText = (e.objectives || []).slice(0, 2).join(" · ");
       row.innerHTML = `
         <div>
           <div class="name">${e.favorite ? "★ " : ""}${e.number ? e.number + ". " : ""}${escapeHtml(e.name)}</div>
-          <div class="meta">${escapeHtml((e.categories || []).join(", "))}</div>
+          <div class="meta">${catIcons ? `<span class="category-icon">${catIcons}</span>` : ""}${escapeHtml((e.categories || []).join(", "))}${ageText ? ` · ${escapeHtml(ageText)}` : ""}</div>
+          ${objText ? `<div class="meta" style="color:var(--muted); font-size:11.5px; margin-top:2px;">${escapeHtml(objText)}</div>` : ""}
         </div>
         <div class="lang-badge-slot"></div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
@@ -357,7 +377,16 @@
     refresh();
     const e = allExercises.find((ex) => ex.id === id);
     renderDetail(e);
+    document.getElementById("detail-overlay").classList.add("open");
   }
+
+  function closeDetail() {
+    document.getElementById("detail-overlay").classList.remove("open");
+  }
+  document.getElementById("detail-close-btn").addEventListener("click", closeDetail);
+  document.getElementById("detail-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "detail-overlay") closeDetail();
+  });
 
   const LANGUAGE_NAMES = { en: "English", fr: "Français", es: "Español" };
 
@@ -384,7 +413,7 @@
       <div class="meta-row">#${e.number || "—"} · ${"★".repeat(e.difficulty || 1)}${"☆".repeat(3 - (e.difficulty || 1))} · ${used === 0 ? "never used" : used + "× used"} · ${langName} · ${visLabel}${!owned ? " · shared by another club" : ""}</div>
       ${versionSwitcher}
       <div class="section"><div class="section-label">Age</div><p>${(e.age || []).map((a) => `<span class="tag-chip">${escapeHtml(a)}</span>`).join("") || "—"}</p></div>
-      <div class="section"><div class="section-label">Categories</div><p>${(e.categories || []).map((c) => `<span class="tag-chip">${escapeHtml(c)}</span>`).join("") || "—"}</p></div>
+      <div class="section"><div class="section-label">Categories</div><p>${(e.categories || []).map((c) => `<span class="tag-chip">${CATEGORY_ICONS[c] ? `<span class="category-icon">${CATEGORY_ICONS[c]}</span>` : ""}${escapeHtml(c)}</span>`).join("") || "—"}</p></div>
       <div class="section"><div class="section-label">Material</div><p>${(e.material || []).map((m) => `<span class="tag-chip">${escapeHtml(m)}</span>`).join("") || "—"}</p></div>
       <div class="section"><div class="section-label">Tags</div><p>${(e.tags || []).map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("") || "—"}</p></div>
       <div class="section"><div class="section-label">Objectives</div><p>${escapeHtml((e.objectives || []).join("\n")) || "—"}</p></div>
@@ -825,6 +854,7 @@
       inline.innerHTML = `
         <strong>How to use Library</strong>
         <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+          <li>Filters stay pinned on the left as you scroll — click any exercise to see its full details in a popup, which works the same on mobile as on a computer.</li>
           <li><strong>Search</strong> looks across name, tags, description, variants, objectives, and material.</li>
           <li><strong>Category / Age</strong> — tick several to combine them (age requires ALL ticked ages to match; category matches ANY ticked one).</li>
           <li><strong>Never used</strong> — hides any exercise already pulled into a training session, to help you rediscover ones you haven't tried.</li>
