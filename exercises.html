@@ -55,6 +55,7 @@
   .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
   .field input, .field select, .field textarea { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; font-family: inherit; }
   .checkbox-field { display: flex; align-items: center; gap: 6px; }
+  .category-icon { font-size: 14px; filter: grayscale(1) contrast(0.9) brightness(0.75); opacity: 0.75; }
   .checkbox-field input { width: auto; }
   .checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 4px 10px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 14px; }
   .checkbox-group-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 10px; display: block; }
@@ -247,6 +248,7 @@
 </div>
 
 <script src="court-diagram.js?v=4"></script>
+<script src="exercise-categories.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
@@ -263,7 +265,7 @@
   }
 
   // Mêmes listes exactes que Pivot.py (CATEGORIES / AGE_GROUPS / MATERIALS)
-  const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Rebounding","Footwork","Defense","Screening","1v1","2v2","Fast break","Conditioning","Competition","Fun"];
+  // CATEGORIES/CATEGORY_ICONS vienen de exercise-categories.js (compartido).
   const AGE_GROUPS = ["U6","U7","U8","U9","U10","U11","U12","U13","U14","U15","U16","U17","U18","U19","U20","Seniors","All ages"];
   const MATERIALS = ["Balls","Cones","Marker cones","Rings","Coordination ladder","Bibs","Sticks","Chairs","Resistance bands","Benches","Mats","Ropes","Other"];
   // COURT_IDS, COURT_LABELS, COURT_TYPES, CANVAS_SIZES, LINE_KINDS,
@@ -546,7 +548,8 @@
     options.forEach((opt) => {
       const label = document.createElement("label");
       label.className = "checkbox-field";
-      label.innerHTML = `<input type="checkbox" value="${opt}" data-group="${prefix}" /> <span style="font-size:13px;">${opt}</span>`;
+      const icon = CATEGORY_ICONS[opt] ? `<span class="category-icon">${CATEGORY_ICONS[opt]}</span> ` : "";
+      label.innerHTML = `<input type="checkbox" value="${opt}" data-group="${prefix}" /> <span style="font-size:13px;">${icon}${opt}</span>`;
       el.appendChild(label);
     });
   }

@@ -167,6 +167,7 @@
 </div>
 
 <script src="court-diagram.js?v=4"></script>
+<script src="exercise-categories.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
@@ -175,13 +176,7 @@
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Rebounding","Footwork","Defense","Screening","1v1","2v2","Fast break","Conditioning","Competition","Fun"];
-  const CATEGORY_ICONS = {
-    "Warm-up": "🔥", "Dribble": "⛹️", "Shooting": "🎯", "Passing": "🤝",
-    "Rebounding": "💪", "Footwork": "👟", "Defense": "🛡️", "Screening": "🧱",
-    "1v1": "⚔️", "2v2": "👥", "Fast break": "⚡", "Conditioning": "🏃",
-    "Competition": "🏆", "Fun": "🎉",
-  };
+  // CATEGORIES/CATEGORY_ICONS vienen de exercise-categories.js (compartido).
   const MATERIALS = ["Balls","Cones","Marker cones","Rings","Coordination ladder","Bibs","Sticks","Chairs","Resistance bands","Benches","Mats","Ropes","Other"];
   const AGE_GROUPS = ["U6","U7","U8","U9","U10","U11","U12","U13","U14","U15","U16","U17","U18","U19","U20","Seniors","All ages"];
 

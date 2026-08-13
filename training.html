@@ -43,6 +43,7 @@
   .tree-team:hover { background: var(--paper); }
   .tree-team.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
   .tree-new, .tree-example { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
+  .category-icon { font-size: 13px; filter: grayscale(1) contrast(0.9) brightness(0.75); opacity: 0.75; }
   .item-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 8px; border-radius: 6px; font-size: 12.5px; cursor: pointer; }
   .item-row:hover { background: var(--paper); }
   .item-row.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
@@ -273,6 +274,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
 <script src="example-data.js"></script>
+<script src="exercise-categories.js"></script>
 <script src="court-diagram.js?v=4"></script>
 <script src="team-tree.js"></script>
 <script>
@@ -318,7 +320,7 @@
   };
 
   const SESSION_CATEGORIES = ["U6", "U8", "U10", "U12", "U14", "U16", "U18", "U20", "Seniors", "Adults"];
-  const CATEGORIES = ["Warm-up","Dribble","Shooting","Passing","Rebounding","Footwork","Defense","Screening","1v1","2v2","Fast break","Conditioning","Competition","Fun"];
+  // CATEGORIES/CATEGORY_ICONS vienen de exercise-categories.js (compartido).
   const MATERIALS = ["Balls","Cones","Marker cones","Rings","Coordination ladder","Bibs","Sticks","Chairs","Resistance bands","Benches","Mats","Ropes","Other"];
   const AGE_GROUPS = ["U6","U7","U8","U9","U10","U11","U12","U13","U14","U15","U16","U17","U18","U19","U20","Seniors","All ages"];
 
@@ -535,9 +537,10 @@
         const already = inNotebook.has(e.id);
         row.style.cssText = `display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 8px; font-size:13px; border-radius:6px; border-bottom:1px solid var(--line); ${already ? "opacity:.45;" : "cursor:pointer;"}`;
         const objSnippet = (e.objectives || []).slice(0, 2).join(" · ");
+        const catIcons = (e.categories || []).map((c) => CATEGORY_ICONS[c] || "").filter(Boolean).join(" ");
         row.innerHTML = `
           <div style="min-width:0;">
-            <div>${escapeHtml(e.name)}</div>
+            <div>${catIcons ? `<span class="category-icon">${catIcons}</span> ` : ""}${escapeHtml(e.name)}</div>
             ${objSnippet ? `<div class="hint" style="font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(objSnippet)}</div>` : ""}
           </div>
           ${already ? '<span class="hint" style="font-size:11px; flex-shrink:0;">Added</span>' : '<span style="color:var(--accent); flex-shrink:0;">+ Add</span>'}
