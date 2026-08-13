@@ -95,20 +95,80 @@ function renderTeamTree(containerId, rows, activeSeason, activeTeam, onSelect, o
 }
 
 /**
- * Flujo de "+ New season/team", compartido por las páginas que dejan
- * crear un equipo (no solo elegir uno existente). Pide nombre,
- * categoría y temporada, y lo guarda en el registro `teams` -- así el
- * equipo existe de verdad aunque todavía no tenga jugadores.
+ * Genera las temporadas típicas para elegir en un desplegable, sin
+ * tener que escribirlas -- la actual (según la fecha de hoy, una
+ * temporada de baloncesto va de agosto a junio) más un año antes y dos
+ * después.
+ */
+function guessSeasonOptions() {
+  const today = new Date();
+  const y = today.getFullYear();
+  const currentStart = today.getMonth() >= 6 ? y : y - 1; // agosto (índice 6) en adelante ya es la temporada siguiente
+  const seasons = [];
+  for (let offset = -1; offset <= 2; offset++) {
+    const start = currentStart + offset;
+    seasons.push(`${start}-${start + 1}`);
+  }
+  return { seasons, current: `${currentStart}-${currentStart + 1}` };
+}
+
+const TEAM_CATEGORY_OPTIONS = ["", "U6", "U7", "U8", "U9", "U10", "U11", "U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U20", "Seniors"];
+
+/**
+ * Flujo de "+ New season/team" -- un formulario de verdad (en una
+ * ventana emergente), en vez de tres preguntas seguidas del navegador.
+ * Temporada y categoría se eligen de un desplegable, no se escriben a
+ * mano -- así nunca hay "U8"/"u8 "/"U-8" mezclados para el mismo grupo.
  * @returns {Promise<{season, team, team_category}|null>} null si se cancela.
  */
-async function promptNewTeam(supabaseClient, organizationId) {
-  const team = prompt("Team name (e.g. DEL, Chicago Bulls) — this stays the same across years:");
-  if (!team) return null;
-  const teamCategory = prompt(`Team category for "${team.trim()}" (e.g. U8) — optional, leave blank if this club doesn't use age brackets:`) || "";
-  const season = prompt("Season (e.g. 2026-2027):");
-  if (!season) return null;
-  const row = { organization_id: organizationId, season: season.trim(), team: team.trim(), team_category: teamCategory.trim() || null };
-  const { error } = await supabaseClient.from("teams").upsert(row, { onConflict: "organization_id,season,team" });
-  if (error) { alert("Couldn't create that team: " + error.message); return null; }
-  return { season: row.season, team: row.team, team_category: row.team_category || "" };
+function promptNewTeam(supabaseClient, organizationId) {
+  return new Promise((resolve) => {
+    const { seasons, current } = guessSeasonOptions();
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
+        <h3 style="margin:0 0 4px; font-size:17px;">New season/team</h3>
+        <p style="margin:0 0 16px; font-size:12.5px; color:var(--muted);">The team name stays the same across years — pick a new season for it later without retyping anything.</p>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
+        <input id="new-team-name-input" type="text" placeholder="e.g. DEL, Chicago Bulls" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category (optional)</label>
+        <select id="new-team-category-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+          ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}">${c || "No category"}</option>`).join("")}
+        </select>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Season</label>
+        <select id="new-team-season-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px;">
+          ${seasons.map((s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("")}
+        </select>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button id="new-team-cancel-btn" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
+          <button id="new-team-create-btn" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">Create</button>
+        </div>
+        <p id="new-team-error" style="display:none; margin:10px 0 0; font-size:12.5px; color:#991b1b;"></p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    const nameInput = overlay.querySelector("#new-team-name-input");
+    nameInput.focus();
+
+    function close(result) {
+      overlay.remove();
+      resolve(result);
+    }
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(null); });
+    overlay.querySelector("#new-team-cancel-btn").addEventListener("click", () => close(null));
+    overlay.querySelector("#new-team-create-btn").addEventListener("click", async () => {
+      const team = nameInput.value.trim();
+      const errorEl = overlay.querySelector("#new-team-error");
+      if (!team) { errorEl.textContent = "Team name can't be empty."; errorEl.style.display = "block"; nameInput.focus(); return; }
+      const teamCategory = overlay.querySelector("#new-team-category-input").value;
+      const season = overlay.querySelector("#new-team-season-input").value;
+      const row = { organization_id: organizationId, season, team, team_category: teamCategory || null };
+      const btn = overlay.querySelector("#new-team-create-btn");
+      btn.disabled = true; btn.textContent = "Creating…";
+      const { error } = await supabaseClient.from("teams").upsert(row, { onConflict: "organization_id,season,team" });
+      if (error) { errorEl.textContent = "Couldn't create that team: " + error.message; errorEl.style.display = "block"; btn.disabled = false; btn.textContent = "Create"; return; }
+      close({ season: row.season, team: row.team, team_category: row.team_category || "" });
+    });
+  });
 }
