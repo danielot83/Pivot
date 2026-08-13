@@ -18,11 +18,11 @@
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
   .logotype .v-red, .logotype .dot { color: var(--accent); }
   .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
-  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
   .btn { padding: 9px 16px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-deep); }
-  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
   .btn-secondary:hover { border-color: var(--accent); }
   .nav-btn:hover { border-color: var(--accent); }
 
@@ -184,7 +184,7 @@
   <div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
     <label style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); cursor:pointer;">
       <input type="checkbox" id="newsletter-opt-in" style="width:auto;" />
-      📰 Email me a couple of times a year about big new Pivot features — never spam, unsubscribe any time.
+      <span style="filter: grayscale(0.85);">📰</span> Email me a couple of times a year about big new Pivot features — never spam, unsubscribe any time.
     </label>
     <button class="nav-btn" id="contact-support-btn" title="Send a message straight to the Pivot admin">💬 Contact us</button>
   </div>

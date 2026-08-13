@@ -192,7 +192,10 @@
     </div>
 
     <div id="terms-field" style="display:none; background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:16px;">
-      <p style="font-size:12.5px; margin:0 0 10px; color:var(--muted);">Pivot is used by clubs worldwide, so this covers the general principle rather than every country's rules: your club is responsible for having the right to hold whatever data it enters (a player's, especially a minor's) under the law that applies where you are — Pivot only stores and organizes it on your club's instructions. Full detail in the document linked below.</p>
+      <p style="font-size:12.5px; margin:0 0 10px; color:var(--muted); font-weight:600;">Before you continue, a few sentences on what Pivot actually is:</p>
+      <p style="font-size:12.5px; margin:0 0 8px; color:var(--ink);"><strong>What Pivot does:</strong> stores what your club enters (rosters, exercises, plans, assessments) so your club can organize its own coaching — and only acts on your club's instructions.</p>
+      <p style="font-size:12.5px; margin:0 0 8px; color:var(--ink);"><strong>What Pivot doesn't do:</strong> sell data, use it for advertising, share it beyond the circle you choose, or decide whether your club had the right to enter it in the first place.</p>
+      <p style="font-size:12.5px; margin:0 0 10px; color:var(--ink);"><strong>Who's responsible for what:</strong> Pivot is used worldwide, so this is a general principle, not every country's rules — <strong>your club is responsible</strong> for having the right to hold whatever data it enters (a player's, especially a minor's) under the law that applies where you are. <strong>Pivot is responsible</strong> for storing it securely and only using it the way your club instructs. Full detail in the document linked below.</p>
       <label class="radio-option">
         <input type="checkbox" id="terms_accept_check" />
         <span>I have read and agree to the <a href="./privacy.html" target="_blank" style="color:var(--accent-deep);">Privacy &amp; Terms of Service</a><span id="terms-version-inline"></span>.</span>
@@ -204,6 +207,7 @@
       <div class="radio-row">
         <label class="radio-option"><input type="radio" name="club_mode" value="create" checked /> Create a new club or association</label>
         <label class="radio-option"><input type="radio" name="club_mode" value="join" /> Join an existing one</label>
+        <label class="radio-option"><input type="radio" name="club_mode" value="none" /> Not right now — just let me look around</label>
       </div>
 
       <div id="create-club-field">
@@ -335,9 +339,9 @@
   // -----------------------------------------------------------------------
   document.querySelectorAll('input[name="club_mode"]').forEach((radio) => {
     radio.addEventListener("change", () => {
-      const isJoin = document.querySelector('input[name="club_mode"]:checked').value === "join";
-      els.createClubField.style.display = isJoin ? "none" : "block";
-      els.joinClubField.style.display = isJoin ? "block" : "none";
+      const mode2 = document.querySelector('input[name="club_mode"]:checked').value;
+      els.createClubField.style.display = mode2 === "create" ? "block" : "none";
+      els.joinClubField.style.display = mode2 === "join" ? "block" : "none";
     });
   });
 
@@ -422,8 +426,9 @@
   // d'avoir une session (donc avant de pouvoir écrire quoi que ce soit en
   // base) -- c'est pour ça que ça reste ici et pas dans dashboard.html.
   function readClubActionFromForm() {
-    const isJoin = document.querySelector('input[name="club_mode"]:checked').value === "join";
-    if (isJoin) {
+    const mode2 = document.querySelector('input[name="club_mode"]:checked').value;
+    if (mode2 === "none") return { type: "none" };
+    if (mode2 === "join") {
       const orgId = els.joinOrg.value;
       if (!orgId) return null;
       return { type: "join", orgId, role: els.joinRole.value };
@@ -482,7 +487,8 @@
         // on garde toujours l'action de côté de la même façon, que la
         // session soit immédiate ou non -- un seul chemin de code, plus
         // simple à suivre et moins risqué qu'avoir deux mécanismes différents
-        localStorage.setItem("pivot_pending_club_action", JSON.stringify(clubAction));
+        // -- sauf "none" : rien à faire côté club, pas la peine de le garder
+        if (clubAction.type !== "none") localStorage.setItem("pivot_pending_club_action", JSON.stringify(clubAction));
         if (data.session) {
           // some Supabase projects log the user in immediately without an
           // email confirmation step, depending on the project's settings
