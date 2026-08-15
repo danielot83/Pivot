@@ -1,9 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="icon" type="image/x-icon" href="./favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pivot — Log in</title>
+<title>PlayPivot — Log in</title>
 <!--
   Step 3: login/signup, NOTHING ELSE for now (on purpose, to keep this
   as a piece we can finish and test in one sitting).
@@ -23,8 +26,8 @@
     --border: #e5e5e5;
     --text: #1a1a1a;
     --text-muted: #6b6b70;
-    --accent: #d21414; /* couleur réelle de la marque Pivot -- voir icons/pivot_logo.png */
-    --accent-hover: #a10f0f;
+    --accent: #ec6718; /* couleur réelle de la marque PlayPivot -- voir icons/pivot_logo.png */
+    --accent-hover: #b85012;
     --bg: #fafafa;
   }
   * { box-sizing: border-box; }
@@ -46,8 +49,10 @@
     border-radius: 10px;
     padding: 32px;
   }
+  @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
   h1 {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 20px;
     font-weight: 600;
     margin: 0 0 4px;
@@ -184,7 +189,7 @@
   <!-- screen: logged out -->
   <div id="auth-screen">
     <h1 id="form-title">Log in</h1>
-    <p class="sub" id="form-sub">Access your Pivot workspace.</p>
+    <p class="sub" id="form-sub">Access your PlayPivot workspace.</p>
 
     <div id="name-field" style="display:none">
       <label for="full_name">Full name</label>
@@ -192,10 +197,10 @@
     </div>
 
     <div id="terms-field" style="display:none; background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:16px;">
-      <p style="font-size:12.5px; margin:0 0 10px; color:var(--muted); font-weight:600;">Before you continue, a few sentences on what Pivot actually is:</p>
-      <p style="font-size:12.5px; margin:0 0 8px; color:var(--ink);"><strong>What Pivot does:</strong> stores what your club enters (rosters, exercises, plans, assessments) so your club can organize its own coaching — and only acts on your club's instructions.</p>
-      <p style="font-size:12.5px; margin:0 0 8px; color:var(--ink);"><strong>What Pivot doesn't do:</strong> sell data, use it for advertising, share it beyond the circle you choose, or decide whether your club had the right to enter it in the first place.</p>
-      <p style="font-size:12.5px; margin:0 0 10px; color:var(--ink);"><strong>Who's responsible for what:</strong> Pivot is used worldwide, so this is a general principle, not every country's rules — <strong>your club is responsible</strong> for having the right to hold whatever data it enters (a player's, especially a minor's) under the law that applies where you are. <strong>Pivot is responsible</strong> for storing it securely and only using it the way your club instructs. Full detail in the document linked below.</p>
+      <p style="font-size:12.5px; margin:0 0 10px; color:var(--muted); font-weight:600;">Before you continue, a few sentences on what PlayPivot actually is:</p>
+      <p style="font-size:12.5px; margin:0 0 8px; color:var(--ink);"><strong>What PlayPivot does:</strong> stores what your club enters (rosters, exercises, plans, assessments) so your club can organize its own coaching — and only acts on your club's instructions.</p>
+      <p style="font-size:12.5px; margin:0 0 8px; color:var(--ink);"><strong>What PlayPivot doesn't do:</strong> sell data, use it for advertising, share it beyond the circle you choose, or decide whether your club had the right to enter it in the first place.</p>
+      <p style="font-size:12.5px; margin:0 0 10px; color:var(--ink);"><strong>Who's responsible for what:</strong> PlayPivot is used worldwide, so this is a general principle, not every country's rules — <strong>your club is responsible</strong> for having the right to hold whatever data it enters (a player's, especially a minor's) under the law that applies where you are. <strong>PlayPivot is responsible</strong> for storing it securely and only using it the way your club instructs. Full detail in the document linked below.</p>
       <label class="radio-option">
         <input type="checkbox" id="terms_accept_check" />
         <span>I have read and agree to the <a href="./privacy.html" target="_blank" style="color:var(--accent-deep);">Privacy &amp; Terms of Service</a><span id="terms-version-inline"></span>.</span>
@@ -312,7 +317,7 @@
     clearMessage();
     if (mode === "login") {
       els.title.textContent = "Log in";
-      els.sub.textContent = "Access your Pivot workspace.";
+      els.sub.textContent = "Access your PlayPivot workspace.";
       els.nameField.style.display = "none";
       document.getElementById("terms-field").style.display = "none";
       els.clubChoiceField.style.display = "none";
@@ -322,7 +327,7 @@
       els.toggleLink.textContent = "Create one";
     } else {
       els.title.textContent = "Create an account";
-      els.sub.textContent = "Your account, then create your own club/association or join one that's already on Pivot.";
+      els.sub.textContent = "Your account, then create your own club/association or join one that's already on PlayPivot.";
       els.nameField.style.display = "block";
       document.getElementById("terms-field").style.display = "block";
       els.clubChoiceField.style.display = "block";

@@ -1,22 +1,27 @@
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="icon" type="image/x-icon" href="./favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pivot — Roster</title>
+<title>PlayPivot — Roster</title>
 <style>
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
-    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
+    --accent: #ec6718; --accent-deep: #b85012; --accent-tint: #fdefe7;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
-  h1, h2, .logotype { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+  h1, h2, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
 
   nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
-  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .logotype-img { height: 28px; width: auto; display: block; }
   .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
   .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
   .nav-btn:hover { border-color: var(--accent); }
@@ -96,7 +101,7 @@
 <body>
 
 <nav>
-  <a href="./dashboard.html" class="logotype" style="text-decoration:none; color:inherit;">Pi<span class="v-red">v</span>ot<span class="dot">.</span></a>
+  <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo.png" alt="PlayPivot" class="logotype-img" /></a>
   <div class="nav-right">
     <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
@@ -160,7 +165,16 @@
         <div class="field"><label>First name *</label><input id="f-first_name" type="text" /></div>
         <div class="field"><label>Last name *</label><input id="f-last_name" type="text" /></div>
         <div class="field"><label>Birth year</label><input id="f-birth_year" type="number" placeholder="2012" /></div>
-        <div class="field"><label>Category</label><input id="f-category" type="text" placeholder="U15" /></div>
+        <div class="field"><label>Position</label>
+          <select id="f-category">
+            <option value="">—</option>
+            <option value="PG (Base)">PG — Base</option>
+            <option value="SG (Escolta)">SG — Escolta</option>
+            <option value="SF (Alero)">SF — Alero</option>
+            <option value="PF (Ala-Pívot)">PF — Ala-Pívot</option>
+            <option value="C (Pívot)">C — Pívot</option>
+          </select>
+        </div>
         <div class="field"><label>Jersey number</label><input id="f-jersey_number" type="text" /></div>
         <div class="field">
           <label>Gender</label>
@@ -198,12 +212,14 @@
   // Colonnes possibles -- l'utilisateur choisit lesquelles voir (menu
   // "Columns"), gardé en mémoire d'une visite à l'autre via localStorage.
   // ---------------------------------------------------------------------
+  const POSITIONS = ["", "PG (Base)", "SG (Escolta)", "SF (Alero)", "PF (Ala-Pívot)", "C (Pívot)"];
+
   const COLUMN_DEFS = [
     { key: "jersey_number", label: "#", default: true, type: "text" },
     { key: "first_name", label: "First name", default: true, type: "text" },
     { key: "last_name", label: "Last name", default: true, type: "text" },
     { key: "birth_year", label: "Birth year", default: false, type: "number" },
-    { key: "category", label: "Category", default: true, type: "text" },
+    { key: "category", label: "Position", default: true, type: "select", options: POSITIONS },
     { key: "gender", label: "Gender", default: false, type: "select", options: ["", "Girl", "Boy"] },
     { key: "license_number", label: "License #", default: false, type: "text" },
     { key: "has_license", label: "Ready", default: true, type: "checkbox" },
@@ -211,16 +227,6 @@
     { key: "visibility", label: "Who sees them", default: true, type: "select", options: ["team", "private"] },
   ];
   const FORM_FIELDS = ["first_name","last_name","birth_year","category","jersey_number","gender","license_number"];
-
-  function saveDefaultCategory(season, team, category) {
-    const store = JSON.parse(localStorage.getItem("pivot_roster_default_categories") || "{}");
-    store[`${season}|${team}`] = category;
-    localStorage.setItem("pivot_roster_default_categories", JSON.stringify(store));
-  }
-  function getDefaultCategory(season, team) {
-    const store = JSON.parse(localStorage.getItem("pivot_roster_default_categories") || "{}");
-    return store[`${season}|${team}`] || "";
-  }
 
   function loadVisibleColumns() {
     const saved = localStorage.getItem("pivot_roster_columns");
@@ -315,8 +321,6 @@
     newBtn.addEventListener("click", async () => {
       const created = await promptNewTeam(supabaseClient, currentOrgId);
       if (!created) return;
-      const category = prompt("Default position for new players on this team (e.g. PG) — optional, can leave blank:");
-      if (category) saveDefaultCategory(created.season, created.team, category.trim());
       currentTeamCategory = created.team_category;
       selectSeasonTeam(created.season, created.team);
     });
@@ -499,7 +503,7 @@
   function openAdd() {
     if (!currentSeason || !currentTeam) { showMessage("Pick a season/team on the left first.", "error"); return; }
     FORM_FIELDS.forEach((f) => (document.getElementById("f-" + f).value = ""));
-    document.getElementById("f-category").value = getDefaultCategory(currentSeason, currentTeam);
+    document.getElementById("f-category").value = "";
     els.panel.classList.add("open");
   }
   function closePanel() { els.panel.classList.remove("open"); }
@@ -591,7 +595,7 @@
     }
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(...ink);
-    doc.text(els.orgName.textContent || "Pivot", marginX, y);
+    doc.text(els.orgName.textContent || "PlayPivot", marginX, y);
     y += 17;
     doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(...muted);
     doc.text(`Roster — ${currentTeam} (${currentSeason})`, marginX, y);
@@ -644,7 +648,7 @@
     });
 
     doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...muted);
-    doc.text(`Generated by Pivot on ${new Date().toISOString().slice(0, 10)} — ${players.length} players`, marginX, pageH - 14);
+    doc.text(`Generated by PlayPivot on ${new Date().toISOString().slice(0, 10)} — ${players.length} players`, marginX, pageH - 14);
 
     doc.save(`${currentTeam}_${currentSeason}_roster.pdf`);
   }
@@ -851,8 +855,9 @@
         <li><strong>Pick or create a team</strong> — on the left, click an existing season/team, or "+ New season/team" (top) and answer the three questions: season, team name, and an optional default category (pre-fills new players, saves you retyping it each time).</li>
         <li><strong>Add a player</strong> — click "+ Add player" above the table, fill in the panel, Save. Needs at least a first and last name.</li>
         <li><strong>Edit a player</strong> — no separate edit screen: just click any cell in the table (name, category, checkboxes...), type the new value, and click away or press Enter. It saves right away.</li>
-        <li><strong>Show/hide columns</strong> — click "Columns ▾", tick what you want to see (e.g. add birth year, hide category). Remembered next time you open Roster.</li>
-        <li><strong>Ready</strong> is a simple yes/no — whether this player is cleared to play. Pivot doesn't store any license number or scanned document; that stays with whatever official system your federation already uses.</li>
+        <li><strong>Show/hide columns</strong> — click "Columns ▾", tick what you want to see (e.g. add birth year, hide position). Remembered next time you open Roster.</li>
+        <li><strong>Position</strong> is a dropdown on purpose — PG/SG/SF/PF/C (Base/Escolta/Alero/Ala-Pívot/Pívot) — so it filters and reports cleanly, instead of "PG"/"Base"/"Point Guard" all meaning the same thing but never matching each other.</li>
+        <li><strong>Ready</strong> is a simple yes/no — whether this player is cleared to play. PlayPivot doesn't store any license number or scanned document; that stays with whatever official system your federation already uses.</li>
         <li><strong>Export to Excel</strong> — click the button, get a spreadsheet of the currently selected team, ready to send or archive.</li>
         <li><strong>Import from Excel</strong> — click the button, pick a file. It recognizes common column names automatically (English or French, a combined "Last, First" name column, full birth dates instead of just the year...). Rows without a usable name are skipped, not imported.</li>
         <li><strong>Remove a team</strong> — click the small 🗑 next to a team's name in the left list. This deletes all its players too, so it asks to confirm first.</li>

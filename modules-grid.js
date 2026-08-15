@@ -14,7 +14,7 @@ const PIVOT_MODULES = [
   {
     key: "library",
     title: "Exercise library",
-    blurb: "Search and filter every exercise you can use — your own, your club association's, or the whole Pivot community's.",
+    blurb: "Search and filter every exercise you can use — your own, your club association's, or the whole PlayPivot community's.",
     icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13Z"/><path d="M8 7h8M8 10.5h5"/>',
   },
   {

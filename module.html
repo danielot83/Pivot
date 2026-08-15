@@ -1,9 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="icon" type="image/x-icon" href="./favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pivot — Module</title>
+<title>PlayPivot — Module</title>
 <style>
   /* Même feuille de style que index.html -- une seule logique de design
      partagée entre la page d'accueil et chaque fiche de module. */
@@ -13,9 +16,9 @@
     --line: #e5e5e5;
     --paper: #fafafa;
     --card: #ffffff;
-    --accent: #d21414;
-    --accent-deep: #a10f0f;
-    --accent-tint: #fceceb;
+    --accent: #ec6718;
+    --accent-deep: #b85012;
+    --accent-tint: #fdefe7;
   }
   * { box-sizing: border-box; }
   body {
@@ -25,7 +28,9 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     line-height: 1.6;
   }
-  h1, h2, .logotype { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+  h1, h2, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
 
   nav {
@@ -37,7 +42,7 @@
     background: var(--card);
   }
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
-  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .logotype-img { height: 28px; width: auto; display: block; }
   .nav-cta {
     background: var(--ink);
     color: #fff;
@@ -158,7 +163,7 @@
 <body>
 
 <nav>
-  <a href="./dashboard.html" class="logotype" style="text-decoration:none; color:inherit;">Pi<span class="v-red">v</span>ot<span class="dot">.</span></a>
+  <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo.png" alt="PlayPivot" class="logotype-img" /></a>
 </nav>
 
 <div class="wrap">
@@ -185,7 +190,7 @@
 </div>
 
 <footer>
-  Pivot is in continuous development.
+  PlayPivot is in continuous development.
   <br><br>
   Created by DOT — non-profit, 2026.
 </footer>
@@ -207,13 +212,13 @@
       title: "Create exercise",
       tagline: "Build a drill by hand — court diagram, difficulty, tags — or fill it in with an AI prompt.",
       concept1: "Every coach accumulates exercises over the years — drills for dribbling, shooting, defense, game situations. Create exercise gives each one a real court diagram, a difficulty rating, categories, and age groups, so you can find the right drill in seconds instead of digging through old notes.",
-      concept2: "Fill it in by hand, or copy a ready-made prompt into any AI chat, describe the drill, and paste the reply back — it fills in name, difficulty, categories, tags, objectives and description for you to review. The diagram itself always stays hand-drawn. Choose exercise by exercise whether to keep it private to your club or share it so other coaches on Pivot can use it too.",
+      concept2: "Fill it in by hand, or copy a ready-made prompt into any AI chat, describe the drill, and paste the reply back — it fills in name, difficulty, categories, tags, objectives and description for you to review. The diagram itself always stays hand-drawn. Choose exercise by exercise whether to keep it private to your club or share it so other coaches on PlayPivot can use it too.",
     },
     library: {
       title: "Exercise library",
       tagline: "Browse, search, and filter every exercise — yours and whatever your club/association/community has shared.",
       concept1: "Once you've got more than a handful of exercises, finding the right one again is the real challenge. The library lets you search by name, tag, or description, and filter by difficulty, age group, category, language, favorites, or ones you've never actually used in a session.",
-      concept2: "Exercises can come from your own club, from your club association, or from the whole Pivot community, each marked with its own little icon so you always know where a drill came from. Duplicate one to make it your own, or duplicate it as a translation to keep the same exercise in more than one language.",
+      concept2: "Exercises can come from your own club, from your club association, or from the whole PlayPivot community, each marked with its own little icon so you always know where a drill came from. Duplicate one to make it your own, or duplicate it as a translation to keep the same exercise in more than one language.",
     },
     training: {
       title: "Training builder",
@@ -253,7 +258,7 @@
   const mod = MODULES[key];
 
   if (mod) {
-    document.title = `Pivot — ${mod.title}`;
+    document.title = `PlayPivot — ${mod.title}`;
     document.getElementById("mod-title").textContent = mod.title;
     document.getElementById("mod-tagline").textContent = mod.tagline;
     document.getElementById("mod-concept-1").textContent = mod.concept1;

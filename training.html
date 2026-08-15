@@ -1,22 +1,27 @@
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="icon" type="image/x-icon" href="./favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pivot — Training builder</title>
+<title>PlayPivot — Training builder</title>
 <style>
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
-    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
+    --accent: #ec6718; --accent-deep: #b85012; --accent-tint: #fdefe7;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
-  h1, h2, h3, .logotype { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+  h1, h2, h3, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
 
   nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
-  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .logotype-img { height: 28px; width: auto; display: block; }
   .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
   .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
   .nav-btn:hover { border-color: var(--accent); }
@@ -82,7 +87,7 @@
 <body>
 
 <nav>
-  <a href="./dashboard.html" class="logotype" style="text-decoration:none; color:inherit;">Pi<span class="v-red">v</span>ot<span class="dot">.</span></a>
+  <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo.png" alt="PlayPivot" class="logotype-img" /></a>
   <div class="nav-right">
     <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
@@ -232,7 +237,7 @@
             <option value="private">🔒 Only me</option>
             <option value="team">👥 My team</option>
             <option value="association">🤝 My club association</option>
-            <option value="community">🌐 Pivot Community</option>
+            <option value="community">🌐 PlayPivot Community</option>
           </select>
         </div>
       </div>
@@ -1066,7 +1071,7 @@
   // -----------------------------------------------------------------------
   function drawSessionPage(doc, sess, logoDataUrl, clubName) {
     const PAGE_W = 595, PAGE_H = 842, MARGIN = 20, BOTTOM = PAGE_H - MARGIN;
-    const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
+    const DARK = 30, GREY = 130, ACCENT = [236, 103, 24];
 
     function sectionFrame(x0, y0, x1, y1, title) {
       doc.setDrawColor(GREY); doc.setLineWidth(0.8);
@@ -1291,8 +1296,8 @@
     }
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-    doc.setTextColor(DARK); doc.text("Pi", MARGIN, BOTTOM + 13);
-    const w1 = doc.getTextWidth("Pi");
+    doc.setTextColor(DARK); doc.text("PlayPi", MARGIN, BOTTOM + 13);
+    const w1 = doc.getTextWidth("PlayPi");
     doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text("v", MARGIN + w1, BOTTOM + 13);
     const w2 = doc.getTextWidth("v");
     doc.setTextColor(DARK); doc.text("ot", MARGIN + w1 + w2, BOTTOM + 13);
@@ -1332,7 +1337,7 @@
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: [595, 842] });
     const PAGE_W = 595, PAGE_H = 842;
-    const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
+    const DARK = 30, GREY = 130, ACCENT = [236, 103, 24];
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const clubName = (els.orgName.textContent || "").trim();
 
@@ -1342,7 +1347,7 @@
       try { doc.addImage(logoDataUrl, (PAGE_W - logoSize) / 2, 200, logoSize, logoSize); } catch (e) {}
     }
     doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(GREY);
-    doc.text(clubName || "Pivot", PAGE_W / 2, 370, { align: "center" });
+    doc.text(clubName || "PlayPivot", PAGE_W / 2, 370, { align: "center" });
     doc.setFont("helvetica", "bold"); doc.setFontSize(28); doc.setTextColor(DARK);
     doc.text("Training notebook", PAGE_W / 2, 410, { align: "center" });
     doc.setFont("helvetica", "normal"); doc.setFontSize(15); doc.setTextColor(GREY);
@@ -1350,7 +1355,18 @@
     doc.setFontSize(11);
     doc.text(`${mine.length} session${mine.length === 1 ? "" : "s"}`, PAGE_W / 2, 456, { align: "center" });
     doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-    doc.setTextColor(DARK); doc.text("Pi", PAGE_W / 2 - 8, 780, { align: "center" });
+    {
+      const fullW = doc.getTextWidth("PlayPivot.");
+      const startX = PAGE_W / 2 - fullW / 2;
+      doc.setTextColor(DARK); doc.text("PlayPi", startX, 780);
+      const cw1 = doc.getTextWidth("PlayPi");
+      doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text("v", startX + cw1, 780);
+      const cw2 = doc.getTextWidth("v");
+      doc.setTextColor(DARK); doc.text("ot", startX + cw1 + cw2, 780);
+      const cw3 = doc.getTextWidth("ot");
+      doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text(".", startX + cw1 + cw2 + cw3, 780);
+      doc.setTextColor(DARK);
+    }
 
     // ---------- Une page par séance, triée par numéro ----------
     const sorted = [...mine].sort((a, b) => (a.number || 0) - (b.number || 0) || new Date(a.date) - new Date(b.date));
@@ -1408,7 +1424,7 @@
   // -----------------------------------------------------------------------
   function drawExercisePageOnNewPage(doc, e, logoDataUrl, clubName, L) {
     const PAGE_W = 496.8, PAGE_H = 720, MARGIN = 14, BOTTOM = PAGE_H - MARGIN;
-    const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
+    const DARK = 30, GREY = 130, ACCENT = [236, 103, 24];
     doc.addPage([PAGE_W, PAGE_H]);
 
     function sectionFrame(x0, y0, x1, y1, title) {
@@ -1633,8 +1649,8 @@
     });
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-    doc.setTextColor(DARK); doc.text("Pi", MARGIN, BOTTOM + 11);
-    const w1 = doc.getTextWidth("Pi");
+    doc.setTextColor(DARK); doc.text("PlayPi", MARGIN, BOTTOM + 11);
+    const w1 = doc.getTextWidth("PlayPi");
     doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text("v", MARGIN + w1, BOTTOM + 11);
     const w2 = doc.getTextWidth("v");
     doc.setTextColor(DARK); doc.text("ot", MARGIN + w1 + w2, BOTTOM + 11);
@@ -1656,7 +1672,7 @@
     const { jsPDF } = window.jspdf;
     const COVER_W = 595, COVER_H = 842;
     const doc = new jsPDF({ unit: "pt", format: [COVER_W, COVER_H] });
-    const DARK = 30, GREY = 130, ACCENT = [201, 0, 43];
+    const DARK = 30, GREY = 130, ACCENT = [236, 103, 24];
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const clubName = (els.orgName.textContent || "").trim();
     const notebookName = document.getElementById("notebook-name").value || "Notebook";
@@ -1668,13 +1684,24 @@
       try { doc.addImage(logoDataUrl, (COVER_W - logoSize) / 2, 190, logoSize, logoSize); } catch (e) {}
     }
     doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(GREY);
-    doc.text(clubName || "Pivot", COVER_W / 2, 350, { align: "center" });
+    doc.text(clubName || "PlayPivot", COVER_W / 2, 350, { align: "center" });
     doc.setFont("helvetica", "bold"); doc.setFontSize(28); doc.setTextColor(DARK);
     doc.text(notebookName, COVER_W / 2, 390, { align: "center" });
     doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(GREY);
     doc.text(`${notebookContents.length} exercise${notebookContents.length === 1 ? "" : "s"}`, COVER_W / 2, 412, { align: "center" });
     doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-    doc.setTextColor(DARK); doc.text("Pi", COVER_W / 2 - 8, 780, { align: "center" });
+    {
+      const fullW = doc.getTextWidth("PlayPivot.");
+      const startX = COVER_W / 2 - fullW / 2;
+      doc.setTextColor(DARK); doc.text("PlayPi", startX, 780);
+      const cw1 = doc.getTextWidth("PlayPi");
+      doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text("v", startX + cw1, 780);
+      const cw2 = doc.getTextWidth("v");
+      doc.setTextColor(DARK); doc.text("ot", startX + cw1 + cw2, 780);
+      const cw3 = doc.getTextWidth("ot");
+      doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text(".", startX + cw1 + cw2 + cw3, 780);
+      doc.setTextColor(DARK);
+    }
 
     // ---------- Une fiche complète par exercice, diagrammes compris ----------
     const { data: fullExercises } = await supabaseClient
@@ -1756,7 +1783,7 @@
         <li><strong>Attendance</strong> is pulled from the team's roster — untick anyone who wasn't there.</li>
         <li><strong>Post-session feedback</strong> is deliberately separate from everything above — the rest is what you planned, this is what actually happened: a rating, comments, and ideas for next time. Fill it in after the session, whenever you're ready.</li>
         <li><strong>Export to PDF</strong> makes a session sheet in the same style as the exercise sheets: attendance on the left, the plan in the middle, the summary and feedback on the right. <strong>Export whole book</strong> (under Sessions) does the same for every session of the selected team/season at once, with a cover page.</li>
-        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on Pivot (view only for them). The icon next to each session in the list shows its current circle.</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). The icon next to each session in the list shows its current circle.</li>
       </ul>`;
     box.style.display = "block";
   });

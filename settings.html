@@ -1,22 +1,27 @@
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="icon" type="image/x-icon" href="./favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pivot — Settings</title>
+<title>PlayPivot — Settings</title>
 <style>
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
-    --accent: #d21414; --accent-deep: #a10f0f; --accent-tint: #fceceb;
+    --accent: #ec6718; --accent-deep: #b85012; --accent-tint: #fdefe7;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
-  h1, h2, .logotype { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+  h1, h2, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
 
   nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
-  .logotype .v-red, .logotype .dot { color: var(--accent); }
+  .logotype-img { height: 28px; width: auto; display: block; }
   .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
   .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
   .nav-btn:hover { border-color: var(--accent); }
@@ -69,7 +74,7 @@
 <body>
 
 <nav>
-  <a href="./dashboard.html" class="logotype" style="text-decoration:none; color:inherit;">Pi<span class="v-red">v</span>ot<span class="dot">.</span></a>
+  <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo.png" alt="PlayPivot" class="logotype-img" /></a>
   <div class="nav-right">
     <img id="org-logo-nav" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
     <span id="org-name"></span>
@@ -104,7 +109,7 @@
 
   <div class="card" id="logo-card">
     <h2>Club logo</h2>
-    <p class="hint">Shown across Pivot wherever your club appears.</p>
+    <p class="hint">Shown across PlayPivot wherever your club appears.</p>
 
     <div class="logo-row">
       <div class="logo-preview" id="logo-preview"><span>No logo yet</span></div>
@@ -124,7 +129,7 @@
         or <a href="https://remove-bg.io/" target="_blank" rel="noopener" style="color:var(--accent-deep);">remove-bg.io</a>,
         then upload the result here.</li>
       <li>Formats accepted: PNG, JPEG, or WebP. Max 2 MB.</li>
-      <li>Pivot resizes it automatically, so don't worry about the exact pixel size.</li>
+      <li>PlayPivot resizes it automatically, so don't worry about the exact pixel size.</li>
     </ul>
   </div>
 
@@ -178,7 +183,7 @@
       <option value="private">🔒 Only me</option>
       <option value="team">👥 My team</option>
       <option value="association">🤝 My club association</option>
-      <option value="community">🌐 Pivot Community</option>
+      <option value="community">🌐 PlayPivot Community</option>
     </select>
     <button class="btn btn-primary apply-bulk-btn">Set all exercises to this</button>
   </div>
@@ -191,14 +196,14 @@
       <option value="private">🔒 Only me</option>
       <option value="team">👥 My team</option>
       <option value="association">🤝 My club association</option>
-      <option value="community">🌐 Pivot Community</option>
+      <option value="community">🌐 PlayPivot Community</option>
     </select>
     <button class="btn btn-primary apply-bulk-btn">Set all plays to this</button>
   </div>
 
   <div class="card sharing-bulk-card" data-table="matches" style="display:none">
     <h2>Match reports sharing</h2>
-    <p class="hint">Match reports contain real player stats, so "Pivot Community" isn't offered here on purpose.</p>
+    <p class="hint">Match reports contain real player stats, so "PlayPivot Community" isn't offered here on purpose.</p>
     <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
     <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
@@ -210,7 +215,7 @@
 
   <div class="card sharing-bulk-card" data-table="trainings" style="display:none">
     <h2>Training sessions sharing</h2>
-    <p class="hint">Sessions include real attendance, so "Pivot Community" isn't offered here on purpose. You can still pick one session at a time in Training builder.</p>
+    <p class="hint">Sessions include real attendance, so "PlayPivot Community" isn't offered here on purpose. You can still pick one session at a time in Training builder.</p>
     <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
     <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
@@ -222,7 +227,7 @@
 
   <div class="card sharing-bulk-card" data-table="player_assessments" style="display:none">
     <h2>Player assessments sharing</h2>
-    <p class="hint">Assessments are always a real player's evaluation, so "Pivot Community" isn't offered here on purpose.</p>
+    <p class="hint">Assessments are always a real player's evaluation, so "PlayPivot Community" isn't offered here on purpose.</p>
     <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
     <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
@@ -234,7 +239,7 @@
 
   <div class="card" id="associations-card" style="display:none">
     <h2>Club association</h2>
-    <p class="hint">A middle circle between "just my club" and "everyone on Pivot" — a small group of clubs (e.g. a league) who agree to share content with each other. Needs approval from the Pivot platform controller before it becomes real.</p>
+    <p class="hint">A middle circle between "just my club" and "everyone on PlayPivot" — a small group of clubs (e.g. a league) who agree to share content with each other. Needs approval from the PlayPivot platform controller before it becomes real.</p>
     <div id="associations-list" style="margin-bottom:14px;"></div>
     <div class="field" style="margin-bottom:10px;">
       <label for="assoc-name-input">Name for a new association (e.g. "Liga Cantonal U16")</label>
@@ -374,7 +379,7 @@
     const email = document.getElementById("validator-email-input").value.trim();
     if (!email) return;
     const { data, error } = await supabaseClient.from("profiles").select("id").eq("email", email).maybeSingle();
-    if (error || !data) { showMessage("No Pivot account found with that email.", "error"); return; }
+    if (error || !data) { showMessage("No PlayPivot account found with that email.", "error"); return; }
     document.getElementById("validator-email-input").value = "";
     await setValidator(data.id, true);
   });
@@ -449,7 +454,7 @@
   // Partage en masse de tous les exercices du club -- pratique plutôt que
   // de cocher "share" un par un dans le créateur d'exercices.
   // -----------------------------------------------------------------------
-  const VISIBILITY_LABELS = { private: "Only me", team: "My team", association: "Club association", community: "Pivot Community" };
+  const VISIBILITY_LABELS = { private: "Only me", team: "My team", association: "Club association", community: "PlayPivot Community" };
 
   async function loadSharingStatus() {
     for (const card of document.querySelectorAll(".sharing-bulk-card")) {
@@ -524,7 +529,7 @@
         .from("club_association_members")
         .insert({ association_id: associationId, organization_id: currentOrgId, requested_by: userId, message });
       if (joinErr) throw joinErr;
-      showMessage("Request sent — waiting for the Pivot controller to approve it.", "success");
+      showMessage("Request sent — waiting for the PlayPivot controller to approve it.", "success");
       document.getElementById("assoc-name-input").value = "";
       document.getElementById("assoc-message-input").value = "";
       await loadAssociations();
@@ -715,10 +720,10 @@
     box.innerHTML = `
       <strong>How to use Settings</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li>Everyone can see this page, whatever their role — but only your club's <strong>admin</strong> (or a Pivot platform admin) can actually change anything here. If you're a coach, assistant, or viewer, everything below is visible but locked, with a note explaining why.</li>
+        <li>Everyone can see this page, whatever their role — but only your club's <strong>admin</strong> (or a PlayPivot platform admin) can actually change anything here. If you're a coach, assistant, or viewer, everything below is visible but locked, with a note explaining why.</li>
         <li><strong>Club logo</strong> — pick an image, it's automatically resized and converted; instructions for the best result are right below the upload button.</li>
         <li><strong>Members</strong> — change anyone's role with the dropdown, <strong>block</strong> someone to cut their access without deleting their history (they can be reactivated any time), or <strong>remove</strong> them for good. You can never demote, block, or remove the club's last admin — the app blocks it on purpose. Someone requesting to join for the first time shows up on your dashboard, not here.</li>
-        <li><strong>Exercise sharing</strong> — the two buttons here set ALL your exercises to either "Pivot Community" (everyone) or "My team" at once. To choose more precisely, set the sharing circle exercise by exercise in the Exercise creator: <strong>Only me</strong> (private, even from your own teammates), <strong>My team</strong> (your whole club), <strong>My club association</strong> (a small group of clubes who agreed to share, needs the platform controller's approval), or <strong>Pivot Community</strong> (every club on Pivot, view only for them). The same 4 choices exist in Plays, Match day, Training builder, and Player assessment — see the sections below to set them in bulk, or per item inside each module.</li>
+        <li><strong>Exercise sharing</strong> — the two buttons here set ALL your exercises to either "PlayPivot Community" (everyone) or "My team" at once. To choose more precisely, set the sharing circle exercise by exercise in the Exercise creator: <strong>Only me</strong> (private, even from your own teammates), <strong>My team</strong> (your whole club), <strong>My club association</strong> (a small group of clubes who agreed to share, needs the platform controller's approval), or <strong>PlayPivot Community</strong> (every club on PlayPivot, view only for them). The same 4 choices exist in Plays, Match day, Training builder, and Player assessment — see the sections below to set them in bulk, or per item inside each module.</li>
         <li><strong>Plays / Matches / Trainings / Assessments sharing</strong> — same 4 circles, same idea: set them all at once here, or pick one item at a time inside each module.</li>
         <li><strong>Club association</strong> — propose a new group of clubes, or join an existing one by typing its exact name. Nothing is shared until the platform controller approves it — you'll see the request's status here, and a 🔔 on your dashboard shows you (or the controller) what's pending.</li>
         <li><strong>Export language</strong> — the language new PDFs (roster sheets, assessments, plays, match reports...) are generated in for your club. Changing it doesn't touch PDFs you already downloaded.</li>
@@ -788,7 +793,7 @@
   }
 
   document.getElementById("request-login-deletion-btn").addEventListener("click", async () => {
-    if (!confirm("Send a request to delete your Pivot login itself (your email/password, not just club memberships)? A person on our side needs to complete this manually.")) return;
+    if (!confirm("Send a request to delete your PlayPivot login itself (your email/password, not just club memberships)? A person on our side needs to complete this manually.")) return;
     try {
       const { data: admins, error: adminErr } = await supabaseClient.rpc("get_platform_admin_contact");
       if (adminErr || !admins || admins.length === 0) throw new Error("Couldn't find anyone to send this to right now — try again later.");
