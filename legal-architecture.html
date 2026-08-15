@@ -83,6 +83,7 @@
       <li><a href="#technical">14. Technical decisions with legal consequences</a></li>
       <li><a href="#plan">15. Practical implementation plan</a></li>
       <li><a href="#sources">16. Sources</a></li>
+      <li><a href="#acceptances">17. Who has actually accepted, and when</a></li>
     </ul>
   </div>
 
@@ -277,7 +278,50 @@
   <div class="card disclaimer">
     This document is a legal and product architecture to prepare PlayPivot. It does not replace individualized legal advice and is not itself the final contracts.
   </div>
+
+  <h2 id="acceptances"><span class="clause-num">17.</span>Who has actually accepted, and when</h2>
+  <p>Live record from <code>terms_acceptances</code> — every acceptance ever logged, across every club. Not just your own club's members.</p>
+  <div class="card" style="padding:0; overflow:hidden;">
+    <table id="acceptances-table" style="margin:0;">
+      <thead><tr><th>Person</th><th>Version accepted</th><th>Date</th></tr></thead>
+      <tbody id="acceptances-tbody"><tr><td colspan="3" style="color:var(--muted); font-style:italic;">Loading…</td></tr></tbody>
+    </table>
+  </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  function escapeHtml(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+
+  async function loadAcceptances() {
+    const tbody = document.getElementById("acceptances-tbody");
+    const { data, error } = await supabaseClient
+      .from("terms_acceptances")
+      .select("terms_version, accepted_at, profiles(full_name)")
+      .order("accepted_at", { ascending: false });
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="3" style="color:#991b1b;">Couldn't load this — you probably need to be the platform admin to see it. (${escapeHtml(error.message)})</td></tr>`;
+      return;
+    }
+    if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted); font-style:italic;">No acceptances logged yet.</td></tr>'; return; }
+    tbody.innerHTML = data.map((r) => `
+      <tr>
+        <td>${escapeHtml((r.profiles && r.profiles.full_name) || "—")}</td>
+        <td>${escapeHtml(r.terms_version)}</td>
+        <td>${new Date(r.accepted_at).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}</td>
+      </tr>
+    `).join("");
+  }
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    await loadAcceptances();
+  }
+  init();
+</script>
 </body>
 </html>

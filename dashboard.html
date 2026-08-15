@@ -135,6 +135,7 @@
         <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
       </h1>
       <p class="sub" id="club-status-text"></p>
+      <p class="sub" id="my-clubs-list" style="margin-top:-8px; font-size:12.5px;"></p>
       <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
     </div>
     <div style="text-align:center; flex-shrink:0;">
@@ -182,9 +183,10 @@
   <p class="section-label">Tools</p>
   <div class="grid" id="modules-grid"></div>
 
-  <div class="side-card" id="privacy-status-card" style="max-width:420px;"></div>
-
-  <div class="side-card" id="example-data-card" style="max-width:320px;"></div>
+  <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
+    <div class="side-card" id="privacy-status-card" style="flex:1 1 380px; max-width:420px;"></div>
+    <div class="side-card" id="example-data-card" style="flex:1 1 260px; max-width:320px;"></div>
+  </div>
 
   <div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
     <label style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); cursor:pointer;">
@@ -265,10 +267,19 @@
 
     const { data, error } = await supabaseClient
       .from("memberships")
-      .select("organization_id, status, organizations(name)")
+      .select("organization_id, status, role, team_season, team_name, organizations(name)")
       .eq("status", "active");
 
     if (error) console.error("loadMyOrganization error:", error);
+
+    // "DEL basket — admin (whole club)" ; "DEL basket — coach (U8 only)" -- para
+    // que se vea de un vistazo en qué clubes está y con qué rol en cada uno,
+    // sin tener que abrir el selector de arriba uno a uno.
+    if (data && data.length > 0) {
+      document.getElementById("my-clubs-list").textContent = data
+        .map((m) => `${(m.organizations && m.organizations.name) || "?"} — ${m.role}${m.team_season ? ` (${m.team_name} only)` : " (whole club)"}`)
+        .join("  ·  ");
+    }
 
     if (error || !data || data.length === 0) {
       els.clubStatusText.textContent = "You're not an active member of any club or association yet.";
