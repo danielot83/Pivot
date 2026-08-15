@@ -545,7 +545,7 @@
     list.innerHTML = "";
     const { data, error } = await supabaseClient
       .from("memberships")
-      .select("id, role, status, user_id, linked_player_id, profiles(full_name)")
+      .select("id, role, status, user_id, linked_player_id, team_season, team_name, profiles(full_name)")
       .eq("organization_id", currentOrgId)
       .in("status", ["active", "blocked"])
       .order("status");
@@ -554,6 +554,18 @@
     const { data: playersData } = await supabaseClient
       .from("players").select("id, first_name, last_name, season, team").eq("organization_id", currentOrgId).order("last_name");
     orgPlayersForLinking = playersData || [];
+
+    // Mêmes saison+équipe que dans le roster, pour "scoper" une adhésion
+    // à UNE équipe précise au lieu de tout le club -- fusion players +
+    // teams (le registre), comme ailleurs, pour avoir aussi les équipes
+    // qui n'ont pas encore de joueur.
+    const { data: teamsData } = await supabaseClient.from("teams").select("season, team").eq("organization_id", currentOrgId);
+    const teamKeys = new Set();
+    const teamOptions = [];
+    [...(playersData || []), ...(teamsData || [])].forEach((r) => {
+      const key = `${r.season}|${r.team}`;
+      if (!teamKeys.has(key)) { teamKeys.add(key); teamOptions.push({ season: r.season, team: r.team }); }
+    });
 
     (data || []).forEach((m) => {
       const row = document.createElement("div");
@@ -587,6 +599,20 @@
       linkedSelect.disabled = m.status === "blocked";
       linkedSelect.addEventListener("change", () => linkPlayer(m.id, linkedSelect.value || null));
 
+      // Acotar esta membresía a UN equipo concreto (ej. "DEL U8"), no
+      // todo el club -- opcional. En blanco = ve todo el club, como
+      // siempre. Para un jugador vinculado arriba, el equipo se deduce
+      // solo de su ficha, no hace falta tocar esto también.
+      const scopeSelect = document.createElement("select");
+      scopeSelect.title = "Scope this person to one team only (optional)";
+      scopeSelect.disabled = m.status === "blocked";
+      scopeSelect.innerHTML = '<option value="">Whole club</option>' +
+        teamOptions.map((t) => `<option value="${escapeHtml(t.season)}|${escapeHtml(t.team)}" ${t.season === m.team_season && t.team === m.team_name ? "selected" : ""}>${escapeHtml(t.team)} — ${escapeHtml(t.season)} only</option>`).join("");
+      scopeSelect.addEventListener("change", () => {
+        const [season, team] = scopeSelect.value ? scopeSelect.value.split("|") : [null, null];
+        setTeamScope(m.id, season, team);
+      });
+
       const statusBtn = document.createElement("button");
       statusBtn.textContent = m.status === "blocked" ? "Reactivate" : "Block";
       statusBtn.addEventListener("click", () => changeStatus(m.id, m.status === "blocked" ? "active" : "blocked", row));
@@ -597,6 +623,7 @@
 
       actions.appendChild(roleSelect);
       actions.appendChild(linkedSelect);
+      actions.appendChild(scopeSelect);
       actions.appendChild(statusBtn);
       actions.appendChild(removeBtn);
       row.appendChild(info);
@@ -612,6 +639,16 @@
       showMessage(playerId ? "Linked to that roster player." : "Unlinked.", "success");
     } catch (err) {
       showMessage(err.message || "Couldn't link that player.", "error");
+    }
+  }
+
+  async function setTeamScope(membershipId, season, team) {
+    try {
+      const { error } = await supabaseClient.from("memberships").update({ team_season: season, team_name: team }).eq("id", membershipId);
+      if (error) throw error;
+      showMessage(season ? `Scoped to ${team} — ${season} only.` : "Scoped to the whole club again.", "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't change that scope.", "error");
     }
   }
 
