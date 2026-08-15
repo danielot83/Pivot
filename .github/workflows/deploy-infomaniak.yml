@@ -21,7 +21,7 @@ jobs:
           username: ${{ secrets.INFOMANIAK_FTP_USERNAME }}
           password: ${{ secrets.INFOMANIAK_FTP_PASSWORD }}
           local-dir: ./
-          server-dir: ./
+          server-dir: ./sites/playpivot.app/
           # No hace falta subir la carpeta de migraciones SQL (no es
           # parte de la web publica), ni los archivos internos de git
           exclude: |
