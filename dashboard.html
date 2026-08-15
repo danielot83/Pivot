@@ -275,23 +275,28 @@
     // "DEL basket — admin (whole club)" ; "DEL basket — coach (U8 only)" -- para
     // que se vea de un vistazo en qué clubes está y con qué rol en cada uno,
     // sin tener que abrir el selector de arriba uno a uno.
-    if (data && data.length > 0) {
-      document.getElementById("my-clubs-list").textContent = data
-        .map((m) => `${(m.organizations && m.organizations.name) || "?"} — ${m.role}${m.team_season ? ` (${m.team_name} only)` : " (whole club)"}`)
-        .join("  ·  ");
-    }
+    const clubLines = (data || []).map((m) => `${(m.organizations && m.organizations.name) || "?"} — ${m.role}${m.team_season ? ` (${m.team_name} only)` : " (whole club)"}`);
+    if (isPlatformController) clubLines.unshift("Platform admin — access to every club");
+    document.getElementById("my-clubs-list").textContent = clubLines.join("  ·  ");
 
-    if (error || !data || data.length === 0) {
+    if (error) console.error("loadMyOrganization error:", error);
+    if ((error || !data || data.length === 0) && !isPlatformController) {
       els.clubStatusText.textContent = "You're not an active member of any club or association yet.";
       showJoinPrompt();
       return null;
     }
-    const chosen = pivotResolveActiveOrg(data);
-    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id);
+    const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
+    if (!chosen) {
+      els.clubStatusText.textContent = "You're not an active member of any club or association yet.";
+      showJoinPrompt();
+      await pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supabaseClient });
+      return null;
+    }
+    await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
     const orgName = (chosen.organizations && chosen.organizations.name) || "";
     els.orgName.textContent = orgName;
-    els.clubStatusText.textContent = orgName ? `Club: ${orgName}` : "";
+    els.clubStatusText.textContent = orgName ? `Club: ${orgName}${chosen.browsing_as_platform_admin ? " (browsing as platform admin)" : ""}` : "";
     loadOrgLogo(currentOrgId, orgName);
     loadPendingRequestsWidget();
     return currentOrgId;

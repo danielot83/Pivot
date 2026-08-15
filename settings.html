@@ -136,6 +136,7 @@
   <div class="card" id="members-card" style="display:none">
     <h2>Members</h2>
     <p class="hint">Change someone's role, block them (they keep their account but lose access to this club), or remove them for good. You can't demote, block, or remove the club's last admin. Someone asking to join for the first time shows up on the dashboard, not here.</p>
+    <p id="members-scope-notice" style="display:none; font-size:12.5px; color:var(--accent-deep); background:var(--accent-tint); padding:8px 10px; border-radius:6px; margin-bottom:10px;"></p>
     <div id="members-list"></div>
   </div>
 
@@ -264,6 +265,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
+<script src="team-tree.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
@@ -281,6 +283,8 @@
 
   let currentOrgId = null;
   let myRole = null;
+  let myTeamSeason = null;
+  let myTeamName = null;
   let canManage = false;
   let isPlatformController = false;
   let pendingBlob = null;
@@ -292,23 +296,31 @@
   }
 
   async function loadOrgAndLogo() {
-    const { data, error } = await supabaseClient
-      .from("memberships")
-      .select("organization_id, role, status, organizations(name)")
-      .eq("status", "active");
-    if (error || !data || data.length === 0) {
-      showMessage("You're not an active member of any club yet.", "error");
-      return;
-    }
-    const chosen = pivotResolveActiveOrg(data);
-    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id);
-    currentOrgId = chosen.organization_id;
-    myRole = chosen.role;
-    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
-
     const { data: userData } = await supabaseClient.auth.getUser();
     const { data: profRow } = await supabaseClient.from("profiles").select("is_platform_controller").eq("id", userData.user.id).maybeSingle();
     isPlatformController = !!(profRow && profRow.is_platform_controller);
+
+    const { data, error } = await supabaseClient
+      .from("memberships")
+      .select("organization_id, role, status, team_season, team_name, organizations(name)")
+      .eq("status", "active");
+    if ((error || !data || data.length === 0) && !isPlatformController) {
+      showMessage("You're not an active member of any club yet.", "error");
+      return;
+    }
+    const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
+    if (!chosen) {
+      showMessage("You're not an active member of any club yet.", "error");
+      await pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supabaseClient });
+      return;
+    }
+    await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
+    currentOrgId = chosen.organization_id;
+    myRole = chosen.role || "admin";
+    myTeamSeason = chosen.team_season || null;
+    myTeamName = chosen.team_name || null;
+    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
+
     canManage = myRole === "admin" || isPlatformController;
 
     // même logo dans la barre de navigation que sur les autres pages
@@ -543,6 +555,13 @@
   async function loadMembers() {
     const list = document.getElementById("members-list");
     list.innerHTML = "";
+    const scopeNotice = document.getElementById("members-scope-notice");
+    if (scopeNotice) {
+      scopeNotice.textContent = myTeamSeason
+        ? `You're scoped to ${myTeamName} — ${myTeamSeason}, so you only see and manage members scoped to that same team.`
+        : "";
+      scopeNotice.style.display = myTeamSeason ? "block" : "none";
+    }
     const { data, error } = await supabaseClient
       .from("memberships")
       .select("id, role, status, user_id, linked_player_id, team_season, team_name, profiles(full_name)")
@@ -607,8 +626,17 @@
       scopeSelect.title = "Scope this person to one team only (optional)";
       scopeSelect.disabled = m.status === "blocked";
       scopeSelect.innerHTML = '<option value="">Whole club</option>' +
-        teamOptions.map((t) => `<option value="${escapeHtml(t.season)}|${escapeHtml(t.team)}" ${t.season === m.team_season && t.team === m.team_name ? "selected" : ""}>${escapeHtml(t.team)} — ${escapeHtml(t.season)} only</option>`).join("");
-      scopeSelect.addEventListener("change", () => {
+        teamOptions.map((t) => `<option value="${escapeHtml(t.season)}|${escapeHtml(t.team)}" ${t.season === m.team_season && t.team === m.team_name ? "selected" : ""}>${escapeHtml(t.team)} — ${escapeHtml(t.season)} only</option>`).join("") +
+        '<option value="__new__">+ Create new team…</option>';
+      scopeSelect.addEventListener("change", async () => {
+        if (scopeSelect.value === "__new__") {
+          const created = await promptNewTeam(supabaseClient, currentOrgId);
+          if (!created) { scopeSelect.value = m.team_season ? `${m.team_season}|${m.team_name}` : ""; return; }
+          teamOptions.push({ season: created.season, team: created.team });
+          await setTeamScope(m.id, created.season, created.team);
+          await loadMembers();
+          return;
+        }
         const [season, team] = scopeSelect.value ? scopeSelect.value.split("|") : [null, null];
         setTeamScope(m.id, season, team);
       });

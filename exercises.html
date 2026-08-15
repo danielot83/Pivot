@@ -300,6 +300,7 @@
 
   let currentOrgId = null;
   let myRole = null;
+  let isPlatformController = false;
   const canDelete = () => myRole === "admin" || myRole === "coach";
   let currentExId = null;
   let currentTranslationGroupId = null;
@@ -698,11 +699,18 @@
   // Club + logo
   // -----------------------------------------------------------------------
   async function loadMyOrganization() {
+    const { data: userData } = await supabaseClient.auth.getUser();
+    const { data: profRow } = await supabaseClient.from("profiles").select("is_platform_controller").eq("id", userData.user.id).maybeSingle();
+    isPlatformController = !!(profRow && profRow.is_platform_controller);
     const { data, error } = await supabaseClient
       .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active");
-    if (error || !data || data.length === 0) { showMessage("You're not an active member of any club yet.", "error"); return null; }
-    const chosen = pivotResolveActiveOrg(data);
-    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id);
+    if ((error || !data || data.length === 0) && !isPlatformController) {
+      showMessage("You're not an active member of any club yet.", "error");
+      return null;
+    }
+    const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
+    if (!chosen) { showMessage("You're not an active member of any club yet.", "error"); await pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supabaseClient }); return null; }
+    await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
     myRole = chosen.role;
     els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
