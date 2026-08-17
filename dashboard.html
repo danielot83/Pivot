@@ -438,7 +438,7 @@
   let canValidateAssociations = false;
 
   function applyClubGate(hasAccess) {
-    document.getElementById("app-gated-content").style.display = hasAccess ? "block" : "none";
+    document.getElementById("app-gated-content").style.display = hasAccess ? "flow-root" : "none";
     document.getElementById("no-club-gate").style.display = hasAccess ? "none" : "block";
   }
 
@@ -521,19 +521,11 @@
     pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController });
 
     if (chosen.is_admin_view) {
-      // ⚠️ DIAGNÓSTICO TEMPORAL -- quitar en cuanto encontremos el bug.
-      alert(
-        "DIAGNÓSTICO ADMIN VIEW\n" +
-        "app-gated-content display: " + getComputedStyle(document.getElementById("app-gated-content")).display + "\n" +
-        "admin-view-only existe: " + !!document.getElementById("admin-view-only") + "\n" +
-        "modules-grid existe: " + !!document.getElementById("modules-grid") + "\n" +
-        "modules-grid hijos: " + document.getElementById("modules-grid").children.length
-      );
       // Vista de Admin general: nada de club concreto -- estadísticas de
       // toda la plataforma + la tabla con cada club.
       currentOrgId = null;
       document.getElementById("normal-view-only").style.display = "none";
-      document.getElementById("admin-view-only").style.display = "block";
+      document.getElementById("admin-view-only").style.display = "flow-root";
       document.getElementById("sidebar-admin-badge").style.display = "block";
       updateSidebarUser(null, "Platform admin");
       document.getElementById("sidebar-role-text").textContent = "Admin general — every club";
@@ -541,21 +533,10 @@
       els.orgLogoBig.style.display = "none";
       els.clubStatusText.textContent = "Admin general — access to every club";
       loadAdminClubsTable();
-      // ⚠️ DIAGNÓSTICO TEMPORAL #2 -- después de aplicar los cambios.
-      setTimeout(() => {
-        const av = document.getElementById("admin-view-only");
-        alert(
-          "DIAGNÓSTICO ADMIN VIEW (después)\n" +
-          "admin-view-only display: " + getComputedStyle(av).display + "\n" +
-          "admin-view-only alto (px): " + av.offsetHeight + "\n" +
-          "admin-view-only hijos: " + av.children.length + "\n" +
-          "app-gated-content alto (px): " + document.getElementById("app-gated-content").offsetHeight
-        );
-      }, 500);
       return null;
     }
 
-    document.getElementById("normal-view-only").style.display = "block";
+    document.getElementById("normal-view-only").style.display = "flow-root";
     document.getElementById("admin-view-only").style.display = "none";
     document.getElementById("sidebar-admin-badge").style.display = "none";
     currentOrgId = chosen.organization_id;
@@ -573,7 +554,7 @@
     els.msg.textContent = "⚠ Something went wrong loading the Dashboard: " + (err.message || String(err));
     els.msg.className = "msg error";
     els.msg.style.display = "block";
-    document.getElementById("app-gated-content").style.display = "block";
+    document.getElementById("app-gated-content").style.display = "flow-root";
     document.getElementById("normal-view-only").style.display = "none";
     document.getElementById("admin-view-only").style.display = "none";
     return null;
