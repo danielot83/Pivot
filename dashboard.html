@@ -533,6 +533,25 @@
       els.orgLogoBig.style.display = "none";
       els.clubStatusText.textContent = "Admin general — access to every club";
       loadAdminClubsTable();
+      // ⚠️ DIAGNÓSTICO TEMPORAL #2 -- quitar en cuanto lo resolvamos.
+      setTimeout(() => {
+        const av = document.getElementById("admin-view-only");
+        const wrap = document.querySelector(".wrap");
+        const main = document.querySelector(".main-content");
+        let childInfo = "";
+        Array.from(av.children).forEach((c, i) => {
+          childInfo += `\n  hijo ${i} <${c.tagName}>: alto=${c.offsetHeight}px, display=${getComputedStyle(c).display}, visibility=${getComputedStyle(c).visibility}`;
+        });
+        alert(
+          "DIAGNÓSTICO ADMIN VIEW v2\n" +
+          "admin-view-only alto: " + av.offsetHeight + "px, ancho: " + av.offsetWidth + "px\n" +
+          "admin-view-only display: " + getComputedStyle(av).display + "\n" +
+          ".wrap alto: " + (wrap ? wrap.offsetHeight : "NO EXISTE") + "px\n" +
+          ".main-content alto: " + (main ? main.offsetHeight : "NO EXISTE") + "px\n" +
+          "app-gated-content alto: " + document.getElementById("app-gated-content").offsetHeight + "px" +
+          childInfo
+        );
+      }, 800);
       return null;
     }
 
@@ -1203,6 +1222,14 @@
   // misma idea de "bidireccional" que ya tiene el calendario para leer,
   // ahora también para crear).
   // -----------------------------------------------------------------------
+  // La temporada ("2026-2027") no se le pregunta a nadie -- se calcula
+  // sola a partir de la fecha, siguiendo la convención habitual de que
+  // la temporada empieza en agosto.
+  function pivotSeasonFromDate(dateStr) {
+    const [y, m] = dateStr.split("-").map(Number);
+    return m >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
+  }
+
   function openCalendarAddModal(dateStr, dayLabel) {
     const overlay = document.createElement("div");
     overlay.className = "onboard-overlay";
@@ -1228,23 +1255,63 @@
     const fieldsEl = overlay.querySelector("#cal-add-fields");
     const saveBtn = overlay.querySelector("#cal-add-save-btn");
 
+    // Los equipos existentes (para no tener que escribir "U16" a mano
+    // cada vez, y porque team es obligatorio en matches/trainings).
+    let existingTeams = [];
+    supabaseClient.from("players").select("season, team").eq("organization_id", currentOrgId).then(({ data }) => {
+      const seen = new Set();
+      existingTeams = (data || [])
+        .filter((r) => !isExampleTeam(r.season, r.team))
+        .filter((r) => { const k = `${r.season}|${r.team}`; if (seen.has(k)) return false; seen.add(k); return true; })
+        .map((r) => r.team);
+      const sel = document.getElementById("cal-field-team");
+      if (sel && sel.tagName === "SELECT") {
+        sel.innerHTML = existingTeams.length
+          ? existingTeams.map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("") + '<option value="__new__">+ New team name…</option>'
+          : '<option value="__new__">Type a team name…</option>';
+      }
+    });
+
+    const teamFieldHtml = `
+        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Team</label>
+        <select id="cal-field-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;"><option>Loading…</option></select>
+        <input id="cal-field-team-new" type="text" placeholder="Team name (e.g. U16)" style="display:none; width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />`;
+
     const FIELD_TEMPLATES = {
       match: `
         <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Opponent</label>
         <input id="cal-field-opponent" type="text" placeholder="e.g. Madrid Hoops" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />
-        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Team (optional)</label>
-        <input id="cal-field-team" type="text" placeholder="e.g. U16" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />
+        ${teamFieldHtml}
         <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Location (optional)</label>
         <input id="cal-field-location" type="text" placeholder="e.g. Pabellón Municipal" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />`,
       training: `
         <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Title</label>
         <input id="cal-field-title" type="text" placeholder="e.g. Competition week" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />
-        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Team (optional)</label>
-        <input id="cal-field-team" type="text" placeholder="e.g. U16" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />`,
+        ${teamFieldHtml}`,
       event: `
         <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Comment / title</label>
         <input id="cal-field-title" type="text" placeholder="e.g. Championship game, Team photo day…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />`,
     };
+
+    function wireTeamSelect() {
+      const sel = document.getElementById("cal-field-team");
+      const newInput = document.getElementById("cal-field-team-new");
+      if (!sel) return;
+      sel.innerHTML = existingTeams.length
+        ? existingTeams.map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("") + '<option value="__new__">+ New team name…</option>'
+        : '<option value="__new__">Type a team name…</option>';
+      sel.addEventListener("change", () => {
+        newInput.style.display = sel.value === "__new__" ? "block" : "none";
+      });
+      if (sel.value === "__new__") newInput.style.display = "block";
+    }
+
+    function getTeamValue() {
+      const sel = document.getElementById("cal-field-team");
+      if (!sel) return "";
+      if (sel.value === "__new__") return document.getElementById("cal-field-team-new").value.trim();
+      return sel.value;
+    }
 
     overlay.querySelectorAll(".cal-type-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1254,6 +1321,7 @@
           b.style.color = b === btn ? "#fff" : "var(--ink)";
         });
         fieldsEl.innerHTML = FIELD_TEMPLATES[selectedType];
+        if (selectedType === "match" || selectedType === "training") wireTeamSelect();
         saveBtn.disabled = false;
       });
     });
@@ -1266,22 +1334,23 @@
       saveBtn.disabled = true;
       saveBtn.textContent = "Saving…";
       try {
+        const season = pivotSeasonFromDate(dateStr);
         if (selectedType === "match") {
           const opponent = document.getElementById("cal-field-opponent").value.trim();
           if (!opponent) throw new Error("Opponent is required for a match.");
-          const team = document.getElementById("cal-field-team").value.trim();
+          const team = getTeamValue();
+          if (!team) throw new Error("Team is required.");
           const location = document.getElementById("cal-field-location").value.trim();
-          const row = { organization_id: currentOrgId, date: dateStr, opponent };
-          if (team) row.team = team;
+          const row = { organization_id: currentOrgId, date: dateStr, opponent, team, season };
           if (location) row.location = location;
           const { error } = await supabaseClient.from("matches").insert(row);
           if (error) throw error;
         } else if (selectedType === "training") {
           const title = document.getElementById("cal-field-title").value.trim();
           if (!title) throw new Error("Title is required for a training session.");
-          const team = document.getElementById("cal-field-team").value.trim();
-          const row = { organization_id: currentOrgId, date: dateStr, title };
-          if (team) row.team = team;
+          const team = getTeamValue();
+          if (!team) throw new Error("Team is required.");
+          const row = { organization_id: currentOrgId, date: dateStr, title, team, season };
           const { error } = await supabaseClient.from("trainings").insert(row);
           if (error) throw error;
         } else {
