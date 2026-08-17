@@ -109,11 +109,10 @@ async function pivotRenderOrgSwitcher(containerId, memberships, activeOrgId, opt
     list = (data || []).map((o) => ({ organization_id: o.id, organizations: { name: o.name } }));
   }
 
-  // en "Mine" normal, el selector se sigue escondiendo si solo hay un
-  // club (como siempre) -- pero en "All", o si eres platform admin, se
-  // deja siempre visible, para poder entrar a cualquiera aunque solo
-  // tengas uno propio
-  if (scope === "mine" && !isPlatformController && list.length <= 1) { el.style.display = "none"; return; }
+  // en "Mine", el selector se esconde si solo hay un club -- para
+  // cualquiera, plataform admin incluido. En "All" se deja siempre
+  // visible, ya que ahí puedes entrar a cualquier club de la plataforma.
+  if (scope === "mine" && list.length <= 1) { el.style.display = "none"; return; }
   el.style.display = "inline-block";
   el.innerHTML = list
     .map((m) => `<option value="${m.organization_id}" ${m.organization_id === activeOrgId ? "selected" : ""}>${(m.organizations && m.organizations.name) || "?"}</option>`)

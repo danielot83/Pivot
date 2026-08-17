@@ -87,11 +87,11 @@
   .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 28px 32px 4px; flex-wrap: wrap; }
   .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .icon-btn {
-    width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--card);
+    width: 46px; height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
     display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); position: relative;
   }
   .icon-btn:hover { border-color: var(--accent); }
-  .icon-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .icon-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.7; }
   .icon-badge {
     position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 10px;
     font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
@@ -165,7 +165,8 @@
   .activity-time { color: var(--muted); font-size: 11.5px; white-space: nowrap; padding-left: 8px; flex-shrink: 0; }
   .activity-empty { font-size: 13px; color: var(--muted); }
 
-  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
   .module-card { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; text-decoration: none; color: inherit; transition: border-color 0.15s; }
   .module-card:hover { border-color: var(--accent); }
@@ -256,7 +257,8 @@
       <div class="sidebar-divider"></div>
       <nav class="sidebar-nav" style="padding:0;">
         <a href="./settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
-        <a href="./privacy.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z"/></svg>Help &amp; Privacy</a>
+        <a href="#" id="sidebar-help-link" class="sidebar-link" style="display:inline-block; width:calc(50% - 3px); text-align:center; padding-left:8px; padding-right:8px;"><svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:6px; vertical-align:-4px;"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
+        <a href="./privacy.html" class="sidebar-link" style="display:inline-block; width:calc(50% - 3px); margin-left:6px; text-align:center; padding-left:8px; padding-right:8px;"><svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:6px; vertical-align:-4px;"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z"/></svg>Privacy</a>
       </nav>
       <div class="sidebar-user" id="sidebar-user">
         <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
@@ -285,7 +287,7 @@
     </div>
     <div class="topbar-right">
       <select id="org-switcher" style="display:none; padding:7px 10px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; background:var(--card); color:var(--ink); order:4;"></select>
-      <img id="org-logo-big" style="width:38px; height:38px; border-radius:8px; object-fit:cover; display:none;" />
+      <img id="org-logo-big" style="width:46px; height:46px; border-radius:10px; object-fit:cover; display:none;" />
       <div id="pending-requests-widget" style="position:relative; display:none;">
         <button id="pending-requests-btn" class="icon-btn" aria-label="Pending requests">
           <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
@@ -765,6 +767,12 @@
     });
   }
   document.getElementById("contact-support-btn").addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    showComposeToSupport();
+  });
+  document.getElementById("sidebar-help-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    closeSidebar();
     window.scrollTo({ top: 0, behavior: "smooth" });
     showComposeToSupport();
   });
