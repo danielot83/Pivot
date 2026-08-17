@@ -288,9 +288,6 @@
         </button>
         <div id="pending-requests-panel" style="display:none; position:absolute; top:44px; right:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
       </div>
-      <button id="calendar-btn" class="icon-btn" aria-label="Calendar" title="Calendar">
-        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-      </button>
       <div id="messages-widget" style="position:relative;">
         <button id="messages-btn" class="icon-btn" aria-label="Messages">
           <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
@@ -298,7 +295,7 @@
         </button>
         <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
       </div>
-      <img id="org-logo-big" style="width:58px; height:58px; border-radius:10px; object-fit:cover; display:none;" />
+      <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
       <div id="org-name-big" style="display:none;"></div>
     </div>
   </div>
@@ -350,14 +347,14 @@
       <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:var(--navy); margin-right:6px;"></span>Training</span>
       <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:#16a34a; margin-right:6px;"></span>Event</span>
     </div>
-    <div id="calendar-day-detail" style="margin-top:14px; display:none; border-top:1px solid var(--line); padding-top:12px;"></div>
   </div>
 
   <div class="panel-card" style="margin:8px 0;">
     <h2>Recent activity</h2>
     <div id="recent-activity-content"><p class="activity-empty">Loading…</p></div>
   </div>
-  </div><!-- /dashboard-row-2 --><!-- /normal-view-only -->
+  </div><!-- /dashboard-row-2 -->
+  </div><!-- /normal-view-only -->
 
   <div id="admin-view-only" style="display:none;">
     <p class="section-label">Platform overview — Admin general</p>
@@ -525,7 +522,7 @@
       // toda la plataforma + la tabla con cada club.
       currentOrgId = null;
       document.getElementById("normal-view-only").style.display = "none";
-      document.getElementById("admin-view-only").style.display = "flow-root";
+      document.getElementById("admin-view-only").style.display = "block";
       document.getElementById("sidebar-admin-badge").style.display = "block";
       updateSidebarUser(null, "Platform admin");
       document.getElementById("sidebar-role-text").textContent = "Admin general — every club";
@@ -533,25 +530,6 @@
       els.orgLogoBig.style.display = "none";
       els.clubStatusText.textContent = "Admin general — access to every club";
       loadAdminClubsTable();
-      // ⚠️ DIAGNÓSTICO TEMPORAL #2 -- quitar en cuanto lo resolvamos.
-      setTimeout(() => {
-        const av = document.getElementById("admin-view-only");
-        const wrap = document.querySelector(".wrap");
-        const main = document.querySelector(".main-content");
-        let childInfo = "";
-        Array.from(av.children).forEach((c, i) => {
-          childInfo += `\n  hijo ${i} <${c.tagName}>: alto=${c.offsetHeight}px, display=${getComputedStyle(c).display}, visibility=${getComputedStyle(c).visibility}`;
-        });
-        alert(
-          "DIAGNÓSTICO ADMIN VIEW v2\n" +
-          "admin-view-only alto: " + av.offsetHeight + "px, ancho: " + av.offsetWidth + "px\n" +
-          "admin-view-only display: " + getComputedStyle(av).display + "\n" +
-          ".wrap alto: " + (wrap ? wrap.offsetHeight : "NO EXISTE") + "px\n" +
-          ".main-content alto: " + (main ? main.offsetHeight : "NO EXISTE") + "px\n" +
-          "app-gated-content alto: " + document.getElementById("app-gated-content").offsetHeight + "px" +
-          childInfo
-        );
-      }, 800);
       return null;
     }
 
@@ -879,9 +857,6 @@
       await loadMessagesWidget();
     });
   }
-  document.getElementById("calendar-btn").addEventListener("click", () => {
-    document.getElementById("calendar-grid").scrollIntoView({ behavior: "smooth", block: "center" });
-  });
   document.getElementById("contact-support-btn").addEventListener("click", () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     showComposeToSupport();
@@ -1152,7 +1127,6 @@
     });
 
     renderCalendarGrid(firstDay, lastDay);
-    document.getElementById("calendar-day-detail").style.display = "none";
   }
 
   function renderCalendarGrid(firstDay, lastDay) {
@@ -1172,46 +1146,28 @@
       const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
       const ev = calendarEventsByDay[dateStr];
       const isToday = dateStr === todayStr;
-      let dots = "";
-      if (ev && ev.matches.length) dots += `<span style="display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--accent); margin:0 1px;"></span>`;
-      if (ev && ev.trainings.length) dots += `<span style="display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--navy); margin:0 1px;"></span>`;
-      if (ev && ev.events.length) dots += `<span style="display:inline-block; width:5px; height:5px; border-radius:50%; background:#16a34a; margin:0 1px;"></span>`;
-      // Todos los días son clicables ahora -- con o sin eventos, para
-      // poder añadir algo nuevo cualquier día, no solo ver los que ya
-      // tienen algo.
-      html += `<button type="button" data-date="${dateStr}" style="aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:8px; font-size:12px; border:none; background:${isToday ? "var(--accent-tint)" : "transparent"}; color:${isToday ? "var(--accent-deep)" : "var(--ink)"}; font-weight:${isToday ? "700" : "500"}; cursor:pointer;">${d}<div style="height:6px; margin-top:2px;">${dots}</div></button>`;
+      // El cuadro entero se colorea según lo que haya ese día (no solo un
+      // puntito) -- prioridad partido > entrenamiento > evento si hay
+      // varios el mismo día.
+      let bg = "transparent", fg = "var(--ink)", weight = "500";
+      if (ev && ev.matches.length) { bg = "var(--accent)"; fg = "#fff"; weight = "700"; }
+      else if (ev && ev.trainings.length) { bg = "var(--navy)"; fg = "#fff"; weight = "700"; }
+      else if (ev && ev.events.length) { bg = "#16a34a"; fg = "#fff"; weight = "700"; }
+      else if (isToday) { bg = "var(--accent-tint)"; fg = "var(--accent-deep)"; weight = "700"; }
+      const todayRing = isToday && bg === "transparent" ? "" : (isToday ? "box-shadow:inset 0 0 0 2px var(--ink);" : "");
+      html += `<button type="button" data-date="${dateStr}" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:12.5px; border:none; background:${bg}; color:${fg}; font-weight:${weight}; cursor:pointer; ${todayRing}">${d}</button>`;
     }
     html += "</div>";
     grid.innerHTML = html;
 
     grid.querySelectorAll("button[data-date]").forEach((btn) => {
-      btn.addEventListener("click", () => showCalendarDayDetail(btn.dataset.date));
+      btn.addEventListener("click", () => {
+        const dateStr = btn.dataset.date;
+        const d = new Date(dateStr + "T00:00:00");
+        const label = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+        openCalendarAddModal(dateStr, label);
+      });
     });
-  }
-
-  function showCalendarDayDetail(dateStr) {
-    const ev = calendarEventsByDay[dateStr] || { matches: [], trainings: [], events: [] };
-    const detail = document.getElementById("calendar-day-detail");
-    const d = new Date(dateStr + "T00:00:00");
-    const label = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-    let rows = "";
-    ev.matches.forEach((m) => {
-      rows += `<div class="activity-row"><div class="activity-icon" style="background:var(--accent-tint); color:var(--accent-deep);">🏀</div><div class="activity-text"><strong>vs ${escapeHtml(m.opponent || "TBD")}</strong><span>${escapeHtml(m.team || "")}${m.location ? " · " + escapeHtml(m.location) : ""}</span></div></div>`;
-    });
-    ev.trainings.forEach((t) => {
-      rows += `<div class="activity-row"><div class="activity-icon" style="background:#e7e5f5; color:var(--navy);">⏱</div><div class="activity-text"><strong>${escapeHtml(t.title || "Training session")}</strong><span>${escapeHtml(t.team || "")}</span></div></div>`;
-    });
-    ev.events.forEach((e) => {
-      rows += `<div class="activity-row"><div class="activity-icon" style="background:#dcfce7; color:#16a34a;">📌</div><div class="activity-text"><strong>${escapeHtml(e.title)}</strong><span>Event</span></div></div>`;
-    });
-
-    detail.innerHTML = `
-      <p style="font-size:12.5px; font-weight:600; margin:0 0 8px;">${label}</p>
-      ${rows}
-      <button id="cal-open-add-modal-btn" class="btn btn-primary" style="margin-top:${rows ? "10px" : "0"}; padding:8px 16px; font-size:12.5px;">+ Add to this day</button>`;
-    detail.style.display = "block";
-
-    document.getElementById("cal-open-add-modal-btn").addEventListener("click", () => openCalendarAddModal(dateStr, label));
   }
 
   // -----------------------------------------------------------------------
@@ -1231,13 +1187,26 @@
   }
 
   function openCalendarAddModal(dateStr, dayLabel) {
+    const ev = calendarEventsByDay[dateStr] || { matches: [], trainings: [], events: [] };
+    let existingRows = "";
+    ev.matches.forEach((m) => {
+      existingRows += `<div class="activity-row"><div class="activity-icon" style="background:var(--accent-tint); color:var(--accent-deep);">🏀</div><div class="activity-text"><strong>vs ${escapeHtml(m.opponent || "TBD")}</strong><span>${escapeHtml(m.team || "")}${m.location ? " · " + escapeHtml(m.location) : ""}</span></div></div>`;
+    });
+    ev.trainings.forEach((t) => {
+      existingRows += `<div class="activity-row"><div class="activity-icon" style="background:#e7e5f5; color:var(--navy);">⏱</div><div class="activity-text"><strong>${escapeHtml(t.title || "Training session")}</strong><span>${escapeHtml(t.team || "")}</span></div></div>`;
+    });
+    ev.events.forEach((e) => {
+      existingRows += `<div class="activity-row"><div class="activity-icon" style="background:#dcfce7; color:#16a34a;">📌</div><div class="activity-text"><strong>${escapeHtml(e.title)}</strong><span>Event</span></div></div>`;
+    });
+
     const overlay = document.createElement("div");
     overlay.className = "onboard-overlay";
     overlay.id = "cal-add-overlay";
     overlay.innerHTML = `
       <div class="onboard-card" style="max-width:420px;">
-        <h2 style="margin-bottom:4px;">Add to ${escapeHtml(dayLabel)}</h2>
-        <p style="margin-top:0;">What is it?</p>
+        <h2 style="margin-bottom:4px;">${escapeHtml(dayLabel)}</h2>
+        ${existingRows ? `<div style="border-bottom:1px solid var(--line); padding-bottom:10px; margin-bottom:10px;">${existingRows}</div>` : ""}
+        <p style="margin-top:0;">Add something?</p>
         <div style="display:flex; gap:8px; margin-bottom:16px;">
           <button type="button" class="btn btn-secondary cal-type-btn" data-type="match" style="flex:1;">🏀 Match</button>
           <button type="button" class="btn btn-secondary cal-type-btn" data-type="training" style="flex:1;">⏱ Training</button>
@@ -1245,7 +1214,7 @@
         </div>
         <div id="cal-add-fields"></div>
         <div style="display:flex; gap:8px; margin-top:16px;">
-          <button id="cal-add-cancel-btn" class="btn btn-secondary" style="flex:1;">Cancel</button>
+          <button id="cal-add-cancel-btn" class="btn btn-secondary" style="flex:1;">Close</button>
           <button id="cal-add-save-btn" class="btn btn-primary" style="flex:1;" disabled>Save</button>
         </div>
       </div>`;
@@ -1360,8 +1329,7 @@
           if (error) throw error;
         }
         overlay.remove();
-        await loadCalendar();
-        showCalendarDayDetail(dateStr);
+        await Promise.all([loadCalendar(), loadRecentActivity()]);
         showMessage("Added to the calendar — and it'll show up in its module too.", "success");
       } catch (err) {
         saveBtn.disabled = false;
