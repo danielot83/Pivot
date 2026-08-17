@@ -521,6 +521,14 @@
     pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController });
 
     if (chosen.is_admin_view) {
+      // ⚠️ DIAGNÓSTICO TEMPORAL -- quitar en cuanto encontremos el bug.
+      alert(
+        "DIAGNÓSTICO ADMIN VIEW\n" +
+        "app-gated-content display: " + getComputedStyle(document.getElementById("app-gated-content")).display + "\n" +
+        "admin-view-only existe: " + !!document.getElementById("admin-view-only") + "\n" +
+        "modules-grid existe: " + !!document.getElementById("modules-grid") + "\n" +
+        "modules-grid hijos: " + document.getElementById("modules-grid").children.length
+      );
       // Vista de Admin general: nada de club concreto -- estadísticas de
       // toda la plataforma + la tabla con cada club.
       currentOrgId = null;
@@ -533,6 +541,17 @@
       els.orgLogoBig.style.display = "none";
       els.clubStatusText.textContent = "Admin general — access to every club";
       loadAdminClubsTable();
+      // ⚠️ DIAGNÓSTICO TEMPORAL #2 -- después de aplicar los cambios.
+      setTimeout(() => {
+        const av = document.getElementById("admin-view-only");
+        alert(
+          "DIAGNÓSTICO ADMIN VIEW (después)\n" +
+          "admin-view-only display: " + getComputedStyle(av).display + "\n" +
+          "admin-view-only alto (px): " + av.offsetHeight + "\n" +
+          "admin-view-only hijos: " + av.children.length + "\n" +
+          "app-gated-content alto (px): " + document.getElementById("app-gated-content").offsetHeight
+        );
+      }, 500);
       return null;
     }
 
@@ -1189,33 +1208,115 @@
     detail.innerHTML = `
       <p style="font-size:12.5px; font-weight:600; margin:0 0 8px;">${label}</p>
       ${rows}
-      <div id="cal-add-chooser" style="margin-top:${rows ? "10px" : "0"};">
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <a href="./match.html" class="nav-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; font-size:12.5px;">+ Match</a>
-          <a href="./training.html" class="nav-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; font-size:12.5px;">+ Training</a>
-          <button id="cal-add-event-btn" class="nav-btn" style="font-size:12.5px;">+ Event</button>
-        </div>
-        <div id="cal-add-event-form" style="display:none; margin-top:10px; gap:8px; align-items:center;">
-          <input id="cal-add-event-title" type="text" placeholder="Event title (e.g. Championship game)" style="padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; width:100%; max-width:260px; margin-right:8px;" />
-          <button id="cal-add-event-save" class="btn btn-primary" style="padding:7px 14px; font-size:12.5px;">Save</button>
-        </div>
-      </div>`;
+      <button id="cal-open-add-modal-btn" class="btn btn-primary" style="margin-top:${rows ? "10px" : "0"}; padding:8px 16px; font-size:12.5px;">+ Add to this day</button>`;
     detail.style.display = "block";
 
-    document.getElementById("cal-add-event-btn").addEventListener("click", () => {
-      document.getElementById("cal-add-event-form").style.display = "flex";
-      document.getElementById("cal-add-event-title").focus();
+    document.getElementById("cal-open-add-modal-btn").addEventListener("click", () => openCalendarAddModal(dateStr, label));
+  }
+
+  // -----------------------------------------------------------------------
+  // Ventana única para añadir algo a un día: elige Match / Training /
+  // Comment (evento), rellena lo básico, y al guardar crea la fila DE
+  // VERDAD en matches/trainings/events -- por eso aparece automáticamente
+  // en Match day / Training builder también, sin ningún paso extra (la
+  // misma idea de "bidireccional" que ya tiene el calendario para leer,
+  // ahora también para crear).
+  // -----------------------------------------------------------------------
+  function openCalendarAddModal(dateStr, dayLabel) {
+    const overlay = document.createElement("div");
+    overlay.className = "onboard-overlay";
+    overlay.id = "cal-add-overlay";
+    overlay.innerHTML = `
+      <div class="onboard-card" style="max-width:420px;">
+        <h2 style="margin-bottom:4px;">Add to ${escapeHtml(dayLabel)}</h2>
+        <p style="margin-top:0;">What is it?</p>
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+          <button type="button" class="btn btn-secondary cal-type-btn" data-type="match" style="flex:1;">🏀 Match</button>
+          <button type="button" class="btn btn-secondary cal-type-btn" data-type="training" style="flex:1;">⏱ Training</button>
+          <button type="button" class="btn btn-secondary cal-type-btn" data-type="event" style="flex:1;">📌 Comment</button>
+        </div>
+        <div id="cal-add-fields"></div>
+        <div style="display:flex; gap:8px; margin-top:16px;">
+          <button id="cal-add-cancel-btn" class="btn btn-secondary" style="flex:1;">Cancel</button>
+          <button id="cal-add-save-btn" class="btn btn-primary" style="flex:1;" disabled>Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    let selectedType = null;
+    const fieldsEl = overlay.querySelector("#cal-add-fields");
+    const saveBtn = overlay.querySelector("#cal-add-save-btn");
+
+    const FIELD_TEMPLATES = {
+      match: `
+        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Opponent</label>
+        <input id="cal-field-opponent" type="text" placeholder="e.g. Madrid Hoops" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />
+        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Team (optional)</label>
+        <input id="cal-field-team" type="text" placeholder="e.g. U16" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />
+        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Location (optional)</label>
+        <input id="cal-field-location" type="text" placeholder="e.g. Pabellón Municipal" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />`,
+      training: `
+        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Title</label>
+        <input id="cal-field-title" type="text" placeholder="e.g. Competition week" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />
+        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Team (optional)</label>
+        <input id="cal-field-team" type="text" placeholder="e.g. U16" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />`,
+      event: `
+        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Comment / title</label>
+        <input id="cal-field-title" type="text" placeholder="e.g. Championship game, Team photo day…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />`,
+    };
+
+    overlay.querySelectorAll(".cal-type-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectedType = btn.dataset.type;
+        overlay.querySelectorAll(".cal-type-btn").forEach((b) => {
+          b.style.background = b === btn ? "var(--accent)" : "transparent";
+          b.style.color = b === btn ? "#fff" : "var(--ink)";
+        });
+        fieldsEl.innerHTML = FIELD_TEMPLATES[selectedType];
+        saveBtn.disabled = false;
+      });
     });
-    document.getElementById("cal-add-event-save").addEventListener("click", async () => {
-      const title = document.getElementById("cal-add-event-title").value.trim();
-      if (!title) return;
+
+    overlay.querySelector("#cal-add-cancel-btn").addEventListener("click", () => overlay.remove());
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+    saveBtn.addEventListener("click", async () => {
+      if (!selectedType || !currentOrgId) return;
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving…";
       try {
-        const { error } = await supabaseClient.from("events").insert({ organization_id: currentOrgId, date: dateStr, title });
-        if (error) throw error;
+        if (selectedType === "match") {
+          const opponent = document.getElementById("cal-field-opponent").value.trim();
+          if (!opponent) throw new Error("Opponent is required for a match.");
+          const team = document.getElementById("cal-field-team").value.trim();
+          const location = document.getElementById("cal-field-location").value.trim();
+          const row = { organization_id: currentOrgId, date: dateStr, opponent };
+          if (team) row.team = team;
+          if (location) row.location = location;
+          const { error } = await supabaseClient.from("matches").insert(row);
+          if (error) throw error;
+        } else if (selectedType === "training") {
+          const title = document.getElementById("cal-field-title").value.trim();
+          if (!title) throw new Error("Title is required for a training session.");
+          const team = document.getElementById("cal-field-team").value.trim();
+          const row = { organization_id: currentOrgId, date: dateStr, title };
+          if (team) row.team = team;
+          const { error } = await supabaseClient.from("trainings").insert(row);
+          if (error) throw error;
+        } else {
+          const title = document.getElementById("cal-field-title").value.trim();
+          if (!title) throw new Error("Please write a comment/title.");
+          const { error } = await supabaseClient.from("events").insert({ organization_id: currentOrgId, date: dateStr, title });
+          if (error) throw error;
+        }
+        overlay.remove();
         await loadCalendar();
         showCalendarDayDetail(dateStr);
+        showMessage("Added to the calendar — and it'll show up in its module too.", "success");
       } catch (err) {
-        showMessage(err.message || "Couldn't save that event — the events table may not be set up yet.", "error");
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save";
+        showMessage(err.message || "Couldn't save that.", "error");
       }
     });
   }
