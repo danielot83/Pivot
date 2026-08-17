@@ -72,10 +72,11 @@ async function pivotResolveActiveOrg(memberships, options) {
 }
 
 /**
- * Dibuja el selector: para todos, sus propios clubes (si tiene más de
- * uno); para el platform admin, además, la opción "⚡ Admin (all
- * clubs)" siempre presente arriba del todo, incluso si solo tiene un
- * club propio (o ninguno).
+ * Dibuja el selector: los propios clubes de la persona, más "⚡ Admin
+ * (all clubs)" arriba del todo si es platform admin, más dos opciones
+ * siempre presentes al final: crear un club nuevo, o pedir unirse a
+ * otro. Por eso el selector ya nunca se esconde del todo -- hasta con
+ * un solo club, sirve para añadir uno más.
  */
 function pivotRenderOrgSwitcher(containerId, memberships, activeOrgId, options) {
   options = options || {};
@@ -84,21 +85,34 @@ function pivotRenderOrgSwitcher(containerId, memberships, activeOrgId, options) 
   if (!el) return;
 
   const list = memberships || [];
-
-  // Alguien normal, con un solo club: no hace falta selector, no hay
-  // nada entre lo que elegir.
-  if (!isPlatformController && list.length <= 1) { el.style.display = "none"; return; }
-
   el.style.display = "block";
   const optionsHtml = list
     .map((m) => `<option value="${m.organization_id}" ${m.organization_id === activeOrgId ? "selected" : ""}>${(m.organizations && m.organizations.name) || "?"}</option>`)
     .join("");
 
+  const extras = `<option value="__create__">+ Create a new club</option><option value="__join__">+ Join a club</option>`;
+
   if (isPlatformController) {
     const adminSelected = activeOrgId === PIVOT_ADMIN_VIEW_VALUE ? "selected" : "";
-    el.innerHTML = `<option value="${PIVOT_ADMIN_VIEW_VALUE}" ${adminSelected}>⚡ Admin (all clubs)</option>` + optionsHtml;
+    el.innerHTML = `<option value="${PIVOT_ADMIN_VIEW_VALUE}" ${adminSelected}>⚡ Admin (all clubs)</option>` + optionsHtml + extras;
   } else {
-    el.innerHTML = optionsHtml;
+    el.innerHTML = optionsHtml + extras;
   }
-  el.onchange = () => { pivotSetStoredOrgId(el.value); window.location.reload(); };
+
+  el.onchange = () => {
+    if (el.value === "__create__") {
+      el.value = activeOrgId || "";
+      const name = prompt("Name of your new club:");
+      if (name && name.trim() && window.pivotCreateClub_) window.pivotCreateClub_(name.trim());
+      return;
+    }
+    if (el.value === "__join__") {
+      el.value = activeOrgId || "";
+      const name = prompt("Name of the club you want to join:");
+      if (name && name.trim() && window.pivotJoinClub_) window.pivotJoinClub_(name.trim());
+      return;
+    }
+    pivotSetStoredOrgId(el.value);
+    window.location.reload();
+  };
 }

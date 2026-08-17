@@ -295,7 +295,7 @@
         </button>
         <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
       </div>
-      <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none; margin-left:6px; align-self:center;" />
+      <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none; margin-left:18px;" />
       <div id="org-name-big" style="display:none;"></div>
     </div>
   </div>
@@ -434,6 +434,35 @@
   let isPlatformController = false;
   let canValidateAssociations = false;
 
+  // Expuestas en window porque org-switcher.js (archivo compartido, sin
+  // acceso directo a supabaseClient de esta página) las llama cuando
+  // alguien elige "+ Create a new club" / "+ Join a club" en el selector.
+  window.pivotCreateClub_ = async function (name) {
+    try {
+      const { data: org, error: orgErr } = await supabaseClient.from("organizations").insert({ name }).select().single();
+      if (orgErr) throw orgErr;
+      const { error: memErr } = await supabaseClient.from("memberships").insert({ organization_id: org.id, user_id: currentUserId, role: "admin", status: "active" });
+      if (memErr) throw memErr;
+      pivotSetStoredOrgId(org.id);
+      window.location.reload();
+    } catch (err) {
+      showMessage(err.message || "Couldn't create that club.", "error");
+    }
+  };
+
+  window.pivotJoinClub_ = async function (clubName) {
+    try {
+      const { data: org, error: findErr } = await supabaseClient.from("organizations").select("id, name").ilike("name", clubName).eq("is_active", true).maybeSingle();
+      if (findErr) throw findErr;
+      if (!org) { showMessage(`No club found named "${clubName}".`, "error"); return; }
+      const { error } = await supabaseClient.from("memberships").insert({ organization_id: org.id, user_id: currentUserId, role: "coach", status: "pending" });
+      if (error) throw error;
+      showMessage(`Request sent to join "${org.name}" — waiting for their admin to approve.`, "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't send that request.", "error");
+    }
+  };
+
   function applyClubGate(hasAccess) {
     document.getElementById("app-gated-content").style.display = hasAccess ? "flow-root" : "none";
     document.getElementById("no-club-gate").style.display = hasAccess ? "none" : "block";
@@ -537,7 +566,12 @@
     document.getElementById("admin-view-only").style.display = "none";
     document.getElementById("sidebar-admin-badge").style.display = "none";
     currentOrgId = chosen.organization_id;
-    const roleLabel = isPlatformController ? "Platform admin" : (chosen.role === "admin" ? "Team admin" : "Coach");
+    // El rol que se muestra es el TUYO en ESTE club concreto -- aunque
+    // también seas platform admin, si tienes una membresía real aquí
+    // (como "DEL", donde eres admin de verdad) se ve "Team admin", no
+    // "Platform admin" -- eso solo aparece cuando estás fisgoneando un
+    // club del que no eres miembro (browsing_as_platform_admin).
+    const roleLabel = chosen.role === "admin" ? "Team admin" : "Coach";
     updateSidebarUser(null, roleLabel);
     document.getElementById("sidebar-role-text").textContent = chosen.browsing_as_platform_admin ? "Browsing as platform admin" : roleLabel;
     const orgName = (chosen.organizations && chosen.organizations.name) || "";
@@ -574,19 +608,21 @@
         return;
       }
       const rows = await Promise.all(orgs.map(async (org) => {
-        const [{ count: playerCount }, { count: matchCount }, { data: teamRows }] = await Promise.all([
+        const [{ count: playerCount }, { count: matchCount }, { data: teamRows }, { data: memberRows }] = await Promise.all([
           supabaseClient.from("players").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
           supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
           supabaseClient.from("players").select("season, team").eq("organization_id", org.id),
+          supabaseClient.from("memberships").select("profiles(full_name)").eq("organization_id", org.id).eq("status", "active"),
         ]);
         const teamCount = teamRows ? new Set(teamRows.filter((r) => !isExampleTeam(r.season, r.team)).map((r) => `${r.season}|${r.team}`)).size : 0;
-        return { org, playerCount: playerCount ?? 0, matchCount: matchCount ?? 0, teamCount };
+        const memberNames = (memberRows || []).map((m) => (m.profiles && m.profiles.full_name) || "").filter(Boolean);
+        return { org, playerCount: playerCount ?? 0, matchCount: matchCount ?? 0, teamCount, memberNames };
       }));
       adminClubsRowsCache = rows;
 
       container.innerHTML = `
         <div style="padding:12px 16px; border-bottom:1px solid var(--line);">
-          <input id="admin-clubs-search" type="text" placeholder="Search clubs…" style="width:100%; max-width:280px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
+          <input id="admin-clubs-search" type="text" placeholder="Search clubs or coaches/admins…" style="width:100%; max-width:280px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
         </div>
         <table style="width:100%; border-collapse:collapse; font-size:13px;">
           <thead>
@@ -604,7 +640,9 @@
       renderAdminClubsRows(rows);
       document.getElementById("admin-clubs-search").addEventListener("input", (e) => {
         const q = e.target.value.trim().toLowerCase();
-        renderAdminClubsRows(rows.filter((r) => r.org.name.toLowerCase().includes(q)));
+        renderAdminClubsRows(rows.filter((r) =>
+          r.org.name.toLowerCase().includes(q) || r.memberNames.some((n) => n.toLowerCase().includes(q))
+        ));
       });
     } catch (err) {
       console.error("loadAdminClubsTable error:", err);
@@ -626,8 +664,8 @@
         <td style="padding:10px 16px;">${r.matchCount}</td>
         <td style="padding:10px 16px; text-align:right; white-space:nowrap;">
           <button class="tree-example" data-manage-org-id="${r.org.id}" style="color:var(--ink); font-weight:600; cursor:pointer; margin-right:10px;">Manage</button>
-          <button class="tree-example" data-enter-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer; margin-right:10px;">See club →</button>
-          <button class="tree-example" data-deactivate-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer;">Deactivate</button>
+          <button class="tree-example" data-deactivate-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer; margin-right:10px;">Remove whole team</button>
+          <button class="tree-example" data-enter-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer;">See club →</button>
         </td>
       </tr>
       <tr id="admin-manage-row-${r.org.id}" style="display:none;"><td colspan="5" style="padding:14px 16px; background:var(--paper);"><div id="admin-manage-content-${r.org.id}"></div></td></tr>
@@ -1481,6 +1519,7 @@
     match: '<g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g>',
     training: '<g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g>',
     assessment: '<g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g>',
+    event: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
   };
 
   function timeAgo(iso) {
@@ -1498,20 +1537,23 @@
   async function loadRecentActivity() {
     if (!currentOrgId) return;
     const container = document.getElementById("recent-activity-content");
-    const [{ data: ex }, { data: pl }, { data: ma }, { data: tr }, { data: as_ }] = await Promise.all([
+    const [{ data: ex }, { data: pl }, { data: ma }, { data: tr }, { data: as_ }, evRes] = await Promise.all([
       supabaseClient.from("exercises").select("name, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
       supabaseClient.from("plays").select("name, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
-      supabaseClient.from("matches").select("opponent, team, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("matches").select("opponent, team, location, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
       supabaseClient.from("trainings").select("title, team, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
       supabaseClient.from("player_assessments").select("created_at, players(first_name, last_name)").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("events").select("title, date, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3).then((r) => r, () => ({ data: [] })),
     ]);
+    const ev = (evRes && evRes.data) || [];
 
     const items = [];
     (ex || []).forEach((r) => items.push({ type: "exercise", title: "Exercise created", detail: r.name, at: r.created_at }));
     (pl || []).forEach((r) => items.push({ type: "play", title: "Play design created", detail: r.name, at: r.created_at }));
-    (ma || []).forEach((r) => items.push({ type: "match", title: "Match added", detail: `vs ${r.opponent || "?"}`, at: r.created_at }));
-    (tr || []).forEach((r) => items.push({ type: "training", title: "Training planned", detail: r.title || r.team || "", at: r.created_at }));
+    (ma || []).forEach((r) => items.push({ type: "match", title: "Match added", detail: `vs ${r.opponent || "?"}${r.team ? " — " + r.team : ""}${r.location ? " · " + r.location : ""}`, at: r.created_at }));
+    (tr || []).forEach((r) => items.push({ type: "training", title: "Training planned", detail: `${r.title || "Training"}${r.team ? " — " + r.team : ""}`, at: r.created_at }));
     (as_ || []).forEach((r) => items.push({ type: "assessment", title: "Assessment completed", detail: r.players ? `${r.players.first_name} ${r.players.last_name}` : "", at: r.created_at }));
+    (ev || []).forEach((r) => items.push({ type: "event", title: "Event added", detail: r.title, at: r.created_at }));
 
     items.sort((a, b) => new Date(b.at) - new Date(a.at));
     const top = items.slice(0, 5);
@@ -1522,7 +1564,7 @@
     }
     container.innerHTML = top.map((it) => `
       <div class="activity-row">
-        <div class="activity-icon"><svg viewBox="0 0 24 24" width="20" height="20">${ACTIVITY_ICONS[it.type]}</svg></div>
+        <div class="activity-icon"><svg viewBox="0 0 24 24" width="20" height="20">${ACTIVITY_ICONS[it.type] || ACTIVITY_ICONS.exercise}</svg></div>
         <div class="activity-text"><strong>${escapeHtml(it.title)}</strong><span>${escapeHtml(it.detail || "")}</span></div>
         <div class="activity-time">${timeAgo(it.at)}</div>
       </div>
