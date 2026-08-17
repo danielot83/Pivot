@@ -69,6 +69,8 @@
   <h1>Privacy &amp; Terms of Service</h1>
   <p class="sub">This is the actual agreement between you and PlayPivot — written to be read, not just clicked past. If anything is unclear, ask (see "Contact" at the bottom).</p>
 
+  <div class="card" id="acceptance-status-card" style="display:none;"></div>
+
   <div class="card toc">
     <strong>On this page:</strong>
     <ul style="margin-top:8px;">
@@ -182,9 +184,32 @@
   <p class="sub" style="margin-top:24px; border-top:1px solid var(--line); padding-top:14px;">Exactly what you agreed to is what matters, not just that you clicked something — so every past version stays archived, word for word, and never gets overwritten: <a href="./privacy-archive.html" style="color:var(--accent-deep);">see archived versions</a>.</p>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="terms-version.js"></script>
 <script>
   document.getElementById("version-badge").textContent = "Version " + TERMS_VERSION;
+
+  // Si hay sesión iniciada, muestra si esta persona ya aceptó esta
+  // versión exacta -- y cuándo. A un visitante sin cuenta (o sin sesión
+  // activa) simplemente no le mostramos esta tarjeta, ya que la pregunta
+  // no le aplica todavía.
+  (async () => {
+    try {
+      const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      if (!sessionData.session) return;
+      const { data: profile } = await supabaseClient.from("profiles").select("terms_accepted_at").eq("id", sessionData.session.user.id).maybeSingle();
+      const card = document.getElementById("acceptance-status-card");
+      card.innerHTML = (profile && profile.terms_accepted_at)
+        ? `<strong style="color:var(--ink);">✓ You accepted version ${TERMS_VERSION}</strong> on ${new Date(profile.terms_accepted_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`
+        : `<strong style="color:var(--accent-deep);">No record of you accepting this yet</strong> (your account may predate this page) — worth reading through below.`;
+      card.style.display = "block";
+    } catch (err) {
+      console.error("acceptance status check failed:", err);
+    }
+  })();
 </script>
 </body>
 </html>

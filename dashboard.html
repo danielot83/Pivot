@@ -334,6 +334,7 @@
     <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><line x1="48.63" y1="12.63" x2="42.66" y2="12.63"/><path d="M53.13,12.63h2.54c2.92,0,5.29,2.37,5.29,5.29v31.5c0,2.91-2.37,5.28-5.29,5.28H8.33c-2.92,0-5.29-2.37-5.29-5.28v-31.5c0-2.92,2.37-5.29,5.29-5.29h2.54"/><line x1="38.16" y1="12.63" x2="25.84" y2="12.63"/><line x1="21.34" y1="12.63" x2="15.37" y2="12.63"/><line x1="32" y1="12.63" x2="32" y2="54.69"/><line x1="3.04" y1="25.15" x2="60.96" y2="25.15"/><g><g><rect x="10.87" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="21.34" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g><g><rect x="38.16" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="48.63" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g></g><polyline points="7.25 43.01 7.25 46.42 15.53 46.42 15.53 32.07 7.25 32.07 7.25 38.65"/><rect x="19.61" y="32.06" width="8.28" height="14.35"/><rect x="36.11" y="32.06" width="8.28" height="14.35"/><polyline points="56.75 32.07 48.47 32.07 48.47 38.65 48.47 46.42 56.75 46.42 56.75 38.65"/><line x1="7.25" y1="38.65" x2="15.53" y2="38.65"/><line x1="36.11" y1="39.24" x2="44.39" y2="39.24"/><line x1="48.47" y1="38.65" x2="56.75" y2="38.65"/></g></svg></div><div><div class="num" id="stat-losses">—</div><div class="label">Losses</div></div></div>
   </div>
 
+  <div class="dashboard-row-2">
   <div class="panel-card" style="margin:8px 0;">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
       <h2 style="margin:0;">Calendar</h2>
@@ -344,9 +345,10 @@
       </div>
     </div>
     <div id="calendar-grid"></div>
-    <div style="display:flex; gap:16px; margin-top:12px; font-size:12px; color:var(--muted);">
+    <div style="display:flex; gap:16px; margin-top:12px; font-size:12px; color:var(--muted); flex-wrap:wrap;">
       <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:var(--accent); margin-right:6px;"></span>Match</span>
       <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:var(--navy); margin-right:6px;"></span>Training</span>
+      <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:#16a34a; margin-right:6px;"></span>Event</span>
     </div>
     <div id="calendar-day-detail" style="margin-top:14px; display:none; border-top:1px solid var(--line); padding-top:12px;"></div>
   </div>
@@ -354,7 +356,8 @@
   <div class="panel-card" style="margin:8px 0;">
     <h2>Recent activity</h2>
     <div id="recent-activity-content"><p class="activity-empty">Loading…</p></div>
-  </div><!-- /normal-view-only -->
+  </div>
+  </div><!-- /dashboard-row-2 --><!-- /normal-view-only -->
 
   <div id="admin-view-only" style="display:none;">
     <p class="section-label">Platform overview — Admin general</p>
@@ -377,10 +380,6 @@
 
   <p class="section-label">Tools</p>
   <div class="grid" id="modules-grid"></div>
-
-  <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
-    <div class="side-card" id="privacy-status-card" style="flex:1 1 380px; max-width:420px;"></div>
-  </div>
 
   <div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
     <label style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); cursor:pointer;">
@@ -477,10 +476,11 @@
   }
 
   async function loadMyOrganization(user) {
+   try {
     // le nom du profil, pour dire "Welcome, Daniel" plutôt que l'email
     const { data: profile } = await supabaseClient.from("profiles").select("full_name, is_platform_controller, is_association_validator, onboarded_at, newsletter_opt_in, terms_accepted_at").eq("id", user.id).maybeSingle();
-    myTermsAcceptedAt = profile && profile.terms_accepted_at;
-    renderPrivacyStatusCard();
+    // El estado de aceptación de privacidad ahora se muestra en
+    // privacy.html directamente, no aquí en el Dashboard.
     document.getElementById("newsletter-opt-in").checked = !!(profile && profile.newsletter_opt_in);
     const displayName = (profile && profile.full_name) || user.email;
     els.greeting.textContent = `Welcome, ${displayName}`;
@@ -549,6 +549,16 @@
     loadOrgLogo(currentOrgId, orgName);
     loadPendingRequestsWidget();
     return currentOrgId;
+   } catch (err) {
+    console.error("loadMyOrganization error:", err);
+    els.msg.textContent = "⚠ Something went wrong loading the Dashboard: " + (err.message || String(err));
+    els.msg.className = "msg error";
+    els.msg.style.display = "block";
+    document.getElementById("app-gated-content").style.display = "block";
+    document.getElementById("normal-view-only").style.display = "none";
+    document.getElementById("admin-view-only").style.display = "none";
+    return null;
+   }
   }
 
   // -----------------------------------------------------------------------
@@ -1093,7 +1103,7 @@
     if (!currentOrgId) return;
     const year = calendarViewDate.getFullYear();
     const month = calendarViewDate.getMonth(); // 0-indexado
-    document.getElementById("cal-month-label").textContent = calendarViewDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    document.getElementById("cal-month-label").textContent = calendarViewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
@@ -1101,17 +1111,25 @@
     const startStr = `${year}-${pad(month + 1)}-01`;
     const endStr = `${year}-${pad(month + 1)}-${pad(lastDay.getDate())}`;
 
-    const [{ data: matches }, { data: trainings }] = await Promise.all([
+    const [{ data: matches }, { data: trainings }, eventsRes] = await Promise.all([
       supabaseClient.from("matches").select("date, opponent, location, team").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
       supabaseClient.from("trainings").select("date, title, team").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
+      // La tabla "events" es opcional (paso extra de configuración) -- si
+      // todavía no existe, simplemente no mostramos ese tercer tipo, sin
+      // romper el resto del calendario.
+      supabaseClient.from("events").select("id, date, title").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr).then((r) => r, () => ({ data: [] })),
     ]);
+    const events = (eventsRes && eventsRes.data) || [];
 
     calendarEventsByDay = {};
     (matches || []).forEach((m) => {
-      (calendarEventsByDay[m.date] = calendarEventsByDay[m.date] || { matches: [], trainings: [] }).matches.push(m);
+      (calendarEventsByDay[m.date] = calendarEventsByDay[m.date] || { matches: [], trainings: [], events: [] }).matches.push(m);
     });
     (trainings || []).forEach((t) => {
-      (calendarEventsByDay[t.date] = calendarEventsByDay[t.date] || { matches: [], trainings: [] }).trainings.push(t);
+      (calendarEventsByDay[t.date] = calendarEventsByDay[t.date] || { matches: [], trainings: [], events: [] }).trainings.push(t);
+    });
+    events.forEach((e) => {
+      (calendarEventsByDay[e.date] = calendarEventsByDay[e.date] || { matches: [], trainings: [], events: [] }).events.push(e);
     });
 
     renderCalendarGrid(firstDay, lastDay);
@@ -1138,23 +1156,25 @@
       let dots = "";
       if (ev && ev.matches.length) dots += `<span style="display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--accent); margin:0 1px;"></span>`;
       if (ev && ev.trainings.length) dots += `<span style="display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--navy); margin:0 1px;"></span>`;
-      const hasEvents = !!ev;
-      html += `<button type="button" data-date="${dateStr}" ${hasEvents ? "" : "disabled"} style="aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:8px; font-size:12px; border:none; background:${isToday ? "var(--accent-tint)" : "transparent"}; color:${isToday ? "var(--accent-deep)" : "var(--ink)"}; font-weight:${isToday ? "700" : "500"}; cursor:${hasEvents ? "pointer" : "default"};">${d}<div style="height:6px; margin-top:2px;">${dots}</div></button>`;
+      if (ev && ev.events.length) dots += `<span style="display:inline-block; width:5px; height:5px; border-radius:50%; background:#16a34a; margin:0 1px;"></span>`;
+      // Todos los días son clicables ahora -- con o sin eventos, para
+      // poder añadir algo nuevo cualquier día, no solo ver los que ya
+      // tienen algo.
+      html += `<button type="button" data-date="${dateStr}" style="aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:8px; font-size:12px; border:none; background:${isToday ? "var(--accent-tint)" : "transparent"}; color:${isToday ? "var(--accent-deep)" : "var(--ink)"}; font-weight:${isToday ? "700" : "500"}; cursor:pointer;">${d}<div style="height:6px; margin-top:2px;">${dots}</div></button>`;
     }
     html += "</div>";
     grid.innerHTML = html;
 
-    grid.querySelectorAll("button[data-date]:not([disabled])").forEach((btn) => {
+    grid.querySelectorAll("button[data-date]").forEach((btn) => {
       btn.addEventListener("click", () => showCalendarDayDetail(btn.dataset.date));
     });
   }
 
   function showCalendarDayDetail(dateStr) {
-    const ev = calendarEventsByDay[dateStr];
+    const ev = calendarEventsByDay[dateStr] || { matches: [], trainings: [], events: [] };
     const detail = document.getElementById("calendar-day-detail");
-    if (!ev) { detail.style.display = "none"; return; }
     const d = new Date(dateStr + "T00:00:00");
-    const label = d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+    const label = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
     let rows = "";
     ev.matches.forEach((m) => {
       rows += `<div class="activity-row"><div class="activity-icon" style="background:var(--accent-tint); color:var(--accent-deep);">🏀</div><div class="activity-text"><strong>vs ${escapeHtml(m.opponent || "TBD")}</strong><span>${escapeHtml(m.team || "")}${m.location ? " · " + escapeHtml(m.location) : ""}</span></div></div>`;
@@ -1162,8 +1182,42 @@
     ev.trainings.forEach((t) => {
       rows += `<div class="activity-row"><div class="activity-icon" style="background:#e7e5f5; color:var(--navy);">⏱</div><div class="activity-text"><strong>${escapeHtml(t.title || "Training session")}</strong><span>${escapeHtml(t.team || "")}</span></div></div>`;
     });
-    detail.innerHTML = `<p style="font-size:12.5px; font-weight:600; margin:0 0 8px;">${label}</p>${rows}`;
+    ev.events.forEach((e) => {
+      rows += `<div class="activity-row"><div class="activity-icon" style="background:#dcfce7; color:#16a34a;">📌</div><div class="activity-text"><strong>${escapeHtml(e.title)}</strong><span>Event</span></div></div>`;
+    });
+
+    detail.innerHTML = `
+      <p style="font-size:12.5px; font-weight:600; margin:0 0 8px;">${label}</p>
+      ${rows}
+      <div id="cal-add-chooser" style="margin-top:${rows ? "10px" : "0"};">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <a href="./match.html" class="nav-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; font-size:12.5px;">+ Match</a>
+          <a href="./training.html" class="nav-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; font-size:12.5px;">+ Training</a>
+          <button id="cal-add-event-btn" class="nav-btn" style="font-size:12.5px;">+ Event</button>
+        </div>
+        <div id="cal-add-event-form" style="display:none; margin-top:10px; gap:8px; align-items:center;">
+          <input id="cal-add-event-title" type="text" placeholder="Event title (e.g. Championship game)" style="padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; width:100%; max-width:260px; margin-right:8px;" />
+          <button id="cal-add-event-save" class="btn btn-primary" style="padding:7px 14px; font-size:12.5px;">Save</button>
+        </div>
+      </div>`;
     detail.style.display = "block";
+
+    document.getElementById("cal-add-event-btn").addEventListener("click", () => {
+      document.getElementById("cal-add-event-form").style.display = "flex";
+      document.getElementById("cal-add-event-title").focus();
+    });
+    document.getElementById("cal-add-event-save").addEventListener("click", async () => {
+      const title = document.getElementById("cal-add-event-title").value.trim();
+      if (!title) return;
+      try {
+        const { error } = await supabaseClient.from("events").insert({ organization_id: currentOrgId, date: dateStr, title });
+        if (error) throw error;
+        await loadCalendar();
+        showCalendarDayDetail(dateStr);
+      } catch (err) {
+        showMessage(err.message || "Couldn't save that event — the events table may not be set up yet.", "error");
+      }
+    });
   }
 
   document.getElementById("cal-prev-btn").addEventListener("click", () => {
@@ -1198,7 +1252,7 @@
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days}d ago`;
-    return new Date(iso).toLocaleDateString();
+    return new Date(iso).toLocaleDateString("en-US");
   }
 
   async function loadRecentActivity() {
@@ -1367,24 +1421,6 @@
   // por ahora, a petición de Dani -- sigue disponible en Roster/Assessment/
   // Training si alguien la necesita para probar la plataforma.
 
-  let myTermsAcceptedAt = null;
-
-  function renderPrivacyStatusCard() {
-    const acceptedLine = myTermsAcceptedAt
-      ? `<strong style="color:var(--ink);">✓ You accepted version ${TERMS_VERSION}</strong> on ${new Date(myTermsAcceptedAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}.`
-      : `<strong style="color:var(--accent-deep);">No record of you accepting this yet</strong> (your account may predate this page) — worth a read.`;
-    document.getElementById("privacy-status-card").innerHTML = `
-      <h2>Privacy &amp; consent</h2>
-      <p style="font-size:13px; margin:0 0 8px;">${acceptedLine}</p>
-      <ul style="margin:0 0 10px; padding-left:18px; font-size:12.5px; color:var(--muted); line-height:1.6;">
-        <li>Your club is responsible for the sporting data it enters; PlayPivot processes it on your club's instructions.</li>
-        <li>Adding a minor's data confirms you already have the right to do so where you are.</li>
-        <li><strong>Allowed:</strong> data about players you actually coach. <strong>Not allowed:</strong> data you don't have the right to hold, or republishing someone else's shared content as your own.</li>
-      </ul>
-      <a href="./privacy.html" style="color:var(--accent-deep); font-size:13px;">Read the full Privacy &amp; Terms of Service →</a>
-    `;
-  }
-
   document.getElementById("help-btn").addEventListener("click", () => {
     const box = document.getElementById("help-box");
     if (box.style.display === "block") { box.style.display = "none"; return; }
@@ -1423,6 +1459,7 @@
   });
 
   async function init() {
+   try {
     const { data } = await supabaseClient.auth.getSession();
     if (!data.session) { window.location.href = "./login.html"; return; }
     currentUserId = data.session.user.id;
@@ -1444,6 +1481,12 @@
     }
     await loadPlatformStats();
     await loadMessagesWidget();
+   } catch (err) {
+    console.error("init error:", err);
+    els.msg.textContent = "⚠ Something went wrong loading the Dashboard: " + (err.message || String(err));
+    els.msg.className = "msg error";
+    els.msg.style.display = "block";
+   }
   }
   init();
 </script>
