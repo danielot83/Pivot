@@ -87,11 +87,11 @@
   .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 28px 32px 4px; flex-wrap: wrap; }
   .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .icon-btn {
-    width: 52px; height: 52px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+    width: 58px; height: 58px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
     display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); position: relative;
   }
   .icon-btn:hover { border-color: var(--accent); }
-  .icon-btn svg { width: 23px; height: 23px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .icon-btn svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.6; }
   .icon-badge {
     position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 10px;
     font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
@@ -140,17 +140,6 @@
   @media (max-width: 800px) { .dashboard-row-2 { grid-template-columns: 1fr; } }
   .panel-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
   .panel-card h2 { font-size: 14.5px; margin: 0 0 14px; }
-  .next-event-row { display: flex; align-items: center; gap: 14px; }
-  .next-event-date-box {
-    background: var(--accent-tint); color: var(--accent-deep); border-radius: 10px; padding: 8px 12px;
-    text-align: center; min-width: 58px; flex-shrink: 0;
-  }
-  .next-event-date-box .dow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
-  .next-event-date-box .dom { font-size: 19px; font-weight: 800; line-height: 1.15; }
-  .next-event-date-box .mon { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
-  .next-event-info strong { display: block; font-size: 14px; }
-  .next-event-info span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-  .next-event-empty { font-size: 13px; color: var(--muted); }
   .activity-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
   .activity-row:last-child { border-bottom: none; padding-bottom: 0; }
   .activity-row:first-child { padding-top: 0; }
@@ -289,28 +278,27 @@
         <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
       </h1>
       <p class="sub" id="club-status-text"></p>
-      <p class="sub" id="my-clubs-list" style="margin-top:-8px; font-size:12.5px;"></p>
       <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
     </div>
     <div class="topbar-right">
-      <img id="org-logo-big" style="width:52px; height:52px; border-radius:10px; object-fit:cover; display:none;" />
       <div id="pending-requests-widget" style="position:relative; display:none;">
         <button id="pending-requests-btn" class="icon-btn" aria-label="Pending requests">
-          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
           <span class="icon-badge" id="pending-requests-count" style="display:none;"></span>
         </button>
         <div id="pending-requests-panel" style="display:none; position:absolute; top:44px; right:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
       </div>
-      <button id="calendar-btn" class="icon-btn" aria-label="Next event" title="Jump to your next event">
-        <svg viewBox="0 0 24 24" width="23" height="23"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      <button id="calendar-btn" class="icon-btn" aria-label="Calendar" title="Calendar">
+        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
       </button>
       <div id="messages-widget" style="position:relative;">
         <button id="messages-btn" class="icon-btn" aria-label="Messages">
-          <svg viewBox="0 0 24 24" width="23" height="23"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+          <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
           <span class="icon-badge" id="messages-count" style="display:none;"></span>
         </button>
         <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
       </div>
+      <img id="org-logo-big" style="width:58px; height:58px; border-radius:10px; object-fit:cover; display:none;" />
       <div id="org-name-big" style="display:none;"></div>
     </div>
   </div>
@@ -346,15 +334,26 @@
     <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><line x1="48.63" y1="12.63" x2="42.66" y2="12.63"/><path d="M53.13,12.63h2.54c2.92,0,5.29,2.37,5.29,5.29v31.5c0,2.91-2.37,5.28-5.29,5.28H8.33c-2.92,0-5.29-2.37-5.29-5.28v-31.5c0-2.92,2.37-5.29,5.29-5.29h2.54"/><line x1="38.16" y1="12.63" x2="25.84" y2="12.63"/><line x1="21.34" y1="12.63" x2="15.37" y2="12.63"/><line x1="32" y1="12.63" x2="32" y2="54.69"/><line x1="3.04" y1="25.15" x2="60.96" y2="25.15"/><g><g><rect x="10.87" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="21.34" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g><g><rect x="38.16" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="48.63" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g></g><polyline points="7.25 43.01 7.25 46.42 15.53 46.42 15.53 32.07 7.25 32.07 7.25 38.65"/><rect x="19.61" y="32.06" width="8.28" height="14.35"/><rect x="36.11" y="32.06" width="8.28" height="14.35"/><polyline points="56.75 32.07 48.47 32.07 48.47 38.65 48.47 46.42 56.75 46.42 56.75 38.65"/><line x1="7.25" y1="38.65" x2="15.53" y2="38.65"/><line x1="36.11" y1="39.24" x2="44.39" y2="39.24"/><line x1="48.47" y1="38.65" x2="56.75" y2="38.65"/></g></svg></div><div><div class="num" id="stat-losses">—</div><div class="label">Losses</div></div></div>
   </div>
 
-  <div class="dashboard-row-2">
-    <div class="panel-card">
-      <h2>Next event</h2>
-      <div id="next-event-content"><p class="next-event-empty">Loading…</p></div>
+  <div class="panel-card" style="margin:8px 0;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+      <h2 style="margin:0;">Calendar</h2>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button id="cal-prev-btn" class="icon-btn" style="width:32px; height:32px; border-radius:8px;" aria-label="Previous month"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <span id="cal-month-label" style="font-size:13px; font-weight:600; min-width:130px; text-align:center;"></span>
+        <button id="cal-next-btn" class="icon-btn" style="width:32px; height:32px; border-radius:8px;" aria-label="Next month"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
     </div>
-    <div class="panel-card">
-      <h2>Recent activity</h2>
-      <div id="recent-activity-content"><p class="activity-empty">Loading…</p></div>
+    <div id="calendar-grid"></div>
+    <div style="display:flex; gap:16px; margin-top:12px; font-size:12px; color:var(--muted);">
+      <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:var(--accent); margin-right:6px;"></span>Match</span>
+      <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:var(--navy); margin-right:6px;"></span>Training</span>
     </div>
+    <div id="calendar-day-detail" style="margin-top:14px; display:none; border-top:1px solid var(--line); padding-top:12px;"></div>
+  </div>
+
+  <div class="panel-card" style="margin:8px 0;">
+    <h2>Recent activity</h2>
+    <div id="recent-activity-content"><p class="activity-empty">Loading…</p></div>
   </div><!-- /normal-view-only -->
 
   <div id="admin-view-only" style="display:none;">
@@ -497,17 +496,8 @@
 
     if (error) console.error("loadMyOrganization error:", error);
 
-    // "DEL basket — admin (whole club)" ; "DEL basket — coach (U8 only)" -- para
-    // que se vea de un vistazo en qué clubes está y con qué rol en cada uno,
-    // sin tener que abrir el selector de arriba uno a uno.
-    // Pero si es platform admin, esa lista puede ser larguísima (acceso a
-    // TODOS los clubes) y no aporta nada -- mejor un mensaje corto y ya.
-    if (isPlatformController) {
-      document.getElementById("my-clubs-list").textContent = "Admin general — access to every club";
-    } else {
-      const clubLines = (data || []).map((m) => `${(m.organizations && m.organizations.name) || "?"} — ${m.role}${m.team_season ? ` (${m.team_name} only)` : " (whole club)"}`);
-      document.getElementById("my-clubs-list").textContent = clubLines.join("  ·  ");
-    }
+    // El nombre del club (o "Admin general") y el rol se muestran juntos,
+    // en una sola línea, más abajo -- ya no hace falta este texto aparte.
 
     if (error) console.error("loadMyOrganization error:", error);
     if ((error || !data || data.length === 0) && !isPlatformController) {
@@ -541,7 +531,7 @@
       document.getElementById("sidebar-role-text").textContent = "Admin general — every club";
       els.orgNameBig.textContent = "";
       els.orgLogoBig.style.display = "none";
-      els.clubStatusText.textContent = "Admin general — every club on PlayPivot";
+      els.clubStatusText.textContent = "Admin general — access to every club";
       loadAdminClubsTable();
       return null;
     }
@@ -555,7 +545,7 @@
     document.getElementById("sidebar-role-text").textContent = chosen.browsing_as_platform_admin ? "Browsing as platform admin" : roleLabel;
     const orgName = (chosen.organizations && chosen.organizations.name) || "";
     els.orgNameBig.textContent = orgName;
-    els.clubStatusText.textContent = orgName ? `Club: ${orgName}${chosen.browsing_as_platform_admin ? " (browsing as platform admin)" : ""}` : "";
+    els.clubStatusText.textContent = orgName ? `${orgName} — ${roleLabel}${chosen.browsing_as_platform_admin ? " (browsing as platform admin)" : ""}` : "";
     loadOrgLogo(currentOrgId, orgName);
     loadPendingRequestsWidget();
     return currentOrgId;
@@ -568,51 +558,56 @@
   // -----------------------------------------------------------------------
   async function loadAdminClubsTable() {
     const container = document.getElementById("admin-clubs-table");
-    const { data: orgs } = await supabaseClient.from("organizations").select("id, name").eq("is_active", true).order("name");
-    if (!orgs || orgs.length === 0) {
-      container.innerHTML = '<p style="padding:16px; color:var(--muted); font-size:13px;">No clubs yet.</p>';
-      return;
-    }
-    const rows = await Promise.all(orgs.map(async (org) => {
-      const [{ count: playerCount }, { count: matchCount }, { data: teamRows }] = await Promise.all([
-        supabaseClient.from("players").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
-        supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
-        supabaseClient.from("players").select("season, team").eq("organization_id", org.id),
-      ]);
-      const teamCount = teamRows ? new Set(teamRows.filter((r) => !isExampleTeam(r.season, r.team)).map((r) => `${r.season}|${r.team}`)).size : 0;
-      return { org, playerCount: playerCount ?? 0, matchCount: matchCount ?? 0, teamCount };
-    }));
+    try {
+      const { data: orgs } = await supabaseClient.from("organizations").select("id, name").eq("is_active", true).order("name");
+      if (!orgs || orgs.length === 0) {
+        container.innerHTML = '<p style="padding:16px; color:var(--muted); font-size:13px;">No clubs yet.</p>';
+        return;
+      }
+      const rows = await Promise.all(orgs.map(async (org) => {
+        const [{ count: playerCount }, { count: matchCount }, { data: teamRows }] = await Promise.all([
+          supabaseClient.from("players").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
+          supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
+          supabaseClient.from("players").select("season, team").eq("organization_id", org.id),
+        ]);
+        const teamCount = teamRows ? new Set(teamRows.filter((r) => !isExampleTeam(r.season, r.team)).map((r) => `${r.season}|${r.team}`)).size : 0;
+        return { org, playerCount: playerCount ?? 0, matchCount: matchCount ?? 0, teamCount };
+      }));
 
-    container.innerHTML = `
-      <table style="width:100%; border-collapse:collapse; font-size:13px;">
-        <thead>
-          <tr style="border-bottom:1px solid var(--line); text-align:left;">
-            <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Club</th>
-            <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Teams</th>
-            <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Players</th>
-            <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Matches</th>
-            <th style="padding:10px 16px;"></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows.map((r) => `
-            <tr style="border-bottom:1px solid var(--line);">
-              <td style="padding:10px 16px; font-weight:600;">${escapeHtml(r.org.name)}</td>
-              <td style="padding:10px 16px;">${r.teamCount}</td>
-              <td style="padding:10px 16px;">${r.playerCount}</td>
-              <td style="padding:10px 16px;">${r.matchCount}</td>
-              <td style="padding:10px 16px; text-align:right;"><button class="tree-example" data-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer;">Enter club →</button></td>
+      container.innerHTML = `
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--line); text-align:left;">
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Club</th>
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Teams</th>
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Players</th>
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Matches</th>
+              <th style="padding:10px 16px;"></th>
             </tr>
-          `).join("")}
-        </tbody>
-      </table>`;
+          </thead>
+          <tbody>
+            ${rows.map((r) => `
+              <tr style="border-bottom:1px solid var(--line);">
+                <td style="padding:10px 16px; font-weight:600;">${escapeHtml(r.org.name)}</td>
+                <td style="padding:10px 16px;">${r.teamCount}</td>
+                <td style="padding:10px 16px;">${r.playerCount}</td>
+                <td style="padding:10px 16px;">${r.matchCount}</td>
+                <td style="padding:10px 16px; text-align:right;"><button class="tree-example" data-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer;">Enter club →</button></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>`;
 
-    container.querySelectorAll("button[data-org-id]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        pivotSetStoredOrgId(btn.dataset.orgId);
-        window.location.reload();
+      container.querySelectorAll("button[data-org-id]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          pivotSetStoredOrgId(btn.dataset.orgId);
+          window.location.reload();
+        });
       });
-    });
+    } catch (err) {
+      console.error("loadAdminClubsTable error:", err);
+      container.innerHTML = `<p style="padding:16px; color:#991b1b; font-size:13px;">Couldn't load the clubs table: ${escapeHtml(err.message || String(err))}</p>`;
+    }
   }
 
   // Essaie de charger le logo du club -- si aucun n'a été mis en ligne,
@@ -856,7 +851,7 @@
     });
   }
   document.getElementById("calendar-btn").addEventListener("click", () => {
-    document.getElementById("next-event-content").scrollIntoView({ behavior: "smooth", block: "center" });
+    document.getElementById("calendar-grid").scrollIntoView({ behavior: "smooth", block: "center" });
   });
   document.getElementById("contact-support-btn").addEventListener("click", () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1083,42 +1078,102 @@
   }
 
   // -----------------------------------------------------------------------
-  // "Next event" -- le prochain match OU entraînement à venir (le plus
-  // proche des deux), pour ce club. Rien à configurer côté utilisateur :
-  // on regarde juste matches/trainings avec une date >= aujourd'hui.
+  // Calendario -- pinta el mes visible con un punto naranja en los días
+  // con partido y un punto navy en los días con entrenamiento.
+  // "Bidireccional" por diseño: no hay ninguna tabla propia de
+  // calendario que mantener sincronizada -- lee directamente de
+  // matches/trainings, así que cualquier partido o entrenamiento creado
+  // en Match day / Training builder aparece aquí solo, sin ningún paso
+  // extra, y viceversa (borrar uno de esos lo quita de aquí también).
   // -----------------------------------------------------------------------
-  async function loadNextEvent() {
-    if (!currentOrgId) return;
-    const container = document.getElementById("next-event-content");
-    const today = new Date().toISOString().slice(0, 10);
-    const [{ data: matchRows }, { data: trainingRows }] = await Promise.all([
-      supabaseClient.from("matches").select("date, opponent, location, team").eq("organization_id", currentOrgId).gte("date", today).order("date", { ascending: true }).limit(1),
-      supabaseClient.from("trainings").select("date, title, team").eq("organization_id", currentOrgId).gte("date", today).order("date", { ascending: true }).limit(1),
-    ]);
-    const nextMatch = (matchRows || [])[0];
-    const nextTraining = (trainingRows || [])[0];
-    let chosen = null, type = null;
-    if (nextMatch && nextTraining) {
-      if (nextMatch.date <= nextTraining.date) { chosen = nextMatch; type = "match"; } else { chosen = nextTraining; type = "training"; }
-    } else if (nextMatch) { chosen = nextMatch; type = "match"; }
-    else if (nextTraining) { chosen = nextTraining; type = "training"; }
+  let calendarViewDate = new Date();
+  let calendarEventsByDay = {};
 
-    if (!chosen) {
-      container.innerHTML = `<p class="next-event-empty">Nothing scheduled yet — add a match or training session to see it here.</p>`;
-      return;
-    }
-    const d = new Date(chosen.date + "T00:00:00");
-    const dow = d.toLocaleDateString(undefined, { weekday: "short" }).toUpperCase();
-    const dom = d.getDate();
-    const mon = d.toLocaleDateString(undefined, { month: "short" }).toUpperCase();
-    const title = type === "match" ? `vs ${chosen.opponent || "TBD"}` : (chosen.title || "Training session");
-    const subtitle = type === "match" ? (chosen.team || "") + (chosen.location ? ` · ${chosen.location}` : "") : (chosen.team || "Training");
-    container.innerHTML = `
-      <div class="next-event-row">
-        <div class="next-event-date-box"><div class="dow">${dow}</div><div class="dom">${dom}</div><div class="mon">${mon}</div></div>
-        <div class="next-event-info"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(subtitle)}</span></div>
-      </div>`;
+  async function loadCalendar() {
+    if (!currentOrgId) return;
+    const year = calendarViewDate.getFullYear();
+    const month = calendarViewDate.getMonth(); // 0-indexado
+    document.getElementById("cal-month-label").textContent = calendarViewDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const pad = (n) => String(n).padStart(2, "0");
+    const startStr = `${year}-${pad(month + 1)}-01`;
+    const endStr = `${year}-${pad(month + 1)}-${pad(lastDay.getDate())}`;
+
+    const [{ data: matches }, { data: trainings }] = await Promise.all([
+      supabaseClient.from("matches").select("date, opponent, location, team").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
+      supabaseClient.from("trainings").select("date, title, team").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
+    ]);
+
+    calendarEventsByDay = {};
+    (matches || []).forEach((m) => {
+      (calendarEventsByDay[m.date] = calendarEventsByDay[m.date] || { matches: [], trainings: [] }).matches.push(m);
+    });
+    (trainings || []).forEach((t) => {
+      (calendarEventsByDay[t.date] = calendarEventsByDay[t.date] || { matches: [], trainings: [] }).trainings.push(t);
+    });
+
+    renderCalendarGrid(firstDay, lastDay);
+    document.getElementById("calendar-day-detail").style.display = "none";
   }
+
+  function renderCalendarGrid(firstDay, lastDay) {
+    const grid = document.getElementById("calendar-grid");
+    const pad = (n) => String(n).padStart(2, "0");
+    const year = firstDay.getFullYear();
+    const month = firstDay.getMonth();
+    const startWeekday = firstDay.getDay(); // 0 = dimanche
+    const daysInMonth = lastDay.getDate();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    let html = '<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; font-size:10.5px; color:var(--muted); text-align:center; margin-bottom:6px; font-weight:600;">';
+    ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach((d) => { html += `<div>${d}</div>`; });
+    html += '</div><div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px;">';
+    for (let i = 0; i < startWeekday; i++) html += "<div></div>";
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
+      const ev = calendarEventsByDay[dateStr];
+      const isToday = dateStr === todayStr;
+      let dots = "";
+      if (ev && ev.matches.length) dots += `<span style="display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--accent); margin:0 1px;"></span>`;
+      if (ev && ev.trainings.length) dots += `<span style="display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--navy); margin:0 1px;"></span>`;
+      const hasEvents = !!ev;
+      html += `<button type="button" data-date="${dateStr}" ${hasEvents ? "" : "disabled"} style="aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:8px; font-size:12px; border:none; background:${isToday ? "var(--accent-tint)" : "transparent"}; color:${isToday ? "var(--accent-deep)" : "var(--ink)"}; font-weight:${isToday ? "700" : "500"}; cursor:${hasEvents ? "pointer" : "default"};">${d}<div style="height:6px; margin-top:2px;">${dots}</div></button>`;
+    }
+    html += "</div>";
+    grid.innerHTML = html;
+
+    grid.querySelectorAll("button[data-date]:not([disabled])").forEach((btn) => {
+      btn.addEventListener("click", () => showCalendarDayDetail(btn.dataset.date));
+    });
+  }
+
+  function showCalendarDayDetail(dateStr) {
+    const ev = calendarEventsByDay[dateStr];
+    const detail = document.getElementById("calendar-day-detail");
+    if (!ev) { detail.style.display = "none"; return; }
+    const d = new Date(dateStr + "T00:00:00");
+    const label = d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+    let rows = "";
+    ev.matches.forEach((m) => {
+      rows += `<div class="activity-row"><div class="activity-icon" style="background:var(--accent-tint); color:var(--accent-deep);">🏀</div><div class="activity-text"><strong>vs ${escapeHtml(m.opponent || "TBD")}</strong><span>${escapeHtml(m.team || "")}${m.location ? " · " + escapeHtml(m.location) : ""}</span></div></div>`;
+    });
+    ev.trainings.forEach((t) => {
+      rows += `<div class="activity-row"><div class="activity-icon" style="background:#e7e5f5; color:var(--navy);">⏱</div><div class="activity-text"><strong>${escapeHtml(t.title || "Training session")}</strong><span>${escapeHtml(t.team || "")}</span></div></div>`;
+    });
+    detail.innerHTML = `<p style="font-size:12.5px; font-weight:600; margin:0 0 8px;">${label}</p>${rows}`;
+    detail.style.display = "block";
+  }
+
+  document.getElementById("cal-prev-btn").addEventListener("click", () => {
+    calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() - 1, 1);
+    loadCalendar();
+  });
+  document.getElementById("cal-next-btn").addEventListener("click", () => {
+    calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() + 1, 1);
+    loadCalendar();
+  });
 
   // -----------------------------------------------------------------------
   // "Recent activity" -- un petit flux fabriqué côté client, PAS une
@@ -1384,7 +1439,7 @@
     if (orgId) {
       await loadPendingRequestsForAdmin();
       await loadStats();
-      await loadNextEvent();
+      await loadCalendar();
       await loadRecentActivity();
     }
     await loadPlatformStats();
