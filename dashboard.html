@@ -11,6 +11,7 @@
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
     --accent: #ec6718; --accent-deep: #b85012; --accent-tint: #fdefe7;
+    --navy: #080026; --navy-hover: rgba(255,255,255,0.07); --sidebar-w: 244px;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
@@ -18,6 +19,85 @@
   @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
   h1, h2, h3, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
+
+  /* ---------------------------------------------------------------------
+     App shell: sidebar (fixed on desktop/tablet, off-canvas on mobile)
+     + main content column. Same shell will be reused on every page later.
+     --------------------------------------------------------------------- */
+  .app-shell { display: flex; min-height: 100vh; align-items: stretch; }
+
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0; background: var(--navy); color: #fff;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; z-index: 100;
+  }
+  .sidebar-header { padding: 22px 20px 18px; display: flex; align-items: center; justify-content: space-between; }
+  .sidebar-logo-img { height: 24px; width: auto; display: block; }
+  .sidebar-close-btn { display: none; background: none; border: none; color: rgba(255,255,255,0.7); font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; }
+
+  .sidebar-nav { display: flex; flex-direction: column; gap: 2px; padding: 4px 12px; }
+  .sidebar-section-gap { height: 14px; }
+  .sidebar-link {
+    display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 8px;
+    color: rgba(255,255,255,0.72); text-decoration: none; font-size: 13.5px; font-weight: 500;
+    transition: background 0.15s, color 0.15s; white-space: nowrap;
+  }
+  .sidebar-link svg { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .sidebar-link:hover { background: var(--navy-hover); color: #fff; }
+  .sidebar-link.active { background: var(--accent); color: #fff; }
+  .sidebar-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 10px 20px; }
+
+  .sidebar-footer { margin-top: auto; padding: 8px 12px 16px; }
+  .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 10px 10px; margin-top: 6px; border-radius: 10px; background: rgba(255,255,255,0.05); }
+  .sidebar-user-avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-user-info { flex: 1; min-width: 0; }
+  .sidebar-user-name { font-size: 12.5px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-role { font-size: 11px; color: rgba(255,255,255,0.5); }
+  .sidebar-logout-btn { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; padding: 5px; flex-shrink: 0; border-radius: 6px; }
+  .sidebar-logout-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .sidebar-logout-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; display: block; }
+
+  .mobile-topbar { display: none; }
+  .sidebar-overlay { display: none; }
+
+  @media (max-width: 767px) {
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: 0 0 40px rgba(0,0,0,0.3); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-close-btn { display: block; }
+    .mobile-topbar {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--card);
+      border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 40;
+    }
+    .mobile-topbar img { height: 22px; }
+    .hamburger-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink); padding: 4px; line-height: 1; }
+    .sidebar-overlay {
+      display: block; position: fixed; inset: 0; background: rgba(8,0,38,0.5); z-index: 90;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+  }
+
+  .main-content { flex: 1; min-width: 0; }
+
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 28px 32px 4px; flex-wrap: wrap; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .icon-btn {
+    width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--card);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); position: relative;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .icon-badge {
+    position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 10px;
+    font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
+    justify-content: center; padding: 0 3px;
+  }
+  /* ------------------------------------------------------------------- */
 
   nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
@@ -31,8 +111,8 @@
   .btn-secondary:hover { border-color: var(--accent); }
   .nav-btn:hover { border-color: var(--accent); }
 
-  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 60px; }
-  h1 { font-size: 24px; margin: 0 0 4px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 32px 60px; }
+  h1 { font-size: 23px; margin: 0 0 4px; }
   p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
   .msg { margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 600; display: none; border-left: 4px solid transparent; }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
@@ -41,20 +121,55 @@
   .section-label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 32px 0 14px; }
   .section-label:first-of-type { margin-top: 0; }
 
-  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
-  @media (max-width: 640px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
-  .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  /* Stat cards v2: icon circle + number/label, matches the reference design */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 8px; }
+  .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .stat-icon-circle {
+    width: 40px; height: 40px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-deep);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .stat-icon-circle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6; }
   .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
   .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
   .tree-new, .tree-example { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
-  .stat-card .num { font-size: 26px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  .stat-card .label { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .stat-card .num { font-size: 21px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.15; }
+  .stat-card .label { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  /* Next event + Recent activity, side by side */
+  .dashboard-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0 8px; }
+  @media (max-width: 800px) { .dashboard-row-2 { grid-template-columns: 1fr; } }
+  .panel-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .panel-card h2 { font-size: 14.5px; margin: 0 0 14px; }
+  .next-event-row { display: flex; align-items: center; gap: 14px; }
+  .next-event-date-box {
+    background: var(--accent-tint); color: var(--accent-deep); border-radius: 10px; padding: 8px 12px;
+    text-align: center; min-width: 58px; flex-shrink: 0;
+  }
+  .next-event-date-box .dow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+  .next-event-date-box .dom { font-size: 19px; font-weight: 800; line-height: 1.15; }
+  .next-event-date-box .mon { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+  .next-event-info strong { display: block; font-size: 14px; }
+  .next-event-info span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .next-event-empty { font-size: 13px; color: var(--muted); }
+  .activity-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .activity-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .activity-row:first-child { padding-top: 0; }
+  .activity-icon {
+    width: 26px; height: 26px; border-radius: 8px; background: var(--accent-tint); color: var(--accent-deep);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .activity-icon svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .activity-text { flex: 1; min-width: 0; }
+  .activity-text strong { display: block; font-size: 13px; }
+  .activity-text span { display: block; font-size: 12px; color: var(--muted); }
+  .activity-time { color: var(--muted); font-size: 11.5px; white-space: nowrap; padding-left: 8px; flex-shrink: 0; }
+  .activity-empty { font-size: 13px; color: var(--muted); }
 
   .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
   @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
   .module-card { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; text-decoration: none; color: inherit; transition: border-color 0.15s; }
   .module-card:hover { border-color: var(--accent); }
-  .module-card .icon { width: 26px; height: 26px; margin-bottom: 10px; color: var(--ink); }
+  .module-card .icon { width: 26px; height: 26px; margin-bottom: 10px; color: var(--accent-deep); }
   .module-card h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; justify-content: space-between; }
   .module-card h3 .chevron { font-size: 13px; color: var(--accent); }
   .module-card p.blurb { font-size: 13.5px; color: var(--muted); margin: 0; }
@@ -110,40 +225,55 @@
 </div>
 
 
-<nav>
-  <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo.png" alt="PlayPivot" class="logotype-img" /></a>
-  <div class="nav-right">
-    <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
-    <div id="pending-requests-widget" style="position:relative; display:none;">
-      <button id="pending-requests-btn" class="nav-btn" style="cursor:pointer;">🔔 <span id="pending-requests-count"></span></button>
-      <div id="pending-requests-panel" style="display:none; position:absolute; top:36px; left:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
-    </div>
-    <div id="messages-widget" style="position:relative;">
-      <button id="messages-btn" class="nav-btn" style="cursor:pointer;">✉️ <span id="messages-count"></span></button>
-      <div id="messages-panel" style="display:none; position:absolute; top:36px; left:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
-    </div>
-    <span id="org-name"></span>
-    <select id="org-switcher" style="display:none; margin-left:6px; padding:2px 6px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; background:var(--card); color:var(--ink);"></select>
-    <a href="./settings.html" class="nav-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">⚙ Settings</a>
-    <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
-      <option value="">Go to…</option>
-      <option value="roster.html">Roster</option>
-      <option value="assessment.html">Player assessment</option>
-      <option value="play_design.html">Play design</option>
-      <option value="compare.html">Statistics</option>
-      <option value="match.html">Match day</option>
-      <option value="exercises.html">Exercise creator</option>
-      <option value="library.html">Library</option>
-      <option value="training.html">Training builder</option>
-      <option value="settings.html">Settings</option>
-      <option value="privacy.html">Privacy &amp; Terms</option>
-    </select>
-    <button class="nav-btn" id="logout-btn">Log out</button>
-  </div>
-</nav>
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">☰</button>
+  <img src="./playpivot-logo.png" alt="PlayPivot" />
+</div>
 
-<div class="wrap">
-  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px;">
+<div class="app-shell">
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo-negativo.png" alt="PlayPivot" class="sidebar-logo-img" /></a>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close menu">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="./dashboard.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+      <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
+      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+      <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
+      <a href="./compare.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><line x1="48.63" y1="12.63" x2="42.66" y2="12.63"/><path d="M53.13,12.63h2.54c2.92,0,5.29,2.37,5.29,5.29v31.5c0,2.91-2.37,5.28-5.29,5.28H8.33c-2.92,0-5.29-2.37-5.29-5.28v-31.5c0-2.92,2.37-5.29,5.29-5.29h2.54"/><line x1="38.16" y1="12.63" x2="25.84" y2="12.63"/><line x1="21.34" y1="12.63" x2="15.37" y2="12.63"/><line x1="32" y1="12.63" x2="32" y2="54.69"/><line x1="3.04" y1="25.15" x2="60.96" y2="25.15"/><g><g><rect x="10.87" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="21.34" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g><g><rect x="38.16" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="48.63" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g></g><polyline points="7.25 43.01 7.25 46.42 15.53 46.42 15.53 32.07 7.25 32.07 7.25 38.65"/><rect x="19.61" y="32.06" width="8.28" height="14.35"/><rect x="36.11" y="32.06" width="8.28" height="14.35"/><polyline points="56.75 32.07 48.47 32.07 48.47 38.65 48.47 46.42 56.75 46.42 56.75 38.65"/><line x1="7.25" y1="38.65" x2="15.53" y2="38.65"/><line x1="36.11" y1="39.24" x2="44.39" y2="39.24"/><line x1="48.47" y1="38.65" x2="56.75" y2="38.65"/></g></svg>Statistics</a>
+      <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
+      <a href="./exercises.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg>Exercise creator</a>
+      <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
+      <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-divider"></div>
+      <nav class="sidebar-nav" style="padding:0;">
+        <a href="./settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
+        <a href="./privacy.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z"/></svg>Help &amp; Privacy</a>
+      </nav>
+      <div class="sidebar-user" id="sidebar-user">
+        <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">—</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">—</div>
+        </div>
+        <button class="sidebar-logout-btn" id="logout-btn" title="Log out">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<div class="topbar">
     <div>
       <h1 style="display:flex; align-items:center; gap:8px;">
         <span id="greeting">Welcome</span>
@@ -153,13 +283,41 @@
       <p class="sub" id="my-clubs-list" style="margin-top:-8px; font-size:12.5px;"></p>
       <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
     </div>
-    <div style="text-align:center; flex-shrink:0;">
-      <img id="org-logo-big" style="width:64px; height:64px; border-radius:10px; object-fit:cover; display:none;" />
-      <div id="org-name-big" style="font-size:13px; color:var(--muted); margin-top:6px; font-weight:600; max-width:120px;"></div>
+    <div class="topbar-right">
+      <div id="pending-requests-widget" style="position:relative; display:none;">
+        <button id="pending-requests-btn" class="icon-btn" aria-label="Pending requests">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
+          <span class="icon-badge" id="pending-requests-count" style="display:none;"></span>
+        </button>
+        <div id="pending-requests-panel" style="display:none; position:absolute; top:44px; right:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
+      </div>
+      <div id="messages-widget" style="position:relative;">
+        <button id="messages-btn" class="icon-btn" aria-label="Messages">
+          <svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+          <span class="icon-badge" id="messages-count" style="display:none;"></span>
+        </button>
+        <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
+      </div>
+      <div style="text-align:center; flex-shrink:0;">
+        <img id="org-logo-big" style="width:44px; height:44px; border-radius:10px; object-fit:cover; display:none;" />
+        <div id="org-name-big" style="font-size:12px; color:var(--muted); margin-top:4px; font-weight:600; max-width:120px;"></div>
+      </div>
+      <img id="org-logo" style="display:none;" />
+      <span id="org-name" style="display:none;"></span>
+      <select id="org-switcher" style="display:none; margin-left:6px; padding:2px 6px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; background:var(--card); color:var(--ink);"></select>
     </div>
   </div>
 
+  <div class="wrap">
+
   <div class="msg" id="msg"></div>
+
+  <div id="no-club-gate" style="display:none; text-align:center; max-width:440px; margin:48px auto; padding:32px 28px; background:var(--card); border:1px solid var(--line); border-radius:14px;">
+    <h2 style="margin:0 0 8px;">You need a club to use PlayPivot</h2>
+    <p style="color:var(--muted); font-size:14px; margin:0 0 4px;">PlayPivot is built around coaching a real team — create your own club, or ask to join one you already coach for, to unlock the Dashboard and every tool.</p>
+  </div>
+
+  <div id="app-gated-content" style="display:none;">
 
   <div id="pending-section" style="display:none">
     <p class="section-label">Pending requests to approve</p>
@@ -167,30 +325,41 @@
   </div>
 
   <p class="section-label">Your stats at a glance (Mine — your own club)</p>
-  <div class="stats-row" style="grid-template-columns: repeat(3, 1fr);">
-    <div class="stat-card"><div class="num" id="stat-teams">—</div><div class="label">Teams</div></div>
-    <div class="stat-card"><div class="num" id="stat-players">—</div><div class="label">Players</div></div>
-    <div class="stat-card"><div class="num" id="stat-assessments">—</div><div class="label">Assessments</div></div>
-    <div class="stat-card"><div class="num" id="stat-exercises">—</div><div class="label">Exercises</div></div>
-    <div class="stat-card"><div class="num" id="stat-notebooks">—</div><div class="label">Notebooks</div></div>
-    <div class="stat-card"><div class="num" id="stat-plays">—</div><div class="label">Play designs</div></div>
-    <div class="stat-card"><div class="num" id="stat-matches">—</div><div class="label">Matches</div></div>
-    <div class="stat-card"><div class="num" id="stat-wins">—</div><div class="label">Wins</div></div>
-    <div class="stat-card"><div class="num" id="stat-losses">—</div><div class="label">Losses</div></div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5.3 5.5-5.3s5.5 2.3 5.5 5.3"/><circle cx="18" cy="8.5" r="2.4"/><path d="M15.8 14.3c2.6.2 4.7 2.3 4.7 5"/></svg></div><div><div class="num" id="stat-teams">—</div><div class="label">Teams</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg></div><div><div class="num" id="stat-players">—</div><div class="label">Players</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg></div><div><div class="num" id="stat-assessments">—</div><div class="label">Assessments</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg></div><div><div class="num" id="stat-exercises">—</div><div class="label">Exercises</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg></div><div><div class="num" id="stat-notebooks">—</div><div class="label">Notebooks</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg></div><div><div class="num" id="stat-plays">—</div><div class="label">Play designs</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg></div><div><div class="num" id="stat-matches">—</div><div class="label">Matches</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><line x1="48.63" y1="12.63" x2="42.66" y2="12.63"/><path d="M53.13,12.63h2.54c2.92,0,5.29,2.37,5.29,5.29v31.5c0,2.91-2.37,5.28-5.29,5.28H8.33c-2.92,0-5.29-2.37-5.29-5.28v-31.5c0-2.92,2.37-5.29,5.29-5.29h2.54"/><line x1="38.16" y1="12.63" x2="25.84" y2="12.63"/><line x1="21.34" y1="12.63" x2="15.37" y2="12.63"/><line x1="32" y1="12.63" x2="32" y2="54.69"/><line x1="3.04" y1="25.15" x2="60.96" y2="25.15"/><g><g><rect x="10.87" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="21.34" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g><g><rect x="38.16" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="48.63" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g></g><polyline points="7.25 43.01 7.25 46.42 15.53 46.42 15.53 32.07 7.25 32.07 7.25 38.65"/><rect x="19.61" y="32.06" width="8.28" height="14.35"/><rect x="36.11" y="32.06" width="8.28" height="14.35"/><polyline points="56.75 32.07 48.47 32.07 48.47 38.65 48.47 46.42 56.75 46.42 56.75 38.65"/><line x1="7.25" y1="38.65" x2="15.53" y2="38.65"/><line x1="36.11" y1="39.24" x2="44.39" y2="39.24"/><line x1="48.47" y1="38.65" x2="56.75" y2="38.65"/></g></svg></div><div><div class="num" id="stat-wins">—</div><div class="label">Wins</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><line x1="48.63" y1="12.63" x2="42.66" y2="12.63"/><path d="M53.13,12.63h2.54c2.92,0,5.29,2.37,5.29,5.29v31.5c0,2.91-2.37,5.28-5.29,5.28H8.33c-2.92,0-5.29-2.37-5.29-5.28v-31.5c0-2.92,2.37-5.29,5.29-5.29h2.54"/><line x1="38.16" y1="12.63" x2="25.84" y2="12.63"/><line x1="21.34" y1="12.63" x2="15.37" y2="12.63"/><line x1="32" y1="12.63" x2="32" y2="54.69"/><line x1="3.04" y1="25.15" x2="60.96" y2="25.15"/><g><g><rect x="10.87" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="21.34" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g><g><rect x="38.16" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="48.63" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g></g><polyline points="7.25 43.01 7.25 46.42 15.53 46.42 15.53 32.07 7.25 32.07 7.25 38.65"/><rect x="19.61" y="32.06" width="8.28" height="14.35"/><rect x="36.11" y="32.06" width="8.28" height="14.35"/><polyline points="56.75 32.07 48.47 32.07 48.47 38.65 48.47 46.42 56.75 46.42 56.75 38.65"/><line x1="7.25" y1="38.65" x2="15.53" y2="38.65"/><line x1="36.11" y1="39.24" x2="44.39" y2="39.24"/><line x1="48.47" y1="38.65" x2="56.75" y2="38.65"/></g></svg></div><div><div class="num" id="stat-losses">—</div><div class="label">Losses</div></div></div>
+  </div>
+
+  <div class="dashboard-row-2">
+    <div class="panel-card">
+      <h2>Next event</h2>
+      <div id="next-event-content"><p class="next-event-empty">Loading…</p></div>
+    </div>
+    <div class="panel-card">
+      <h2>Recent activity</h2>
+      <div id="recent-activity-content"><p class="activity-empty">Loading…</p></div>
+    </div>
   </div>
 
   <div id="platform-stats-section" style="display:none;">
     <p class="section-label">All clubs (PlayPivot Community — you're the platform admin)</p>
-    <div class="stats-row" style="grid-template-columns: repeat(3, 1fr);">
-      <div class="stat-card"><div class="num" id="pstat-orgs">—</div><div class="label">Clubs</div></div>
-      <div class="stat-card"><div class="num" id="pstat-players">—</div><div class="label">Players</div></div>
-      <div class="stat-card"><div class="num" id="pstat-assessments">—</div><div class="label">Assessments</div></div>
-      <div class="stat-card"><div class="num" id="pstat-exercises">—</div><div class="label">Exercises</div></div>
-      <div class="stat-card"><div class="num" id="pstat-plays">—</div><div class="label">Play designs</div></div>
-      <div class="stat-card"><div class="num" id="pstat-trainings">—</div><div class="label">Training sessions</div></div>
-      <div class="stat-card"><div class="num" id="pstat-matches">—</div><div class="label">Matches</div></div>
-      <div class="stat-card"><div class="num" id="pstat-users">—</div><div class="label">Users, total</div></div>
-      <div class="stat-card"><div class="num" id="pstat-online">—</div><div class="label">Online now</div></div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5.3 5.5-5.3s5.5 2.3 5.5 5.3"/><circle cx="18" cy="8.5" r="2.4"/><path d="M15.8 14.3c2.6.2 4.7 2.3 4.7 5"/></svg></div><div><div class="num" id="pstat-orgs">—</div><div class="label">Clubs</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg></div><div><div class="num" id="pstat-players">—</div><div class="label">Players</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg></div><div><div class="num" id="pstat-assessments">—</div><div class="label">Assessments</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg></div><div><div class="num" id="pstat-exercises">—</div><div class="label">Exercises</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg></div><div><div class="num" id="pstat-plays">—</div><div class="label">Play designs</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg></div><div><div class="num" id="pstat-trainings">—</div><div class="label">Training sessions</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg></div><div><div class="num" id="pstat-matches">—</div><div class="label">Matches</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5.3 5.5-5.3s5.5 2.3 5.5 5.3"/><circle cx="18" cy="8.5" r="2.4"/><path d="M15.8 14.3c2.6.2 4.7 2.3 4.7 5"/></svg></div><div><div class="num" id="pstat-users">—</div><div class="label">Users, total</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="5"/></svg></div><div><div class="num" id="pstat-online">—</div><div class="label">Online now</div></div></div>
     </div>
     <button class="nav-btn" id="copy-newsletter-emails-btn" style="margin-top:12px;">📰 Copy newsletter list (opted-in emails)</button>
   </div>
@@ -210,7 +379,11 @@
     </label>
     <button class="nav-btn" id="contact-support-btn" title="Send a message straight to the PlayPivot admin">💬 Contact us</button>
   </div>
-</div>
+
+  </div><!-- /app-gated-content -->
+  </div><!-- /wrap -->
+  </main>
+</div><!-- /app-shell -->
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
@@ -257,6 +430,33 @@
   let isPlatformController = false;
   let canValidateAssociations = false;
 
+  function applyClubGate(hasAccess) {
+    document.getElementById("app-gated-content").style.display = hasAccess ? "block" : "none";
+    document.getElementById("no-club-gate").style.display = hasAccess ? "none" : "block";
+  }
+
+  // -----------------------------------------------------------------------
+  // Sidebar : ouverture/fermeture sur mobile (hamburger), et le petit bloc
+  // utilisateur en bas (avatar avec initiale, nom, rôle).
+  // -----------------------------------------------------------------------
+  const sidebarEl = document.getElementById("sidebar");
+  const sidebarOverlayEl = document.getElementById("sidebar-overlay");
+  function openSidebar() { sidebarEl.classList.add("open"); sidebarOverlayEl.classList.add("visible"); }
+  function closeSidebar() { sidebarEl.classList.remove("open"); sidebarOverlayEl.classList.remove("visible"); }
+  document.getElementById("hamburger-btn").addEventListener("click", openSidebar);
+  document.getElementById("sidebar-close-btn").addEventListener("click", closeSidebar);
+  sidebarOverlayEl.addEventListener("click", closeSidebar);
+  // Fermer le menu automatiquement après avoir cliqué un lien (mobile).
+  document.querySelectorAll(".sidebar-link").forEach((link) => link.addEventListener("click", closeSidebar));
+
+  function updateSidebarUser(name, role) {
+    if (name) {
+      document.getElementById("sidebar-user-name").textContent = name;
+      document.getElementById("sidebar-user-avatar").textContent = name.trim().charAt(0).toUpperCase() || "?";
+    }
+    if (role) document.getElementById("sidebar-user-role").textContent = role;
+  }
+
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
 
   // -----------------------------------------------------------------------
@@ -277,6 +477,7 @@
     const displayName = (profile && profile.full_name) || user.email;
     els.greeting.textContent = `Welcome, ${displayName}`;
     isPlatformController = !!(profile && profile.is_platform_controller);
+    updateSidebarUser(displayName, isPlatformController ? "Platform admin" : null);
     if (profile && !profile.onboarded_at) document.getElementById("onboard-overlay").style.display = "flex";
     canValidateAssociations = isPlatformController || !!(profile && profile.is_association_validator);
 
@@ -297,18 +498,25 @@
     if (error) console.error("loadMyOrganization error:", error);
     if ((error || !data || data.length === 0) && !isPlatformController) {
       els.clubStatusText.textContent = "You're not an active member of any club or association yet.";
+      applyClubGate(false);
       showJoinPrompt();
       return null;
     }
     const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
     if (!chosen) {
       els.clubStatusText.textContent = "You're not an active member of any club or association yet.";
+      // Un contrôleur de plateforme sans club à lui garde quand même accès
+      // (il gère toute la plateforme) -- tout le monde d'autre reste bloqué
+      // tant qu'il n'a pas rejoint ou créé un club.
+      applyClubGate(isPlatformController);
       showJoinPrompt();
       await pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supabaseClient });
       return null;
     }
+    applyClubGate(true);
     await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
+    updateSidebarUser(null, isPlatformController ? "Platform admin" : (chosen.role === "admin" ? "Team admin" : "Coach"));
     const orgName = (chosen.organizations && chosen.organizations.name) || "";
     els.orgName.textContent = orgName;
     els.clubStatusText.textContent = orgName ? `Club: ${orgName}${chosen.browsing_as_platform_admin ? " (browsing as platform admin)" : ""}` : "";
@@ -358,6 +566,7 @@
       if (rows.length === 0) { els.assocWidget.style.display = "none"; return; }
       els.assocWidget.style.display = "inline-block";
       els.assocCount.textContent = rows.length;
+      els.assocCount.style.display = "flex";
       els.assocPanel.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Pending association requests</div>` + rows.map((r) => `
         <div style="padding:8px 0; border-bottom:1px solid var(--line);">
           <div><strong>${escapeHtml((r.organizations && r.organizations.name) || "—")}</strong> wants to join <strong>${escapeHtml((r.club_associations && r.club_associations.name) || "—")}</strong></div>
@@ -381,6 +590,7 @@
       if (rows.length === 0) { els.assocWidget.style.display = "none"; return; }
       els.assocWidget.style.display = "inline-block";
       els.assocCount.textContent = rows.length;
+      els.assocCount.style.display = "flex";
       els.assocPanel.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Your requests</div>` + rows.map((r) => `
         <div style="padding:8px 0; border-bottom:1px solid var(--line);">⏳ Waiting for approval to join <strong>${escapeHtml((r.club_associations && r.club_associations.name) || "—")}</strong></div>
       `).join("");
@@ -430,6 +640,7 @@
 
     const unread = (data || []).filter((m) => m.recipient_id === currentUserId && !m.read_at).length;
     els.msgCount.textContent = unread > 0 ? unread : "";
+    els.msgCount.style.display = unread > 0 ? "flex" : "none";
 
     // Regroupe par "autre personne" -- on ne garde que le message le plus
     // récent de chaque conversation pour la liste.
@@ -587,7 +798,7 @@
     wrap.appendChild(openBtn);
 
     openBtn.addEventListener("click", () => openJoinForm(wrap, openBtn), { once: true });
-    els.clubStatusText.insertAdjacentElement("afterend", wrap);
+    document.getElementById("no-club-gate").appendChild(wrap);
   }
 
   async function openJoinForm(wrap, openBtn) {
@@ -603,9 +814,6 @@
       <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">As what?</label>
       <select id="join-org-role" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;">
         <option value="coach">Coach</option>
-        <option value="assistant">Assistant coach</option>
-        <option value="player">Player</option>
-        <option value="viewer">Viewer (read-only)</option>
       </select>
       <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Message to the admin (optional)</label>
       <textarea id="join-org-message" rows="2" placeholder="e.g. Hi, I'm the new U16 coach…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-family:inherit; font-size:13px;"></textarea>
@@ -781,6 +989,104 @@
   }
 
   // -----------------------------------------------------------------------
+  // "Next event" -- le prochain match OU entraînement à venir (le plus
+  // proche des deux), pour ce club. Rien à configurer côté utilisateur :
+  // on regarde juste matches/trainings avec une date >= aujourd'hui.
+  // -----------------------------------------------------------------------
+  async function loadNextEvent() {
+    if (!currentOrgId) return;
+    const container = document.getElementById("next-event-content");
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ data: matchRows }, { data: trainingRows }] = await Promise.all([
+      supabaseClient.from("matches").select("date, opponent, location, team").eq("organization_id", currentOrgId).gte("date", today).order("date", { ascending: true }).limit(1),
+      supabaseClient.from("trainings").select("date, title, team").eq("organization_id", currentOrgId).gte("date", today).order("date", { ascending: true }).limit(1),
+    ]);
+    const nextMatch = (matchRows || [])[0];
+    const nextTraining = (trainingRows || [])[0];
+    let chosen = null, type = null;
+    if (nextMatch && nextTraining) {
+      if (nextMatch.date <= nextTraining.date) { chosen = nextMatch; type = "match"; } else { chosen = nextTraining; type = "training"; }
+    } else if (nextMatch) { chosen = nextMatch; type = "match"; }
+    else if (nextTraining) { chosen = nextTraining; type = "training"; }
+
+    if (!chosen) {
+      container.innerHTML = `<p class="next-event-empty">Nothing scheduled yet — add a match or training session to see it here.</p>`;
+      return;
+    }
+    const d = new Date(chosen.date + "T00:00:00");
+    const dow = d.toLocaleDateString(undefined, { weekday: "short" }).toUpperCase();
+    const dom = d.getDate();
+    const mon = d.toLocaleDateString(undefined, { month: "short" }).toUpperCase();
+    const title = type === "match" ? `vs ${chosen.opponent || "TBD"}` : (chosen.title || "Training session");
+    const subtitle = type === "match" ? (chosen.team || "") + (chosen.location ? ` · ${chosen.location}` : "") : (chosen.team || "Training");
+    container.innerHTML = `
+      <div class="next-event-row">
+        <div class="next-event-date-box"><div class="dow">${dow}</div><div class="dom">${dom}</div><div class="mon">${mon}</div></div>
+        <div class="next-event-info"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(subtitle)}</span></div>
+      </div>`;
+  }
+
+  // -----------------------------------------------------------------------
+  // "Recent activity" -- un petit flux fabriqué côté client, PAS une
+  // table dédiée : on prend les quelques lignes les plus récentes de
+  // chaque table pertinente (created_at), on les mélange, on trie, on
+  // garde le top 5. Pas de nouvelle table à maintenir.
+  // -----------------------------------------------------------------------
+  const ACTIVITY_ICONS = {
+    exercise: '<g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g>',
+    play: '<g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g>',
+    match: '<g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g>',
+    training: '<g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g>',
+    assessment: '<g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g>',
+  };
+
+  function timeAgo(iso) {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(iso).toLocaleDateString();
+  }
+
+  async function loadRecentActivity() {
+    if (!currentOrgId) return;
+    const container = document.getElementById("recent-activity-content");
+    const [{ data: ex }, { data: pl }, { data: ma }, { data: tr }, { data: as_ }] = await Promise.all([
+      supabaseClient.from("exercises").select("name, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("plays").select("name, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("matches").select("opponent, team, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("trainings").select("title, team, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("player_assessments").select("created_at, players(first_name, last_name)").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+    ]);
+
+    const items = [];
+    (ex || []).forEach((r) => items.push({ type: "exercise", title: "Exercise created", detail: r.name, at: r.created_at }));
+    (pl || []).forEach((r) => items.push({ type: "play", title: "Play design created", detail: r.name, at: r.created_at }));
+    (ma || []).forEach((r) => items.push({ type: "match", title: "Match added", detail: `vs ${r.opponent || "?"}`, at: r.created_at }));
+    (tr || []).forEach((r) => items.push({ type: "training", title: "Training planned", detail: r.title || r.team || "", at: r.created_at }));
+    (as_ || []).forEach((r) => items.push({ type: "assessment", title: "Assessment completed", detail: r.players ? `${r.players.first_name} ${r.players.last_name}` : "", at: r.created_at }));
+
+    items.sort((a, b) => new Date(b.at) - new Date(a.at));
+    const top = items.slice(0, 5);
+
+    if (top.length === 0) {
+      container.innerHTML = `<p class="activity-empty">Nothing yet — your recent additions will show up here.</p>`;
+      return;
+    }
+    container.innerHTML = top.map((it) => `
+      <div class="activity-row">
+        <div class="activity-icon"><svg viewBox="0 0 24 24" width="20" height="20">${ACTIVITY_ICONS[it.type]}</svg></div>
+        <div class="activity-text"><strong>${escapeHtml(it.title)}</strong><span>${escapeHtml(it.detail || "")}</span></div>
+        <div class="activity-time">${timeAgo(it.at)}</div>
+      </div>
+    `).join("");
+  }
+
+  // -----------------------------------------------------------------------
   // Panel global -- visible UNIQUEMENT pour toi (is_platform_controller).
   // Chiffres sur TOUT PlayPivot, sans filtre de club -- juste pour regarder,
   // aucun droit d'édition n'est donné par ça.
@@ -911,10 +1217,6 @@
 
   renderExampleDataCard("example-data-card", { onLoad: loadExampleTeam, onRemove: removeExampleTeam });
 
-  document.getElementById("nav-menu").addEventListener("change", (e) => {
-    if (e.target.value) window.location.href = "./" + e.target.value;
-  });
-
   let myTermsAcceptedAt = null;
 
   function renderPrivacyStatusCard() {
@@ -939,7 +1241,7 @@
     box.innerHTML = `
       <strong>How to use the Dashboard</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li>This is your home screen — your club, your role, and quick stats about what's in PlayPivot so far. If you're not in any club yet, you can request to join one (as a coach, assistant, player, or viewer) or create your own club straight from here.</li>
+        <li>This is your home screen — your club, your role, and quick stats about what's in PlayPivot so far. If you're not in any club yet, you can request to join one (as a coach) or create your own club straight from here.</li>
         <li><strong>Your stats at a glance</strong> — Teams, Players, Assessments, Exercises, Notebooks (folders in your play notebook), Play designs, Matches, Wins, Losses. All counted from your own club only. Example data (any Bulls season, the Celtics) is never counted here, even if it's still loaded.</li>
         <li>✉️ next to your club name is your <strong>messages</strong> inbox — direct messages between you and a teammate, or you and a PlayPivot admin/validator. A number badge means unread messages. Click "+ New message" to start one by typing someone's email.</li>
         <li>🔔 (only shows up when there's something) is for <strong>club association requests</strong> — if you're a platform admin or validator, you'll see every pending request here with Approve/Reject; otherwise you'll see the status of your own club's requests.</li>
@@ -987,6 +1289,8 @@
     if (orgId) {
       await loadPendingRequestsForAdmin();
       await loadStats();
+      await loadNextEvent();
+      await loadRecentActivity();
     }
     await loadPlatformStats();
     await loadMessagesWidget();
