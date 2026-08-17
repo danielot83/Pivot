@@ -8,17 +8,18 @@
 // consulta devolviera primero, sin ningún orden fijo, y sin ninguna
 // forma de cambiar. Esto guarda cuál club está activo en localStorage
 // (dura entre páginas, por persona, en este navegador) y dibuja un
-// selector si hay más de uno.
+// selector si hay más de una opción.
 //
-// Para el platform admin, además: un desplegable "Mine / All clubs" --
-// en "All", el selector de club lista TODOS los clubes activos de la
-// plataforma (no solo los suyos), y puede entrar a cualquiera. En
-// "Mine" (por defecto), se comporta exactamente igual que para
-// cualquier otra persona -- solo sus propios clubes.
+// Para el platform admin: una única opción especial "⚡ Admin (all
+// clubs)" arriba del todo en el mismo desplegable -- elegirla entra a
+// la vista de Admin general (estadísticas de toda la plataforma); elegir
+// cualquier club entra a su vista normal, como cualquier otra persona.
+// Ya no hay un desplegable Mine/All aparte -- esta única opción hace lo
+// mismo de forma más clara.
 // =============================================================================
 
 const PIVOT_ACTIVE_ORG_KEY = "pivot_active_org_id";
-const PIVOT_SWITCHER_SCOPE_KEY = "pivot_org_switcher_scope"; // "mine" | "all"
+const PIVOT_ADMIN_VIEW_VALUE = "__admin__";
 
 function pivotGetStoredOrgId() {
   try { return localStorage.getItem(PIVOT_ACTIVE_ORG_KEY); } catch (e) { return null; }
@@ -28,94 +29,76 @@ function pivotSetStoredOrgId(orgId) {
   try { localStorage.setItem(PIVOT_ACTIVE_ORG_KEY, orgId); } catch (e) { /* almacenamiento no disponible, no pasa nada grave */ }
 }
 
-function pivotGetSwitcherScope() {
-  try { return localStorage.getItem(PIVOT_SWITCHER_SCOPE_KEY) || "mine"; } catch (e) { return "mine"; }
-}
-
 /**
- * A partir de la lista de membresías activas de la persona, decide cuál
- * club está activo ahora mismo -- la guardada la última vez si todavía
- * es válida, si no la primera de la lista -- y la guarda para la
- * próxima página. Devuelve { organization_id, organizations } (o null
- * si no hay ninguna).
+ * A partir de la lista de membresías activas de la persona, decide qué
+ * está activo ahora mismo -- lo guardado la última vez si todavía es
+ * válido, si no la primera membresía de la lista -- y lo guarda para la
+ * próxima página.
  *
- * Para el platform admin en modo "All": si el club guardado no está
- * entre sus propias membresías, lo busca directamente en la tabla
- * organizations (puede entrar aunque no sea miembro) en vez de
- * descartarlo sin más.
+ * Para el platform admin: si lo guardado es "__admin__", devuelve un
+ * objeto especial { is_admin_view: true } en vez de un club concreto --
+ * cada página decide qué hacer con eso (el Dashboard muestra la vista de
+ * Admin general; el resto de páginas, por ahora, simplemente ignoran
+ * ese valor y caen a su primer club real, ya que todavía no tienen una
+ * vista de administrador propia).
+ *
+ * Devuelve { organization_id, organizations, role } o { is_admin_view:
+ * true }, o null si no hay ninguna opción disponible.
  */
 async function pivotResolveActiveOrg(memberships, options) {
   options = options || {};
   const isPlatformController = !!options.isPlatformController;
-  const supabaseClient = options.supabaseClient || null;
   const stored = pivotGetStoredOrgId();
+
+  if (isPlatformController && stored === PIVOT_ADMIN_VIEW_VALUE) {
+    return { is_admin_view: true, organization_id: PIVOT_ADMIN_VIEW_VALUE };
+  }
 
   const ownMatch = (memberships || []).find((m) => m.organization_id === stored);
   if (ownMatch) return ownMatch;
 
-  if (isPlatformController && stored && pivotGetSwitcherScope() === "all" && supabaseClient) {
-    const { data: org } = await supabaseClient.from("organizations").select("id, name").eq("id", stored).maybeSingle();
-    if (org) return { organization_id: org.id, organizations: { name: org.name }, role: "admin", browsing_as_platform_admin: true };
+  if (!memberships || memberships.length === 0) {
+    // Nada propio -- si es platform admin, que caiga en la vista de
+    // Admin general en vez de quedarse sin ningún sitio a donde ir.
+    if (isPlatformController) {
+      pivotSetStoredOrgId(PIVOT_ADMIN_VIEW_VALUE);
+      return { is_admin_view: true, organization_id: PIVOT_ADMIN_VIEW_VALUE };
+    }
+    return null;
   }
-
-  if (!memberships || memberships.length === 0) return null;
   const chosen = memberships[0];
   pivotSetStoredOrgId(chosen.organization_id);
   return chosen;
 }
 
 /**
- * Dibuja el selector de club en el elemento dado, y (solo para el
- * platform admin) el desplegable Mine/All justo al lado. Cambiar de
- * club, o de ámbito, recarga la página.
+ * Dibuja el selector: para todos, sus propios clubes (si tiene más de
+ * uno); para el platform admin, además, la opción "⚡ Admin (all
+ * clubs)" siempre presente arriba del todo, incluso si solo tiene un
+ * club propio (o ninguno).
  */
-async function pivotRenderOrgSwitcher(containerId, memberships, activeOrgId, options) {
+function pivotRenderOrgSwitcher(containerId, memberships, activeOrgId, options) {
   options = options || {};
   const isPlatformController = !!options.isPlatformController;
-  const supabaseClient = options.supabaseClient || null;
   const el = document.getElementById(containerId);
   if (!el) return;
 
-  const scopeId = containerId + "-scope";
-  let scopeEl = document.getElementById(scopeId);
+  const list = memberships || [];
 
-  if (isPlatformController && supabaseClient) {
-    if (!scopeEl) {
-      scopeEl = document.createElement("select");
-      scopeEl.id = scopeId;
-      scopeEl.title = "Mine = only your own clubs. All clubs = browse any club on PlayPivot.";
-      scopeEl.style.cssText = "margin-left:6px; padding:2px 6px; border:1px solid var(--line); border-radius:6px; font-size:12px; background:var(--card); color:var(--muted);";
-      scopeEl.innerHTML = '<option value="mine">Mine</option><option value="all">All clubs</option>';
-      el.insertAdjacentElement("afterend", scopeEl);
-      scopeEl.addEventListener("change", () => {
-        try { localStorage.setItem(PIVOT_SWITCHER_SCOPE_KEY, scopeEl.value); } catch (e) {}
-        // al cambiar de ambito, se olvida el club activo -- si no,
-        // podria quedarse atascado en un club que ya no ve en "Mine"
-        try { localStorage.removeItem(PIVOT_ACTIVE_ORG_KEY); } catch (e) {}
-        window.location.reload();
-      });
-    }
-    scopeEl.value = pivotGetSwitcherScope();
-    scopeEl.style.display = "inline-block";
-  } else if (scopeEl) {
-    scopeEl.style.display = "none";
-  }
+  // Alguien normal, con un solo club: no hace falta selector, no hay
+  // nada entre lo que elegir.
+  if (!isPlatformController && list.length <= 1) { el.style.display = "none"; return; }
 
-  const scope = isPlatformController ? pivotGetSwitcherScope() : "mine";
-
-  let list = memberships || [];
-  if (scope === "all" && supabaseClient) {
-    const { data } = await supabaseClient.from("organizations").select("id, name").eq("is_active", true).order("name");
-    list = (data || []).map((o) => ({ organization_id: o.id, organizations: { name: o.name } }));
-  }
-
-  // en "Mine", el selector se esconde si solo hay un club -- para
-  // cualquiera, plataform admin incluido. En "All" se deja siempre
-  // visible, ya que ahí puedes entrar a cualquier club de la plataforma.
-  if (scope === "mine" && list.length <= 1) { el.style.display = "none"; return; }
-  el.style.display = "inline-block";
-  el.innerHTML = list
+  el.style.display = "block";
+  const optionsHtml = list
     .map((m) => `<option value="${m.organization_id}" ${m.organization_id === activeOrgId ? "selected" : ""}>${(m.organizations && m.organizations.name) || "?"}</option>`)
     .join("");
+
+  if (isPlatformController) {
+    const adminSelected = activeOrgId === PIVOT_ADMIN_VIEW_VALUE ? "selected" : "";
+    el.innerHTML = `<option value="${PIVOT_ADMIN_VIEW_VALUE}" ${adminSelected}>⚡ Admin (all clubs)</option>` + optionsHtml;
+  } else {
+    el.innerHTML = optionsHtml;
+  }
   el.onchange = () => { pivotSetStoredOrgId(el.value); window.location.reload(); };
 }

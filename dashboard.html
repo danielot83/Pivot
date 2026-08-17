@@ -87,11 +87,11 @@
   .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 28px 32px 4px; flex-wrap: wrap; }
   .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .icon-btn {
-    width: 46px; height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+    width: 52px; height: 52px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
     display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); position: relative;
   }
   .icon-btn:hover { border-color: var(--accent); }
-  .icon-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .icon-btn svg { width: 23px; height: 23px; stroke: currentColor; fill: none; stroke-width: 1.6; }
   .icon-badge {
     position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 10px;
     font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
@@ -121,7 +121,7 @@
   .section-label:first-of-type { margin-top: 0; }
 
   /* Stat cards v2: icon circle + number/label, matches the reference design */
-  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 8px; }
   @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
   .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
   .stat-icon-circle {
@@ -165,7 +165,8 @@
   .activity-time { color: var(--muted); font-size: 11.5px; white-space: nowrap; padding-left: 8px; flex-shrink: 0; }
   .activity-empty { font-size: 13px; color: var(--muted); }
 
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
   .module-card { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; text-decoration: none; color: inherit; transition: border-color 0.15s; }
@@ -242,7 +243,13 @@
     </div>
 
     <nav class="sidebar-nav">
+      <div id="sidebar-admin-badge" style="display:none; font-size:10.5px; font-weight:700; letter-spacing:0.05em; color:var(--accent); padding:0 12px 6px;">⚡ PLATFORM ADMIN</div>
       <a href="./dashboard.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+
+      <div style="padding:8px 12px 12px;">
+        <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:12.5px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
+        <div id="sidebar-role-text" style="font-size:11px; color:#848092; padding:2px 2px 0;"></div>
+      </div>
       <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
       <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
       <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
@@ -286,8 +293,7 @@
       <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
     </div>
     <div class="topbar-right">
-      <select id="org-switcher" style="display:none; padding:7px 10px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; background:var(--card); color:var(--ink); order:4;"></select>
-      <img id="org-logo-big" style="width:46px; height:46px; border-radius:10px; object-fit:cover; display:none;" />
+      <img id="org-logo-big" style="width:52px; height:52px; border-radius:10px; object-fit:cover; display:none;" />
       <div id="pending-requests-widget" style="position:relative; display:none;">
         <button id="pending-requests-btn" class="icon-btn" aria-label="Pending requests">
           <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
@@ -295,9 +301,12 @@
         </button>
         <div id="pending-requests-panel" style="display:none; position:absolute; top:44px; right:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
       </div>
+      <button id="calendar-btn" class="icon-btn" aria-label="Next event" title="Jump to your next event">
+        <svg viewBox="0 0 24 24" width="23" height="23"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      </button>
       <div id="messages-widget" style="position:relative;">
         <button id="messages-btn" class="icon-btn" aria-label="Messages">
-          <svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+          <svg viewBox="0 0 24 24" width="23" height="23"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
           <span class="icon-badge" id="messages-count" style="display:none;"></span>
         </button>
         <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
@@ -316,6 +325,8 @@
   </div>
 
   <div id="app-gated-content" style="display:none;">
+
+  <div id="normal-view-only">
 
   <div id="pending-section" style="display:none">
     <p class="section-label">Pending requests to approve</p>
@@ -344,10 +355,10 @@
       <h2>Recent activity</h2>
       <div id="recent-activity-content"><p class="activity-empty">Loading…</p></div>
     </div>
-  </div>
+  </div><!-- /normal-view-only -->
 
-  <div id="platform-stats-section" style="display:none;">
-    <p class="section-label">All clubs (PlayPivot Community — you're the platform admin)</p>
+  <div id="admin-view-only" style="display:none;">
+    <p class="section-label">Platform overview — Admin general</p>
     <div class="stats-row">
       <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5.3 5.5-5.3s5.5 2.3 5.5 5.3"/><circle cx="18" cy="8.5" r="2.4"/><path d="M15.8 14.3c2.6.2 4.7 2.3 4.7 5"/></svg></div><div><div class="num" id="pstat-orgs">—</div><div class="label">Clubs</div></div></div>
       <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg></div><div><div class="num" id="pstat-players">—</div><div class="label">Players</div></div></div>
@@ -360,6 +371,9 @@
       <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="5"/></svg></div><div><div class="num" id="pstat-online">—</div><div class="label">Online now</div></div></div>
     </div>
     <button class="nav-btn" id="copy-newsletter-emails-btn" style="margin-top:12px;">📰 Copy newsletter list (opted-in emails)</button>
+
+    <p class="section-label">Clubs on PlayPivot</p>
+    <div id="admin-clubs-table" style="background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;"><p style="padding:16px; color:var(--muted); font-size:13px;">Loading…</p></div>
   </div>
 
   <p class="section-label">Tools</p>
@@ -367,7 +381,6 @@
 
   <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
     <div class="side-card" id="privacy-status-card" style="flex:1 1 380px; max-width:420px;"></div>
-    <div class="side-card" id="example-data-card" style="flex:1 1 260px; max-width:320px;"></div>
   </div>
 
   <div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
@@ -511,19 +524,95 @@
       // tant qu'il n'a pas rejoint ou créé un club.
       applyClubGate(isPlatformController);
       showJoinPrompt();
-      await pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supabaseClient });
+      pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController });
       return null;
     }
     applyClubGate(true);
-    await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
+    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController });
+
+    if (chosen.is_admin_view) {
+      // Vista de Admin general: nada de club concreto -- estadísticas de
+      // toda la plataforma + la tabla con cada club.
+      currentOrgId = null;
+      document.getElementById("normal-view-only").style.display = "none";
+      document.getElementById("admin-view-only").style.display = "block";
+      document.getElementById("sidebar-admin-badge").style.display = "block";
+      updateSidebarUser(null, "Platform admin");
+      document.getElementById("sidebar-role-text").textContent = "Admin general — every club";
+      els.orgNameBig.textContent = "";
+      els.orgLogoBig.style.display = "none";
+      els.clubStatusText.textContent = "Admin general — every club on PlayPivot";
+      loadAdminClubsTable();
+      return null;
+    }
+
+    document.getElementById("normal-view-only").style.display = "block";
+    document.getElementById("admin-view-only").style.display = "none";
+    document.getElementById("sidebar-admin-badge").style.display = "none";
     currentOrgId = chosen.organization_id;
-    updateSidebarUser(null, isPlatformController ? "Platform admin" : (chosen.role === "admin" ? "Team admin" : "Coach"));
+    const roleLabel = isPlatformController ? "Platform admin" : (chosen.role === "admin" ? "Team admin" : "Coach");
+    updateSidebarUser(null, roleLabel);
+    document.getElementById("sidebar-role-text").textContent = chosen.browsing_as_platform_admin ? "Browsing as platform admin" : roleLabel;
     const orgName = (chosen.organizations && chosen.organizations.name) || "";
     els.orgNameBig.textContent = orgName;
     els.clubStatusText.textContent = orgName ? `Club: ${orgName}${chosen.browsing_as_platform_admin ? " (browsing as platform admin)" : ""}` : "";
     loadOrgLogo(currentOrgId, orgName);
     loadPendingRequestsWidget();
     return currentOrgId;
+  }
+
+  // -----------------------------------------------------------------------
+  // Vista de Admin general: cada club activo de la plataforma, con sus
+  // números clave y un botón para entrar directamente (desde ahí, la
+  // gestión de roles/miembros de ESE club ya existe en su Settings).
+  // -----------------------------------------------------------------------
+  async function loadAdminClubsTable() {
+    const container = document.getElementById("admin-clubs-table");
+    const { data: orgs } = await supabaseClient.from("organizations").select("id, name").eq("is_active", true).order("name");
+    if (!orgs || orgs.length === 0) {
+      container.innerHTML = '<p style="padding:16px; color:var(--muted); font-size:13px;">No clubs yet.</p>';
+      return;
+    }
+    const rows = await Promise.all(orgs.map(async (org) => {
+      const [{ count: playerCount }, { count: matchCount }, { data: teamRows }] = await Promise.all([
+        supabaseClient.from("players").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
+        supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
+        supabaseClient.from("players").select("season, team").eq("organization_id", org.id),
+      ]);
+      const teamCount = teamRows ? new Set(teamRows.filter((r) => !isExampleTeam(r.season, r.team)).map((r) => `${r.season}|${r.team}`)).size : 0;
+      return { org, playerCount: playerCount ?? 0, matchCount: matchCount ?? 0, teamCount };
+    }));
+
+    container.innerHTML = `
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--line); text-align:left;">
+            <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Club</th>
+            <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Teams</th>
+            <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Players</th>
+            <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Matches</th>
+            <th style="padding:10px 16px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((r) => `
+            <tr style="border-bottom:1px solid var(--line);">
+              <td style="padding:10px 16px; font-weight:600;">${escapeHtml(r.org.name)}</td>
+              <td style="padding:10px 16px;">${r.teamCount}</td>
+              <td style="padding:10px 16px;">${r.playerCount}</td>
+              <td style="padding:10px 16px;">${r.matchCount}</td>
+              <td style="padding:10px 16px; text-align:right;"><button class="tree-example" data-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer;">Enter club →</button></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>`;
+
+    container.querySelectorAll("button[data-org-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        pivotSetStoredOrgId(btn.dataset.orgId);
+        window.location.reload();
+      });
+    });
   }
 
   // Essaie de charger le logo du club -- si aucun n'a été mis en ligne,
@@ -766,6 +855,9 @@
       await loadMessagesWidget();
     });
   }
+  document.getElementById("calendar-btn").addEventListener("click", () => {
+    document.getElementById("next-event-content").scrollIntoView({ behavior: "smooth", block: "center" });
+  });
   document.getElementById("contact-support-btn").addEventListener("click", () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     showComposeToSupport();
@@ -1095,7 +1187,6 @@
   // -----------------------------------------------------------------------
   async function loadPlatformStats() {
     if (!isPlatformController) return;
-    document.getElementById("platform-stats-section").style.display = "block";
 
     const { count: orgCount } = await supabaseClient.from("organizations").select("id", { count: "exact", head: true });
     document.getElementById("pstat-orgs").textContent = orgCount ?? 0;
@@ -1217,7 +1308,9 @@
     }
   }
 
-  renderExampleDataCard("example-data-card", { onLoad: loadExampleTeam, onRemove: removeExampleTeam });
+  // La tarjeta de datos de ejemplo (Chicago Bulls) se quitó del Dashboard
+  // por ahora, a petición de Dani -- sigue disponible en Roster/Assessment/
+  // Training si alguien la necesita para probar la plataforma.
 
   let myTermsAcceptedAt = null;
 
