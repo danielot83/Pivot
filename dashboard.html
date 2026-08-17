@@ -295,7 +295,7 @@
         </button>
         <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
       </div>
-      <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
+      <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none; margin-left:6px; align-self:center;" />
       <div id="org-name-big" style="display:none;"></div>
     </div>
   </div>
@@ -563,6 +563,8 @@
   // números clave y un botón para entrar directamente (desde ahí, la
   // gestión de roles/miembros de ESE club ya existe en su Settings).
   // -----------------------------------------------------------------------
+  let adminClubsRowsCache = [];
+
   async function loadAdminClubsTable() {
     const container = document.getElementById("admin-clubs-table");
     try {
@@ -580,8 +582,12 @@
         const teamCount = teamRows ? new Set(teamRows.filter((r) => !isExampleTeam(r.season, r.team)).map((r) => `${r.season}|${r.team}`)).size : 0;
         return { org, playerCount: playerCount ?? 0, matchCount: matchCount ?? 0, teamCount };
       }));
+      adminClubsRowsCache = rows;
 
       container.innerHTML = `
+        <div style="padding:12px 16px; border-bottom:1px solid var(--line);">
+          <input id="admin-clubs-search" type="text" placeholder="Search clubs…" style="width:100%; max-width:280px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
+        </div>
         <table style="width:100%; border-collapse:collapse; font-size:13px;">
           <thead>
             <tr style="border-bottom:1px solid var(--line); text-align:left;">
@@ -592,28 +598,143 @@
               <th style="padding:10px 16px;"></th>
             </tr>
           </thead>
-          <tbody>
-            ${rows.map((r) => `
-              <tr style="border-bottom:1px solid var(--line);">
-                <td style="padding:10px 16px; font-weight:600;">${escapeHtml(r.org.name)}</td>
-                <td style="padding:10px 16px;">${r.teamCount}</td>
-                <td style="padding:10px 16px;">${r.playerCount}</td>
-                <td style="padding:10px 16px;">${r.matchCount}</td>
-                <td style="padding:10px 16px; text-align:right;"><button class="tree-example" data-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer;">Enter club →</button></td>
-              </tr>
-            `).join("")}
-          </tbody>
+          <tbody id="admin-clubs-tbody"></tbody>
         </table>`;
 
-      container.querySelectorAll("button[data-org-id]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          pivotSetStoredOrgId(btn.dataset.orgId);
-          window.location.reload();
-        });
+      renderAdminClubsRows(rows);
+      document.getElementById("admin-clubs-search").addEventListener("input", (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        renderAdminClubsRows(rows.filter((r) => r.org.name.toLowerCase().includes(q)));
       });
     } catch (err) {
       console.error("loadAdminClubsTable error:", err);
       container.innerHTML = `<p style="padding:16px; color:#991b1b; font-size:13px;">Couldn't load the clubs table: ${escapeHtml(err.message || String(err))}</p>`;
+    }
+  }
+
+  function renderAdminClubsRows(rows) {
+    const tbody = document.getElementById("admin-clubs-tbody");
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="padding:16px; color:var(--muted);">No clubs match that search.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map((r) => `
+      <tr style="border-bottom:1px solid var(--line);">
+        <td style="padding:10px 16px; font-weight:600;">${escapeHtml(r.org.name)}</td>
+        <td style="padding:10px 16px;">${r.teamCount}</td>
+        <td style="padding:10px 16px;">${r.playerCount}</td>
+        <td style="padding:10px 16px;">${r.matchCount}</td>
+        <td style="padding:10px 16px; text-align:right; white-space:nowrap;">
+          <button class="tree-example" data-manage-org-id="${r.org.id}" style="color:var(--ink); font-weight:600; cursor:pointer; margin-right:10px;">Manage</button>
+          <button class="tree-example" data-enter-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer; margin-right:10px;">See club →</button>
+          <button class="tree-example" data-deactivate-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer;">Deactivate</button>
+        </td>
+      </tr>
+      <tr id="admin-manage-row-${r.org.id}" style="display:none;"><td colspan="5" style="padding:14px 16px; background:var(--paper);"><div id="admin-manage-content-${r.org.id}"></div></td></tr>
+    `).join("");
+
+    tbody.querySelectorAll("button[data-enter-org-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        pivotSetStoredOrgId(btn.dataset.enterOrgId);
+        window.location.reload();
+      });
+    });
+
+    tbody.querySelectorAll("button[data-manage-org-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const orgId = btn.dataset.manageOrgId;
+        const row = document.getElementById(`admin-manage-row-${orgId}`);
+        const opening = row.style.display === "none";
+        row.style.display = opening ? "table-row" : "none";
+        if (opening) loadAdminClubMembers(orgId);
+      });
+    });
+
+    tbody.querySelectorAll("button[data-deactivate-org-id]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const orgId = btn.dataset.deactivateOrgId;
+        const orgName = btn.dataset.orgName;
+        const typed = prompt(`This hides "${orgName}" from the platform (its data stays, nothing is deleted — you can reactivate it later from Supabase directly). Type the club name to confirm:`);
+        if (typed !== orgName) { if (typed !== null) showMessage("Name didn't match — nothing was changed.", "error"); return; }
+        try {
+          const { error } = await supabaseClient.from("organizations").update({ is_active: false }).eq("id", orgId);
+          if (error) throw error;
+          showMessage(`"${orgName}" deactivated.`, "success");
+          loadAdminClubsTable();
+        } catch (err) {
+          showMessage(err.message || "Couldn't deactivate that club.", "error");
+        }
+      });
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Gestión de roles de un club concreto, desde la vista de Admin general
+  // -- sin tener que entrar al club para ir a su Settings. Mismo patrón
+  // que Settings (rol admin/coach + quitar del club), con su propio
+  // buscador para clubes con muchos miembros.
+  // -----------------------------------------------------------------------
+  async function loadAdminClubMembers(orgId) {
+    const content = document.getElementById(`admin-manage-content-${orgId}`);
+    content.innerHTML = `<p style="font-size:12.5px; color:var(--muted);">Loading members…</p>`;
+    try {
+      const { data, error } = await supabaseClient
+        .from("memberships")
+        .select("id, role, status, profiles(full_name)")
+        .eq("organization_id", orgId)
+        .in("status", ["active", "blocked"]);
+      if (error) throw error;
+
+      content.innerHTML = `
+        <input class="admin-member-search" type="text" placeholder="Search coaches/admins…" style="width:100%; max-width:240px; padding:6px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; margin-bottom:10px;" />
+        <div class="admin-member-list"></div>`;
+
+      const renderMembers = (list) => {
+        const listEl = content.querySelector(".admin-member-list");
+        if (list.length === 0) { listEl.innerHTML = `<p style="font-size:12.5px; color:var(--muted);">No members found.</p>`; return; }
+        listEl.innerHTML = list.map((m) => `
+          <div style="display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px;">
+            <span style="flex:1;">${escapeHtml((m.profiles && m.profiles.full_name) || "—")}${m.status === "blocked" ? ' <span style="color:#991b1b; font-size:11px;">(blocked)</span>' : ""}</span>
+            <select data-membership-id="${m.id}" style="padding:5px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px;">
+              <option value="admin" ${m.role === "admin" ? "selected" : ""}>admin</option>
+              <option value="coach" ${m.role === "coach" ? "selected" : ""}>coach</option>
+            </select>
+            <button data-remove-membership-id="${m.id}" style="background:none; border:none; color:#991b1b; font-size:12px; cursor:pointer;">Remove</button>
+          </div>
+        `).join("");
+
+        listEl.querySelectorAll("select[data-membership-id]").forEach((sel) => {
+          sel.addEventListener("change", async () => {
+            try {
+              const { error } = await supabaseClient.from("memberships").update({ role: sel.value }).eq("id", sel.dataset.membershipId);
+              if (error) throw error;
+              showMessage("Role updated.", "success");
+            } catch (err) {
+              showMessage(err.message || "Couldn't change that role.", "error");
+            }
+          });
+        });
+        listEl.querySelectorAll("button[data-remove-membership-id]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            if (!confirm("Remove this person from the club?")) return;
+            try {
+              const { error } = await supabaseClient.from("memberships").delete().eq("id", btn.dataset.removeMembershipId);
+              if (error) throw error;
+              loadAdminClubMembers(orgId);
+            } catch (err) {
+              showMessage(err.message || "Couldn't remove that member.", "error");
+            }
+          });
+        });
+      };
+
+      renderMembers(data || []);
+      content.querySelector(".admin-member-search").addEventListener("input", (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        renderMembers((data || []).filter((m) => ((m.profiles && m.profiles.full_name) || "").toLowerCase().includes(q)));
+      });
+    } catch (err) {
+      content.innerHTML = `<p style="font-size:12.5px; color:#991b1b;">Couldn't load members: ${escapeHtml(err.message || String(err))}</p>`;
     }
   }
 
@@ -1210,7 +1331,7 @@
         <div style="display:flex; gap:8px; margin-bottom:16px;">
           <button type="button" class="btn btn-secondary cal-type-btn" data-type="match" style="flex:1;">🏀 Match</button>
           <button type="button" class="btn btn-secondary cal-type-btn" data-type="training" style="flex:1;">⏱ Training</button>
-          <button type="button" class="btn btn-secondary cal-type-btn" data-type="event" style="flex:1;">📌 Comment</button>
+          <button type="button" class="btn btn-secondary cal-type-btn" data-type="event" style="flex:1;">📌 Event</button>
         </div>
         <div id="cal-add-fields"></div>
         <div style="display:flex; gap:8px; margin-top:16px;">
