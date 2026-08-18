@@ -39,7 +39,7 @@
   .sidebar-section-gap { height: 14px; }
   .sidebar-link {
     display: block; padding: 9px 12px; border-radius: 8px; background: transparent;
-    color: #dad9de; text-decoration: none; font-size: 13.5px; font-weight: 500;
+    color: #dad9de; text-decoration: none; font-size: 15px; font-weight: 500;
     white-space: nowrap; margin-bottom: 2px;
   }
   .sidebar-link svg { width: 17px; height: 17px; vertical-align: -4px; margin-right: 10px; stroke: currentColor; fill: none; stroke-width: 1.7; }
@@ -51,13 +51,13 @@
   .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 10px 10px; margin-top: 6px; border-radius: 10px; background: #140d31; }
   .sidebar-user-avatar {
     width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff;
-    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14.5px;
     flex-shrink: 0; overflow: hidden;
   }
   .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .sidebar-user-info { flex: 1; min-width: 0; }
-  .sidebar-user-name { font-size: 12.5px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sidebar-user-role { font-size: 11px; color: #848092; }
+  .sidebar-user-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-role { font-size: 12.5px; color: #848092; }
   .sidebar-logout-btn { background: none; border: none; color: #848092; cursor: pointer; padding: 5px; flex-shrink: 0; border-radius: 6px; }
   .sidebar-logout-btn:hover { color: #fff; background: #191235; }
   .sidebar-logout-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; display: block; }
@@ -101,9 +101,9 @@
 
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
   .logotype-img { height: 28px; width: auto; display: block; }
-  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
-  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
-  .btn { padding: 9px 16px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 15px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 15px; cursor: pointer; filter: grayscale(0.85); }
+  .btn { padding: 9px 16px; border-radius: 6px; font-size: 15px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-deep); }
   .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
@@ -113,11 +113,11 @@
   .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 32px 60px; }
   h1 { font-size: 23px; margin: 0 0 4px; }
   p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
-  .msg { margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  .msg { margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
 
-  .section-label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 32px 0 14px; }
+  .section-label { font-size: 14.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 32px 0 14px; }
   .section-label:first-of-type { margin-top: 0; }
 
   /* Stat cards v2: icon circle + number/label, matches the reference design */
@@ -130,17 +130,17 @@
   }
   .stat-icon-circle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6; }
   .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
-  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
-  .tree-new, .tree-example { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
+  .side-card h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .tree-new, .tree-example { font-size: 14px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
   .stat-card .num { font-size: 21px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.15; }
-  .stat-card .label { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .stat-card .label { font-size: 13.5px; color: var(--muted); margin-top: 1px; }
 
   /* Next event + Recent activity, side by side */
   .dashboard-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0 8px; }
   @media (max-width: 800px) { .dashboard-row-2 { grid-template-columns: 1fr; } }
   .panel-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
   .panel-card h2 { font-size: 14.5px; margin: 0 0 14px; }
-  .activity-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .activity-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
   .activity-row:last-child { border-bottom: none; padding-bottom: 0; }
   .activity-row:first-child { padding-top: 0; }
   .activity-icon {
@@ -149,10 +149,10 @@
   }
   .activity-icon svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.6; }
   .activity-text { flex: 1; min-width: 0; }
-  .activity-text strong { display: block; font-size: 13px; }
-  .activity-text span { display: block; font-size: 12px; color: var(--muted); }
-  .activity-time { color: var(--muted); font-size: 11.5px; white-space: nowrap; padding-left: 8px; flex-shrink: 0; }
-  .activity-empty { font-size: 13px; color: var(--muted); }
+  .activity-text strong { display: block; font-size: 14.5px; }
+  .activity-text span { display: block; font-size: 13.5px; color: var(--muted); }
+  .activity-time { color: var(--muted); font-size: 13px; white-space: nowrap; padding-left: 8px; flex-shrink: 0; }
+  .activity-empty { font-size: 14.5px; color: var(--muted); }
 
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
   @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3, 1fr); } }
@@ -162,24 +162,24 @@
   .module-card:hover { border-color: var(--accent); }
   .module-card .icon { width: 26px; height: 26px; margin-bottom: 10px; color: var(--accent-deep); }
   .module-card h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; justify-content: space-between; }
-  .module-card h3 .chevron { font-size: 13px; color: var(--accent); }
-  .module-card p.blurb { font-size: 13.5px; color: var(--muted); margin: 0; }
-  .module-card .badge-soon { display: inline-block; font-size: 10.5px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); padding: 2px 8px; border-radius: 100px; margin-left: 8px; }
+  .module-card h3 .chevron { font-size: 14.5px; color: var(--accent); }
+  .module-card p.blurb { font-size: 15px; color: var(--muted); margin: 0; }
+  .module-card .badge-soon { display: inline-block; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); padding: 2px 8px; border-radius: 100px; margin-left: 8px; }
 
   .pending-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 0; margin-bottom: 8px; }
-  .request-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 20px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
+  .request-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 20px; font-size: 15px; border-bottom: 1px solid var(--line); }
   .request-row:last-child { border-bottom: none; }
   .request-info strong { display: block; }
-  .request-info span { color: var(--muted); font-size: 12.5px; }
+  .request-info span { color: var(--muted); font-size: 14px; }
   .request-actions { display: flex; gap: 6px; flex-shrink: 0; }
-  .request-actions button { width: auto; padding: 6px 12px; font-size: 12.5px; border: none; border-radius: 6px; cursor: pointer; }
+  .request-actions button { width: auto; padding: 6px 12px; font-size: 14px; border: none; border-radius: 6px; cursor: pointer; }
   .btn-approve { background: var(--accent); color: #fff; }
   .btn-reject { background: transparent; color: #991b1b; border: 1px solid var(--line); }
   .onboard-overlay { position: fixed; inset: 0; background: rgba(20,20,22,0.55); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 20px; }
   .onboard-card { background: var(--card); border-radius: 14px; max-width: 480px; width: 100%; padding: 28px 26px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); max-height: 88vh; overflow-y: auto; }
   .onboard-card h2 { margin: 0 0 4px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 21px; }
-  .onboard-card p { font-size: 13.5px; line-height: 1.6; color: var(--muted); margin: 8px 0; }
-  .onboard-circle-row { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0; font-size: 13px; }
+  .onboard-card p { font-size: 15px; line-height: 1.6; color: var(--muted); margin: 8px 0; }
+  .onboard-circle-row { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0; font-size: 14.5px; }
   .onboard-circle-row .emoji { font-size: 17px; flex-shrink: 0; filter: grayscale(0.85); }
   .onboard-card button { width: 100%; margin-top: 18px; }
 </style>
@@ -210,7 +210,7 @@
     <div class="onboard-circle-row"><span class="emoji">🤝</span><span><strong>My club association</strong> — a small group of clubs who agreed to share, needs approval.</span></div>
     <div class="onboard-circle-row"><span class="emoji">🌐</span><span><strong>PlayPivot Community</strong> — every club on PlayPivot can see it (view only).</span></div>
     <p>If you're a club admin, <strong>Settings</strong> also lets you set all of a type at once (e.g. every exercise), and manage who's in your club and their role (Team admin or Coach).</p>
-    <p style="font-size:12.5px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; margin-top:14px;"><strong>Worth knowing too:</strong> only add data about players you actually coach, and you're responsible for having the right to hold it (a guardian's consent, especially for a minor — see <a href="./privacy.html" target="_blank" style="color:var(--accent-deep);">Privacy &amp; Terms</a>). Don't republish someone else's shared content outside PlayPivot as your own.</p>
+    <p style="font-size:14px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; margin-top:14px;"><strong>Worth knowing too:</strong> only add data about players you actually coach, and you're responsible for having the right to hold it (a guardian's consent, especially for a minor — see <a href="./privacy.html" target="_blank" style="color:var(--accent-deep);">Privacy &amp; Terms</a>). Don't republish someone else's shared content outside PlayPivot as your own.</p>
     <button class="btn btn-primary" id="onboard-close-btn">Got it, let's go</button>
   </div>
 </div>
@@ -232,12 +232,12 @@
     </div>
 
     <nav class="sidebar-nav">
-      <div id="sidebar-admin-badge" style="display:none; font-size:10.5px; font-weight:700; letter-spacing:0.05em; color:var(--accent); padding:0 12px 6px;">⚡ PLATFORM ADMIN</div>
+      <div id="sidebar-admin-badge" style="display:none; font-size:12px; font-weight:700; letter-spacing:0.05em; color:var(--accent); padding:0 12px 6px;">⚡ PLATFORM ADMIN</div>
       <a href="./dashboard.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
 
       <div style="padding:8px 12px 12px;">
-        <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:12.5px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
-        <div id="sidebar-role-text" style="font-size:11px; color:#848092; padding:2px 2px 0;"></div>
+        <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
+        <div id="sidebar-role-text" style="font-size:12.5px; color:#848092; padding:2px 2px 0;"></div>
       </div>
       <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
       <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
@@ -252,11 +252,10 @@
     <div class="sidebar-footer">
       <div class="sidebar-divider"></div>
       <nav class="sidebar-nav" style="padding:0;">
-        <a href="./settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
         <a href="#" id="sidebar-help-link" class="sidebar-link" style="display:inline-block; width:calc(50% - 3px); text-align:center; padding-left:8px; padding-right:8px;"><svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:6px; vertical-align:-4px;"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
         <a href="./privacy.html" class="sidebar-link" style="display:inline-block; width:calc(50% - 3px); margin-left:6px; text-align:center; padding-left:8px; padding-right:8px;"><svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:6px; vertical-align:-4px;"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z"/></svg>Privacy</a>
       </nav>
-      <div class="sidebar-user" id="sidebar-user">
+      <div class="sidebar-user" id="sidebar-user" title="Settings" style="cursor:pointer;">
         <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
         <div class="sidebar-user-info">
           <div class="sidebar-user-name" id="sidebar-user-name">—</div>
@@ -278,25 +277,25 @@
         <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
       </h1>
       <p class="sub" id="club-status-text"></p>
-      <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
+      <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:14.5px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
     </div>
     <div class="topbar-right">
+      <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
+      <div id="org-name-big" style="display:none;"></div>
       <div id="pending-requests-widget" style="position:relative; display:none;">
         <button id="pending-requests-btn" class="icon-btn" aria-label="Pending requests">
           <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
           <span class="icon-badge" id="pending-requests-count" style="display:none;"></span>
         </button>
-        <div id="pending-requests-panel" style="display:none; position:absolute; top:44px; right:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
+        <div id="pending-requests-panel" style="display:none; position:absolute; top:44px; right:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
       </div>
       <div id="messages-widget" style="position:relative;">
         <button id="messages-btn" class="icon-btn" aria-label="Messages">
           <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
           <span class="icon-badge" id="messages-count" style="display:none;"></span>
         </button>
-        <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
+        <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
       </div>
-      <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
-      <div id="org-name-big" style="display:none;"></div>
     </div>
   </div>
 
@@ -337,12 +336,12 @@
       <h2 style="margin:0;">Calendar</h2>
       <div style="display:flex; align-items:center; gap:8px;">
         <button id="cal-prev-btn" class="icon-btn" style="width:32px; height:32px; border-radius:8px;" aria-label="Previous month"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M15 6l-6 6 6 6"/></svg></button>
-        <span id="cal-month-label" style="font-size:13px; font-weight:600; min-width:130px; text-align:center;"></span>
+        <span id="cal-month-label" style="font-size:14.5px; font-weight:600; min-width:130px; text-align:center;"></span>
         <button id="cal-next-btn" class="icon-btn" style="width:32px; height:32px; border-radius:8px;" aria-label="Next month"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6"/></svg></button>
       </div>
     </div>
     <div id="calendar-grid"></div>
-    <div style="display:flex; gap:16px; margin-top:12px; font-size:12px; color:var(--muted); flex-wrap:wrap;">
+    <div style="display:flex; gap:16px; margin-top:12px; font-size:13.5px; color:var(--muted); flex-wrap:wrap;">
       <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:var(--accent); margin-right:6px;"></span>Match</span>
       <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:var(--navy); margin-right:6px;"></span>Training</span>
       <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:#16a34a; margin-right:6px;"></span>Event</span>
@@ -369,20 +368,15 @@
       <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5.3 5.5-5.3s5.5 2.3 5.5 5.3"/><circle cx="18" cy="8.5" r="2.4"/><path d="M15.8 14.3c2.6.2 4.7 2.3 4.7 5"/></svg></div><div><div class="num" id="pstat-users">—</div><div class="label">Users, total</div></div></div>
       <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="5"/></svg></div><div><div class="num" id="pstat-online">—</div><div class="label">Online now</div></div></div>
     </div>
-    <button class="nav-btn" id="copy-newsletter-emails-btn" style="margin-top:12px;">📰 Copy newsletter list (opted-in emails)</button>
-
     <p class="section-label">Clubs on PlayPivot</p>
-    <div id="admin-clubs-table" style="background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;"><p style="padding:16px; color:var(--muted); font-size:13px;">Loading…</p></div>
+    <div id="admin-clubs-table" style="background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;"><p style="padding:16px; color:var(--muted); font-size:14.5px;">Loading…</p></div>
   </div>
 
   <p class="section-label">Tools</p>
   <div class="grid" id="modules-grid"></div>
 
   <div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-    <label style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); cursor:pointer;">
-      <input type="checkbox" id="newsletter-opt-in" style="width:auto;" />
-      <span style="filter: grayscale(0.85);">📰</span> Email me a couple of times a year about big new PlayPivot features — never spam, unsubscribe any time.
-    </label>
+    <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right? Contact us.</span>
     <button class="nav-btn" id="contact-support-btn" title="Send a message straight to the PlayPivot admin">💬 Contact us</button>
   </div>
 
@@ -507,7 +501,6 @@
     const { data: profile } = await supabaseClient.from("profiles").select("full_name, is_platform_controller, is_association_validator, onboarded_at, newsletter_opt_in, terms_accepted_at").eq("id", user.id).maybeSingle();
     // El estado de aceptación de privacidad ahora se muestra en
     // privacy.html directamente, no aquí en el Dashboard.
-    document.getElementById("newsletter-opt-in").checked = !!(profile && profile.newsletter_opt_in);
     const displayName = (profile && profile.full_name) || user.email;
     els.greeting.textContent = `Welcome, ${displayName}`;
     isPlatformController = !!(profile && profile.is_platform_controller);
@@ -604,7 +597,7 @@
     try {
       const { data: orgs } = await supabaseClient.from("organizations").select("id, name").eq("is_active", true).order("name");
       if (!orgs || orgs.length === 0) {
-        container.innerHTML = '<p style="padding:16px; color:var(--muted); font-size:13px;">No clubs yet.</p>';
+        container.innerHTML = '<p style="padding:16px; color:var(--muted); font-size:14.5px;">No clubs yet.</p>';
         return;
       }
       const rows = await Promise.all(orgs.map(async (org) => {
@@ -622,15 +615,15 @@
 
       container.innerHTML = `
         <div style="padding:12px 16px; border-bottom:1px solid var(--line);">
-          <input id="admin-clubs-search" type="text" placeholder="Search people/clubs…" style="width:100%; max-width:280px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
+          <input id="admin-clubs-search" type="text" placeholder="Search people/clubs…" style="width:100%; max-width:280px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px;" />
         </div>
-        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <table style="width:100%; border-collapse:collapse; font-size:14.5px;">
           <thead>
             <tr style="border-bottom:1px solid var(--line); text-align:left;">
-              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Club</th>
-              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Teams</th>
-              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Players</th>
-              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase;">Matches</th>
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:12.5px; text-transform:uppercase;">Club</th>
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:12.5px; text-transform:uppercase;">Teams</th>
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:12.5px; text-transform:uppercase;">Players</th>
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:12.5px; text-transform:uppercase;">Matches</th>
               <th style="padding:10px 16px;"></th>
             </tr>
           </thead>
@@ -646,7 +639,7 @@
       });
     } catch (err) {
       console.error("loadAdminClubsTable error:", err);
-      container.innerHTML = `<p style="padding:16px; color:#991b1b; font-size:13px;">Couldn't load the clubs table: ${escapeHtml(err.message || String(err))}</p>`;
+      container.innerHTML = `<p style="padding:16px; color:#991b1b; font-size:14.5px;">Couldn't load the clubs table: ${escapeHtml(err.message || String(err))}</p>`;
     }
   }
 
@@ -740,9 +733,9 @@
     els.msgWidget.scrollIntoView({ behavior: "smooth", block: "center" });
     els.msgPanel.style.display = "block";
     els.msgPanel.innerHTML = `
-      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:12.5px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
       <div style="font-weight:600; margin-bottom:8px;">Message ${escapeHtml(label)}</div>
-      <textarea id="new-msg-body" rows="4" placeholder="What's up?" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:6px; font-family:inherit;"></textarea>
+      <textarea id="new-msg-body" rows="4" placeholder="What's up?" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px; font-family:inherit;"></textarea>
       <button id="new-msg-send-btn" class="nav-btn" style="width:100%;">Send</button>
     `;
     document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
@@ -759,7 +752,7 @@
 
   async function loadAdminClubMembers(orgId) {
     const content = document.getElementById(`admin-manage-content-${orgId}`);
-    content.innerHTML = `<p style="font-size:12.5px; color:var(--muted);">Loading members…</p>`;
+    content.innerHTML = `<p style="font-size:14px; color:var(--muted);">Loading members…</p>`;
     try {
       const { data, error } = await supabaseClient
         .from("memberships")
@@ -769,21 +762,21 @@
       if (error) throw error;
 
       content.innerHTML = `
-        <input class="admin-member-search" type="text" placeholder="Search coaches/admins…" style="width:100%; max-width:240px; padding:6px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; margin-bottom:10px;" />
+        <input class="admin-member-search" type="text" placeholder="Search coaches/admins…" style="width:100%; max-width:240px; padding:6px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; margin-bottom:10px;" />
         <div class="admin-member-list"></div>`;
 
       const renderMembers = (list) => {
         const listEl = content.querySelector(".admin-member-list");
-        if (list.length === 0) { listEl.innerHTML = `<p style="font-size:12.5px; color:var(--muted);">No members found.</p>`; return; }
+        if (list.length === 0) { listEl.innerHTML = `<p style="font-size:14px; color:var(--muted);">No members found.</p>`; return; }
         listEl.innerHTML = list.map((m) => `
-          <div style="display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px;">
-            <span style="flex:1;">${escapeHtml((m.profiles && m.profiles.full_name) || "—")}${m.status === "blocked" ? ' <span style="color:#991b1b; font-size:11px;">(blocked)</span>' : ""}</span>
-            <select data-membership-id="${m.id}" style="padding:5px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px;">
+          <div style="display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--line); font-size:14.5px;">
+            <span style="flex:1;">${escapeHtml((m.profiles && m.profiles.full_name) || "—")}${m.status === "blocked" ? ' <span style="color:#991b1b; font-size:12.5px;">(blocked)</span>' : ""}</span>
+            <select data-membership-id="${m.id}" style="padding:5px 8px; border:1px solid var(--line); border-radius:6px; font-size:14px;">
               <option value="admin" ${m.role === "admin" ? "selected" : ""}>admin</option>
               <option value="coach" ${m.role === "coach" ? "selected" : ""}>coach</option>
             </select>
-            <button data-msg-user-id="${m.user_id}" data-msg-name="${escapeHtml((m.profiles && m.profiles.full_name) || "this person")}" style="background:none; border:none; color:var(--ink); font-size:12px; cursor:pointer;" title="Send a message">✉</button>
-            <button data-remove-membership-id="${m.id}" style="background:none; border:none; color:#991b1b; font-size:12px; cursor:pointer;">Remove</button>
+            <button data-msg-user-id="${m.user_id}" data-msg-name="${escapeHtml((m.profiles && m.profiles.full_name) || "this person")}" style="background:none; border:none; color:var(--ink); font-size:13.5px; cursor:pointer;" title="Send a message">✉</button>
+            <button data-remove-membership-id="${m.id}" style="background:none; border:none; color:#991b1b; font-size:13.5px; cursor:pointer;">Remove</button>
           </div>
         `).join("");
 
@@ -821,7 +814,7 @@
         renderMembers((data || []).filter((m) => ((m.profiles && m.profiles.full_name) || "").toLowerCase().includes(q)));
       });
     } catch (err) {
-      content.innerHTML = `<p style="font-size:12.5px; color:#991b1b;">Couldn't load members: ${escapeHtml(err.message || String(err))}</p>`;
+      content.innerHTML = `<p style="font-size:14px; color:#991b1b;">Couldn't load members: ${escapeHtml(err.message || String(err))}</p>`;
     }
   }
 
@@ -865,10 +858,10 @@
       els.assocPanel.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Pending association requests</div>` + rows.map((r) => `
         <div style="padding:8px 0; border-bottom:1px solid var(--line);">
           <div><strong>${escapeHtml((r.organizations && r.organizations.name) || "—")}</strong> wants to join <strong>${escapeHtml((r.club_associations && r.club_associations.name) || "—")}</strong></div>
-          ${r.message ? `<div style="font-size:12.5px; color:var(--muted); font-style:italic; margin-top:4px;">"${escapeHtml(r.message)}"</div>` : ""}
+          ${r.message ? `<div style="font-size:14px; color:var(--muted); font-style:italic; margin-top:4px;">"${escapeHtml(r.message)}"</div>` : ""}
           <div style="margin-top:6px; display:flex; gap:6px;">
-            <button class="btn btn-approve assoc-approve-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:12px;">Approve</button>
-            <button class="btn btn-reject assoc-reject-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:12px;">Reject</button>
+            <button class="btn btn-approve assoc-approve-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:13.5px;">Approve</button>
+            <button class="btn btn-reject assoc-reject-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:13.5px;">Reject</button>
           </div>
         </div>
       `).join("");
@@ -960,9 +953,9 @@
         <div class="conv-row" data-other="${c.otherId}" style="padding:8px 0; border-bottom:1px solid var(--line); cursor:pointer;">
           <div style="display:flex; justify-content:space-between;">
             <strong>${escapeHtml(c.otherName)}</strong>
-            ${c.unread > 0 ? `<span style="background:var(--accent); color:#fff; border-radius:100px; font-size:11px; padding:1px 7px;">${c.unread}</span>` : ""}
+            ${c.unread > 0 ? `<span style="background:var(--accent); color:#fff; border-radius:100px; font-size:12.5px; padding:1px 7px;">${c.unread}</span>` : ""}
           </div>
-          <div style="font-size:12.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(c.latest.body)}</div>
+          <div style="font-size:14px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(c.latest.body)}</div>
         </div>
       `).join("");
     }
@@ -987,17 +980,17 @@
 
     const otherName = (data && data[0] && (data[0].sender_id === otherId ? data[0].sender.full_name : null)) || "Conversation";
     els.msgPanel.innerHTML = `
-      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:12.5px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
       <div style="font-weight:600; margin-bottom:8px;">${escapeHtml(otherName)}</div>
       <div id="thread-messages" style="max-height:220px; overflow-y:auto; margin-bottom:10px;">
         ${(data || []).map((m) => `
           <div style="margin-bottom:8px; text-align:${m.sender_id === currentUserId ? "right" : "left"};">
-            <div style="display:inline-block; max-width:80%; background:${m.sender_id === currentUserId ? "var(--accent-tint)" : "var(--paper)"}; border-radius:8px; padding:6px 10px; font-size:12.5px;">${escapeHtml(m.body)}</div>
+            <div style="display:inline-block; max-width:80%; background:${m.sender_id === currentUserId ? "var(--accent-tint)" : "var(--paper)"}; border-radius:8px; padding:6px 10px; font-size:14px;">${escapeHtml(m.body)}</div>
           </div>
         `).join("")}
       </div>
       <div style="display:flex; gap:6px;">
-        <input id="reply-input" type="text" placeholder="Write a reply…" style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
+        <input id="reply-input" type="text" placeholder="Write a reply…" style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px;" />
         <button id="reply-send-btn" class="nav-btn">Send</button>
       </div>
     `;
@@ -1018,11 +1011,11 @@
 
   function showComposeNew() {
     els.msgPanel.innerHTML = `
-      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:12.5px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
       <div style="font-weight:600; margin-bottom:8px;">New message</div>
       <p class="hint" style="margin:0 0 8px;">You can message a teammate from your own club, or the PlayPivot admins.</p>
-      <input id="new-msg-email" type="text" placeholder="Their email" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:6px;" />
-      <textarea id="new-msg-body" rows="3" placeholder="Your message…" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:6px;"></textarea>
+      <input id="new-msg-email" type="text" placeholder="Their email" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;" />
+      <textarea id="new-msg-body" rows="3" placeholder="Your message…" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;"></textarea>
       <button id="new-msg-send-btn" class="nav-btn" style="width:100%;">Send</button>
     `;
     document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
@@ -1049,10 +1042,10 @@
     }
     const recipient = admins[0]; // en pratique il n'y en a qu'un ou deux -- le premier suffit
     els.msgPanel.innerHTML = `
-      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:12.5px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
       <div style="font-weight:600; margin-bottom:4px;">Message the PlayPivot team</div>
       <p class="hint" style="margin:0 0 8px;">Straight to ${escapeHtml(recipient.full_name || "the PlayPivot admin")} — bug report, question, anything.</p>
-      <textarea id="new-msg-body" rows="4" placeholder="What's up?" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:6px; font-family:inherit;"></textarea>
+      <textarea id="new-msg-body" rows="4" placeholder="What's up?" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px; font-family:inherit;"></textarea>
       <button id="new-msg-send-btn" class="nav-btn" style="width:100%;">Send</button>
     `;
     document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
@@ -1110,14 +1103,14 @@
     box.style.padding = "16px 20px";
     box.style.marginTop = "8px";
     box.innerHTML = `
-      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which club or association?</label>
+      <label style="display:block; font-size:14px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which club or association?</label>
       <select id="join-org-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;"><option>Loading…</option></select>
-      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">As what?</label>
+      <label style="display:block; font-size:14px; font-weight:600; color:var(--muted); margin-bottom:6px;">As what?</label>
       <select id="join-org-role" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;">
         <option value="coach">Coach</option>
       </select>
-      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Message to the admin (optional)</label>
-      <textarea id="join-org-message" rows="2" placeholder="e.g. Hi, I'm the new U16 coach…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-family:inherit; font-size:13px;"></textarea>
+      <label style="display:block; font-size:14px; font-weight:600; color:var(--muted); margin-bottom:6px;">Message to the admin (optional)</label>
+      <textarea id="join-org-message" rows="2" placeholder="e.g. Hi, I'm the new U16 coach…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-family:inherit; font-size:14.5px;"></textarea>
       <button class="nav-btn" id="join-org-btn" style="width:100%;">Send request</button>
     `;
     wrap.appendChild(box);
@@ -1221,7 +1214,7 @@
       info.appendChild(name); info.appendChild(detail);
       if (req.join_message) {
         const msg = document.createElement("div");
-        msg.style.cssText = "font-size:12.5px; color:var(--muted); font-style:italic; margin-top:4px;";
+        msg.style.cssText = "font-size:14px; color:var(--muted); font-style:italic; margin-top:4px;";
         msg.textContent = `"${req.join_message}"`;
         info.appendChild(msg);
       }
@@ -1346,7 +1339,7 @@
     const daysInMonth = lastDay.getDate();
     const todayStr = new Date().toISOString().slice(0, 10);
 
-    let html = '<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; font-size:10.5px; color:var(--muted); text-align:center; margin-bottom:6px; font-weight:600;">';
+    let html = '<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; font-size:12px; color:var(--muted); text-align:center; margin-bottom:6px; font-weight:600;">';
     ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach((d) => { html += `<div>${d}</div>`; });
     html += '</div><div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px;">';
     for (let i = 0; i < startWeekday; i++) html += "<div></div>";
@@ -1363,7 +1356,7 @@
       else if (ev && ev.events.length) { bg = "#16a34a"; fg = "#fff"; weight = "700"; }
       else if (isToday) { bg = "var(--accent-tint)"; fg = "var(--accent-deep)"; weight = "700"; }
       const todayRing = isToday && bg === "transparent" ? "" : (isToday ? "box-shadow:inset 0 0 0 2px var(--ink);" : "");
-      html += `<button type="button" data-date="${dateStr}" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:12.5px; border:none; background:${bg}; color:${fg}; font-weight:${weight}; cursor:pointer; ${todayRing}">${d}</button>`;
+      html += `<button type="button" data-date="${dateStr}" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:14px; border:none; background:${bg}; color:${fg}; font-weight:${weight}; cursor:pointer; ${todayRing}">${d}</button>`;
     }
     html += "</div>";
     grid.innerHTML = html;
@@ -1450,24 +1443,24 @@
     });
 
     const teamFieldHtml = `
-        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Team</label>
-        <select id="cal-field-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;"><option>Loading…</option></select>
-        <input id="cal-field-team-new" type="text" placeholder="Team name (e.g. U16)" style="display:none; width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />`;
+        <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Team</label>
+        <select id="cal-field-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;"><option>Loading…</option></select>
+        <input id="cal-field-team-new" type="text" placeholder="Team name (e.g. U16)" style="display:none; width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;" />`;
 
     const FIELD_TEMPLATES = {
       match: `
-        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Opponent</label>
-        <input id="cal-field-opponent" type="text" placeholder="e.g. Madrid Hoops" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />
+        <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Opponent</label>
+        <input id="cal-field-opponent" type="text" placeholder="e.g. Madrid Hoops" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;" />
         ${teamFieldHtml}
-        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Location (optional)</label>
-        <input id="cal-field-location" type="text" placeholder="e.g. Pabellón Municipal" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />`,
+        <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Location (optional)</label>
+        <input id="cal-field-location" type="text" placeholder="e.g. Pabellón Municipal" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px;" />`,
       training: `
-        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Title</label>
-        <input id="cal-field-title" type="text" placeholder="e.g. Competition week" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:10px;" />
+        <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Title</label>
+        <input id="cal-field-title" type="text" placeholder="e.g. Competition week" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;" />
         ${teamFieldHtml}`,
       event: `
-        <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Comment / title</label>
-        <input id="cal-field-title" type="text" placeholder="e.g. Championship game, Team photo day…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />`,
+        <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Comment / title</label>
+        <input id="cal-field-title" type="text" placeholder="e.g. Championship game, Team photo day…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px;" />`,
     };
 
     function wireTeamSelect() {
@@ -1666,19 +1659,6 @@
     document.getElementById("pstat-online").textContent = onlineCount ?? 0;
   }
 
-  document.getElementById("copy-newsletter-emails-btn").addEventListener("click", async () => {
-    const { data, error } = await supabaseClient.from("profiles").select("email").eq("newsletter_opt_in", true);
-    if (error) { showMessage("Couldn't load that list right now.", "error"); return; }
-    const emails = (data || []).map((p) => p.email).filter(Boolean);
-    if (emails.length === 0) { showMessage("Nobody's opted in yet.", "success"); return; }
-    try {
-      await navigator.clipboard.writeText(emails.join(", "));
-      showMessage(`Copied ${emails.length} email(s) to your clipboard.`, "success");
-    } catch (e) {
-      showMessage(emails.join(", "), "success"); // au pire, affiché dans le message pour copier à la main
-    }
-  });
-
   // -----------------------------------------------------------------------
   // Signe de vie -- une simple mise à jour de last_seen, pour pouvoir
   // estimer "qui est en ligne" sans avoir besoin de websockets/presence.
@@ -1771,12 +1751,6 @@
     box.style.display = "block";
   });
 
-  document.getElementById("newsletter-opt-in").addEventListener("change", async (e) => {
-    if (!currentUserId) return;
-    try { await supabaseClient.from("profiles").update({ newsletter_opt_in: e.target.checked }).eq("id", currentUserId); }
-    catch (err) { /* si ça rate, la case garde son état visuel -- pas grave, on retentera au prochain changement */ }
-  });
-
   document.getElementById("onboard-close-btn").addEventListener("click", async () => {
     document.getElementById("onboard-overlay").style.display = "none";
     if (currentUserId) {
@@ -1785,9 +1759,17 @@
     }
   });
 
-  els.logoutBtn.addEventListener("click", async () => {
+  els.logoutBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
     await supabaseClient.auth.signOut();
     window.location.href = "./login.html";
+  });
+
+  // Le profil (avatar + nom + rôle) sert maintenant de seul point d'accès
+  // aux Settings depuis la sidebar -- l'ancien lien "Settings" séparé a été
+  // retiré pour ne pas dupliquer l'accès.
+  document.getElementById("sidebar-user").addEventListener("click", () => {
+    window.location.href = "./settings.html";
   });
 
   async function init() {
