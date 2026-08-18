@@ -136,7 +136,7 @@
   .stat-card .label { font-size: 13.5px; color: var(--muted); margin-top: 1px; }
 
   /* Next event + Recent activity, side by side */
-  .dashboard-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0 8px; }
+  .dashboard-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0 8px; align-items: start; }
   @media (max-width: 800px) { .dashboard-row-2 { grid-template-columns: 1fr; } }
   .panel-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
   .panel-card h2 { font-size: 14.5px; margin: 0 0 14px; }
@@ -1144,25 +1144,61 @@
     document.getElementById("reply-input").addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
   }
 
-  function showComposeNew() {
+  async function showComposeNew() {
     els.msgPanel.innerHTML = `
       <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
       <div style="font-weight:600; margin-bottom:8px;">New message</div>
-      <p class="hint" style="margin:0 0 8px;">You can message a teammate from your own club, or the PlayPivot admins.</p>
-      <input id="new-msg-email" type="text" placeholder="Their email" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;" />
+      <p class="hint" style="margin:0 0 8px;">Loading who you can message…</p>
+    `;
+    document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
+
+    // Une liste plutôt qu'un champ email libre -- personne ne connaît
+    // l'email exact d'un coéquipier par cœur, et deviner ne marche pas
+    // puisque l'envoi est bloqué si le compte n'existe pas ou n'est pas
+    // autorisé (club en commun, ou admin plateforme).
+    let teammates = [];
+    if (currentOrgId) {
+      const { data } = await supabaseClient
+        .from("memberships")
+        .select("user_id, profiles(full_name)")
+        .eq("organization_id", currentOrgId)
+        .eq("status", "active")
+        .neq("user_id", currentUserId);
+      teammates = (data || []).filter((m) => m.profiles);
+    }
+    const { data: admins } = await supabaseClient.rpc("get_platform_admin_contact");
+
+    const optionsHtml = `
+      <option value="">Choose someone…</option>
+      ${teammates.length ? `<optgroup label="Your club">${teammates.map((m) => `<option value="${m.user_id}">${escapeHtml(m.profiles.full_name || "Teammate")}</option>`).join("")}</optgroup>` : ""}
+      ${admins && admins.length ? `<optgroup label="PlayPivot admins">${admins.map((a) => `<option value="${a.id}">${escapeHtml(a.full_name || "PlayPivot admin")}</option>`).join("")}</optgroup>` : ""}
+    `;
+
+    if (teammates.length === 0 && (!admins || admins.length === 0)) {
+      els.msgPanel.innerHTML = `
+        <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+        <div style="font-weight:600; margin-bottom:8px;">New message</div>
+        <p class="hint" style="margin:0;">No one to message yet — join a club to message teammates.</p>
+      `;
+      document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
+      return;
+    }
+
+    els.msgPanel.innerHTML = `
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <div style="font-weight:600; margin-bottom:8px;">New message</div>
+      <select id="new-msg-recipient" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;">${optionsHtml}</select>
       <textarea id="new-msg-body" rows="3" placeholder="Your message…" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;"></textarea>
       <button id="new-msg-send-btn" class="nav-btn" style="width:100%;">Send</button>
     `;
     document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
     document.getElementById("new-msg-send-btn").addEventListener("click", async () => {
-      const email = document.getElementById("new-msg-email").value.trim();
+      const recipientId = document.getElementById("new-msg-recipient").value;
       const body = document.getElementById("new-msg-body").value.trim();
-      if (!email || !body) return;
-      const { data: recipient, error: findErr } = await supabaseClient.from("profiles").select("id").eq("email", email).maybeSingle();
-      if (findErr || !recipient) { showMessage("No PlayPivot account found with that email, or you're not allowed to message them yet.", "error"); return; }
-      const { error: sendErr } = await supabaseClient.from("messages").insert({ sender_id: currentUserId, recipient_id: recipient.id, body });
-      if (sendErr) { showMessage("Couldn't send — you can message teammates from your club, or a PlayPivot admin/validator.", "error"); return; }
-      openConversationWith = recipient.id;
+      if (!recipientId || !body) return;
+      const { error: sendErr } = await supabaseClient.from("messages").insert({ sender_id: currentUserId, recipient_id: recipientId, body });
+      if (sendErr) { showMessage("Couldn't send that — try again in a moment.", "error"); return; }
+      openConversationWith = recipientId;
       await loadMessagesWidget();
     });
   }
