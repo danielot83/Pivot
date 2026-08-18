@@ -1156,24 +1156,44 @@
     // l'email exact d'un coéquipier par cœur, et deviner ne marche pas
     // puisque l'envoi est bloqué si le compte n'existe pas ou n'est pas
     // autorisé (club en commun, ou admin plateforme).
+    //
+    // Coéquipiers de TOUS tes clubs, pas juste celui actif dans le
+    // sélecteur -- sinon un frère/coach d'un autre de tes clubs (ex:
+    // Pinches Carnales, pendant que tu regardes DEL) n'apparaissait
+    // jamais, même s'il t'est parfaitement possible de lui écrire.
+    const { data: myOrgs } = await supabaseClient
+      .from("memberships")
+      .select("organization_id")
+      .eq("user_id", currentUserId)
+      .eq("status", "active");
+    const myOrgIds = [...new Set((myOrgs || []).map((m) => m.organization_id))];
+
     let teammates = [];
-    if (currentOrgId) {
+    if (myOrgIds.length > 0) {
       const { data } = await supabaseClient
         .from("memberships")
-        .select("user_id, profiles(full_name)")
-        .eq("organization_id", currentOrgId)
+        .select("user_id, profiles(full_name), organizations(name)")
+        .in("organization_id", myOrgIds)
         .eq("status", "active")
         .neq("user_id", currentUserId);
-      teammates = (data || []).filter((m) => m.profiles);
+      // La même personne peut être coéquipière dans plus d'un club --
+      // une seule ligne par personne suffit pour écrire un message.
+      const seen = new Set();
+      teammates = (data || []).filter((m) => {
+        if (!m.profiles || seen.has(m.user_id)) return false;
+        seen.add(m.user_id);
+        return true;
+      });
     }
-    const { data: admins } = await supabaseClient.rpc("get_platform_admin_contact");
+    const { data: adminsRaw } = await supabaseClient.rpc("get_platform_admin_contact");
+    const admins = (adminsRaw || []).filter((a) => a.id !== currentUserId);
 
     // Une seule liste plate, plutôt que des groupes -- pas de vraie
     // notion d'équipe par personne dans la base pour l'instant (voir
     // discussion avec Daniel), donc pas de regroupement fictif.
     const people = [
       ...teammates.map((m) => ({ id: m.user_id, name: m.profiles.full_name || "Teammate" })),
-      ...((admins || []).map((a) => ({ id: a.id, name: a.full_name || "PlayPivot support" }))),
+      ...(admins.map((a) => ({ id: a.id, name: a.full_name || "PlayPivot support" }))),
     ];
 
     if (people.length === 0) {
