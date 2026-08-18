@@ -252,8 +252,7 @@
     <div class="sidebar-footer">
       <div class="sidebar-divider"></div>
       <nav class="sidebar-nav" style="padding:0;">
-        <a href="#" id="sidebar-help-link" class="sidebar-link" style="display:inline-block; width:calc(50% - 3px); text-align:center; padding-left:8px; padding-right:8px;"><svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:6px; vertical-align:-4px;"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
-        <a href="./privacy.html" class="sidebar-link" style="display:inline-block; width:calc(50% - 3px); margin-left:6px; text-align:center; padding-left:8px; padding-right:8px;"><svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:6px; vertical-align:-4px;"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z"/></svg>Privacy</a>
+        <a href="#" id="sidebar-help-link" class="sidebar-link" style="text-align:center;"><svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:6px; vertical-align:-4px;"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
       </nav>
       <div class="sidebar-user" id="sidebar-user" title="Settings" style="cursor:pointer;">
         <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
@@ -382,6 +381,16 @@
 
   </div><!-- /app-gated-content -->
   </div><!-- /wrap -->
+
+  <footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:13px; color:var(--muted);">
+    <span>© 2026 PlayPivot. All rights reserved.</span>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <a href="./privacy.html" style="color:var(--muted); text-decoration:none;">Privacy Policy</a>
+      <a href="./privacy.html#use" style="color:var(--muted); text-decoration:none;">Terms of Use</a>
+      <!-- TODO: falta el enlace real a Instagram -- decime la URL/handle y lo conecto -->
+      <a href="#" title="Instagram" style="color:var(--muted); display:inline-flex;"><svg viewBox="0 0 24 24" width="18" height="18"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.9" fill="currentColor" stroke="none"/></svg></a>
+    </div>
+  </footer>
   </main>
 </div><!-- /app-shell -->
 
@@ -658,6 +667,7 @@
         <td style="padding:10px 16px; text-align:right; white-space:nowrap;">
           <button class="tree-example" data-manage-org-id="${r.org.id}" style="color:var(--ink); font-weight:600; cursor:pointer; margin-right:10px;">Manage</button>
           <button class="tree-example" data-msg-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:var(--ink); font-weight:600; cursor:pointer; margin-right:10px;">✉ Message admin</button>
+          <button class="tree-example" data-delete-data-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer; margin-right:10px;">🗑️ Delete data…</button>
           <button class="tree-example" data-deactivate-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer; margin-right:10px;">Remove whole team</button>
           <button class="tree-example" data-enter-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer;">See club →</button>
         </td>
@@ -717,6 +727,135 @@
           showMessage(err.message || "Couldn't deactivate that club.", "error");
         }
       });
+    });
+
+    tbody.querySelectorAll("button[data-delete-data-org-id]").forEach((btn) => {
+      btn.addEventListener("click", () => openDeleteDataPopup(btn.dataset.deleteDataOrgId, btn.dataset.orgName));
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Popup de borrado selectivo -- a diferencia de "Remove whole team" (que
+  // solo desactiva TODO el club), esto permite elegir un equipo/temporada
+  // concreto dentro de un club y decidir, categoría por categoría, qué
+  // borrar de verdad. exercises y notebooks NO aparecen aquí a propósito:
+  // viven a nivel de club, no de equipo (ver step34/step12), así que
+  // borrar un equipo no debería tocarlos.
+  // -----------------------------------------------------------------------
+  async function openDeleteDataPopup(orgId, orgName) {
+    const overlay = document.createElement("div");
+    overlay.className = "onboard-overlay";
+    overlay.id = "delete-data-overlay";
+    overlay.innerHTML = `
+      <div class="onboard-card" style="max-width:440px;">
+        <h2 style="margin-bottom:4px;">Delete data — ${escapeHtml(orgName)}</h2>
+        <p style="margin-top:0;">Pick a team/season, then choose exactly what to delete for it. Nothing outside your choices gets touched.</p>
+        <div id="delete-data-team-picker"><p style="color:var(--muted);">Loading teams…</p></div>
+        <div id="delete-data-checks" style="display:none;">
+          <div style="display:flex; flex-direction:column; gap:8px; margin:14px 0;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" data-cat="players" style="width:auto;" /> <span>Roster / players (<span data-count="players">—</span>) — also removes their assessments, match stats and attendance</span></label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" data-cat="matches" style="width:auto;" /> <span>Matches (<span data-count="matches">—</span>)</span></label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" data-cat="trainings" style="width:auto;" /> <span>Training sessions (<span data-count="trainings">—</span>)</span></label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" data-cat="plays" style="width:auto;" /> <span>Plays for this team (<span data-count="plays">—</span>)</span></label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" data-cat="registry" style="width:auto;" /> <span>The team entry itself (just removes it from the team list)</span></label>
+          </div>
+          <p style="font-size:12.5px; color:var(--muted);">Exercises and notebooks aren't listed — they belong to the whole club, not to one team, so they're never affected here.</p>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:16px;">
+          <button id="delete-data-cancel-btn" class="btn btn-secondary" style="flex:1;">Close</button>
+          <button id="delete-data-confirm-btn" class="btn" style="flex:1; background:#991b1b; color:#fff;" disabled>Delete selected</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.querySelector("#delete-data-cancel-btn").addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+    let selectedSeason = null, selectedTeam = null;
+
+    const { data: playerRows } = await supabaseClient.from("players").select("season, team").eq("organization_id", orgId);
+    const teamKeys = playerRows ? [...new Set(playerRows.filter((r) => !isExampleTeam(r.season, r.team)).map((r) => `${r.season}|||${r.team}`))] : [];
+
+    const pickerEl = overlay.querySelector("#delete-data-team-picker");
+    if (teamKeys.length === 0) {
+      pickerEl.innerHTML = `<p style="color:var(--muted);">No teams with data found for this club.</p>`;
+      return;
+    }
+    pickerEl.innerHTML = `
+      <select id="delete-data-team-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px;">
+        <option value="">Choose a team/season…</option>
+        ${teamKeys.map((k) => { const [season, team] = k.split("|||"); return `<option value="${escapeHtml(k)}">${escapeHtml(team)} — ${escapeHtml(season)}</option>`; }).join("")}
+      </select>`;
+
+    const checksEl = overlay.querySelector("#delete-data-checks");
+    const confirmBtn = overlay.querySelector("#delete-data-confirm-btn");
+    const checkboxes = () => [...overlay.querySelectorAll("input[data-cat]")];
+
+    const refreshConfirmState = () => {
+      confirmBtn.disabled = !selectedTeam || !checkboxes().some((c) => c.checked);
+    };
+
+    overlay.querySelector("#delete-data-team-select").addEventListener("change", async (e) => {
+      const val = e.target.value;
+      if (!val) { checksEl.style.display = "none"; selectedSeason = selectedTeam = null; refreshConfirmState(); return; }
+      [selectedSeason, selectedTeam] = val.split("|||");
+      checksEl.style.display = "block";
+      checkboxes().forEach((c) => { c.checked = false; });
+      refreshConfirmState();
+
+      const [{ count: pCount }, { count: mCount }, { count: tCount }, { count: plCount }] = await Promise.all([
+        supabaseClient.from("players").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam),
+        supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam),
+        supabaseClient.from("trainings").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam),
+        supabaseClient.from("plays").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam),
+      ]);
+      overlay.querySelector('[data-count="players"]').textContent = pCount ?? 0;
+      overlay.querySelector('[data-count="matches"]').textContent = mCount ?? 0;
+      overlay.querySelector('[data-count="trainings"]').textContent = tCount ?? 0;
+      overlay.querySelector('[data-count="plays"]').textContent = plCount ?? 0;
+    });
+
+    checksEl.addEventListener("change", refreshConfirmState);
+
+    confirmBtn.addEventListener("click", async () => {
+      const chosen = checkboxes().filter((c) => c.checked).map((c) => c.dataset.cat);
+      const labels = { players: "Roster/players", matches: "Matches", trainings: "Training sessions", plays: "Plays", registry: "the team entry" };
+      const summary = chosen.map((c) => labels[c]).join(", ");
+      const typed = prompt(`This permanently deletes: ${summary}\nfor "${selectedTeam}" (${selectedSeason}) in "${orgName}". This can't be undone.\n\nType the team name ("${selectedTeam}") to confirm:`);
+      if (typed !== selectedTeam) { if (typed !== null) showMessage("Team name didn't match — nothing was deleted.", "error"); return; }
+
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = "Deleting…";
+      try {
+        if (chosen.includes("players")) {
+          const { error } = await supabaseClient.from("players").delete().eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam);
+          if (error) throw error;
+        }
+        if (chosen.includes("matches")) {
+          const { error } = await supabaseClient.from("matches").delete().eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam);
+          if (error) throw error;
+        }
+        if (chosen.includes("trainings")) {
+          const { error } = await supabaseClient.from("trainings").delete().eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam);
+          if (error) throw error;
+        }
+        if (chosen.includes("plays")) {
+          const { error } = await supabaseClient.from("plays").delete().eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam);
+          if (error) throw error;
+        }
+        if (chosen.includes("registry")) {
+          const { error } = await supabaseClient.from("teams").delete().eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam);
+          if (error) throw error;
+        }
+        showMessage(`Deleted for "${selectedTeam}": ${summary}.`, "success");
+        close();
+        loadAdminClubsTable();
+      } catch (err) {
+        showMessage(err.message || "Something failed partway through — check what's left before retrying.", "error");
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = "Delete selected";
+      }
     });
   }
 
