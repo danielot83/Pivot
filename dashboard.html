@@ -209,7 +209,7 @@
     <div class="onboard-circle-row"><span class="emoji">👥</span><span><strong>My team</strong> — everyone active in your club (this is the default).</span></div>
     <div class="onboard-circle-row"><span class="emoji">🤝</span><span><strong>My club association</strong> — a small group of clubs who agreed to share, needs approval.</span></div>
     <div class="onboard-circle-row"><span class="emoji">🌐</span><span><strong>PlayPivot Community</strong> — every club on PlayPivot can see it (view only).</span></div>
-    <p>If you're a club admin, <strong>Settings</strong> also lets you set all of a type at once (e.g. every exercise), manage who's in your club and their role, and — for players specifically — link their account to their roster entry so they can see what's meant for them, and nothing more.</p>
+    <p>If you're a club admin, <strong>Settings</strong> also lets you set all of a type at once (e.g. every exercise), and manage who's in your club and their role (Team admin or Coach).</p>
     <p style="font-size:12.5px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; margin-top:14px;"><strong>Worth knowing too:</strong> only add data about players you actually coach, and you're responsible for having the right to hold it (a guardian's consent, especially for a minor — see <a href="./privacy.html" target="_blank" style="color:var(--accent-deep);">Privacy &amp; Terms</a>). Don't republish someone else's shared content outside PlayPivot as your own.</p>
     <button class="btn btn-primary" id="onboard-close-btn">Got it, let's go</button>
   </div>
@@ -622,7 +622,7 @@
 
       container.innerHTML = `
         <div style="padding:12px 16px; border-bottom:1px solid var(--line);">
-          <input id="admin-clubs-search" type="text" placeholder="Search clubs or coaches/admins…" style="width:100%; max-width:280px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
+          <input id="admin-clubs-search" type="text" placeholder="Search people/clubs…" style="width:100%; max-width:280px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
         </div>
         <table style="width:100%; border-collapse:collapse; font-size:13px;">
           <thead>
@@ -664,6 +664,7 @@
         <td style="padding:10px 16px;">${r.matchCount}</td>
         <td style="padding:10px 16px; text-align:right; white-space:nowrap;">
           <button class="tree-example" data-manage-org-id="${r.org.id}" style="color:var(--ink); font-weight:600; cursor:pointer; margin-right:10px;">Manage</button>
+          <button class="tree-example" data-msg-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:var(--ink); font-weight:600; cursor:pointer; margin-right:10px;">✉ Message admin</button>
           <button class="tree-example" data-deactivate-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer; margin-right:10px;">Remove whole team</button>
           <button class="tree-example" data-enter-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer;">See club →</button>
         </td>
@@ -675,6 +676,26 @@
       btn.addEventListener("click", () => {
         pivotSetStoredOrgId(btn.dataset.enterOrgId);
         window.location.reload();
+      });
+    });
+
+    tbody.querySelectorAll("button[data-msg-org-id]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        try {
+          const { data: admin, error } = await supabaseClient
+            .from("memberships")
+            .select("user_id, profiles(full_name)")
+            .eq("organization_id", btn.dataset.msgOrgId)
+            .eq("role", "admin")
+            .eq("status", "active")
+            .limit(1)
+            .maybeSingle();
+          if (error) throw error;
+          if (!admin) { showMessage(`No active admin found for "${btn.dataset.orgName}".`, "error"); return; }
+          openComposeTo(admin.user_id, (admin.profiles && admin.profiles.full_name) || btn.dataset.orgName);
+        } catch (err) {
+          showMessage(err.message || "Couldn't find that club's admin.", "error");
+        }
       });
     });
 
@@ -712,13 +733,37 @@
   // que Settings (rol admin/coach + quitar del club), con su propio
   // buscador para clubes con muchos miembros.
   // -----------------------------------------------------------------------
+  // Reutilizado por la gestión de clubs/miembros del Admin general -- el
+  // mismo panel de mensajes de siempre, apuntando a una persona concreta
+  // en vez de al soporte de PlayPivot.
+  function openComposeTo(recipientId, label) {
+    els.msgWidget.scrollIntoView({ behavior: "smooth", block: "center" });
+    els.msgPanel.style.display = "block";
+    els.msgPanel.innerHTML = `
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:12.5px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <div style="font-weight:600; margin-bottom:8px;">Message ${escapeHtml(label)}</div>
+      <textarea id="new-msg-body" rows="4" placeholder="What's up?" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:6px; font-family:inherit;"></textarea>
+      <button id="new-msg-send-btn" class="nav-btn" style="width:100%;">Send</button>
+    `;
+    document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
+    document.getElementById("new-msg-send-btn").addEventListener("click", async () => {
+      const body = document.getElementById("new-msg-body").value.trim();
+      if (!body) return;
+      const { error: sendErr } = await supabaseClient.from("messages").insert({ sender_id: currentUserId, recipient_id: recipientId, body });
+      if (sendErr) { showMessage(sendErr.message || "Couldn't send that.", "error"); return; }
+      showMessage("Message sent.", "success");
+      openConversationWith = recipientId;
+      await loadMessagesWidget();
+    });
+  }
+
   async function loadAdminClubMembers(orgId) {
     const content = document.getElementById(`admin-manage-content-${orgId}`);
     content.innerHTML = `<p style="font-size:12.5px; color:var(--muted);">Loading members…</p>`;
     try {
       const { data, error } = await supabaseClient
         .from("memberships")
-        .select("id, role, status, profiles(full_name)")
+        .select("id, user_id, role, status, profiles(full_name)")
         .eq("organization_id", orgId)
         .in("status", ["active", "blocked"]);
       if (error) throw error;
@@ -737,6 +782,7 @@
               <option value="admin" ${m.role === "admin" ? "selected" : ""}>admin</option>
               <option value="coach" ${m.role === "coach" ? "selected" : ""}>coach</option>
             </select>
+            <button data-msg-user-id="${m.user_id}" data-msg-name="${escapeHtml((m.profiles && m.profiles.full_name) || "this person")}" style="background:none; border:none; color:var(--ink); font-size:12px; cursor:pointer;" title="Send a message">✉</button>
             <button data-remove-membership-id="${m.id}" style="background:none; border:none; color:#991b1b; font-size:12px; cursor:pointer;">Remove</button>
           </div>
         `).join("");
@@ -751,6 +797,9 @@
               showMessage(err.message || "Couldn't change that role.", "error");
             }
           });
+        });
+        listEl.querySelectorAll("button[data-msg-user-id]").forEach((btn) => {
+          btn.addEventListener("click", () => openComposeTo(btn.dataset.msgUserId, btn.dataset.msgName));
         });
         listEl.querySelectorAll("button[data-remove-membership-id]").forEach((btn) => {
           btn.addEventListener("click", async () => {
@@ -1709,14 +1758,15 @@
     box.innerHTML = `
       <strong>How to use the Dashboard</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li>This is your home screen — your club, your role, and quick stats about what's in PlayPivot so far. If you're not in any club yet, you can request to join one (as a coach) or create your own club straight from here.</li>
-        <li><strong>Your stats at a glance</strong> — Teams, Players, Assessments, Exercises, Notebooks (folders in your play notebook), Play designs, Matches, Wins, Losses. All counted from your own club only. Example data (any Bulls season, the Celtics) is never counted here, even if it's still loaded.</li>
-        <li>✉️ next to your club name is your <strong>messages</strong> inbox — direct messages between you and a teammate, or you and a PlayPivot admin/validator. A number badge means unread messages. Click "+ New message" to start one by typing someone's email.</li>
-        <li>🔔 (only shows up when there's something) is for <strong>club association requests</strong> — if you're a platform admin or validator, you'll see every pending request here with Approve/Reject; otherwise you'll see the status of your own club's requests.</li>
-        <li>If you're an admin, <strong>pending requests</strong> to join your club show up here too, with Approve/Reject buttons — separate from the association ones above.</li>
-        <li><strong>Example data</strong> (below the tools) fills your club with a real historical roster and sample evaluations — pick a Bulls season, or the Celtics — to try everything before you have your own data. "Remove" clears it out again, cleanly.</li>
-        <li>Click any tile in "Tools" to open that module, or use the "Go to…" menu at the top on any page to jump straight to another one.</li>
-        <li>If you're a PlayPivot platform admin, you'll also see a <strong>"PlayPivot Community — all clubs"</strong> section with read-only totals across every club on PlayPivot, not just yours.</li>
+        <li>This is your home screen — your club, your role, and quick stats about what's in PlayPivot so far. If you're not in any club yet, you can request to join one or create your own club from the club selector in the sidebar.</li>
+        <li><strong>Sidebar (left)</strong> — every module, always one click away. Below "Dashboard" is your club selector: switch between clubs you belong to, create a new one, or ask to join another. Settings, Help, and Privacy live at the bottom, along with your name and role.</li>
+        <li><strong>Your stats at a glance</strong> — Teams, Players, Assessments, Exercises, Notebooks (folders in your play notebook), Play designs, Matches, Wins, Losses. All counted from your own club only. Example data (any Bulls season, the Celtics) is never counted here, even if it's still loaded on Roster/Assessment/Training.</li>
+        <li><strong>Calendar</strong> — matches (orange), trainings (navy), and events (green) for your club. Click any day to see what's on it, or to add a match, training, or event right there — it'll show up in its own module automatically.</li>
+        <li><strong>Recent activity</strong> — the last few things added to your club: exercises, plays, matches, trainings, events, assessments.</li>
+        <li>✉️ (top right) is your <strong>messages</strong> inbox — direct messages between you and a teammate, or you and a PlayPivot admin/validator. A number badge means unread messages.</li>
+        <li>🔔 (only shows up when there's something) is for <strong>club association requests</strong> — if you're a platform admin or validator, you'll see every pending request here with Approve/Reject; otherwise you'll see the status of your own club's requests. Pending requests to join your own club show up further down the page too.</li>
+        <li>Click any tile in "Tools" to open that module.</li>
+        <li>If you're a PlayPivot platform admin, choosing <strong>"⚡ Admin (all clubs)"</strong> from the club selector takes you to a platform-wide view: totals across every club, a searchable clubs table, and the ability to message a club's admin, manage roles, or deactivate a club.</li>
       </ul>`;
     box.style.display = "block";
   });
