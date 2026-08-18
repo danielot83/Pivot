@@ -1081,7 +1081,8 @@
   function renderMessagesPanel(conversations) {
     if (openConversationWith) { renderThread(openConversationWith); return; }
     let html = `<div style="font-weight:600; margin-bottom:8px;">Messages</div>
-      <button id="new-message-btn" class="nav-btn" style="width:100%; margin-bottom:10px;">+ New message</button>`;
+      <button id="new-message-btn" class="nav-btn" style="width:100%; margin-bottom:6px;">+ New message</button>
+      <button id="new-message-support-btn" style="width:100%; margin-bottom:10px; background:none; border:none; color:var(--accent-deep); font-size:13.5px; cursor:pointer; padding:2px 0;">✉️ Message the PlayPivot team</button>`;
     if (conversations.length === 0) {
       html += `<p class="hint" style="margin:0;">No messages yet.</p>`;
     } else {
@@ -1098,6 +1099,7 @@
     els.msgPanel.innerHTML = html;
     els.msgPanel.querySelectorAll(".conv-row").forEach((row) => row.addEventListener("click", () => { openConversationWith = row.dataset.other; loadMessagesWidget(); }));
     document.getElementById("new-message-btn").addEventListener("click", showComposeNew);
+    document.getElementById("new-message-support-btn").addEventListener("click", showComposeToSupport);
   }
 
   async function renderThread(otherId) {
@@ -1261,16 +1263,21 @@
   async function showComposeToSupport() {
     els.msgPanel.style.display = "block";
     els.msgPanel.innerHTML = `<div class="hint" style="padding:8px 0;">Finding the PlayPivot team…</div>`;
-    const { data: admins, error } = await supabaseClient.rpc("get_platform_admin_contact");
-    if (error || !admins || admins.length === 0) {
-      els.msgPanel.innerHTML = `<div class="hint" style="padding:8px 0;">Couldn't find anyone to contact right now — try again later.</div>`;
+    const { data: adminsRaw, error } = await supabaseClient.rpc("get_platform_admin_contact");
+    const admins = (adminsRaw || []).filter((a) => a.id !== currentUserId);
+    if (error || admins.length === 0) {
+      els.msgPanel.innerHTML = `
+        <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+        <div class="hint" style="padding:8px 0;">You're the only PlayPivot admin right now — there's no one else here to message. (Other coaches using "Contact us" will reach you fine.)</div>
+      `;
+      document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
       return;
     }
     const recipient = admins[0]; // en pratique il n'y en a qu'un ou deux -- le premier suffit
     els.msgPanel.innerHTML = `
       <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
       <div style="font-weight:600; margin-bottom:4px;">Message the PlayPivot team</div>
-      <p class="hint" style="margin:0 0 8px;">Straight to ${escapeHtml(recipient.full_name || "the PlayPivot admin")} — bug report, question, anything.</p>
+      <p class="hint" style="margin:0 0 8px;">Straight to ${escapeHtml(recipient.full_name || "the PlayPivot admin")} — bug report, question, anything. Sent as ${escapeHtml(document.getElementById("sidebar-user-name").textContent || "you")} — they'll see it's from you.</p>
       <textarea id="new-msg-body" rows="4" placeholder="What's up?" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px; font-family:inherit;"></textarea>
       <button id="new-msg-send-btn" class="nav-btn" style="width:100%;">Send</button>
     `;
