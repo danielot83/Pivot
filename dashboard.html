@@ -1157,33 +1157,53 @@
     // puisque l'envoi est bloqué si le compte n'existe pas ou n'est pas
     // autorisé (club en commun, ou admin plateforme).
     //
-    // Coéquipiers de TOUS tes clubs, pas juste celui actif dans le
-    // sélecteur -- sinon un frère/coach d'un autre de tes clubs (ex:
-    // Pinches Carnales, pendant que tu regardes DEL) n'apparaissait
-    // jamais, même s'il t'est parfaitement possible de lui écrire.
-    const { data: myOrgs } = await supabaseClient
-      .from("memberships")
-      .select("organization_id")
-      .eq("user_id", currentUserId)
-      .eq("status", "active");
-    const myOrgIds = [...new Set((myOrgs || []).map((m) => m.organization_id))];
-
+    // Pour le platform admin : TOUT LE MONDE, sur tous les clubs -- pas
+    // seulement les clubs où lui-même a une adhésion active. Il gère déjà
+    // tous les clubes depuis Admin general (Manage, Delete data...), donc
+    // limiter juste la messagerie à ses propres clubes n'avait pas de
+    // sens -- c'est justement l'accès le moins risqué de tous ceux qu'il
+    // a déjà.
     let teammates = [];
-    if (myOrgIds.length > 0) {
+    if (isPlatformController) {
       const { data } = await supabaseClient
         .from("memberships")
         .select("user_id, profiles(full_name), organizations(name)")
-        .in("organization_id", myOrgIds)
         .eq("status", "active")
         .neq("user_id", currentUserId);
-      // La même personne peut être coéquipière dans plus d'un club --
-      // une seule ligne par personne suffit pour écrire un message.
       const seen = new Set();
       teammates = (data || []).filter((m) => {
         if (!m.profiles || seen.has(m.user_id)) return false;
         seen.add(m.user_id);
         return true;
       });
+    } else {
+      // Coéquipiers de TOUS tes clubs, pas juste celui actif dans le
+      // sélecteur -- sinon un coéquipier d'un autre de tes clubs
+      // n'apparaissait jamais, même s'il t'est parfaitement possible de
+      // lui écrire.
+      const { data: myOrgs } = await supabaseClient
+        .from("memberships")
+        .select("organization_id")
+        .eq("user_id", currentUserId)
+        .eq("status", "active");
+      const myOrgIds = [...new Set((myOrgs || []).map((m) => m.organization_id))];
+
+      if (myOrgIds.length > 0) {
+        const { data } = await supabaseClient
+          .from("memberships")
+          .select("user_id, profiles(full_name), organizations(name)")
+          .in("organization_id", myOrgIds)
+          .eq("status", "active")
+          .neq("user_id", currentUserId);
+        // La même personne peut être coéquipière dans plus d'un club --
+        // une seule ligne par personne suffit pour écrire un message.
+        const seen = new Set();
+        teammates = (data || []).filter((m) => {
+          if (!m.profiles || seen.has(m.user_id)) return false;
+          seen.add(m.user_id);
+          return true;
+        });
+      }
     }
     const { data: adminsRaw } = await supabaseClient.rpc("get_platform_admin_contact");
     const admins = (adminsRaw || []).filter((a) => a.id !== currentUserId);
