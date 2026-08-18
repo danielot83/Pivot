@@ -252,9 +252,10 @@
     <div class="sidebar-footer">
       <div class="sidebar-divider"></div>
       <nav class="sidebar-nav" style="padding:0;">
-        <a href="#" id="sidebar-help-link" class="sidebar-link" style="text-align:center;"><svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:6px; vertical-align:-4px;"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
+        <a href="./settings.html" class="sidebar-link" style="display:inline-block; width:calc(50% - 3px); text-align:center; padding-left:8px; padding-right:8px;"><svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:6px; vertical-align:-4px;"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
+        <a href="#" id="sidebar-help-link" class="sidebar-link" style="display:inline-block; width:calc(50% - 3px); margin-left:6px; text-align:center; padding-left:8px; padding-right:8px;"><svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:6px; vertical-align:-4px;"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
       </nav>
-      <div class="sidebar-user" id="sidebar-user" title="Settings" style="cursor:pointer;">
+      <div class="sidebar-user" id="sidebar-user">
         <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
         <div class="sidebar-user-info">
           <div class="sidebar-user-name" id="sidebar-user-name">—</div>
@@ -279,8 +280,6 @@
       <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:14.5px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
     </div>
     <div class="topbar-right">
-      <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
-      <div id="org-name-big" style="display:none;"></div>
       <div id="pending-requests-widget" style="position:relative; display:none;">
         <button id="pending-requests-btn" class="icon-btn" aria-label="Pending requests">
           <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
@@ -295,6 +294,8 @@
         </button>
         <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
       </div>
+      <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
+      <div id="org-name-big" style="display:none;"></div>
     </div>
   </div>
 
@@ -368,28 +369,24 @@
       <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="5"/></svg></div><div><div class="num" id="pstat-online">—</div><div class="label">Online now</div></div></div>
     </div>
     <p class="section-label">Clubs on PlayPivot</p>
-    <div id="admin-clubs-table" style="background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;"><p style="padding:16px; color:var(--muted); font-size:14.5px;">Loading…</p></div>
+    <div id="admin-clubs-table" style="background:var(--card); border:1px solid var(--line); border-radius:10px; overflow-x:auto;"><p style="padding:16px; color:var(--muted); font-size:14.5px;">Loading…</p></div>
   </div>
 
   <p class="section-label">Tools</p>
   <div class="grid" id="modules-grid"></div>
 
-  <div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-    <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right? Contact us.</span>
+  <div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+    <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right?</span>
     <button class="nav-btn" id="contact-support-btn" title="Send a message straight to the PlayPivot admin">💬 Contact us</button>
   </div>
 
   </div><!-- /app-gated-content -->
   </div><!-- /wrap -->
 
-  <footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:13px; color:var(--muted);">
+  <footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--muted);">
     <span>© 2026 PlayPivot. All rights reserved.</span>
-    <div style="display:flex; align-items:center; gap:16px;">
-      <a href="./privacy.html" style="color:var(--muted); text-decoration:none;">Privacy Policy</a>
-      <a href="./privacy.html#use" style="color:var(--muted); text-decoration:none;">Terms of Use</a>
-      <!-- TODO: falta el enlace real a Instagram -- decime la URL/handle y lo conecto -->
-      <a href="#" title="Instagram" style="color:var(--muted); display:inline-flex;"><svg viewBox="0 0 24 24" width="18" height="18"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.9" fill="currentColor" stroke="none"/></svg></a>
-    </div>
+    <a href="./privacy.html" style="color:var(--muted); text-decoration:none;">Privacy Policy</a>
+    <a href="./privacy.html#use" style="color:var(--muted); text-decoration:none;">Terms of Use</a>
   </footer>
   </main>
 </div><!-- /app-shell -->
@@ -664,12 +661,14 @@
         <td style="padding:10px 16px;">${r.teamCount}</td>
         <td style="padding:10px 16px;">${r.playerCount}</td>
         <td style="padding:10px 16px;">${r.matchCount}</td>
-        <td style="padding:10px 16px; text-align:right; white-space:nowrap;">
-          <button class="tree-example" data-manage-org-id="${r.org.id}" style="color:var(--ink); font-weight:600; cursor:pointer; margin-right:10px;">Manage</button>
-          <button class="tree-example" data-msg-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:var(--ink); font-weight:600; cursor:pointer; margin-right:10px;">✉ Message admin</button>
-          <button class="tree-example" data-delete-data-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer; margin-right:10px;">🗑️ Delete data…</button>
-          <button class="tree-example" data-deactivate-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer; margin-right:10px;">Remove whole team</button>
-          <button class="tree-example" data-enter-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer;">See club →</button>
+        <td style="padding:10px 16px; text-align:right;">
+          <div style="display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px 10px;">
+            <button class="tree-example" data-manage-org-id="${r.org.id}" style="color:var(--ink); font-weight:600; cursor:pointer; white-space:nowrap;">Manage</button>
+            <button class="tree-example" data-msg-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:var(--ink); font-weight:600; cursor:pointer; white-space:nowrap;">✉ Message admin</button>
+            <button class="tree-example" data-delete-data-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer; white-space:nowrap;">🗑️ Delete data…</button>
+            <button class="tree-example" data-deactivate-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer; white-space:nowrap;">Remove whole team</button>
+            <button class="tree-example" data-enter-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer; white-space:nowrap;">See club →</button>
+          </div>
         </td>
       </tr>
       <tr id="admin-manage-row-${r.org.id}" style="display:none;"><td colspan="5" style="padding:14px 16px; background:var(--paper);"><div id="admin-manage-content-${r.org.id}"></div></td></tr>
@@ -1446,8 +1445,8 @@
     const endStr = `${year}-${pad(month + 1)}-${pad(lastDay.getDate())}`;
 
     const [{ data: matches }, { data: trainings }, eventsRes] = await Promise.all([
-      supabaseClient.from("matches").select("date, opponent, location, team").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
-      supabaseClient.from("trainings").select("date, title, team").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
+      supabaseClient.from("matches").select("id, date, opponent, location, team").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
+      supabaseClient.from("trainings").select("id, date, title, team").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
       // La tabla "events" es opcional (paso extra de configuración) -- si
       // todavía no existe, simplemente no mostramos ese tercer tipo, sin
       // romper el resto del calendario.
@@ -1528,15 +1527,16 @@
 
   function openCalendarAddModal(dateStr, dayLabel) {
     const ev = calendarEventsByDay[dateStr] || { matches: [], trainings: [], events: [] };
+    const delBtn = (table, id) => `<button type="button" class="cal-del-btn" data-del-table="${table}" data-del-id="${id}" title="Delete" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px; flex-shrink:0;"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7h12Z"/></svg></button>`;
     let existingRows = "";
     ev.matches.forEach((m) => {
-      existingRows += `<div class="activity-row"><div class="activity-icon" style="background:var(--accent-tint); color:var(--accent-deep);">🏀</div><div class="activity-text"><strong>vs ${escapeHtml(m.opponent || "TBD")}</strong><span>${escapeHtml(m.team || "")}${m.location ? " · " + escapeHtml(m.location) : ""}</span></div></div>`;
+      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:var(--accent-tint); color:var(--accent-deep);">🏀</div><div class="activity-text" style="flex:1;"><strong>vs ${escapeHtml(m.opponent || "TBD")}</strong><span>${escapeHtml(m.team || "")}${m.location ? " · " + escapeHtml(m.location) : ""}</span></div>${delBtn("matches", m.id)}</div>`;
     });
     ev.trainings.forEach((t) => {
-      existingRows += `<div class="activity-row"><div class="activity-icon" style="background:#e7e5f5; color:var(--navy);">⏱</div><div class="activity-text"><strong>${escapeHtml(t.title || "Training session")}</strong><span>${escapeHtml(t.team || "")}</span></div></div>`;
+      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:#e7e5f5; color:var(--navy);">⏱</div><div class="activity-text" style="flex:1;"><strong>${escapeHtml(t.title || "Training session")}</strong><span>${escapeHtml(t.team || "")}</span></div>${delBtn("trainings", t.id)}</div>`;
     });
     ev.events.forEach((e) => {
-      existingRows += `<div class="activity-row"><div class="activity-icon" style="background:#dcfce7; color:#16a34a;">📌</div><div class="activity-text"><strong>${escapeHtml(e.title)}</strong><span>Event</span></div></div>`;
+      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:#dcfce7; color:#16a34a;">📌</div><div class="activity-text" style="flex:1;"><strong>${escapeHtml(e.title)}</strong><span>Event</span></div>${delBtn("events", e.id)}</div>`;
     });
 
     const overlay = document.createElement("div");
@@ -1559,6 +1559,24 @@
         </div>
       </div>`;
     document.body.appendChild(overlay);
+
+    overlay.querySelectorAll(".cal-del-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const table = btn.dataset.delTable;
+        const id = btn.dataset.delId;
+        if (!confirm("Are you sure you want to delete this? It'll also disappear from its module and from Recent activity.")) return;
+        try {
+          const { error } = await supabaseClient.from(table).delete().eq("id", id);
+          if (error) throw error;
+          overlay.remove();
+          loadCalendar();
+          loadRecentActivity();
+          showMessage("Deleted.", "success");
+        } catch (err) {
+          showMessage(err.message || "Couldn't delete that.", "error");
+        }
+      });
+    });
 
     let selectedType = null;
     const fieldsEl = overlay.querySelector("#cal-add-fields");
@@ -1902,13 +1920,6 @@
     e.stopPropagation();
     await supabaseClient.auth.signOut();
     window.location.href = "./login.html";
-  });
-
-  // Le profil (avatar + nom + rôle) sert maintenant de seul point d'accès
-  // aux Settings depuis la sidebar -- l'ancien lien "Settings" séparé a été
-  // retiré pour ne pas dupliquer l'accès.
-  document.getElementById("sidebar-user").addEventListener("click", () => {
-    window.location.href = "./settings.html";
   });
 
   async function init() {
