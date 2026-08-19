@@ -130,7 +130,13 @@
     font-size: 14px; color: var(--accent-deep); background: none; border: 1px dashed var(--accent-deep); border-radius: 100px;
     cursor: pointer; padding: 7px 14px; text-align: left;
   }
-  .team-bar-example-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px; }
+  .team-bar-example-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .example-data-card-bottom {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+    max-width: 340px; margin-top: 40px;
+  }
+  .example-data-card-bottom h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 8px; }
+  .example-data-card-bottom .tree-example { font-size: 12.5px; padding: 5px 10px; }
 
   .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
   .btn { padding: 8px 14px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
@@ -281,8 +287,8 @@
 
     <div class="team-bar-card">
       <h2>Seasons &amp; teams</h2>
+      <div id="tree-new-row" style="margin-bottom:10px;"></div>
       <div id="tree"></div>
-      <div class="team-bar-example-row" id="example-data-card"></div>
     </div>
 
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
@@ -338,6 +344,10 @@
       <tbody id="players-body"></tbody>
     </table>
     <div class="empty-state" id="empty-state" style="display:none">No players yet for this season/team — add the first one above.</div>
+
+    <div class="example-data-card-bottom">
+      <div class="team-bar-example-row" id="example-data-card"></div>
+    </div>
 
     <div style="margin-top:32px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
       <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right?</span>
@@ -476,6 +486,8 @@
     const rows = mergeTeamRows(data, teamRows);
 
     els.tree.innerHTML = "";
+    const newRow = document.getElementById("tree-new-row");
+    newRow.innerHTML = "";
 
     const newBtn = document.createElement("button");
     newBtn.className = "tree-new";
@@ -486,7 +498,7 @@
       currentTeamCategory = created.team_category;
       selectSeasonTeam(created.season, created.team);
     });
-    els.tree.appendChild(newBtn);
+    newRow.appendChild(newBtn);
 
     renderTeamTreeBar("tree", rows, currentSeason, currentTeam, (season, team, cat) => {
       currentTeamCategory = cat || "";

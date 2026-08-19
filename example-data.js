@@ -145,12 +145,8 @@ function renderExampleDataCard(containerId, { onLoad, onRemove }) {
     </select>
     <button class="tree-example" id="${containerId}-load-bulls">★ Load selected Bulls season</button>
     <button class="tree-example" id="${containerId}-remove-bulls" style="color:#991b1b;">Remove selected Bulls season</button>
-    <button class="tree-example" id="${containerId}-load-celtics" style="margin-top:6px;">★ Load Boston Celtics '08</button>
-    <button class="tree-example" id="${containerId}-remove-celtics" style="color:#991b1b;">Remove Celtics example</button>
   `;
   const bullsSelect = document.getElementById(`${containerId}-bulls-select`);
   document.getElementById(`${containerId}-load-bulls`).addEventListener("click", () => onLoad(bullsSelect.value));
   document.getElementById(`${containerId}-remove-bulls`).addEventListener("click", () => onRemove(bullsSelect.value));
-  document.getElementById(`${containerId}-load-celtics`).addEventListener("click", () => onLoad("celtics"));
-  document.getElementById(`${containerId}-remove-celtics`).addEventListener("click", () => onRemove("celtics"));
 }

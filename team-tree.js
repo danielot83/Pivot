@@ -176,15 +176,15 @@ function promptNewTeam(supabaseClient, organizationId) {
       <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
         <h3 style="margin:0 0 4px; font-size:17px;">New season/team</h3>
         <p style="margin:0 0 16px; font-size:12.5px; color:var(--muted);">The team name stays the same across years — pick a new season for it later without retyping anything.</p>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Season</label>
+        <select id="new-team-season-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+          ${seasons.map((s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("")}
+        </select>
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
         <input id="new-team-name-input" type="text" placeholder="e.g. DEL, Chicago Bulls" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category (optional)</label>
-        <select id="new-team-category-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+        <select id="new-team-category-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px;">
           ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}">${c || "No category"}</option>`).join("")}
-        </select>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Season</label>
-        <select id="new-team-season-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px;">
-          ${seasons.map((s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("")}
         </select>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button id="new-team-cancel-btn" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
