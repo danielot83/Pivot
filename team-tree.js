@@ -141,6 +141,88 @@ function renderTeamTreeBar(containerId, rows, activeSeason, activeTeam, onSelect
 }
 
 /**
+ * Vista en forma de árbol de carpetas -- Temporada → Equipo →
+ * Categoría(s) -- usando <details>/<summary> nativos del navegador
+ * (se abren/cierran solos, sin JS extra, y son accesibles de por sí).
+ * Pensada para reemplazar la barra de pastillas cuando se quiere ver
+ * TODO agrupado por temporada primero, no equipo primero.
+ */
+function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, onSelect, onDelete) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const bySeason = {};
+  (rows || []).forEach((r) => {
+    if (!r.team) return;
+    bySeason[r.season] = bySeason[r.season] || {};
+    bySeason[r.season][r.team] = bySeason[r.season][r.team] || new Set();
+    bySeason[r.season][r.team].add(r.team_category || "");
+  });
+
+  Object.keys(bySeason).sort().reverse().forEach((season) => {
+    const teams = bySeason[season];
+    const seasonHasActive = activeSeason === season;
+
+    const seasonEl = document.createElement("details");
+    seasonEl.className = "tree-folder tree-folder-season";
+    if (seasonHasActive) seasonEl.open = true;
+    const seasonSummary = document.createElement("summary");
+    seasonSummary.textContent = season;
+    seasonEl.appendChild(seasonSummary);
+
+    Object.keys(teams).sort().forEach((team) => {
+      const cats = [...teams[team]];
+      const teamIsActive = seasonHasActive && activeTeam === team;
+
+      if (cats.length === 1 && !cats[0]) {
+        // Sin categoría -- el equipo mismo es la hoja, sin una carpeta más adentro.
+        const leaf = document.createElement("div");
+        leaf.className = "tree-folder-leaf-row";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tree-folder-leaf" + (teamIsActive ? " active" : "");
+        btn.textContent = team;
+        btn.addEventListener("click", () => onSelect(season, team, ""));
+        leaf.appendChild(btn);
+        if (onDelete) leaf.appendChild(makeDeleteBtn(team, season, onDelete));
+        seasonEl.appendChild(leaf);
+      } else {
+        const teamEl = document.createElement("details");
+        teamEl.className = "tree-folder tree-folder-team";
+        if (teamIsActive) teamEl.open = true;
+        const teamSummary = document.createElement("summary");
+        teamSummary.textContent = team;
+        teamEl.appendChild(teamSummary);
+        cats.sort().forEach((cat) => {
+          const leaf = document.createElement("div");
+          leaf.className = "tree-folder-leaf-row";
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "tree-folder-leaf" + (teamIsActive ? " active" : "");
+          btn.textContent = cat || "No category";
+          btn.addEventListener("click", () => onSelect(season, team, cat));
+          leaf.appendChild(btn);
+          if (onDelete) leaf.appendChild(makeDeleteBtn(team, season, onDelete));
+          teamEl.appendChild(leaf);
+        });
+        seasonEl.appendChild(teamEl);
+      }
+    });
+
+    container.appendChild(seasonEl);
+  });
+}
+
+function makeDeleteBtn(team, season, onDelete) {
+  const delBtn = document.createElement("span");
+  delBtn.textContent = "✕";
+  delBtn.title = `Remove ${team} (${season}) — deletes all its players`;
+  delBtn.className = "team-pill-del";
+  delBtn.addEventListener("click", (e) => { e.stopPropagation(); onDelete(season, team); });
+  return delBtn;
+}
+
+/**
  * Genera las temporadas típicas para elegir en un desplegable, sin
  * tener que escribirlas -- la actual (según la fecha de hoy, una
  * temporada de baloncesto va de agosto a junio) más un año antes y dos

@@ -130,13 +130,37 @@
     font-size: 14px; color: var(--accent-deep); background: none; border: 1px dashed var(--accent-deep); border-radius: 100px;
     cursor: pointer; padding: 7px 14px; text-align: left;
   }
+
+  /* -------- árbol de carpetas (temporada > equipo > categoría) -------- */
+  #tree { display: block; }
+  details.tree-folder { margin-bottom: 2px; }
+  details.tree-folder > summary {
+    cursor: pointer; list-style: none; padding: 8px 10px; border-radius: 8px; font-weight: 600; color: var(--ink);
+    display: flex; align-items: center; gap: 6px;
+  }
+  details.tree-folder > summary::-webkit-details-marker { display: none; }
+  details.tree-folder > summary::before { content: "▸"; color: var(--muted); font-size: 12px; transition: transform 0.15s; }
+  details.tree-folder[open] > summary::before { transform: rotate(90deg); }
+  details.tree-folder > summary:hover { background: var(--paper); }
+  details.tree-folder-season > summary { font-size: 15px; }
+  details.tree-folder-team { margin: 2px 0 2px 22px; }
+  details.tree-folder-team > summary { font-size: 14px; font-weight: 500; }
+  .tree-folder-leaf-row { display: flex; align-items: center; gap: 4px; margin: 1px 0 1px 44px; }
+  details.tree-folder-season > .tree-folder-leaf-row { margin-left: 22px; }
+  .tree-folder-leaf {
+    flex: 1; text-align: left; background: none; border: none; padding: 6px 10px; border-radius: 8px;
+    font-size: 14px; color: var(--ink); cursor: pointer;
+  }
+  .tree-folder-leaf:hover { background: var(--paper); }
+  .tree-folder-leaf.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
   .team-bar-example-row { display: flex; flex-wrap: wrap; gap: 8px; }
   .example-data-card-bottom {
-    background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
-    max-width: 340px; margin-top: 40px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+    max-width: 280px; margin-top: 40px;
   }
-  .example-data-card-bottom h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 8px; }
-  .example-data-card-bottom .tree-example { font-size: 12.5px; padding: 5px 10px; }
+  .example-data-card-bottom h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 6px; }
+  .example-data-card-bottom .tree-example { font-size: 12px; padding: 4px 9px; }
+  .example-data-card-bottom select { font-size: 12px !important; padding: 5px 6px !important; }
 
   .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
   .btn { padding: 8px 14px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
@@ -485,6 +509,23 @@
 
     const rows = mergeTeamRows(data, teamRows);
 
+    // El coach activo debería ver "su" equipo directo, no una pantalla
+    // vacía pidiéndole que elija -- así que si todavía no hay nada
+    // seleccionado, recuperamos el último equipo que usó en este club
+    // (guardado la última vez que eligió uno), o si es la primera vez,
+    // el primero disponible.
+    if (!currentSeason && !currentTeam && rows.length > 0) {
+      let restored = null;
+      try {
+        const saved = JSON.parse(localStorage.getItem(`pivot-roster-last-${currentOrgId}`) || "null");
+        if (saved && rows.some((r) => r.season === saved.season && r.team === saved.team)) restored = saved;
+      } catch (e) { /* stockage illisible -- pas grave, on retombe sur le premier de la liste */ }
+      const fallback = restored || [...rows].sort((a, b) => a.team.localeCompare(b.team) || b.season.localeCompare(a.season))[0];
+      currentSeason = fallback.season;
+      currentTeam = fallback.team;
+      currentTeamCategory = fallback.team_category || "";
+    }
+
     els.tree.innerHTML = "";
     const newRow = document.getElementById("tree-new-row");
     newRow.innerHTML = "";
@@ -500,7 +541,7 @@
     });
     newRow.appendChild(newBtn);
 
-    renderTeamTreeBar("tree", rows, currentSeason, currentTeam, (season, team, cat) => {
+    renderTeamTreeFolders("tree", rows, currentSeason, currentTeam, (season, team, cat) => {
       currentTeamCategory = cat || "";
       selectSeasonTeam(season, team);
     }, (season, team) => deleteTeam(season, team));
@@ -522,6 +563,7 @@
   function selectSeasonTeam(season, team) {
     currentSeason = season;
     currentTeam = team;
+    try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team })); } catch (e) { /* pas grave si le stockage est plein/bloqué */ }
     renderCurrentSelection();
     loadTree();
     loadPlayers();
@@ -1061,7 +1103,10 @@
     renderTableHead();
     const orgId = await loadMyOrganization();
     pivotInitTopbarWidgets();
-    if (orgId) await loadTree();
+    if (orgId) {
+      await loadTree();
+      if (currentSeason && currentTeam) { renderCurrentSelection(); await loadPlayers(); }
+    }
   }
   init();
 </script>
