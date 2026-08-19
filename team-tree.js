@@ -251,7 +251,7 @@ const TEAM_CATEGORY_OPTIONS = ["", "U6", "U7", "U8", "U9", "U10", "U11", "U12", 
  * mano -- así nunca hay "U8"/"u8 "/"U-8" mezclados para el mismo grupo.
  * @returns {Promise<{season, team, team_category}|null>} null si se cancela.
  */
-function promptNewTeam(supabaseClient, organizationId) {
+function promptNewTeam(supabaseClient, organizationId, suggestedName) {
   return new Promise((resolve) => {
     const { seasons, current } = guessSeasonOptions();
     const overlay = document.createElement("div");
@@ -265,7 +265,7 @@ function promptNewTeam(supabaseClient, organizationId) {
           ${seasons.map((s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("")}
         </select>
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
-        <input id="new-team-name-input" type="text" placeholder="e.g. DEL, Chicago Bulls" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
+        <input id="new-team-name-input" type="text" value="${suggestedName ? suggestedName.replace(/"/g, "&quot;") : ""}" placeholder="e.g. DEL, Chicago Bulls" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category (optional)</label>
         <select id="new-team-category-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px;">
           ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}">${c || "No category"}</option>`).join("")}
@@ -280,6 +280,7 @@ function promptNewTeam(supabaseClient, organizationId) {
     document.body.appendChild(overlay);
     const nameInput = overlay.querySelector("#new-team-name-input");
     nameInput.focus();
+    nameInput.select();
 
     function close(result) {
       overlay.remove();

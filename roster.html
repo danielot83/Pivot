@@ -175,7 +175,7 @@
   .columns-panel {
     display: none; position: absolute; top: 100%; right: 0; margin-top: 6px; z-index: 5;
     background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08); min-width: 180px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08); min-width: 220px;
   }
   .columns-panel.open { display: block; }
   .columns-panel label { display: flex; align-items: center; gap: 8px; font-size: 14.5px; padding: 4px 0; cursor: pointer; }
@@ -303,7 +303,7 @@
 <div class="wrap">
 
 <div class="content-col">
-    <h1 style="display:flex; align-items:center; justify-content:space-between;">
+    <h1 style="display:flex; align-items:center; gap:10px;">
       Roster
       <button id="help-btn" title="What's this module for?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
     </h1>
@@ -415,7 +415,7 @@
   const POSITIONS = ["", "PG (Base)", "SG (Escolta)", "SF (Alero)", "PF (Ala-Pívot)", "C (Pívot)"];
 
   const COLUMN_DEFS = [
-    { key: "jersey_number", label: "#", default: true, type: "text" },
+    { key: "jersey_number", label: "Number", default: true, type: "text" },
     { key: "first_name", label: "First name", default: true, type: "text" },
     { key: "last_name", label: "Last name", default: true, type: "text" },
     { key: "birth_year", label: "Birth year", default: false, type: "number" },
@@ -437,6 +437,27 @@
     localStorage.setItem("pivot_roster_columns", JSON.stringify(keys));
   }
   let visibleColumns = loadVisibleColumns();
+
+  function loadColumnOrder() {
+    const saved = localStorage.getItem("pivot_roster_column_order");
+    let order = [];
+    if (saved) { try { order = JSON.parse(saved); } catch (e) {} }
+    // On complète avec les colonnes qui manqueraient (nouvelles colonnes
+    // ajoutées après que quelqu'un ait déjà personnalisé son ordre).
+    COLUMN_DEFS.forEach((c) => { if (!order.includes(c.key)) order.push(c.key); });
+    return order.filter((k) => COLUMN_DEFS.some((c) => c.key === k));
+  }
+  function saveColumnOrder(order) {
+    localStorage.setItem("pivot_roster_column_order", JSON.stringify(order));
+  }
+  let columnOrder = loadColumnOrder();
+
+  // Une seule fonction dont tout le monde se sert (tableau, Excel, PDF)
+  // pour "quelles colonnes, dans quel ordre" -- comme ça, exporter
+  // correspond toujours exactement à ce que le tableau montre.
+  function orderedVisibleColumns() {
+    return columnOrder.map((k) => COLUMN_DEFS.find((c) => c.key === k)).filter((c) => c && visibleColumns.includes(c.key));
+  }
 
   const els = {
     orgName: document.getElementById("org-name-big"),
@@ -474,8 +495,14 @@
   // ---------------------------------------------------------------------
   function renderColumnsMenu() {
     els.columnsPanel.innerHTML = "";
-    COLUMN_DEFS.forEach((col) => {
+    columnOrder.forEach((key, idx) => {
+      const col = COLUMN_DEFS.find((c) => c.key === key);
+      if (!col) return;
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex; align-items:center; gap:4px;";
+
       const label = document.createElement("label");
+      label.style.cssText = "flex:1; display:flex; align-items:center; gap:8px; font-size:13px; padding:4px 0; cursor:pointer;";
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = visibleColumns.includes(col.key);
@@ -489,14 +516,46 @@
       });
       label.appendChild(cb);
       label.appendChild(document.createTextNode(col.label));
-      els.columnsPanel.appendChild(label);
+      row.appendChild(label);
+
+      const upBtn = document.createElement("button");
+      upBtn.type = "button";
+      upBtn.textContent = "↑";
+      upBtn.title = "Move up";
+      upBtn.disabled = idx === 0;
+      upBtn.style.cssText = "background:none; border:none; cursor:pointer; color:var(--muted); font-size:13px; padding:2px 4px;" + (idx === 0 ? " opacity:0.3; cursor:default;" : "");
+      upBtn.addEventListener("click", () => {
+        [columnOrder[idx - 1], columnOrder[idx]] = [columnOrder[idx], columnOrder[idx - 1]];
+        saveColumnOrder(columnOrder);
+        renderColumnsMenu();
+        renderTableHead();
+        loadPlayers();
+      });
+      row.appendChild(upBtn);
+
+      const downBtn = document.createElement("button");
+      downBtn.type = "button";
+      downBtn.textContent = "↓";
+      downBtn.title = "Move down";
+      downBtn.disabled = idx === columnOrder.length - 1;
+      downBtn.style.cssText = "background:none; border:none; cursor:pointer; color:var(--muted); font-size:13px; padding:2px 4px;" + (idx === columnOrder.length - 1 ? " opacity:0.3; cursor:default;" : "");
+      downBtn.addEventListener("click", () => {
+        [columnOrder[idx + 1], columnOrder[idx]] = [columnOrder[idx], columnOrder[idx + 1]];
+        saveColumnOrder(columnOrder);
+        renderColumnsMenu();
+        renderTableHead();
+        loadPlayers();
+      });
+      row.appendChild(downBtn);
+
+      els.columnsPanel.appendChild(row);
     });
   }
   els.columnsBtn.addEventListener("click", () => els.columnsPanel.classList.toggle("open"));
 
   function renderTableHead() {
     els.tableHead.innerHTML = "";
-    COLUMN_DEFS.filter((c) => visibleColumns.includes(c.key)).forEach((c) => {
+    orderedVisibleColumns().forEach((c) => {
       const th = document.createElement("th");
       th.textContent = c.label;
       els.tableHead.appendChild(th);
@@ -541,7 +600,7 @@
     newBtn.className = "tree-new";
     newBtn.textContent = "+ New season/team";
     newBtn.addEventListener("click", async () => {
-      const created = await promptNewTeam(supabaseClient, currentOrgId);
+      const created = await promptNewTeam(supabaseClient, currentOrgId, els.orgName.textContent);
       if (!created) return;
       currentTeamCategory = created.team_category;
       selectSeasonTeam(created.season, created.team);
@@ -616,6 +675,28 @@
       showMessage("Team category updated.", "success");
     });
     els.currentSelection.appendChild(editBtn);
+
+    const renameBtn = document.createElement("button");
+    renameBtn.textContent = "✎ Rename team";
+    renameBtn.style.cssText = "background:none; border:none; color:var(--muted); font-size:13.5px; cursor:pointer; padding:0;";
+    renameBtn.addEventListener("click", async () => {
+      const next = prompt(`New name for "${currentTeam}" — this renames it everywhere (every season, every category), since a team keeps the same name across years:`, currentTeam);
+      if (next === null || !next.trim() || next.trim() === currentTeam) return;
+      const newName = next.trim();
+      const { error } = await supabaseClient.from("players").update({ team: newName })
+        .eq("organization_id", currentOrgId).eq("team", currentTeam);
+      if (error) { showMessage(error.message, "error"); return; }
+      await supabaseClient.from("teams").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", currentTeam);
+      await supabaseClient.from("matches").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", currentTeam);
+      await supabaseClient.from("trainings").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", currentTeam);
+      await supabaseClient.from("plays").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", currentTeam);
+      currentTeam = newName;
+      try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season: currentSeason, team: currentTeam, category: currentTeamCategory || "" })); } catch (e) { /* pas grave */ }
+      renderCurrentSelection();
+      await loadTree();
+      showMessage("Team renamed.", "success");
+    });
+    els.currentSelection.appendChild(renameBtn);
   }
 
   // ---------------------------------------------------------------------
@@ -673,7 +754,7 @@
     if (!p.active) tr.className = "inactive-row";
 
     // -- colonnes visibles, éditables directement --
-    COLUMN_DEFS.filter((c) => visibleColumns.includes(c.key)).forEach((col) => {
+    orderedVisibleColumns().forEach((col) => {
       const td = document.createElement("td");
       td.className = "editable";
       td.textContent = formatCellValue(p[col.key], col);
@@ -792,8 +873,6 @@
   // Excel : toutes les colonnes (pas juste celles affichées à l'écran),
   // pour que l'export serve aussi d'archive/sauvegarde complète.
   // ---------------------------------------------------------------------
-  const EXCEL_COLUMNS = ["jersey_number","first_name","last_name","birth_year","category","gender","license_number","has_license","active"];
-
   // -----------------------------------------------------------------------
   // Export PDF vectoriel (texte et lignes dessinés directement, pas une
   // image de la page) -- même esprit que les fiches de l'application de
@@ -831,27 +910,32 @@
     // Paysage, toujours une seule page -- la taille des lignes s'adapte au
     // nombre de joueurs plutôt que de passer à une deuxième page.
     const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
-    const accent = [210, 20, 20];
+    const accent = [236, 103, 24]; // même orange que le reste de l'app (--accent)
+    const navy = [8, 0, 38]; // même bleu marine que la sidebar (--navy)
     const ink = [26, 26, 26];
     const muted = [130, 130, 136];
     const pageW = 842, pageH = 595;
     const marginX = 36;
     const contentW = pageW - marginX * 2;
-    let y = 40;
+    const logoSize = 52;
+    let y = 30;
 
     if (logoDataUrl) {
-      try { doc.addImage(logoDataUrl, "PNG", pageW - marginX - 36, 24, 36, 36); } catch (e) {}
+      try { doc.addImage(logoDataUrl, "PNG", pageW - marginX - logoSize, 20, logoSize, logoSize); } catch (e) {}
     }
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(...ink);
-    doc.text(els.orgName.textContent || "PlayPivot", marginX, y);
-    y += 17;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(...muted);
-    doc.text(`Roster — ${currentTeam} (${currentSeason})`, marginX, y);
-    y += 8;
-    doc.setDrawColor(...accent); doc.setLineWidth(1);
+    // En-tête dans le même esprit que la topbar de l'app : nom du club en
+    // gros et sombre (navy), puis la ligne équipe/saison/catégorie en
+    // orange -- pas juste un texte gris discret comme avant.
+    doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.setTextColor(...navy);
+    doc.text(els.orgName.textContent || "PlayPivot", marginX, y + 8);
+    y += 24;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...accent);
+    doc.text(`Roster — ${currentTeam}${currentTeamCategory ? " (" + currentTeamCategory + ")" : ""} — ${currentSeason}`, marginX, y);
+    y += 10;
+    doc.setDrawColor(...accent); doc.setLineWidth(2);
     doc.line(marginX, y, pageW - marginX, y);
-    y += 18;
+    y += 22;
 
     const headerH = y;
     const footerH = 24;
@@ -859,21 +943,15 @@
     const rowH = Math.max(9, Math.min(20, players.length ? availableH / (players.length + 1) : 20));
     const fontSize = Math.max(6.5, Math.min(9.5, rowH * 0.55));
 
-    const cols = [
-      { key: "jersey_number", label: "#", w: 0.05 },
-      { key: "first_name", label: "First name", w: 0.18 },
-      { key: "last_name", label: "Last name", w: 0.2 },
-      { key: "birth_year", label: "Birth", w: 0.08 },
-      { key: "category", label: "Cat.", w: 0.08 },
-      { key: "gender", label: "Gender", w: 0.1 },
-      { key: "license_number", label: "License #", w: 0.13 },
-      { key: "has_license", label: "Ready", w: 0.08 },
-      { key: "active", label: "Active", w: 0.08 },
-    ];
+    // Mêmes colonnes, dans le même ordre, que celles cochées dans
+    // "Columns ▾" -- comme pour l'Excel. Largeur répartie à parts
+    // égales entre les colonnes choisies (simple et prévisible).
+    const cols = orderedVisibleColumns();
+    const colW = cols.length ? contentW / cols.length : contentW;
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(7, fontSize - 0.5)); doc.setTextColor(...muted);
     let x = marginX;
-    cols.forEach((c) => { doc.text(c.label.toUpperCase(), x, y); x += c.w * contentW; });
+    cols.forEach((c) => { doc.text(c.label.toUpperCase(), x, y); x += colW; });
     y += rowH * 0.5;
     doc.setDrawColor(225, 225, 225); doc.setLineWidth(0.5);
     doc.line(marginX, y, pageW - marginX, y);
@@ -889,9 +967,9 @@
       let x2 = marginX;
       cols.forEach((c) => {
         let v = p[c.key];
-        if (c.key === "has_license" || c.key === "active") v = v ? "✓" : "—";
+        if (c.type === "checkbox") v = v ? "✓" : "—";
         doc.text(String(v ?? ""), x2, y);
-        x2 += c.w * contentW;
+        x2 += colW;
       });
       y += rowH;
     });
@@ -911,13 +989,33 @@
       currentTeamCategory
     ).order("last_name");
     if (error) { showMessage(error.message, "error"); return; }
+    const players = data || [];
 
-    const rows = (data || []).map((p) => {
-      const row = {};
-      EXCEL_COLUMNS.forEach((c) => (row[c] = p[c] ?? ""));
-      return row;
-    });
-    const ws = XLSX.utils.json_to_sheet(rows, { header: EXCEL_COLUMNS });
+    // Mêmes colonnes, dans le même ordre, que celles cochées dans
+    // "Columns ▾" -- ce qu'on voit dans le tableau est ce qu'on obtient
+    // dans le fichier, ni plus ni moins.
+    const cols = orderedVisibleColumns();
+
+    // Quelques lignes d'info en haut (club, équipe, catégorie, date,
+    // nombre de joueurs) -- même esprit que l'en-tête du PDF, pour que
+    // le fichier ait du sens tout seul si quelqu'un le reçoit par email
+    // sans le message qui l'accompagne.
+    const infoRows = [
+      [els.orgName.textContent || "PlayPivot"],
+      [`Team: ${currentTeam}${currentTeamCategory ? " (" + currentTeamCategory + ")" : ""} — Season: ${currentSeason}`],
+      [`Generated ${new Date().toISOString().slice(0, 10)} — ${players.length} player${players.length === 1 ? "" : "s"}`],
+      [],
+    ];
+
+    const headerRow = cols.map((c) => c.label);
+    const dataRows = players.map((p) => cols.map((c) => {
+      let v = p[c.key];
+      if (c.type === "checkbox") return v ? "Yes" : "No";
+      return v ?? "";
+    }));
+
+    const ws = XLSX.utils.aoa_to_sheet([...infoRows, headerRow, ...dataRows]);
+    ws["!cols"] = cols.map((c) => ({ wch: Math.max(c.label.length + 2, 12) }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Roster");
     XLSX.writeFile(wb, `${currentTeam}_${currentSeason}.xlsx`);
@@ -1101,18 +1199,29 @@
     const box = document.getElementById("help-box");
     if (box.style.display === "block") { box.style.display = "none"; return; }
     box.innerHTML = `
-      <strong>How to use Roster</strong>
-      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li><strong>Pick or create a team</strong> — on the left, click an existing season/team, or "+ New season/team" (top) and answer the three questions: season, team name, and an optional default category (pre-fills new players, saves you retyping it each time).</li>
-        <li><strong>Add a player</strong> — click "+ Add player" above the table, fill in the panel, Save. Needs at least a first and last name.</li>
-        <li><strong>Edit a player</strong> — no separate edit screen: just click any cell in the table (name, category, checkboxes...), type the new value, and click away or press Enter. It saves right away.</li>
-        <li><strong>Show/hide columns</strong> — click "Columns ▾", tick what you want to see (e.g. add birth year, hide position). Remembered next time you open Roster.</li>
+      <strong>How to use Roster — step by step</strong>
+      <p style="margin:8px 0 4px; font-weight:600;">1. Create your first team</p>
+      <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
+        <li>Click <strong>"+ New season/team"</strong> above the tree (it's the dashed button).</li>
+        <li>Pick the <strong>season</strong> first (this year is pre-selected).</li>
+        <li>Type the <strong>team name</strong> — pre-filled with your club's name, but change it to whatever you actually call this team.</li>
+        <li>Add a <strong>category</strong> if this team has one (U8, U10...) — optional. Two teams with the same name but a different category (e.g. "DEL" U8 and "DEL" U10) are kept fully separate everywhere, with their own players.</li>
+        <li>Click <strong>Create</strong> — it shows up in the tree right away, even before it has any players.</li>
+      </ol>
+      <p style="margin:8px 0 4px; font-weight:600;">2. Add your players</p>
+      <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
+        <li>With your team selected, click <strong>"+ Add player"</strong> above the table, fill in the panel, Save. Needs at least a first and last name.</li>
+        <li>Or click <strong>Import from Excel</strong> to bring in a whole spreadsheet at once — it recognizes common column names automatically (English or French, a combined "Last, First" column, full birth dates instead of just the year...).</li>
+      </ol>
+      <p style="margin:8px 0 4px; font-weight:600;">3. The rest</p>
+      <ul style="margin:0; padding-left:18px; line-height:1.7;">
+        <li><strong>Edit a player</strong> — no separate edit screen: click any cell in the table (name, category, checkboxes...), type the new value, click away or press Enter. Saves right away.</li>
+        <li><strong>Show/hide columns</strong> — click "Columns ▾", tick what you want to see. Remembered next time you open Roster.</li>
         <li><strong>Position</strong> is a dropdown on purpose — PG/SG/SF/PF/C (Base/Escolta/Alero/Ala-Pívot/Pívot) — so it filters and reports cleanly, instead of "PG"/"Base"/"Point Guard" all meaning the same thing but never matching each other.</li>
         <li><strong>Ready</strong> is a simple yes/no — whether this player is cleared to play. PlayPivot doesn't store any license number or scanned document; that stays with whatever official system your federation already uses.</li>
-        <li><strong>Export to Excel</strong> — click the button, get a spreadsheet of the currently selected team, ready to send or archive.</li>
-        <li><strong>Import from Excel</strong> — click the button, pick a file. It recognizes common column names automatically (English or French, a combined "Last, First" name column, full birth dates instead of just the year...). Rows without a usable name are skipped, not imported.</li>
-        <li><strong>Remove a team</strong> — click the small 🗑 next to a team's name in the left list. This deletes all its players too, so it asks to confirm first.</li>
-        <li><strong>Load example</strong> — top right, fills this in with a real historical roster (Chicago Bulls '95-96) so you can try everything above before you have your own data. Safe to click more than once — it replaces itself instead of duplicating.</li>
+        <li><strong>Export to Excel or PDF</strong> — a spreadsheet or printable sheet of the currently selected team, ready to send or archive.</li>
+        <li><strong>Remove a team</strong> — click the small 🗑 next to it in the tree. This deletes all its players too, so it asks to confirm first.</li>
+        <li><strong>Load example data</strong> — near the bottom, fills this in with a real historical roster (Chicago Bulls) so you can try everything above before you have your own data. Safe to click more than once — it replaces itself instead of duplicating.</li>
       </ul>`;
     box.style.display = "block";
   });
