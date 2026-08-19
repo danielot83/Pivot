@@ -147,7 +147,7 @@ function renderTeamTreeBar(containerId, rows, activeSeason, activeTeam, onSelect
  * Pensada para reemplazar la barra de pastillas cuando se quiere ver
  * TODO agrupado por temporada primero, no equipo primero.
  */
-function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, activeCategory, onSelect, onDelete) {
+function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, activeCategory, onSelect, onDelete, onEditCategory, onRename) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
@@ -158,6 +158,30 @@ function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, acti
     bySeason[r.season][r.team] = bySeason[r.season][r.team] || new Set();
     bySeason[r.season][r.team].add(r.team_category || "");
   });
+
+  // Botones que solo aparecen en la fila activa (la resaltada) -- editar
+  // categoría y renombrar equipo. Antes vivían en una barra aparte
+  // debajo del árbol; ahora van directo donde ya estás mirando.
+  function appendActiveLeafActions(leaf, season, team, cat) {
+    if (onEditCategory) {
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.title = cat ? "Edit category" : "Add category";
+      editBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+      editBtn.className = "tree-folder-leaf-action";
+      editBtn.addEventListener("click", (e) => { e.stopPropagation(); onEditCategory(season, team, cat); });
+      leaf.appendChild(editBtn);
+    }
+    if (onRename) {
+      const renameBtn = document.createElement("button");
+      renameBtn.type = "button";
+      renameBtn.title = "Rename team";
+      renameBtn.textContent = "Rename";
+      renameBtn.className = "tree-folder-leaf-action";
+      renameBtn.addEventListener("click", (e) => { e.stopPropagation(); onRename(season, team); });
+      leaf.appendChild(renameBtn);
+    }
+  }
 
   Object.keys(bySeason).sort().reverse().forEach((season) => {
     const teams = bySeason[season];
@@ -177,13 +201,14 @@ function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, acti
       if (cats.length === 1 && !cats[0]) {
         // Sin categoría -- el equipo mismo es la hoja, sin una carpeta más adentro.
         const leaf = document.createElement("div");
-        leaf.className = "tree-folder-leaf-row";
+        leaf.className = "tree-folder-leaf-row" + (teamIsActive ? " active-row" : "");
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "tree-folder-leaf" + (teamIsActive ? " active" : "");
         btn.textContent = team;
         btn.addEventListener("click", () => onSelect(season, team, ""));
         leaf.appendChild(btn);
+        if (teamIsActive) appendActiveLeafActions(leaf, season, team, "");
         if (onDelete) leaf.appendChild(makeDeleteBtn(team, season, "", onDelete));
         seasonEl.appendChild(leaf);
       } else {
@@ -195,14 +220,15 @@ function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, acti
         teamEl.appendChild(teamSummary);
         cats.sort().forEach((cat) => {
           const leaf = document.createElement("div");
-          leaf.className = "tree-folder-leaf-row";
+          const catIsActive = teamIsActive && (activeCategory || "") === (cat || "");
+          leaf.className = "tree-folder-leaf-row" + (catIsActive ? " active-row" : "");
           const btn = document.createElement("button");
           btn.type = "button";
-          const catIsActive = teamIsActive && (activeCategory || "") === (cat || "");
           btn.className = "tree-folder-leaf" + (catIsActive ? " active" : "");
           btn.textContent = cat || "No category";
           btn.addEventListener("click", () => onSelect(season, team, cat));
           leaf.appendChild(btn);
+          if (catIsActive) appendActiveLeafActions(leaf, season, team, cat);
           if (onDelete) leaf.appendChild(makeDeleteBtn(team, season, cat, onDelete));
           teamEl.appendChild(leaf);
         });

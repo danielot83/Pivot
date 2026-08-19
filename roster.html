@@ -153,6 +153,13 @@
   }
   .tree-folder-leaf:hover { background: var(--paper); }
   .tree-folder-leaf.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .active-row { background: var(--accent-tint); border-radius: 8px; padding-right: 6px; }
+  .active-row .tree-folder-leaf.active { background: none; }
+  .tree-folder-leaf-action {
+    display: inline-flex; align-items: center; gap: 4px; background: none; border: none; color: var(--accent-deep);
+    font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 5px 8px; border-radius: 6px; flex-shrink: 0;
+  }
+  .tree-folder-leaf-action:hover { background: rgba(0,0,0,0.06); }
   .team-bar-example-row { display: flex; flex-wrap: wrap; gap: 8px; }
   .example-data-card-bottom {
     background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
@@ -610,7 +617,7 @@
     renderTeamTreeFolders("tree", rows, currentSeason, currentTeam, currentTeamCategory, (season, team, cat) => {
       currentTeamCategory = cat || "";
       selectSeasonTeam(season, team);
-    }, (season, team, cat) => deleteTeam(season, team, cat));
+    }, (season, team, cat) => deleteTeam(season, team, cat), (season, team, cat) => editTeamCategory(season, team, cat), (season, team) => renameTeam(team));
   }
 
   async function deleteTeam(season, team, category) {
@@ -641,62 +648,46 @@
   }
 
   function renderCurrentSelection() {
-    els.currentSelection.innerHTML = "";
-    const label = document.createElement("span");
-    label.textContent = `${currentTeam} — ${currentSeason}`;
-    els.currentSelection.appendChild(label);
-    if (currentTeamCategory) {
-      const badge = document.createElement("span");
-      badge.textContent = currentTeamCategory;
-      badge.style.cssText = "background:var(--accent-tint); color:var(--accent-deep); font-size:12.5px; font-weight:600; padding:2px 8px; border-radius:100px;";
-      els.currentSelection.appendChild(badge);
-    }
-    const editBtn = document.createElement("button");
-    editBtn.textContent = currentTeamCategory ? "✎ Edit category" : "+ Add category";
-    editBtn.style.cssText = "background:none; border:none; color:var(--accent-deep); font-size:13.5px; cursor:pointer; padding:0;";
-    editBtn.addEventListener("click", async () => {
-      const next = prompt(`Team category for "${currentTeam}" (e.g. U8) — leave blank to remove it:`, currentTeamCategory || "");
-      if (next === null) return;
-      const oldCategory = currentTeamCategory;
-      const { error } = await filterByCategory(
-        supabaseClient.from("players").update({ team_category: next.trim() || null })
-          .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
-        oldCategory
-      );
-      if (error) { showMessage(error.message, "error"); return; }
-      await filterByCategory(
-        supabaseClient.from("teams").update({ team_category: next.trim() || null })
-          .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
-        oldCategory
-      );
-      currentTeamCategory = next.trim();
-      renderCurrentSelection();
-      await loadTree();
-      showMessage("Team category updated.", "success");
-    });
-    els.currentSelection.appendChild(editBtn);
+    els.currentSelection.textContent = currentTeam ? `${currentTeam} — ${currentSeason}` : "Pick a season/team above, or create a new one.";
+  }
 
-    const renameBtn = document.createElement("button");
-    renameBtn.textContent = "✎ Rename team";
-    renameBtn.style.cssText = "background:none; border:none; color:var(--muted); font-size:13.5px; cursor:pointer; padding:0;";
-    renameBtn.addEventListener("click", async () => {
-      const next = prompt(`New name for "${currentTeam}" — this renames it everywhere (every season, every category), since a team keeps the same name across years:`, currentTeam);
-      if (next === null || !next.trim() || next.trim() === currentTeam) return;
-      const newName = next.trim();
-      const { error } = await supabaseClient.from("players").update({ team: newName })
-        .eq("organization_id", currentOrgId).eq("team", currentTeam);
-      if (error) { showMessage(error.message, "error"); return; }
-      await supabaseClient.from("teams").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", currentTeam);
-      await supabaseClient.from("matches").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", currentTeam);
-      await supabaseClient.from("trainings").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", currentTeam);
-      await supabaseClient.from("plays").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", currentTeam);
+  async function editTeamCategory(season, team, oldCategory) {
+    const next = prompt(`Team category for "${team}" (e.g. U8) — leave blank to remove it:`, oldCategory || "");
+    if (next === null) return;
+    const { error } = await filterByCategory(
+      supabaseClient.from("players").update({ team_category: next.trim() || null })
+        .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      oldCategory
+    );
+    if (error) { showMessage(error.message, "error"); return; }
+    await filterByCategory(
+      supabaseClient.from("teams").update({ team_category: next.trim() || null })
+        .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      oldCategory
+    );
+    if (season === currentSeason && team === currentTeam) { currentTeamCategory = next.trim(); renderCurrentSelection(); loadPlayers(); }
+    await loadTree();
+    showMessage("Team category updated.", "success");
+  }
+
+  async function renameTeam(team) {
+    const next = prompt(`New name for "${team}" — this renames it everywhere (every season, every category), since a team keeps the same name across years:`, team);
+    if (next === null || !next.trim() || next.trim() === team) return;
+    const newName = next.trim();
+    const { error } = await supabaseClient.from("players").update({ team: newName })
+      .eq("organization_id", currentOrgId).eq("team", team);
+    if (error) { showMessage(error.message, "error"); return; }
+    await supabaseClient.from("teams").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+    await supabaseClient.from("matches").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+    await supabaseClient.from("trainings").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+    await supabaseClient.from("plays").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+    if (team === currentTeam) {
       currentTeam = newName;
       try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season: currentSeason, team: currentTeam, category: currentTeamCategory || "" })); } catch (e) { /* pas grave */ }
       renderCurrentSelection();
-      await loadTree();
-      showMessage("Team renamed.", "success");
-    });
-    els.currentSelection.appendChild(renameBtn);
+    }
+    await loadTree();
+    showMessage("Team renamed.", "success");
   }
 
   // ---------------------------------------------------------------------
