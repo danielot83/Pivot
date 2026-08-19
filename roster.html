@@ -124,7 +124,7 @@
   }
   .team-pill:hover { border-color: var(--accent); }
   .team-pill.active { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-deep); font-weight: 600; }
-  .team-pill-del { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; color: var(--muted); font-size: 12px; }
+  .team-pill-del { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; color: var(--muted); font-size: 12px; background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0; }
   .team-pill-del:hover { background: rgba(0,0,0,0.08); color: #991b1b; }
   .tree-new, .tree-example {
     font-size: 14px; color: var(--accent-deep); background: none; border: 1px dashed var(--accent-deep); border-radius: 100px;
@@ -398,6 +398,13 @@
 <script src="team-tree.js"></script>
 <script>
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+
+  // La categoría ahora separa de verdad a los jugadores (step59) -- un
+  // pequeño helper para no repetir el if/else de "null vs texto" en
+  // cada consulta que filtra por temporada+equipo+categoría.
+  function filterByCategory(query, category) {
+    return category ? query.eq("team_category", category) : query.is("team_category", null);
+  }
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -518,9 +525,9 @@
       let restored = null;
       try {
         const saved = JSON.parse(localStorage.getItem(`pivot-roster-last-${currentOrgId}`) || "null");
-        if (saved && rows.some((r) => r.season === saved.season && r.team === saved.team)) restored = saved;
+        if (saved && rows.some((r) => r.season === saved.season && r.team === saved.team && (r.team_category || "") === (saved.category || ""))) restored = { season: saved.season, team: saved.team, team_category: saved.category || "" };
       } catch (e) { /* stockage illisible -- pas grave, on retombe sur le premier de la liste */ }
-      const fallback = restored || [...rows].sort((a, b) => a.team.localeCompare(b.team) || b.season.localeCompare(a.season))[0];
+      const fallback = restored || [...rows].sort((a, b) => a.team.localeCompare(b.team) || b.season.localeCompare(a.season) || (a.team_category || "").localeCompare(b.team_category || ""))[0];
       currentSeason = fallback.season;
       currentTeam = fallback.team;
       currentTeamCategory = fallback.team_category || "";
@@ -541,20 +548,25 @@
     });
     newRow.appendChild(newBtn);
 
-    renderTeamTreeFolders("tree", rows, currentSeason, currentTeam, (season, team, cat) => {
+    renderTeamTreeFolders("tree", rows, currentSeason, currentTeam, currentTeamCategory, (season, team, cat) => {
       currentTeamCategory = cat || "";
       selectSeasonTeam(season, team);
-    }, (season, team) => deleteTeam(season, team));
+    }, (season, team, cat) => deleteTeam(season, team, cat));
   }
 
-  async function deleteTeam(season, team) {
-    if (!confirm(`Remove "${team}" (${season}) and all its players? This can't be undone.`)) return;
-    const { error } = await supabaseClient.from("players").delete()
-      .eq("organization_id", currentOrgId).eq("season", season).eq("team", team);
+  async function deleteTeam(season, team, category) {
+    if (!confirm(`Remove "${team}"${category ? " (" + category + ")" : ""} (${season}) and all its players? This can't be undone.`)) return;
+    const { error } = await filterByCategory(
+      supabaseClient.from("players").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      category
+    );
     if (error) { showMessage(error.message, "error"); return; }
-    await supabaseClient.from("teams").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team);
-    if (season === currentSeason && team === currentTeam) { currentSeason = null; currentTeam = null; }
-    showMessage(`"${team}" (${season}) removed.`, "success");
+    await filterByCategory(
+      supabaseClient.from("teams").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      category
+    );
+    if (season === currentSeason && team === currentTeam && (category || "") === (currentTeamCategory || "")) { currentSeason = null; currentTeam = null; currentTeamCategory = ""; }
+    showMessage(`"${team}"${category ? " (" + category + ")" : ""} (${season}) removed.`, "success");
     await loadTree();
     els.body.innerHTML = "";
     els.currentSelection.textContent = "Pick a season/team on the left, or create a new one.";
@@ -563,7 +575,7 @@
   function selectSeasonTeam(season, team) {
     currentSeason = season;
     currentTeam = team;
-    try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team })); } catch (e) { /* pas grave si le stockage est plein/bloqué */ }
+    try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team, category: currentTeamCategory || "" })); } catch (e) { /* pas grave si le stockage est plein/bloqué */ }
     renderCurrentSelection();
     loadTree();
     loadPlayers();
@@ -586,9 +598,18 @@
     editBtn.addEventListener("click", async () => {
       const next = prompt(`Team category for "${currentTeam}" (e.g. U8) — leave blank to remove it:`, currentTeamCategory || "");
       if (next === null) return;
-      const { error } = await supabaseClient.from("players").update({ team_category: next.trim() || null })
-        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam);
+      const oldCategory = currentTeamCategory;
+      const { error } = await filterByCategory(
+        supabaseClient.from("players").update({ team_category: next.trim() || null })
+          .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
+        oldCategory
+      );
       if (error) { showMessage(error.message, "error"); return; }
+      await filterByCategory(
+        supabaseClient.from("teams").update({ team_category: next.trim() || null })
+          .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
+        oldCategory
+      );
       currentTeamCategory = next.trim();
       renderCurrentSelection();
       await loadTree();
@@ -631,10 +652,12 @@
   // ---------------------------------------------------------------------
   async function loadPlayers() {
     if (!currentOrgId || !currentSeason || !currentTeam) return;
-    const { data, error } = await supabaseClient
-      .from("players").select("*")
-      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
-      .order("last_name");
+    const { data, error } = await filterByCategory(
+      supabaseClient
+        .from("players").select("*")
+        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
+      currentTeamCategory
+    ).order("last_name");
     if (error) { showMessage(error.message, "error"); return; }
     renderPlayers(data || []);
   }
@@ -794,10 +817,12 @@
 
   async function exportToPdf() {
     if (!currentSeason || !currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
-    const { data, error } = await supabaseClient
-      .from("players").select("*")
-      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
-      .order("last_name");
+    const { data, error } = await filterByCategory(
+      supabaseClient
+        .from("players").select("*")
+        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
+      currentTeamCategory
+    ).order("last_name");
     if (error) { showMessage(error.message, "error"); return; }
     const players = data || [];
 
@@ -879,10 +904,12 @@
 
   async function exportToExcel() {
     if (!currentSeason || !currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
-    const { data, error } = await supabaseClient
-      .from("players").select("*")
-      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
-      .order("last_name");
+    const { data, error } = await filterByCategory(
+      supabaseClient
+        .from("players").select("*")
+        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
+      currentTeamCategory
+    ).order("last_name");
     if (error) { showMessage(error.message, "error"); return; }
 
     const rows = (data || []).map((p) => {

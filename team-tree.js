@@ -20,9 +20,9 @@
  */
 function mergeTeamRows(playerRows, teamRows) {
   const merged = [...(playerRows || [])];
-  const seen = new Set(merged.map((r) => `${r.season}|${r.team}`));
+  const seen = new Set(merged.map((r) => `${r.season}|${r.team}|${r.team_category || ""}`));
   (teamRows || []).forEach((t) => {
-    const key = `${t.season}|${t.team}`;
+    const key = `${t.season}|${t.team}|${t.team_category || ""}`;
     if (!seen.has(key)) { merged.push({ season: t.season, team: t.team, team_category: t.team_category }); seen.add(key); }
   });
   return merged;
@@ -147,7 +147,7 @@ function renderTeamTreeBar(containerId, rows, activeSeason, activeTeam, onSelect
  * Pensada para reemplazar la barra de pastillas cuando se quiere ver
  * TODO agrupado por temporada primero, no equipo primero.
  */
-function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, onSelect, onDelete) {
+function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, activeCategory, onSelect, onDelete) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
@@ -184,7 +184,7 @@ function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, onSe
         btn.textContent = team;
         btn.addEventListener("click", () => onSelect(season, team, ""));
         leaf.appendChild(btn);
-        if (onDelete) leaf.appendChild(makeDeleteBtn(team, season, onDelete));
+        if (onDelete) leaf.appendChild(makeDeleteBtn(team, season, "", onDelete));
         seasonEl.appendChild(leaf);
       } else {
         const teamEl = document.createElement("details");
@@ -198,11 +198,12 @@ function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, onSe
           leaf.className = "tree-folder-leaf-row";
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = "tree-folder-leaf" + (teamIsActive ? " active" : "");
+          const catIsActive = teamIsActive && (activeCategory || "") === (cat || "");
+          btn.className = "tree-folder-leaf" + (catIsActive ? " active" : "");
           btn.textContent = cat || "No category";
           btn.addEventListener("click", () => onSelect(season, team, cat));
           leaf.appendChild(btn);
-          if (onDelete) leaf.appendChild(makeDeleteBtn(team, season, onDelete));
+          if (onDelete) leaf.appendChild(makeDeleteBtn(team, season, cat, onDelete));
           teamEl.appendChild(leaf);
         });
         seasonEl.appendChild(teamEl);
@@ -213,12 +214,13 @@ function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, onSe
   });
 }
 
-function makeDeleteBtn(team, season, onDelete) {
-  const delBtn = document.createElement("span");
-  delBtn.textContent = "✕";
-  delBtn.title = `Remove ${team} (${season}) — deletes all its players`;
+function makeDeleteBtn(team, season, category, onDelete) {
+  const delBtn = document.createElement("button");
+  delBtn.type = "button";
+  delBtn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg>`;
+  delBtn.title = category ? `Remove ${team} (${category}, ${season}) — deletes all its players` : `Remove ${team} (${season}) — deletes all its players`;
   delBtn.className = "team-pill-del";
-  delBtn.addEventListener("click", (e) => { e.stopPropagation(); onDelete(season, team); });
+  delBtn.addEventListener("click", (e) => { e.stopPropagation(); onDelete(season, team, category); });
   return delBtn;
 }
 
@@ -294,7 +296,7 @@ function promptNewTeam(supabaseClient, organizationId) {
       const row = { organization_id: organizationId, season, team, team_category: teamCategory || null };
       const btn = overlay.querySelector("#new-team-create-btn");
       btn.disabled = true; btn.textContent = "Creating…";
-      const { error } = await supabaseClient.from("teams").upsert(row, { onConflict: "organization_id,season,team" });
+      const { error } = await supabaseClient.from("teams").upsert(row, { onConflict: "organization_id,season,team,team_category" });
       if (error) { errorEl.textContent = "Couldn't create that team: " + error.message; errorEl.style.display = "block"; btn.disabled = false; btn.textContent = "Create"; return; }
       close({ season: row.season, team: row.team, team_category: row.team_category || "" });
     });
