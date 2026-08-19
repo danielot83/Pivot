@@ -95,6 +95,52 @@ function renderTeamTree(containerId, rows, activeSeason, activeTeam, onSelect, o
 }
 
 /**
+ * Misma idea que renderTeamTree, pero en una barra horizontal (pastillas
+ * que se van a la siguiente línea si no entran) en vez de una columna
+ * vertical -- para páginas que ya tienen su propia sidebar de
+ * navegación y no necesitan una segunda columna aparte solo para esto.
+ * Cada pastilla es "Equipo · Categoría · Temporada"; la seleccionada se
+ * resalta. El botón de borrar es una × chiquita al final de la pastilla.
+ */
+function renderTeamTreeBar(containerId, rows, activeSeason, activeTeam, onSelect, onDelete) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const byTeam = {};
+  (rows || []).forEach((r) => {
+    if (!r.team) return;
+    byTeam[r.team] = byTeam[r.team] || {};
+    const catKey = r.team_category || "";
+    byTeam[r.team][catKey] = byTeam[r.team][catKey] || new Set();
+    byTeam[r.team][catKey].add(r.season);
+  });
+
+  Object.keys(byTeam).sort().forEach((team) => {
+    const categories = byTeam[team];
+    Object.keys(categories).sort().forEach((cat) => {
+      Array.from(categories[cat]).sort().reverse().forEach((season) => {
+        const isActive = season === activeSeason && team === activeTeam;
+        const pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "team-pill" + (isActive ? " active" : "");
+        pill.innerHTML = `<strong>${team}</strong>${cat ? ` · ${cat}` : ""} · ${season}`;
+        pill.addEventListener("click", () => onSelect(season, team, cat));
+
+        if (onDelete) {
+          const delBtn = document.createElement("span");
+          delBtn.textContent = "✕";
+          delBtn.title = `Remove ${team} (${season}) — deletes all its players`;
+          delBtn.className = "team-pill-del";
+          delBtn.addEventListener("click", (e) => { e.stopPropagation(); onDelete(season, team); });
+          pill.appendChild(delBtn);
+        }
+        container.appendChild(pill);
+      });
+    });
+  });
+}
+
+/**
  * Genera las temporadas típicas para elegir en un desplegable, sin
  * tener que escribirlas -- la actual (según la fecha de hoy, una
  * temporada de baloncesto va de agosto a junio) más un año antes y dos

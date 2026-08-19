@@ -57,7 +57,7 @@
   .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .sidebar-user-info { flex: 1; min-width: 0; }
   .sidebar-user-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sidebar-user-role { font-size: 12.5px; color: #848092; }
+  .sidebar-user-role { font-size: 14px; color: #848092; }
   .sidebar-logout-btn { background: none; border: none; color: #848092; cursor: pointer; padding: 5px; flex-shrink: 0; border-radius: 6px; }
   .sidebar-logout-btn:hover { color: #fff; background: #191235; }
   .sidebar-logout-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; display: block; }
@@ -100,37 +100,40 @@
   .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 32px 60px; }
   .conv-row:hover, .new-msg-person-row:hover { background: var(--paper); }
   .hint { font-size: 14px; color: var(--muted); }
-  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 15px; cursor: pointer; filter: grayscale(0.85); }
   .nav-btn:hover { border-color: var(--accent); }
-  .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; margin-bottom: 6px; }
+  .back-link { display: inline-block; font-size: 15px; color: var(--muted); text-decoration: none; margin-bottom: 6px; }
   .back-link:hover { color: var(--ink); }
 
-  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; max-width: 1100px; margin: 0 auto; padding: 24px; align-items: start; }
-  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
-  .layout > div:first-child { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
-  @media (max-width: 800px) { .layout > div:first-child { position: static; max-height: none; } }
+  .content-col { max-width: 100%; }
 
-  h1 { font-size: 22px; margin: 8px 0 4px; }
-  p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+  h1 { font-size: 23px; margin: 0 0 4px; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
 
-  .msg { margin-bottom: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  .msg { margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
 
-  /* -------- arbre saison/équipe -------- */
-  .tree-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
-  .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
-  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
-  .tree-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
-  .tree-season { font-size: 13px; font-weight: 600; margin: 10px 0 4px; cursor: default; }
-  .tree-season:first-child { margin-top: 0; }
-  .tree-team { display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 8px; margin: 1px 0; border-radius: 6px; font-size: 13px; color: var(--ink); cursor: pointer; }
-  .tree-team:hover { background: var(--paper); }
-  .tree-team.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
-  .tree-new, .tree-example { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
+  /* -------- barra horizontal de equipos/temporadas (arriba, no una segunda sidebar) -------- */
+  .team-bar-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
+  .team-bar-card h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 12px; }
+  #tree { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .team-pill {
+    display: inline-flex; align-items: center; gap: 8px; background: var(--paper); border: 1px solid var(--line);
+    border-radius: 100px; padding: 7px 8px 7px 14px; font-size: 14px; color: var(--ink); cursor: pointer;
+  }
+  .team-pill:hover { border-color: var(--accent); }
+  .team-pill.active { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-deep); font-weight: 600; }
+  .team-pill-del { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; color: var(--muted); font-size: 12px; }
+  .team-pill-del:hover { background: rgba(0,0,0,0.08); color: #991b1b; }
+  .tree-new, .tree-example {
+    font-size: 14px; color: var(--accent-deep); background: none; border: 1px dashed var(--accent-deep); border-radius: 100px;
+    cursor: pointer; padding: 7px 14px; text-align: left;
+  }
+  .team-bar-example-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px; }
 
   .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
-  .btn { padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-deep); }
   .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
@@ -145,22 +148,22 @@
     box-shadow: 0 4px 14px rgba(0,0,0,0.08); min-width: 180px;
   }
   .columns-panel.open { display: block; }
-  .columns-panel label { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; cursor: pointer; }
+  .columns-panel label { display: flex; align-items: center; gap: 8px; font-size: 14.5px; padding: 4px 0; cursor: pointer; }
 
-  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 14.5px; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-  th { background: var(--paper); font-weight: 600; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
+  th { background: var(--paper); font-weight: 600; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
   tr:last-child td { border-bottom: none; }
   .inactive-row { opacity: 0.5; }
   td.actions { white-space: nowrap; text-align: right; }
-  td.actions button { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--muted); padding: 3px 5px; }
+  td.actions button { background: none; border: none; cursor: pointer; font-size: 13.5px; color: var(--muted); padding: 3px 5px; }
   td.actions button:hover { color: var(--accent); }
-  .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }
+  .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 14.5px; }
 
   /* -------- cellules éditables directement -------- */
   td.editable { cursor: text; }
   td.editable:hover { background: var(--accent-tint); }
-  td.editable input, td.editable select { width: 100%; padding: 3px 5px; border: 1px solid var(--accent); border-radius: 4px; font-size: 13px; font-family: inherit; }
+  td.editable input, td.editable select { width: 100%; padding: 3px 5px; border: 1px solid var(--accent); border-radius: 4px; font-size: 14.5px; font-family: inherit; }
   td.editable input[type="checkbox"] { width: auto; }
 
   /* -------- panneau d'ajout (nouveau joueur uniquement) -------- */
@@ -170,8 +173,8 @@
   .panel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   @media (max-width: 720px) { .panel-grid { grid-template-columns: repeat(2, 1fr); } }
   .field { display: flex; flex-direction: column; gap: 3px; }
-  .field label { font-size: 11.5px; font-weight: 600; color: var(--muted); }
-  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+  .field label { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 14.5px; }
   .panel-actions { margin-top: 14px; display: flex; gap: 8px; }
 </style>
 <!-- Matomo -->
@@ -208,7 +211,7 @@
     </div>
 
     <nav class="sidebar-nav">
-      <div id="sidebar-admin-badge" style="display:none; font-size:12px; font-weight:700; letter-spacing:0.05em; color:var(--accent); padding:0 12px 6px;">⚡ PLATFORM ADMIN</div>
+      <div id="sidebar-admin-badge" style="display:none; font-size:13.5px; font-weight:700; letter-spacing:0.05em; color:var(--accent); padding:0 12px 6px;">⚡ PLATFORM ADMIN</div>
 
       <div style="padding:8px 12px 12px;">
         <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
@@ -269,24 +272,21 @@
 
 <div class="wrap">
 
-<div class="layout">
-  <div>
-    <div class="tree-card">
-      <h2>Seasons &amp; teams</h2>
-      <div id="tree"></div>
-    </div>
-    <div class="side-card" id="example-data-card" style="margin-top:14px;"></div>
-  </div>
-
-  <div>
-    <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+<div class="content-col">
     <h1 style="display:flex; align-items:center; justify-content:space-between;">
       Roster
       <button id="help-btn" title="What's this module for?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
     </h1>
-    <div id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px;"></div>
+    <div id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:14.5px; color:var(--ink); margin-bottom:12px;"></div>
+
+    <div class="team-bar-card">
+      <h2>Seasons &amp; teams</h2>
+      <div id="tree"></div>
+      <div class="team-bar-example-row" id="example-data-card"></div>
+    </div>
+
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-      <p class="sub" id="current-selection" style="display:flex; align-items:center; gap:8px;">Pick a season/team on the left, or create a new one.</p>
+      <p class="sub" id="current-selection" style="display:flex; align-items:center; gap:8px;">Pick a season/team above, or create a new one.</p>
     </div>
 
     <div class="msg" id="msg"></div>
@@ -338,12 +338,16 @@
       <tbody id="players-body"></tbody>
     </table>
     <div class="empty-state" id="empty-state" style="display:none">No players yet for this season/team — add the first one above.</div>
+
+    <div style="margin-top:32px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+      <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right?</span>
+      <button class="nav-btn" id="contact-support-btn" title="Send a message straight to the PlayPivot admin">💬 Contact us</button>
+    </div>
   </div>
-</div>
 
 </div><!-- /wrap -->
 
-<footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--muted); max-width:1080px; margin-left:auto; margin-right:auto;">
+<footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; font-size:14.5px; color:var(--muted); max-width:1080px; margin-left:auto; margin-right:auto;">
   <span>© 2026 PlayPivot. All rights reserved.</span>
   <a href="./privacy.html" style="color:var(--muted); text-decoration:none;">Privacy Policy</a>
   <a href="./privacy.html#use" style="color:var(--muted); text-decoration:none;">Terms of Use</a>
@@ -484,7 +488,7 @@
     });
     els.tree.appendChild(newBtn);
 
-    renderTeamTree("tree", rows, currentSeason, currentTeam, (season, team, cat) => {
+    renderTeamTreeBar("tree", rows, currentSeason, currentTeam, (season, team, cat) => {
       currentTeamCategory = cat || "";
       selectSeasonTeam(season, team);
     }, (season, team) => deleteTeam(season, team));
@@ -519,12 +523,12 @@
     if (currentTeamCategory) {
       const badge = document.createElement("span");
       badge.textContent = currentTeamCategory;
-      badge.style.cssText = "background:var(--accent-tint); color:var(--accent-deep); font-size:11px; font-weight:600; padding:2px 8px; border-radius:100px;";
+      badge.style.cssText = "background:var(--accent-tint); color:var(--accent-deep); font-size:12.5px; font-weight:600; padding:2px 8px; border-radius:100px;";
       els.currentSelection.appendChild(badge);
     }
     const editBtn = document.createElement("button");
     editBtn.textContent = currentTeamCategory ? "✎ Edit category" : "+ Add category";
-    editBtn.style.cssText = "background:none; border:none; color:var(--accent-deep); font-size:12px; cursor:pointer; padding:0;";
+    editBtn.style.cssText = "background:none; border:none; color:var(--accent-deep); font-size:13.5px; cursor:pointer; padding:0;";
     editBtn.addEventListener("click", async () => {
       const next = prompt(`Team category for "${currentTeam}" (e.g. U8) — leave blank to remove it:`, currentTeamCategory || "");
       if (next === null) return;
