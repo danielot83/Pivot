@@ -102,7 +102,51 @@
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
   .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 14.5px; color: var(--ink); margin-bottom: 12px; }
 
-  .team-bar-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
+  .team-bar-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
+
+  /* -------- selector nuevo: Teams & Seasons (igual que Roster) -------- */
+  .tsc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .tsc-header-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-deep); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .tsc-header-title { font-size: 16px; font-weight: 700; margin: 0; }
+  .tsc-header-sub { font-size: 13px; color: var(--muted); margin: 1px 0 0; }
+  .tsc-step-label { font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 0 0 10px; }
+  .cascade-option {
+    display: block; width: 100%; text-align: left; background: none; border: none; padding: 9px 14px;
+    font-size: 14px; color: var(--ink); cursor: pointer; border-bottom: 1px solid var(--line);
+  }
+  .cascade-option:last-child { border-bottom: none; }
+  .cascade-option:hover { background: var(--paper); }
+  .cascade-back { background: none; border: none; color: var(--accent-deep); font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 0; }
+  .season-pill {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; cursor: pointer;
+    text-align: left; min-width: 110px;
+  }
+  .season-pill strong { display: block; font-size: 14px; }
+  .season-pill span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .season-pill.active { background: var(--accent-tint); border-color: var(--accent); }
+  .season-pill.active span { color: var(--accent-deep); font-weight: 600; }
+  .season-pill-new { color: var(--accent-deep); font-weight: 600; border-style: dashed; display: flex; align-items: center; justify-content: center; }
+  .tsc-selected-card {
+    background: var(--accent-tint); border-radius: 10px 10px 0 0; padding: 18px 22px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  }
+  .tsc-selected-info { display: flex; align-items: center; gap: 14px; }
+  .tsc-selected-info .icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; overflow: hidden; }
+  .tsc-selected-info .icon img { width: 100%; height: 100%; object-fit: contain; }
+  .tsc-selected-name { font-weight: 700; font-size: 16px; color: var(--ink); }
+  .tsc-selected-sub { font-size: 13px; color: var(--accent-deep); margin-top: 2px; }
+  .tsc-chips {
+    display: flex; gap: 0; flex-wrap: wrap; margin-top: 0; padding: 20px 22px; background: var(--card);
+    border: 1px solid var(--line); border-top: none; border-radius: 0 0 10px 10px;
+  }
+  .tsc-chip { display: flex; align-items: center; gap: 12px; font-size: 13.5px; color: var(--ink); flex: 1; min-width: 140px; padding: 0 24px; border-right: 1px solid var(--line); }
+  .tsc-chip:last-child { border-right: none; }
+  .tsc-chip:first-child { padding-left: 0; }
+  .tsc-chip .icon { color: var(--accent-deep); flex-shrink: 0; }
+  .tsc-chip strong { display: block; font-size: 15.5px; }
+  .tsc-chip span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+  .tsc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 700px) { .tsc-cols { grid-template-columns: 1fr; } }
   .team-bar-card h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 12px; }
   .tree-new { font-size: 14px; color: var(--accent-deep); background: none; border: 1px dashed var(--accent-deep); border-radius: 100px; cursor: pointer; padding: 7px 14px; text-align: left; margin-bottom: 10px; }
   details.tree-folder { margin-bottom: 2px; }
@@ -258,9 +302,50 @@
   <div class="msg" id="msg"></div>
 
   <div class="team-bar-card">
-    <h2>Team</h2>
-    <div id="tree-new-row" style="margin-bottom:10px;"></div>
-    <div id="team-filter-tree"></div>
+    <div class="tsc-header">
+      <div class="tsc-header-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+      <div>
+        <p class="tsc-header-title">Teams &amp; Seasons</p>
+        <p class="tsc-header-sub">Manage your teams and seasons.</p>
+      </div>
+      <div style="flex:1;"></div>
+      <button class="tree-new" id="new-team-btn" style="margin-bottom:0;">+ New season/team</button>
+    </div>
+
+    <div class="tsc-cols">
+      <div>
+        <p class="tsc-step-label">1. Select team</p>
+        <div id="team-gender-category-select" style="position:relative;"></div>
+      </div>
+      <div>
+        <p class="tsc-step-label">2. Select season</p>
+        <div id="season-picker"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;" id="tsc-step3-wrap">
+    <p class="tsc-step-label">3. Team info</p>
+    <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
+      <div class="tsc-selected-info">
+        <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 20.5 19.5 5.5"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <div>
+          <div class="tsc-selected-name" id="tsc-selected-name"></div>
+          <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="tree-folder-leaf-action" id="tsc-rename-btn">✎ Rename</button>
+        <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit category</button>
+        <button class="team-pill-del" id="tsc-delete-btn" title="Delete this team/season"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
+      </div>
+    </div>
+    <div class="tsc-chips" id="tsc-chips" style="display:none;">
+      <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 5 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3 3 0 0 0-2.2-2.9"/><path d="M14.5 4.9a3.2 3.2 0 0 1 0 6.2"/></svg></span><div><strong id="tsc-chip-players">0</strong><span>Players</span></div></div>
+      <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><div><strong id="tsc-chip-period">—</strong><span>Period</span></div></div>
+      <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.3 4 4.8"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.3-4 4.8"/></svg></span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
+      <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg></span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
+    </div>
+    </div>
   </div>
 
   <div id="attendance-empty" class="team-bar-card" style="text-align:center; color:var(--muted); padding:40px 20px;">
@@ -333,12 +418,15 @@
   function filterByCategory(query, category) {
     return category ? query.eq("team_category", category) : query.is("team_category", null);
   }
+  function filterByGender(query, gender) {
+    return gender ? query.eq("team_gender", gender) : query.is("team_gender", null);
+  }
 
   let currentOrgId = null;
   let currentUserId = null;
   let canValidateAssociations = false;
   let isPlatformController = false;
-  let filterSeason = null, filterTeam = null, filterTeamCategory = "";
+  let filterSeason = null, filterTeam = null, filterTeamCategory = "", filterTeamGender = "";
   let lastTreeRows = [];
 
   const els = {
@@ -373,8 +461,9 @@
   }
 
   async function loadTree() {
-    const { data: playerRows } = await supabaseClient.from("players").select("season, team, team_category").eq("organization_id", currentOrgId);
-    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category").eq("organization_id", currentOrgId);
+    const { data: playerRows, error } = await supabaseClient.from("players").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
+    if (error) { showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error"); console.error("loadTree error:", error); return; }
+    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
     const rows = mergeTeamRows(playerRows, teamRows);
     lastTreeRows = rows;
 
@@ -385,62 +474,94 @@
       let restored = null;
       try {
         const saved = JSON.parse(localStorage.getItem(`pivot-roster-last-${currentOrgId}`) || "null");
-        if (saved && rows.some((r) => r.season === saved.season && r.team === saved.team && (r.team_category || "") === (saved.category || ""))) restored = { season: saved.season, team: saved.team, team_category: saved.category || "" };
+        if (saved && rows.some((r) => r.season === saved.season && r.team === saved.team && (r.team_category || "") === (saved.category || "") && (r.team_gender || "") === (saved.gender || ""))) restored = { season: saved.season, team: saved.team, team_category: saved.category || "", team_gender: saved.gender || "" };
       } catch (e) { /* stockage illisible -- pas grave */ }
       const fallback = restored || [...rows].sort((a, b) => a.team.localeCompare(b.team) || b.season.localeCompare(a.season) || (a.team_category || "").localeCompare(b.team_category || ""))[0];
       filterSeason = fallback.season;
       filterTeam = fallback.team;
       filterTeamCategory = fallback.team_category || "";
+      filterTeamGender = fallback.team_gender || "";
     }
 
-    document.getElementById("team-filter-tree").innerHTML = "";
-    const newRow = document.getElementById("tree-new-row");
-    newRow.innerHTML = "";
-
-    const newBtn = document.createElement("button");
-    newBtn.className = "tree-new";
-    newBtn.textContent = "+ New season/team";
-    newBtn.addEventListener("click", async () => {
+    document.getElementById("new-team-btn").onclick = async () => {
       const created = await promptNewTeam(supabaseClient, currentOrgId, els.orgName.textContent);
       if (!created) return;
       filterTeamCategory = created.team_category || "";
+      filterTeamGender = created.team_gender || "";
       selectSeasonTeam(created.season, created.team);
+    };
+
+    renderTeamGenderCategoryDropdown("team-gender-category-select", rows, { team: filterTeam, team_category: filterTeamCategory, team_gender: filterTeamGender }, (team, category, gender) => {
+      filterTeam = team; filterTeamCategory = category || ""; filterTeamGender = gender || "";
+      const seasonsForThis = [...new Set(rows.filter((r) => r.team === team && (r.team_category || "") === (category || "") && (r.team_gender || "") === (gender || "")).map((r) => r.season))].sort().reverse();
+      selectSeasonTeam(seasonsForThis.includes(filterSeason) ? filterSeason : seasonsForThis[0], team);
     });
-    newRow.appendChild(newBtn);
 
-    if (rows.length === 0) {
-      const hint = document.createElement("p");
-      hint.className = "hint";
-      hint.textContent = "No teams yet — create one above, or add players in Roster.";
-      document.getElementById("team-filter-tree").appendChild(hint);
-      return;
-    }
+    const seasonsForCurrent = filterTeam
+      ? [...new Set(rows.filter((r) => r.team === filterTeam && (r.team_category || "") === (filterTeamCategory || "") && (r.team_gender || "") === (filterTeamGender || "")).map((r) => r.season))].sort().reverse()
+      : [];
+    renderSeasonPicker("season-picker", seasonsForCurrent, filterSeason, (season) => selectSeasonTeam(season, filterTeam), filterTeam ? async () => {
+      const created = await promptNewTeam(supabaseClient, currentOrgId, filterTeam);
+      if (!created) return;
+      filterTeamCategory = created.team_category || "";
+      filterTeamGender = created.team_gender || "";
+      selectSeasonTeam(created.season, created.team);
+    } : null);
 
-    renderTeamTreeFolders("team-filter-tree", rows, filterSeason, filterTeam, filterTeamCategory, (season, team, cat) => {
-      filterTeamCategory = cat || "";
-      selectSeasonTeam(season, team);
-    }, (season, team, cat) => deleteTeam(season, team, cat), (season, team, cat) => editTeamCategory(season, team, cat), (season, team) => renameTeam(team));
+    updateSelectedSummaryCard();
   }
+
+  function updateSelectedSummaryCard() {
+    const card = document.getElementById("tsc-selected-card");
+    const chips = document.getElementById("tsc-chips");
+    const wrap = document.getElementById("tsc-step3-wrap");
+    if (!filterTeam) { wrap.style.display = "none"; card.style.display = "none"; chips.style.display = "none"; return; }
+    wrap.style.display = "block"; card.style.display = "flex"; chips.style.display = "flex";
+    document.getElementById("tsc-selected-name").textContent = filterTeam;
+    document.getElementById("tsc-selected-sub").textContent = `Season ${filterSeason}`;
+    document.getElementById("tsc-chip-category").textContent = filterTeamCategory || "—";
+    document.getElementById("tsc-chip-gender").textContent = filterTeamGender || "—";
+    const periodEl = document.getElementById("tsc-chip-period");
+    const years = (filterSeason || "").split("-");
+    periodEl.textContent = years.length === 2 ? `Jul ${years[0]} – Jun ${years[1]}` : "—";
+
+    const iconEl = document.getElementById("tsc-selected-icon");
+    const teamLogoUrl = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/teams/${encodeURIComponent(filterTeam)}.png?t=${Date.now()}`;
+    const clubLogoUrl = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
+    const teamImg = new Image();
+    teamImg.onload = () => { iconEl.innerHTML = `<img src="${teamLogoUrl}" alt="" />`; };
+    teamImg.onerror = () => {
+      const clubImg = new Image();
+      clubImg.onload = () => { iconEl.innerHTML = `<img src="${clubLogoUrl}" alt="" />`; };
+      clubImg.src = clubLogoUrl;
+    };
+    teamImg.src = teamLogoUrl;
+  }
+
+  document.getElementById("tsc-rename-btn").addEventListener("click", () => renameTeam(filterTeam));
+  document.getElementById("tsc-edit-btn").addEventListener("click", () => editTeamCategory(filterSeason, filterTeam, filterTeamCategory));
+  document.getElementById("tsc-delete-btn").addEventListener("click", () => deleteTeam(filterSeason, filterTeam, filterTeamCategory));
 
   function selectSeasonTeam(season, team) {
     filterSeason = season; filterTeam = team;
-    try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team, category: filterTeamCategory || "" })); } catch (e) { /* pas grave */ }
+    try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team, category: filterTeamCategory || "", gender: filterTeamGender || "" })); } catch (e) { /* pas grave */ }
     loadTree();
     loadAttendanceGrid();
   }
 
   async function deleteTeam(season, team, category) {
-    if (!confirm(`Remove "${team}"${category ? " (" + category + ")" : ""} (${season}) and all its players? This can't be undone.`)) return;
-    const { error } = await filterByCategory(
+    const gender = filterTeamGender;
+    if (!confirm(`Remove "${team}"${category ? " (" + category + ")" : ""}${gender ? " " + gender : ""} (${season}) and all its players? This can't be undone.`)) return;
+    const { error } = await filterByGender(filterByCategory(
       supabaseClient.from("players").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       category
-    );
+    ), gender);
     if (error) { showMessage(error.message, "error"); return; }
-    await filterByCategory(
+    await filterByGender(filterByCategory(
       supabaseClient.from("teams").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       category
-    );
-    if (season === filterSeason && team === filterTeam && (category || "") === (filterTeamCategory || "")) { filterSeason = null; filterTeam = null; filterTeamCategory = ""; }
+    ), gender);
+    if (season === filterSeason && team === filterTeam && (category || "") === (filterTeamCategory || "")) { filterSeason = null; filterTeam = null; filterTeamCategory = ""; filterTeamGender = ""; }
     showMessage(`"${team}"${category ? " (" + category + ")" : ""} (${season}) removed.`, "success");
     await loadTree();
     await loadAttendanceGrid();
@@ -449,17 +570,18 @@
   async function editTeamCategory(season, team, oldCategory) {
     const next = prompt(`Team category for "${team}" (e.g. U8) — leave blank to remove it:`, oldCategory || "");
     if (next === null) return;
-    const { error } = await filterByCategory(
+    const gender = filterTeamGender;
+    const { error } = await filterByGender(filterByCategory(
       supabaseClient.from("players").update({ team_category: next.trim() || null })
         .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       oldCategory
-    );
+    ), gender);
     if (error) { showMessage(error.message, "error"); return; }
-    await filterByCategory(
+    await filterByGender(filterByCategory(
       supabaseClient.from("teams").update({ team_category: next.trim() || null })
         .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       oldCategory
-    );
+    ), gender);
     if (season === filterSeason && team === filterTeam) { filterTeamCategory = next.trim(); }
     await loadTree();
     await loadAttendanceGrid();
@@ -467,7 +589,7 @@
   }
 
   async function renameTeam(team) {
-    const next = prompt(`New name for "${team}" — this renames it everywhere (every season, every category), since a team keeps the same name across years:`, team);
+    const next = prompt(`New name for "${team}" — this renames it everywhere (every season, every category, every gender), since a team keeps the same name across years:`, team);
     if (next === null || !next.trim() || next.trim() === team) return;
     const newName = next.trim();
     const { error } = await supabaseClient.from("players").update({ team: newName })
@@ -480,7 +602,7 @@
     await supabaseClient.from("events").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
     if (team === filterTeam) {
       filterTeam = newName;
-      try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season: filterSeason, team: filterTeam, category: filterTeamCategory || "" })); } catch (e) { /* pas grave */ }
+      try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season: filterSeason, team: filterTeam, category: filterTeamCategory || "", gender: filterTeamGender || "" })); } catch (e) { /* pas grave */ }
     }
     await loadTree();
     await loadAttendanceGrid();
@@ -498,10 +620,10 @@
     if (!filterTeam) return;
 
     const [{ data: players }, { data: matches }, { data: trainings }, { data: events }] = await Promise.all([
-      filterByCategory(supabaseClient.from("players").select("id, first_name, last_name").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam).eq("active", true), filterTeamCategory).order("last_name"),
-      filterByCategory(supabaseClient.from("matches").select("id, date, opponent").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam), filterTeamCategory),
-      filterByCategory(supabaseClient.from("trainings").select("id, date, title").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam), filterTeamCategory),
-      filterByCategory(supabaseClient.from("events").select("id, date, title").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam), filterTeamCategory),
+      filterByGender(filterByCategory(supabaseClient.from("players").select("id, first_name, last_name").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam).eq("active", true), filterTeamCategory), filterTeamGender).order("last_name"),
+      filterByGender(filterByCategory(supabaseClient.from("matches").select("id, date, opponent").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam), filterTeamCategory), filterTeamGender),
+      filterByGender(filterByCategory(supabaseClient.from("trainings").select("id, date, title").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam), filterTeamCategory), filterTeamGender),
+      filterByGender(filterByCategory(supabaseClient.from("events").select("id, date, title").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam), filterTeamCategory), filterTeamGender),
     ]);
 
     const cols = [
@@ -716,7 +838,7 @@
       const last = document.getElementById("new-player-last").value.trim();
       if (!first || !last) { showMessage("First and last name are both needed.", "error"); return; }
       const { error } = await supabaseClient.from("players").insert({
-        organization_id: currentOrgId, season: filterSeason, team: filterTeam, team_category: filterTeamCategory || null,
+        organization_id: currentOrgId, season: filterSeason, team: filterTeam, team_category: filterTeamCategory || null, team_gender: filterTeamGender || null,
         first_name: first, last_name: last,
       });
       if (error) { showMessage(error.message, "error"); return; }
@@ -789,18 +911,18 @@
       return;
     }
 
-    const target = await promptImportTarget(lastTreeRows, { season: filterSeason, team: filterTeam, team_category: filterTeamCategory }, payloadBase.length);
+    const target = await promptImportTarget(lastTreeRows, { season: filterSeason, team: filterTeam, team_category: filterTeamCategory, team_gender: filterTeamGender }, payloadBase.length);
     if (!target) return;
 
     const payload = payloadBase.map((p) => ({
-      organization_id: currentOrgId, season: target.season, team: target.team, team_category: target.team_category || null, ...p,
+      organization_id: currentOrgId, season: target.season, team: target.team, team_category: target.team_category || null, team_gender: target.team_gender || null, ...p,
     }));
 
     try {
       const { error } = await supabaseClient.from("players").insert(payload);
       if (error) throw error;
       showMessage(`${payload.length} players imported.`, "success");
-      filterSeason = target.season; filterTeam = target.team; filterTeamCategory = target.team_category || "";
+      filterSeason = target.season; filterTeam = target.team; filterTeamCategory = target.team_category || ""; filterTeamGender = target.team_gender || "";
       await loadTree();
       await loadAttendanceGrid();
     } catch (err) {
@@ -957,13 +1079,13 @@
         if (selectedType === "match") {
           const opponent = document.getElementById("ev-opponent").value.trim();
           if (!opponent) throw new Error("Opponent is required.");
-          const { error } = await supabaseClient.from("matches").insert({ organization_id: currentOrgId, date: dateVal, opponent, team: filterTeam, season: filterSeason, team_category: filterTeamCategory || null });
+          const { error } = await supabaseClient.from("matches").insert({ organization_id: currentOrgId, date: dateVal, opponent, team: filterTeam, season: filterSeason, team_category: filterTeamCategory || null, team_gender: filterTeamGender || null });
           if (error) throw error;
         } else {
           const title = document.getElementById("ev-title").value.trim();
           if (!title) throw new Error(selectedType === "training" ? "Title is required." : "Please write a comment/title.");
           const table = selectedType === "training" ? "trainings" : "events";
-          const { error } = await supabaseClient.from(table).insert({ organization_id: currentOrgId, date: dateVal, title, team: filterTeam, season: filterSeason, team_category: filterTeamCategory || null });
+          const { error } = await supabaseClient.from(table).insert({ organization_id: currentOrgId, date: dateVal, title, team: filterTeam, season: filterSeason, team_category: filterTeamCategory || null, team_gender: filterTeamGender || null });
           if (error) throw error;
         }
         close();

@@ -462,10 +462,6 @@
     </table>
     <div class="empty-state" id="empty-state" style="display:none">No players yet for this season/team — add the first one above.</div>
 
-    <div class="example-data-card-bottom">
-      <div class="team-bar-example-row" id="example-data-card"></div>
-    </div>
-
     <div style="margin-top:32px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
       <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right?</span>
       <button class="nav-btn" id="contact-support-btn" title="Send a message straight to the PlayPivot admin">💬 Contact us</button>
@@ -1336,7 +1332,9 @@
     await loadTree();
   }
 
-  renderExampleDataCard("example-data-card", { onLoad: loadExampleTeam, onRemove: removeExampleTeam });
+  // El botón de "cargar datos de ejemplo" (Bulls) queda apagado por
+  // ahora -- vuelve fácil, es solo esta línea de más abajo la que
+  // faltaría descomentar (renderExampleDataCard).
 
   els.addBtn.addEventListener("click", openAdd);
   els.cancelBtn.addEventListener("click", closePanel);
