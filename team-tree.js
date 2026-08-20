@@ -283,7 +283,7 @@ const TEAM_CATEGORY_OPTIONS = ["", "U6", "U7", "U8", "U9", "U10", "U11", "U12", 
  * "+ New team…" abre un campo de texto para uno nuevo.
  * Devuelve {season, team, team_category} o null si cancela.
  */
-function promptImportTarget(rows, defaults) {
+function promptImportTarget(rows, defaults, itemCount) {
   return new Promise((resolve) => {
     const byTeam = {};
     (rows || []).forEach((r) => {
@@ -299,6 +299,7 @@ function promptImportTarget(rows, defaults) {
     overlay.innerHTML = `
       <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
         <h3 style="margin:0 0 4px; font-size:17px;">Where does this go?</h3>
+        ${typeof itemCount === "number" ? `<p style="margin:0 0 12px; font-size:14px; font-weight:600; color:var(--accent-deep);">${itemCount} player${itemCount === 1 ? "" : "s"} found in that file.</p>` : ""}
         <p style="margin:0 0 16px; font-size:12.5px; color:var(--muted);">Pick the team/category/season these players belong to.</p>
 
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team</label>
@@ -318,7 +319,7 @@ function promptImportTarget(rows, defaults) {
 
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button id="import-target-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
-          <button id="import-target-confirm" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">Import here</button>
+          <button id="import-target-confirm" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">${typeof itemCount === "number" ? `Import ${itemCount} player${itemCount === 1 ? "" : "s"}` : "Import here"}</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);

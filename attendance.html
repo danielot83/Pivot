@@ -751,8 +751,7 @@
   }
 
   async function importFromExcel(file) {
-    const target = await promptImportTarget(lastTreeRows, { season: filterSeason, team: filterTeam, team_category: filterTeamCategory });
-    if (!target) return;
+    let payloadBase;
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
@@ -761,7 +760,7 @@
       if (rawRows.length === 0) { showMessage("That file doesn't have any rows.", "error"); return; }
 
       const fieldMap = buildFieldMap(Object.keys(rawRows[0]));
-      const payload = [];
+      payloadBase = [];
       rawRows.forEach((raw) => {
         const r = {};
         for (const header in raw) { const field = fieldMap[header]; if (field) r[field] = raw[header]; }
@@ -780,12 +779,23 @@
           }
         }
         if (!first_name || !last_name) return;
-        payload.push({ organization_id: currentOrgId, season: target.season, team: target.team, team_category: target.team_category || null, first_name, last_name });
+        payloadBase.push({ first_name, last_name });
       });
 
-      if (payload.length === 0) { showMessage("Couldn't find any usable name column.", "error"); return; }
-      if (!confirm(`Import ${payload.length} players into ${target.team}${target.team_category ? " (" + target.team_category + ")" : ""} (${target.season})? They'll show up in Roster too.`)) return;
+      if (payloadBase.length === 0) { showMessage("Couldn't find any usable name column.", "error"); return; }
+    } catch (err) {
+      showMessage(err.message || "Couldn't read that Excel file.", "error");
+      return;
+    }
 
+    const target = await promptImportTarget(lastTreeRows, { season: filterSeason, team: filterTeam, team_category: filterTeamCategory }, payloadBase.length);
+    if (!target) return;
+
+    const payload = payloadBase.map((p) => ({
+      organization_id: currentOrgId, season: target.season, team: target.team, team_category: target.team_category || null, ...p,
+    }));
+
+    try {
       const { error } = await supabaseClient.from("players").insert(payload);
       if (error) throw error;
       showMessage(`${payload.length} players imported.`, "success");
@@ -793,7 +803,7 @@
       await loadTree();
       await loadAttendanceGrid();
     } catch (err) {
-      showMessage(err.message || "Couldn't read that Excel file.", "error");
+      showMessage(err.message || "Couldn't save those players.", "error");
     }
   }
   document.getElementById("import-btn").addEventListener("click", () => document.getElementById("import-file-input").click());
@@ -971,7 +981,7 @@
     pivotInitSidebarChrome();
     const orgId = await loadMyOrganization();
     pivotInitTopbarWidgets();
-    if (orgId) await loadTree();
+    if (orgId) { await loadTree(); await loadAttendanceGrid(); }
   }
   init();
 </script>
