@@ -11,6 +11,18 @@
 // su nombre a los años.
 // =============================================================================
 
+// Definida acá adentro (no solo en cada página) porque algunas de las
+// funciones de este archivo la necesitan, y no todas las páginas que
+// incluyen team-tree.js tienen su propia escapeHtml -- roster.html, por
+// ejemplo, nunca la definió (renderiza nombres con textContent, no
+// innerHTML). Si la página SÍ tiene la suya, esta queda pisada sin
+// problema, es la misma función.
+if (typeof escapeHtml === "undefined") {
+  function escapeHtml(str) {
+    return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+}
+
 /**
  * Combina las filas de jugadores (season/team/team_category) con las del
  * registro de equipos (teams), sin duplicar -- así una temporada/equipo
@@ -273,7 +285,7 @@ function guessSeasonOptions() {
 }
 
 const TEAM_CATEGORY_OPTIONS = ["", "U6", "U7", "U8", "U9", "U10", "U11", "U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U20", "Seniors"];
-const TEAM_GENDER_OPTIONS = ["Boys", "Girls", "Mixed"];
+const TEAM_GENDER_OPTIONS = ["Male", "Female", "Mixed"];
 
 /**
  * El selector nuevo (idea del hermano de Daniel): en vez del árbol
