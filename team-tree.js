@@ -316,14 +316,17 @@ function renderTeamGenderCategoryDropdown(containerId, rows, current, onChange) 
     byTeam[r.team][catKey].add(r.team_gender || "");
   });
 
-  const label = current && current.team
-    ? [current.team, current.team_category, current.team_gender].filter(Boolean).join(" — ")
-    : "Choose a team…";
+  const teamName = current && current.team ? current.team : null;
+  const subLabel = current && current.team ? [current.team_category, current.team_gender].filter(Boolean).join(" ") : "No team selected yet";
 
   container.innerHTML = `
-    <button type="button" id="${containerId}-trigger" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); font-size:14.5px; font-weight:600; color:var(--ink); cursor:pointer; text-align:left;">
-      <span>🏀 ${escapeHtml(label)}</span>
-      <span style="color:var(--muted); font-size:12px;">▾</span>
+    <button type="button" id="${containerId}-trigger" style="width:100%; display:flex; align-items:center; gap:12px; padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--card); cursor:pointer; text-align:left;">
+      <span style="width:38px; height:38px; border-radius:10px; background:var(--accent-tint); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">🏀</span>
+      <span style="flex:1; min-width:0;">
+        <span style="display:block; font-size:14.5px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${teamName ? escapeHtml(teamName) : "Choose a team…"}</span>
+        <span style="display:block; font-size:12.5px; color:var(--muted);">${escapeHtml(subLabel)}</span>
+      </span>
+      <span style="color:var(--muted); font-size:14px; flex-shrink:0;">▾</span>
     </button>
     <div id="${containerId}-popover" style="display:none; position:relative;">
       <div style="position:absolute; top:6px; left:0; right:0; background:var(--card); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:40; max-height:280px; overflow-y:auto;">
