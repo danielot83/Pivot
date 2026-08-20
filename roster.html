@@ -493,6 +493,7 @@
   let currentSeason = null;
   let currentTeam = null;
   let currentTeamCategory = ""; // categoría del equipo actualmente seleccionado (U8, U10... o "" si no aplica)
+  let lastTreeRows = [];
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
   function clearMessage() { els.msg.className = "msg"; els.msg.textContent = ""; }
@@ -581,6 +582,7 @@
       .from("teams").select("season, team, team_category").eq("organization_id", currentOrgId);
 
     const rows = mergeTeamRows(data, teamRows);
+    lastTreeRows = rows;
 
     // El coach activo debería ver "su" equipo directo, no una pantalla
     // vacía pidiéndole que elija -- así que si todavía no hay nada
@@ -1067,7 +1069,8 @@
   }
 
   async function importFromExcel(file) {
-    if (!currentSeason || !currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
+    const target = await promptImportTarget(lastTreeRows, { season: currentSeason, team: currentTeam, team_category: currentTeamCategory });
+    if (!target) return;
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
@@ -1103,7 +1106,7 @@
         if (!first_name || !last_name) return; // ligne sans nom exploitable, ignorée
 
         payload.push({
-          organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null,
+          organization_id: currentOrgId, season: target.season, team: target.team, team_category: target.team_category || null,
           first_name, last_name,
           birth_year: r.birth_year ? parseInt(r.birth_year, 10) : yearFromBirthDate(r.birth_date),
           category: r.category || null,
@@ -1119,11 +1122,13 @@
         showMessage("Couldn't find any usable name column — check the file has a name, or First/Last name columns.", "error");
         return;
       }
-      if (!confirm(`Import ${payload.length} players into ${currentTeam} (${currentSeason})?`)) return;
+      if (!confirm(`Import ${payload.length} players into ${target.team}${target.team_category ? " (" + target.team_category + ")" : ""} (${target.season})?`)) return;
 
       const { error } = await supabaseClient.from("players").insert(payload);
       if (error) throw error;
       showMessage(`${payload.length} players imported.`, "success");
+      currentSeason = target.season; currentTeam = target.team; currentTeamCategory = target.team_category || "";
+      renderCurrentSelection();
       await loadPlayers();
       await loadTree();
     } catch (err) {

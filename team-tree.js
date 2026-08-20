@@ -275,6 +275,94 @@ function guessSeasonOptions() {
 const TEAM_CATEGORY_OPTIONS = ["", "U6", "U7", "U8", "U9", "U10", "U11", "U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U20", "Seniors"];
 
 /**
+ * Popup que se muestra antes de importar un Excel -- pregunta a dónde
+ * "pegar" los jugadores (equipo, categoría, temporada), en vez de
+ * asumir directo el equipo que ya tenías elegido en el árbol. Los
+ * desplegables de equipo y categoría salen de los equipos que ya
+ * existen (sacados de `rows`, los mismos datos que arma el árbol);
+ * "+ New team…" abre un campo de texto para uno nuevo.
+ * Devuelve {season, team, team_category} o null si cancela.
+ */
+function promptImportTarget(rows, defaults) {
+  return new Promise((resolve) => {
+    const byTeam = {};
+    (rows || []).forEach((r) => {
+      if (!r.team) return;
+      byTeam[r.team] = byTeam[r.team] || new Set();
+      byTeam[r.team].add(r.team_category || "");
+    });
+    const teamNames = Object.keys(byTeam).sort();
+    const { seasons, current } = guessSeasonOptions();
+
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
+        <h3 style="margin:0 0 4px; font-size:17px;">Where does this go?</h3>
+        <p style="margin:0 0 16px; font-size:12.5px; color:var(--muted);">Pick the team/category/season these players belong to.</p>
+
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team</label>
+        <select id="import-team-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:6px; font-size:14px;">
+          ${teamNames.map((t) => `<option value="${t}" ${t === defaults.team ? "selected" : ""}>${t}</option>`).join("")}
+          <option value="__new__" ${teamNames.length === 0 || teamNames.indexOf(defaults.team) === -1 ? "selected" : ""}>+ New team…</option>
+        </select>
+        <input id="import-team-new" type="text" placeholder="Team name (e.g. DEL)" value="${teamNames.indexOf(defaults.team) === -1 ? (defaults.team || "").replace(/"/g, "&quot;") : ""}" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box; display:${teamNames.indexOf(defaults.team) === -1 ? "block" : "none"};" />
+
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category</label>
+        <select id="import-category-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;"></select>
+
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Season</label>
+        <select id="import-season-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px;">
+          ${seasons.map((s) => `<option value="${s}" ${s === (defaults.season || current) ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("")}
+        </select>
+
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button id="import-target-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
+          <button id="import-target-confirm" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">Import here</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const teamSelect = overlay.querySelector("#import-team-select");
+    const teamNewInput = overlay.querySelector("#import-team-new");
+    const categorySelect = overlay.querySelector("#import-category-select");
+
+    function refreshCategories() {
+      const team = teamSelect.value === "__new__" ? null : teamSelect.value;
+      const cats = team && byTeam[team] ? [...byTeam[team]] : [""];
+      categorySelect.innerHTML = cats.sort().map((c) => `<option value="${c}" ${c === (defaults.team_category || "") ? "selected" : ""}>${c || "No category"}</option>`).join("")
+        + (cats.every((c) => c !== "__new__") ? '<option value="__typed__">+ Type a category…</option>' : "");
+    }
+    refreshCategories();
+
+    teamSelect.addEventListener("change", () => {
+      teamNewInput.style.display = teamSelect.value === "__new__" ? "block" : "none";
+      refreshCategories();
+    });
+
+    categorySelect.addEventListener("change", () => {
+      if (categorySelect.value !== "__typed__") return;
+      const typed = prompt("Category (e.g. U8) — leave blank for none:", "");
+      const val = (typed || "").trim();
+      const opt = document.createElement("option");
+      opt.value = val; opt.textContent = val || "No category"; opt.selected = true;
+      categorySelect.insertBefore(opt, categorySelect.lastElementChild);
+    });
+
+    const close = (result) => { overlay.remove(); resolve(result); };
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(null); });
+    overlay.querySelector("#import-target-cancel").addEventListener("click", () => close(null));
+    overlay.querySelector("#import-target-confirm").addEventListener("click", () => {
+      const team = teamSelect.value === "__new__" ? teamNewInput.value.trim() : teamSelect.value;
+      if (!team) { teamNewInput.focus(); return; }
+      const team_category = categorySelect.value === "__typed__" ? "" : categorySelect.value;
+      const season = overlay.querySelector("#import-season-select").value;
+      close({ season, team, team_category });
+    });
+  });
+}
+
+/**
  * Flujo de "+ New season/team" -- un formulario de verdad (en una
  * ventana emergente), en vez de tres preguntas seguidas del navegador.
  * Temporada y categoría se eligen de un desplegable, no se escriben a

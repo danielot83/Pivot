@@ -129,7 +129,7 @@
   .team-pill-del:hover { background: rgba(0,0,0,0.08); color: #991b1b; }
 
   .attendance-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px; overflow-x: auto; }
-  table.attendance-table { border-collapse: collapse; font-size: 13.5px; white-space: nowrap; }
+  table.attendance-table { border-collapse: collapse; font-size: 14.5px; white-space: nowrap; }
   table.attendance-table th, table.attendance-table td { padding: 0; border-bottom: 1px solid var(--line); }
   .att-player-col { position: sticky; left: 0; background: var(--card); z-index: 2; padding: 10px 16px !important; text-align: left; border-right: 1px solid var(--line); min-width: 160px; }
   th.att-player-col { z-index: 3; }
@@ -253,7 +253,6 @@
     Attendance
     <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
   </h1>
-  <p class="sub">Who showed up — for every match, training session, and calendar event, at a glance.</p>
   <div class="help-box" id="help-box"></div>
   <div class="msg" id="msg"></div>
 
@@ -339,6 +338,7 @@
   let canValidateAssociations = false;
   let isPlatformController = false;
   let filterSeason = null, filterTeam = null, filterTeamCategory = "";
+  let lastTreeRows = [];
 
   const els = {
     orgName: document.getElementById("org-name-big"),
@@ -375,6 +375,7 @@
     const { data: playerRows } = await supabaseClient.from("players").select("season, team, team_category").eq("organization_id", currentOrgId);
     const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category").eq("organization_id", currentOrgId);
     const rows = mergeTeamRows(playerRows, teamRows);
+    lastTreeRows = rows;
 
     // Mismo "recordar el último equipo" que Roster, y con la MISMA
     // llave de localStorage -- así que si elegiste un equipo en Roster,
@@ -614,12 +615,27 @@
     const box = document.getElementById("help-box");
     if (box.style.display === "block") { box.style.display = "none"; return; }
     box.innerHTML = `
-      <strong>How Attendance works</strong>
-      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li>Pick a team above — the dates are pulled automatically from that team's matches, trainings, and calendar events. Nothing to set up first.</li>
-        <li>Orange 🏀 = match, purple/navy ⏱ = training, green 📌 = event — same colors as the Calendar.</li>
-        <li>Click a cell to cycle: blank → Present → Absent → Excused → Late → back to blank.</li>
-        <li>A match/training/event created for this team shows up here right away — no need to re-enter anything.</li>
+      <strong>How to use Attendance — step by step</strong>
+      <p style="margin:8px 0 4px; font-weight:600;">1. Pick a team</p>
+      <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
+        <li>Use the tree above (Team → Category → Season) — same one as Roster, and it's the exact same teams. Create, rename, or delete a team here and it shows up in Roster too, and the other way around.</li>
+      </ol>
+      <p style="margin:8px 0 4px; font-weight:600;">2. The dates fill in on their own</p>
+      <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
+        <li>Every match, training, and event already scheduled for this team shows up as a column automatically — nothing to set up.</li>
+        <li><strong>Orange 🏀</strong> = match, <strong>navy ⏱</strong> = training, <strong>green 📌</strong> = event — same colors as the Calendar.</li>
+        <li>Nothing scheduled yet? Click <strong>"+ Add match / training / event"</strong> — it creates the real thing, so it shows up in the Calendar and its own module too.</li>
+      </ol>
+      <p style="margin:8px 0 4px; font-weight:600;">3. Mark attendance</p>
+      <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
+        <li>Click a cell to cycle through the states: blank → Present → Absent → Excused → Late → back to blank.</li>
+      </ol>
+      <p style="margin:8px 0 4px; font-weight:600;">4. The rest</p>
+      <ul style="margin:0; padding-left:18px; line-height:1.7;">
+        <li><strong>+ Add player</strong> — just first and last name; they're added to Roster too.</li>
+        <li><strong>Columns ▾</strong> — choose which types of dates show up (matches / trainings / events).</li>
+        <li><strong>Export to Excel or PDF</strong> — the grid you're looking at, as a file.</li>
+        <li><strong>Import from Excel</strong> — brings in a list of names for the team you have selected.</li>
       </ul>`;
     box.style.display = "block";
   });
@@ -735,7 +751,8 @@
   }
 
   async function importFromExcel(file) {
-    if (!filterTeam) { showMessage("Pick a team first.", "error"); return; }
+    const target = await promptImportTarget(lastTreeRows, { season: filterSeason, team: filterTeam, team_category: filterTeamCategory });
+    if (!target) return;
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
@@ -763,15 +780,17 @@
           }
         }
         if (!first_name || !last_name) return;
-        payload.push({ organization_id: currentOrgId, season: filterSeason, team: filterTeam, team_category: filterTeamCategory || null, first_name, last_name });
+        payload.push({ organization_id: currentOrgId, season: target.season, team: target.team, team_category: target.team_category || null, first_name, last_name });
       });
 
       if (payload.length === 0) { showMessage("Couldn't find any usable name column.", "error"); return; }
-      if (!confirm(`Import ${payload.length} players into ${filterTeam} (${filterSeason})? They'll show up in Roster too.`)) return;
+      if (!confirm(`Import ${payload.length} players into ${target.team}${target.team_category ? " (" + target.team_category + ")" : ""} (${target.season})? They'll show up in Roster too.`)) return;
 
       const { error } = await supabaseClient.from("players").insert(payload);
       if (error) throw error;
       showMessage(`${payload.length} players imported.`, "success");
+      filterSeason = target.season; filterTeam = target.team; filterTeamCategory = target.team_category || "";
+      await loadTree();
       await loadAttendanceGrid();
     } catch (err) {
       showMessage(err.message || "Couldn't read that Excel file.", "error");
