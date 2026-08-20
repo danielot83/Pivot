@@ -719,10 +719,29 @@
         btn.dataset.recordId = "";
       } else {
         const eventCol = eventType === "match" ? "match_id" : eventType === "training" ? "training_id" : "event_id";
-        const payload = { organization_id: currentOrgId, player_id: playerId, status: nextStatus, created_by: currentUserId, updated_at: new Date().toISOString(), [eventCol]: eventId };
-        const { data, error } = await supabaseClient.from("attendance").upsert(payload, { onConflict: `${eventCol},player_id` }).select("id").single();
-        if (error) throw error;
-        btn.dataset.recordId = data.id;
+        // Los índices únicos de "attendance" son parciales (uno por
+        // tipo de evento), y el upsert de Supabase no sabe combinar
+        // bien con ese tipo de índice ("no unique or exclusion
+        // constraint..."). En vez de upsert, primero preguntamos si ya
+        // existe la fila, y según eso actualizamos o creamos.
+        let recordId = btn.dataset.recordId || null;
+        if (recordId) {
+          const { error } = await supabaseClient.from("attendance").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", recordId);
+          if (error) throw error;
+        } else {
+          const { data: existing } = await supabaseClient.from("attendance").select("id").eq(eventCol, eventId).eq("player_id", playerId).maybeSingle();
+          if (existing) {
+            const { error } = await supabaseClient.from("attendance").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", existing.id);
+            if (error) throw error;
+            recordId = existing.id;
+          } else {
+            const payload = { organization_id: currentOrgId, player_id: playerId, status: nextStatus, created_by: currentUserId, [eventCol]: eventId };
+            const { data, error } = await supabaseClient.from("attendance").insert(payload).select("id").single();
+            if (error) throw error;
+            recordId = data.id;
+          }
+        }
+        btn.dataset.recordId = recordId;
       }
       btn.dataset.status = nextStatus || "";
       btn.className = "att-status-btn" + (nextStatus ? " " + STATUS_CLASS[nextStatus] : "");
