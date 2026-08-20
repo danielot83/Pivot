@@ -583,8 +583,9 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
       if (error) { errorEl.textContent = "Couldn't create that team: " + error.message; errorEl.style.display = "block"; btn.disabled = false; btn.textContent = "Create"; return; }
       if (logoFile) {
         try {
-          const blob = await fileToResizedPngBlob(logoFile, 512);
-          await supabaseClient.storage.from("logos").upload(`${organizationId}/teams/${encodeURIComponent(team)}.png`, blob, { upsert: true, contentType: "image/png" });
+          if (logoFile.size > 8 * 1024 * 1024) throw new Error("That image is over 8 MB — pick a smaller one.");
+          const blob = await fileToSquareLogoBlob(logoFile, 300);
+          await supabaseClient.storage.from("logos").upload(`${organizationId}/teams/${encodeURIComponent(team)}.png`, blob, { upsert: true, contentType: "image/webp" });
         } catch (e) { /* si el logo falla, el equipo ya se creó igual -- no es motivo para trabar todo */ }
       }
       close({ season: row.season, team: row.team, team_category: row.team_category || "", team_gender: row.team_gender });
@@ -593,23 +594,34 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
 }
 
 /**
- * Mismo redimensionado que usa Settings para el logo del club -- acá se
- * reusa para el logo (opcional) de un equipo en particular. Devuelve un
- * Blob PNG listo para subir a Supabase Storage.
+ * Sea cual sea la imagen que suba alguien (una foto de varios MB del
+ * celular, un rectángulo raro, cualquier formato), esto siempre la deja
+ * igual: recortada al cuadrado centrado, nunca más grande de 300×300
+ * por lado, y en WebP -- bastante más liviano que PNG para este tipo de
+ * imagen, y a diferencia de JPG sigue soportando fondo transparente si
+ * la imagen original lo tenía. Se sube igual con la extensión ".png" en
+ * el nombre del archivo (para no tener que cambiar todas las URLs que
+ * ya usan esa ruta en el resto de la app), pero el navegador la
+ * interpreta bien porque el tipo real (WebP) va en la cabecera
+ * Content-Type, no en el nombre del archivo.
  */
-function fileToResizedPngBlob(file, maxSize) {
+function fileToSquareLogoBlob(file, maxSize) {
+  maxSize = maxSize || 300;
   return new Promise((resolve, reject) => {
     const img = new Image();
     const reader = new FileReader();
     reader.onload = () => {
       img.onload = () => {
-        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2;
+        const sy = (img.height - side) / 2;
+        const outSize = Math.min(maxSize, side);
         const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't process that image."))), "image/png");
+        canvas.width = outSize; canvas.height = outSize;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
+        removeUniformBackground(ctx, outSize, outSize);
+        canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't process that image."))), "image/webp", 0.85);
       };
       img.onerror = () => reject(new Error("That doesn't look like a valid image."));
       img.src = reader.result;
@@ -617,4 +629,50 @@ function fileToResizedPngBlob(file, maxSize) {
     reader.onerror = () => reject(new Error("Couldn't read that file."));
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * Heurística simple para volver transparente un fondo liso -- mira el
+ * color de la esquina superior izquierda como referencia, y "derrama"
+ * la transparencia desde TODO el borde de la imagen hacia adentro,
+ * pixel conectado por pixel conectado, mientras el color siga siendo
+ * parecido. Al arrancar desde el borde (no comparar la imagen entera
+ * contra ese color), un elemento interno del logo con un color
+ * parecido al fondo (una letra blanca, por ejemplo) no se ve afectado,
+ * porque no está conectado con el borde real.
+ *
+ * Funciona bien cuando el fondo es realmente liso (blanco, o un color
+ * sólido) -- que es el caso más común para un escudo/logo. Con una
+ * foto de fondo complicado (una pared, el pasto...) no hace milagros,
+ * simplemente no encuentra mucho que quitar y no cambia casi nada.
+ */
+function removeUniformBackground(ctx, w, h, tolerance) {
+  tolerance = tolerance == null ? 28 : tolerance;
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+  const bg = [data[0], data[1], data[2]];
+
+  function closeToBg(i) {
+    const dr = data[i] - bg[0], dg = data[i + 1] - bg[1], db = data[i + 2] - bg[2];
+    return Math.sqrt(dr * dr + dg * dg + db * db) <= tolerance;
+  }
+
+  const visited = new Uint8Array(w * h);
+  const stack = [];
+  for (let x = 0; x < w; x++) { stack.push(x, 0); stack.push(x, h - 1); }
+  for (let y = 0; y < h; y++) { stack.push(0, y); stack.push(w - 1, y); }
+
+  while (stack.length) {
+    const y = stack.pop(); const x = stack.pop();
+    if (x < 0 || y < 0 || x >= w || y >= h) continue;
+    const vi = y * w + x;
+    if (visited[vi]) continue;
+    visited[vi] = 1;
+    const i = vi * 4;
+    if (!closeToBg(i)) continue;
+    data[i + 3] = 0;
+    stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
+  }
+
+  ctx.putImageData(imgData, 0, 0);
 }

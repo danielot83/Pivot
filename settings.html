@@ -139,7 +139,7 @@
     </div>
 
     <ul class="requirements">
-      <li><strong>Square image</strong>, ideally at least 256 × 256 px — non-square logos get squeezed to fit.</li>
+      <li>Any image works — it gets automatically center-cropped to a square and optimized, so file size and shape are never a problem.</li>
       <li><strong>Transparent background</strong> (PNG) works best — it'll sit correctly on any color.
         If your photo has a plain background, remove it first for free at
         <a href="https://www.remove.bg/" target="_blank" rel="noopener" style="color:var(--accent-deep);">remove.bg</a>
@@ -736,19 +736,29 @@
   // d'origine), redimensionnée pour ne pas dépasser 512px de large ou
   // haut -- garde le nom de fichier final toujours prévisible.
   // -----------------------------------------------------------------------
-  function fileToResizedPngBlob(file, maxSize) {
+  // Sea cual sea la imagen que suba alguien (una foto de 8 megas del
+  // celular, un rectángulo raro, lo que sea), esto siempre la deja
+  // igual: recortada al cuadrado centrado, nunca más grande de 300×300,
+  // y en WebP (bastante más liviano que PNG para este tipo de imagen,
+  // y a diferencia de JPG sigue soportando fondo transparente si la
+  // imagen original lo tenía).
+  function fileToSquareLogoBlob(file, maxSize) {
+    maxSize = maxSize || 300;
     return new Promise((resolve, reject) => {
       const img = new Image();
       const reader = new FileReader();
       reader.onload = () => {
         img.onload = () => {
-          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-          const w = Math.round(img.width * scale);
-          const h = Math.round(img.height * scale);
+          const side = Math.min(img.width, img.height);
+          const sx = (img.width - side) / 2;
+          const sy = (img.height - side) / 2;
+          const outSize = Math.min(maxSize, side); // nunca agranda una imagen chica, solo achica las grandes
           const canvas = document.createElement("canvas");
-          canvas.width = w; canvas.height = h;
-          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-          canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't process that image."))), "image/png");
+          canvas.width = outSize; canvas.height = outSize;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
+          removeUniformBackground(ctx, outSize, outSize);
+          canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't process that image."))), "image/webp", 0.85);
         };
         img.onerror = () => reject(new Error("That doesn't look like a valid image."));
         img.src = reader.result;
@@ -756,6 +766,45 @@
       reader.onerror = () => reject(new Error("Couldn't read that file."));
       reader.readAsDataURL(file);
     });
+  }
+
+  /**
+   * Heurística simple para volver transparente un fondo liso -- mismo
+   * criterio que en team-tree.js (el logo por equipo): "derrama" la
+   * transparencia desde todo el borde de la imagen hacia adentro,
+   * mientras el color siga siendo parecido al de la esquina. Un
+   * elemento interno del logo con un color parecido al fondo no se ve
+   * afectado, porque no está conectado con el borde real.
+   */
+  function removeUniformBackground(ctx, w, h, tolerance) {
+    tolerance = tolerance == null ? 28 : tolerance;
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const bg = [data[0], data[1], data[2]];
+
+    function closeToBg(i) {
+      const dr = data[i] - bg[0], dg = data[i + 1] - bg[1], db = data[i + 2] - bg[2];
+      return Math.sqrt(dr * dr + dg * dg + db * db) <= tolerance;
+    }
+
+    const visited = new Uint8Array(w * h);
+    const stack = [];
+    for (let x = 0; x < w; x++) { stack.push(x, 0); stack.push(x, h - 1); }
+    for (let y = 0; y < h; y++) { stack.push(0, y); stack.push(w - 1, y); }
+
+    while (stack.length) {
+      const y = stack.pop(); const x = stack.pop();
+      if (x < 0 || y < 0 || x >= w || y >= h) continue;
+      const vi = y * w + x;
+      if (visited[vi]) continue;
+      visited[vi] = 1;
+      const i = vi * 4;
+      if (!closeToBg(i)) continue;
+      data[i + 3] = 0;
+      stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
+    }
+
+    ctx.putImageData(imgData, 0, 0);
   }
 
   els.logoInput.addEventListener("change", async () => {
@@ -767,7 +816,7 @@
       return;
     }
     try {
-      pendingBlob = await fileToResizedPngBlob(file, 512);
+      pendingBlob = await fileToSquareLogoBlob(file, 300);
       const url = URL.createObjectURL(pendingBlob);
       els.logoPreview.innerHTML = `<img src="${url}" />`;
       els.logoSaveBtn.disabled = false;
@@ -782,7 +831,7 @@
     try {
       const { error } = await supabaseClient.storage
         .from("logos")
-        .upload(`${currentOrgId}/logo.png`, pendingBlob, { upsert: true, contentType: "image/png" });
+        .upload(`${currentOrgId}/logo.png`, pendingBlob, { upsert: true, contentType: "image/webp" });
       if (error) throw error;
       showMessage("Logo updated.", "success");
     } catch (err) {
