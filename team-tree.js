@@ -544,9 +544,12 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
           ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}">${c || "No category"}</option>`).join("")}
         </select>
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
-        <select id="new-team-gender-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px;">
+        <select id="new-team-gender-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
           ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}">${g}</option>`).join("")}
         </select>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
+        <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Handy if this club has more than one team — helps tell them apart at a glance. Leave empty to use the club's own logo.</p>
+        <input id="new-team-logo-input" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:18px;" />
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button id="new-team-cancel-btn" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
           <button id="new-team-create-btn" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">Create</button>
@@ -572,12 +575,46 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
       const teamCategory = overlay.querySelector("#new-team-category-input").value;
       const teamGender = overlay.querySelector("#new-team-gender-input").value;
       const season = overlay.querySelector("#new-team-season-input").value;
+      const logoFile = overlay.querySelector("#new-team-logo-input").files[0];
       const row = { organization_id: organizationId, season, team, team_category: teamCategory || null, team_gender: teamGender };
       const btn = overlay.querySelector("#new-team-create-btn");
       btn.disabled = true; btn.textContent = "Creating…";
       const { error } = await supabaseClient.from("teams").upsert(row, { onConflict: "organization_id,season,team,team_category,team_gender" });
       if (error) { errorEl.textContent = "Couldn't create that team: " + error.message; errorEl.style.display = "block"; btn.disabled = false; btn.textContent = "Create"; return; }
+      if (logoFile) {
+        try {
+          const blob = await fileToResizedPngBlob(logoFile, 512);
+          await supabaseClient.storage.from("logos").upload(`${organizationId}/teams/${encodeURIComponent(team)}.png`, blob, { upsert: true, contentType: "image/png" });
+        } catch (e) { /* si el logo falla, el equipo ya se creó igual -- no es motivo para trabar todo */ }
+      }
       close({ season: row.season, team: row.team, team_category: row.team_category || "", team_gender: row.team_gender });
     });
+  });
+}
+
+/**
+ * Mismo redimensionado que usa Settings para el logo del club -- acá se
+ * reusa para el logo (opcional) de un equipo en particular. Devuelve un
+ * Blob PNG listo para subir a Supabase Storage.
+ */
+function fileToResizedPngBlob(file, maxSize) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't process that image."))), "image/png");
+      };
+      img.onerror = () => reject(new Error("That doesn't look like a valid image."));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error("Couldn't read that file."));
+    reader.readAsDataURL(file);
   });
 }
