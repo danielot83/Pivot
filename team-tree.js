@@ -321,7 +321,6 @@ function renderTeamGenderCategoryDropdown(containerId, rows, current, onChange) 
 
   container.innerHTML = `
     <button type="button" id="${containerId}-trigger" style="width:100%; display:flex; align-items:center; gap:12px; padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--card); cursor:pointer; text-align:left;">
-      <span style="width:38px; height:38px; border-radius:10px; background:var(--accent-tint); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">🏀</span>
       <span style="flex:1; min-width:0;">
         <span style="display:block; font-size:14.5px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${teamName ? escapeHtml(teamName) : "Choose a team…"}</span>
         <span style="display:block; font-size:12.5px; color:var(--muted);">${escapeHtml(subLabel)}</span>
