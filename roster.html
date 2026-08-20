@@ -116,6 +116,42 @@
 
   /* -------- barra horizontal de equipos/temporadas (arriba, no una segunda sidebar) -------- */
   .team-bar-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
+
+  /* -------- selector nuevo: Teams & Seasons -------- */
+  .tsc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .tsc-header-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-deep); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .tsc-header-title { font-size: 16px; font-weight: 700; margin: 0; }
+  .tsc-header-sub { font-size: 13px; color: var(--muted); margin: 1px 0 0; }
+  .tsc-step-label { font-size: 12.5px; font-weight: 700; color: var(--muted); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .cascade-option {
+    display: block; width: 100%; text-align: left; background: none; border: none; padding: 9px 14px;
+    font-size: 14px; color: var(--ink); cursor: pointer; border-bottom: 1px solid var(--line);
+  }
+  .cascade-option:last-child { border-bottom: none; }
+  .cascade-option:hover { background: var(--paper); }
+  .cascade-back { background: none; border: none; color: var(--accent-deep); font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 0; }
+  .season-pill {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; cursor: pointer;
+    text-align: left; min-width: 110px;
+  }
+  .season-pill strong { display: block; font-size: 14px; }
+  .season-pill span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .season-pill.active { background: var(--accent-tint); border-color: var(--accent); }
+  .season-pill.active span { color: var(--accent-deep); font-weight: 600; }
+  .season-pill-new { color: var(--accent-deep); font-weight: 600; border-style: dashed; display: flex; align-items: center; justify-content: center; }
+  .tsc-selected-card {
+    background: var(--accent-tint); border-radius: 10px; padding: 14px 16px; margin-top: 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  }
+  .tsc-selected-info { display: flex; align-items: center; gap: 12px; }
+  .tsc-selected-info .icon { width: 36px; height: 36px; border-radius: 8px; background: var(--card); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .tsc-selected-name { font-weight: 700; font-size: 15px; color: var(--ink); }
+  .tsc-selected-sub { font-size: 12.5px; color: var(--accent-deep); }
+  .tsc-chips { display: flex; gap: 20px; margin-top: 12px; flex-wrap: wrap; }
+  .tsc-chip { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); }
+  .tsc-chip .icon { color: var(--accent-deep); }
+  .tsc-chip strong { display: block; font-size: 14.5px; }
+  .tsc-chip span { display: block; font-size: 12px; color: var(--muted); }
   .team-bar-card h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 12px; }
   #tree { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .team-pill {
@@ -317,13 +353,45 @@
     <div id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:14.5px; color:var(--ink); margin-bottom:12px;"></div>
 
     <div class="team-bar-card">
-      <h2>Seasons &amp; teams</h2>
-      <div id="tree-new-row" style="margin-bottom:10px;"></div>
-      <div id="tree"></div>
+      <div class="tsc-header">
+        <div class="tsc-header-icon">📅</div>
+        <div>
+          <p class="tsc-header-title">Teams &amp; Seasons</p>
+          <p class="tsc-header-sub">Manage your teams and seasons.</p>
+        </div>
+        <div style="flex:1;"></div>
+        <button class="tree-new" id="new-team-btn" style="margin-bottom:0;">+ New season/team</button>
+      </div>
+
+      <p class="tsc-step-label">1. Select team</p>
+      <div id="team-gender-category-select" style="margin-bottom:18px; position:relative;"></div>
+
+      <p class="tsc-step-label">2. Select season</p>
+      <div id="season-picker"></div>
+
+      <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
+        <div class="tsc-selected-info">
+          <div class="icon">🏀</div>
+          <div>
+            <div class="tsc-selected-name" id="tsc-selected-name"></div>
+            <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="tree-folder-leaf-action" id="tsc-rename-btn">✎ Rename</button>
+          <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit category</button>
+          <button class="team-pill-del" id="tsc-delete-btn" title="Delete this team/season"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
+        </div>
+      </div>
+      <div class="tsc-chips" id="tsc-chips" style="display:none;">
+        <div class="tsc-chip"><span class="icon">👥</span><div><strong id="tsc-chip-players">0</strong><span>Players</span></div></div>
+        <div class="tsc-chip"><span class="icon">🏆</span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
+        <div class="tsc-chip"><span class="icon">⚧</span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
+      </div>
     </div>
 
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-      <p class="sub" id="current-selection" style="display:flex; align-items:center; gap:8px;">Pick a season/team above, or create a new one.</p>
+      <p class="sub" id="current-selection" style="display:flex; align-items:center; gap:8px;"></p>
     </div>
 
     <div class="msg" id="msg"></div>
@@ -408,9 +476,13 @@
 
   // La categoría ahora separa de verdad a los jugadores (step59) -- un
   // pequeño helper para no repetir el if/else de "null vs texto" en
-  // cada consulta que filtra por temporada+equipo+categoría.
+  // cada consulta que filtra por temporada+equipo+categoría. El género
+  // (step62) se filtra con el mismo criterio.
   function filterByCategory(query, category) {
     return category ? query.eq("team_category", category) : query.is("team_category", null);
+  }
+  function filterByGender(query, gender) {
+    return gender ? query.eq("team_gender", gender) : query.is("team_gender", null);
   }
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -493,6 +565,7 @@
   let currentSeason = null;
   let currentTeam = null;
   let currentTeamCategory = ""; // categoría del equipo actualmente seleccionado (U8, U10... o "" si no aplica)
+  let currentTeamGender = ""; // Boys/Girls/Mixed
   let lastTreeRows = [];
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
@@ -576,10 +649,10 @@
   // ---------------------------------------------------------------------
   async function loadTree() {
     const { data, error } = await supabaseClient
-      .from("players").select("season, team, team_category").eq("organization_id", currentOrgId);
+      .from("players").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
     if (error) { showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error"); console.error("loadTree error:", error); return; }
     const { data: teamRows } = await supabaseClient
-      .from("teams").select("season, team, team_category").eq("organization_id", currentOrgId);
+      .from("teams").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
 
     const rows = mergeTeamRows(data, teamRows);
     lastTreeRows = rows;
@@ -593,57 +666,80 @@
       let restored = null;
       try {
         const saved = JSON.parse(localStorage.getItem(`pivot-roster-last-${currentOrgId}`) || "null");
-        if (saved && rows.some((r) => r.season === saved.season && r.team === saved.team && (r.team_category || "") === (saved.category || ""))) restored = { season: saved.season, team: saved.team, team_category: saved.category || "" };
+        if (saved && rows.some((r) => r.season === saved.season && r.team === saved.team && (r.team_category || "") === (saved.category || "") && (r.team_gender || "") === (saved.gender || ""))) restored = { season: saved.season, team: saved.team, team_category: saved.category || "", team_gender: saved.gender || "" };
       } catch (e) { /* stockage illisible -- pas grave, on retombe sur le premier de la liste */ }
       const fallback = restored || [...rows].sort((a, b) => a.team.localeCompare(b.team) || b.season.localeCompare(a.season) || (a.team_category || "").localeCompare(b.team_category || ""))[0];
       currentSeason = fallback.season;
       currentTeam = fallback.team;
       currentTeamCategory = fallback.team_category || "";
+      currentTeamGender = fallback.team_gender || "";
     }
 
-    els.tree.innerHTML = "";
-    const newRow = document.getElementById("tree-new-row");
-    newRow.innerHTML = "";
-
-    const newBtn = document.createElement("button");
-    newBtn.className = "tree-new";
-    newBtn.textContent = "+ New season/team";
-    newBtn.addEventListener("click", async () => {
+    document.getElementById("new-team-btn").onclick = async () => {
       const created = await promptNewTeam(supabaseClient, currentOrgId, els.orgName.textContent);
       if (!created) return;
-      currentTeamCategory = created.team_category;
+      currentTeamCategory = created.team_category || "";
+      currentTeamGender = created.team_gender || "";
       selectSeasonTeam(created.season, created.team);
-    });
-    newRow.appendChild(newBtn);
+    };
 
-    renderTeamTreeFolders("tree", rows, currentSeason, currentTeam, currentTeamCategory, (season, team, cat) => {
-      currentTeamCategory = cat || "";
-      selectSeasonTeam(season, team);
-    }, (season, team, cat) => deleteTeam(season, team, cat), (season, team, cat) => editTeamCategory(season, team, cat), (season, team) => renameTeam(team));
+    renderTeamGenderCategoryDropdown("team-gender-category-select", rows, { team: currentTeam, team_category: currentTeamCategory, team_gender: currentTeamGender }, (team, category, gender) => {
+      currentTeam = team; currentTeamCategory = category || ""; currentTeamGender = gender || "";
+      const seasonsForThis = [...new Set(rows.filter((r) => r.team === team && (r.team_category || "") === (category || "") && (r.team_gender || "") === (gender || "")).map((r) => r.season))].sort().reverse();
+      selectSeasonTeam(seasonsForThis.includes(currentSeason) ? currentSeason : seasonsForThis[0], team);
+    });
+
+    const seasonsForCurrent = currentTeam
+      ? [...new Set(rows.filter((r) => r.team === currentTeam && (r.team_category || "") === (currentTeamCategory || "") && (r.team_gender || "") === (currentTeamGender || "")).map((r) => r.season))].sort().reverse()
+      : [];
+    renderSeasonPicker("season-picker", seasonsForCurrent, currentSeason, (season) => selectSeasonTeam(season, currentTeam), currentTeam ? async () => {
+      const created = await promptNewTeam(supabaseClient, currentOrgId, currentTeam);
+      if (!created) return;
+      currentTeamCategory = created.team_category || "";
+      currentTeamGender = created.team_gender || "";
+      selectSeasonTeam(created.season, created.team);
+    } : null);
+
+    updateSelectedSummaryCard();
   }
 
+  function updateSelectedSummaryCard() {
+    const card = document.getElementById("tsc-selected-card");
+    const chips = document.getElementById("tsc-chips");
+    if (!currentTeam) { card.style.display = "none"; chips.style.display = "none"; return; }
+    card.style.display = "flex"; chips.style.display = "flex";
+    document.getElementById("tsc-selected-name").textContent = currentTeam;
+    document.getElementById("tsc-selected-sub").textContent = `Season ${currentSeason}`;
+    document.getElementById("tsc-chip-category").textContent = currentTeamCategory || "—";
+    document.getElementById("tsc-chip-gender").textContent = currentTeamGender || "—";
+  }
+
+  document.getElementById("tsc-rename-btn").addEventListener("click", () => renameTeam(currentTeam));
+  document.getElementById("tsc-edit-btn").addEventListener("click", () => editTeamCategory(currentSeason, currentTeam, currentTeamCategory));
+  document.getElementById("tsc-delete-btn").addEventListener("click", () => deleteTeam(currentSeason, currentTeam, currentTeamCategory));
+
   async function deleteTeam(season, team, category) {
-    if (!confirm(`Remove "${team}"${category ? " (" + category + ")" : ""} (${season}) and all its players? This can't be undone.`)) return;
-    const { error } = await filterByCategory(
+    const gender = currentTeamGender;
+    if (!confirm(`Remove "${team}"${category ? " (" + category + ")" : ""}${gender ? " " + gender : ""} (${season}) and all its players? This can't be undone.`)) return;
+    const { error } = await filterByGender(filterByCategory(
       supabaseClient.from("players").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       category
-    );
+    ), gender);
     if (error) { showMessage(error.message, "error"); return; }
-    await filterByCategory(
+    await filterByGender(filterByCategory(
       supabaseClient.from("teams").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       category
-    );
-    if (season === currentSeason && team === currentTeam && (category || "") === (currentTeamCategory || "")) { currentSeason = null; currentTeam = null; currentTeamCategory = ""; }
+    ), gender);
+    if (season === currentSeason && team === currentTeam && (category || "") === (currentTeamCategory || "")) { currentSeason = null; currentTeam = null; currentTeamCategory = ""; currentTeamGender = ""; }
     showMessage(`"${team}"${category ? " (" + category + ")" : ""} (${season}) removed.`, "success");
     await loadTree();
-    els.body.innerHTML = "";
-    els.currentSelection.textContent = "Pick a season/team on the left, or create a new one.";
+    if (!currentTeam) { els.body.innerHTML = ""; renderCurrentSelection(); }
   }
 
   function selectSeasonTeam(season, team) {
     currentSeason = season;
     currentTeam = team;
-    try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team, category: currentTeamCategory || "" })); } catch (e) { /* pas grave si le stockage est plein/bloqué */ }
+    try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team, category: currentTeamCategory || "", gender: currentTeamGender || "" })); } catch (e) { /* pas grave si le stockage est plein/bloqué */ }
     renderCurrentSelection();
     loadTree();
     loadPlayers();
@@ -656,24 +752,25 @@
   async function editTeamCategory(season, team, oldCategory) {
     const next = prompt(`Team category for "${team}" (e.g. U8) — leave blank to remove it:`, oldCategory || "");
     if (next === null) return;
-    const { error } = await filterByCategory(
+    const gender = currentTeamGender;
+    const { error } = await filterByGender(filterByCategory(
       supabaseClient.from("players").update({ team_category: next.trim() || null })
         .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       oldCategory
-    );
+    ), gender);
     if (error) { showMessage(error.message, "error"); return; }
-    await filterByCategory(
+    await filterByGender(filterByCategory(
       supabaseClient.from("teams").update({ team_category: next.trim() || null })
         .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       oldCategory
-    );
+    ), gender);
     if (season === currentSeason && team === currentTeam) { currentTeamCategory = next.trim(); renderCurrentSelection(); loadPlayers(); }
     await loadTree();
     showMessage("Team category updated.", "success");
   }
 
   async function renameTeam(team) {
-    const next = prompt(`New name for "${team}" — this renames it everywhere (every season, every category), since a team keeps the same name across years:`, team);
+    const next = prompt(`New name for "${team}" — this renames it everywhere (every season, every category, every gender), since a team keeps the same name across years:`, team);
     if (next === null || !next.trim() || next.trim() === team) return;
     const newName = next.trim();
     const { error } = await supabaseClient.from("players").update({ team: newName })
@@ -683,9 +780,10 @@
     await supabaseClient.from("matches").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
     await supabaseClient.from("trainings").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
     await supabaseClient.from("plays").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+    await supabaseClient.from("events").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
     if (team === currentTeam) {
       currentTeam = newName;
-      try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season: currentSeason, team: currentTeam, category: currentTeamCategory || "" })); } catch (e) { /* pas grave */ }
+      try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season: currentSeason, team: currentTeam, category: currentTeamCategory || "", gender: currentTeamGender || "" })); } catch (e) { /* pas grave */ }
       renderCurrentSelection();
     }
     await loadTree();
@@ -726,14 +824,16 @@
   // ---------------------------------------------------------------------
   async function loadPlayers() {
     if (!currentOrgId || !currentSeason || !currentTeam) return;
-    const { data, error } = await filterByCategory(
+    const { data, error } = await filterByGender(filterByCategory(
       supabaseClient
         .from("players").select("*")
         .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
       currentTeamCategory
-    ).order("last_name");
+    ), currentTeamGender).order("last_name");
     if (error) { showMessage(error.message, "error"); return; }
     renderPlayers(data || []);
+    const playersChip = document.getElementById("tsc-chip-players");
+    if (playersChip) playersChip.textContent = (data || []).length;
   }
 
   function renderPlayers(players) {
@@ -835,7 +935,7 @@
     const last_name = document.getElementById("f-last_name").value.trim();
     if (!first_name || !last_name) { showMessage("First and last name are required.", "error"); return; }
     const payload = {
-      organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null,
+      organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null, team_gender: currentTeamGender || null,
       first_name, last_name,
       birth_year: document.getElementById("f-birth_year").value ? parseInt(document.getElementById("f-birth_year").value, 10) : null,
       category: document.getElementById("f-category").value.trim() || null,
@@ -889,12 +989,12 @@
 
   async function exportToPdf() {
     if (!currentSeason || !currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
-    const { data, error } = await filterByCategory(
+    const { data, error } = await filterByGender(filterByCategory(
       supabaseClient
         .from("players").select("*")
         .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
       currentTeamCategory
-    ).order("last_name");
+    ), currentTeamGender).order("last_name");
     if (error) { showMessage(error.message, "error"); return; }
     const players = data || [];
 
@@ -975,12 +1075,12 @@
 
   async function exportToExcel() {
     if (!currentSeason || !currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
-    const { data, error } = await filterByCategory(
+    const { data, error } = await filterByGender(filterByCategory(
       supabaseClient
         .from("players").select("*")
         .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
       currentTeamCategory
-    ).order("last_name");
+    ), currentTeamGender).order("last_name");
     if (error) { showMessage(error.message, "error"); return; }
     const players = data || [];
 
@@ -1125,18 +1225,18 @@
       return;
     }
 
-    const target = await promptImportTarget(lastTreeRows, { season: currentSeason, team: currentTeam, team_category: currentTeamCategory }, payloadBase.length);
+    const target = await promptImportTarget(lastTreeRows, { season: currentSeason, team: currentTeam, team_category: currentTeamCategory, team_gender: currentTeamGender }, payloadBase.length);
     if (!target) return;
 
     const payload = payloadBase.map((p) => ({
-      organization_id: currentOrgId, season: target.season, team: target.team, team_category: target.team_category || null, ...p,
+      organization_id: currentOrgId, season: target.season, team: target.team, team_category: target.team_category || null, team_gender: target.team_gender || null, ...p,
     }));
 
     try {
       const { error } = await supabaseClient.from("players").insert(payload);
       if (error) throw error;
       showMessage(`${payload.length} players imported.`, "success");
-      currentSeason = target.season; currentTeam = target.team; currentTeamCategory = target.team_category || "";
+      currentSeason = target.season; currentTeam = target.team; currentTeamCategory = target.team_category || ""; currentTeamGender = target.team_gender || "";
       renderCurrentSelection();
       await loadPlayers();
       await loadTree();

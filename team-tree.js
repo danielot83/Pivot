@@ -20,10 +20,10 @@
  */
 function mergeTeamRows(playerRows, teamRows) {
   const merged = [...(playerRows || [])];
-  const seen = new Set(merged.map((r) => `${r.season}|${r.team}|${r.team_category || ""}`));
+  const seen = new Set(merged.map((r) => `${r.season}|${r.team}|${r.team_category || ""}|${r.team_gender || ""}`));
   (teamRows || []).forEach((t) => {
-    const key = `${t.season}|${t.team}|${t.team_category || ""}`;
-    if (!seen.has(key)) { merged.push({ season: t.season, team: t.team, team_category: t.team_category }); seen.add(key); }
+    const key = `${t.season}|${t.team}|${t.team_category || ""}|${t.team_gender || ""}`;
+    if (!seen.has(key)) { merged.push({ season: t.season, team: t.team, team_category: t.team_category, team_gender: t.team_gender }); seen.add(key); }
   });
   return merged;
 }
@@ -273,6 +273,137 @@ function guessSeasonOptions() {
 }
 
 const TEAM_CATEGORY_OPTIONS = ["", "U6", "U7", "U8", "U9", "U10", "U11", "U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U20", "Seniors"];
+const TEAM_GENDER_OPTIONS = ["Boys", "Girls", "Mixed"];
+
+/**
+ * El selector nuevo (idea del hermano de Daniel): en vez del árbol
+ * desplegable, un solo campo que muestra el equipo elegido ("DEL —
+ * U12 — Boys") y al tocarlo abre un popover que se va abriendo un
+ * nivel por vez -- Equipo, después Categoría (de ESE equipo), después
+ * Género (de ESA categoría) -- con una miga de pan arriba para volver
+ * atrás. No incluye la temporada -- eso es un control aparte (ver
+ * renderSeasonPicker), porque un mismo equipo/categoría/género puede
+ * tener varias temporadas cargadas.
+ *
+ * `rows` = filas ya mezcladas de jugadores+equipos (season/team/
+ * team_category/team_gender). `current` = { team, team_category,
+ * team_gender } o null. `onChange(team, category, gender)` se llama
+ * cuando se termina de elegir el tercer nivel.
+ */
+function renderTeamGenderCategoryDropdown(containerId, rows, current, onChange) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  // Equipo -> Categoría -> Set(Género)
+  const byTeam = {};
+  (rows || []).forEach((r) => {
+    if (!r.team) return;
+    byTeam[r.team] = byTeam[r.team] || {};
+    const catKey = r.team_category || "";
+    byTeam[r.team][catKey] = byTeam[r.team][catKey] || new Set();
+    byTeam[r.team][catKey].add(r.team_gender || "");
+  });
+
+  const label = current && current.team
+    ? [current.team, current.team_category, current.team_gender].filter(Boolean).join(" — ")
+    : "Choose a team…";
+
+  container.innerHTML = `
+    <button type="button" id="${containerId}-trigger" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); font-size:14.5px; font-weight:600; color:var(--ink); cursor:pointer; text-align:left;">
+      <span>🏀 ${escapeHtml(label)}</span>
+      <span style="color:var(--muted); font-size:12px;">▾</span>
+    </button>
+    <div id="${containerId}-popover" style="display:none; position:relative;">
+      <div style="position:absolute; top:6px; left:0; right:0; background:var(--card); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:40; max-height:280px; overflow-y:auto;">
+        <div id="${containerId}-crumb" style="padding:8px 14px; font-size:12.5px; color:var(--muted); border-bottom:1px solid var(--line); display:none;"></div>
+        <div id="${containerId}-list"></div>
+      </div>
+    </div>`;
+
+  const trigger = document.getElementById(`${containerId}-trigger`);
+  const popover = document.getElementById(`${containerId}-popover`);
+  const crumbEl = document.getElementById(`${containerId}-crumb`);
+  const listEl = document.getElementById(`${containerId}-list`);
+
+  let step = "team"; // "team" -> "category" -> "gender"
+  let pickedTeam = null, pickedCategory = null;
+
+  function renderStep() {
+    if (step === "team") {
+      crumbEl.style.display = "none";
+      listEl.innerHTML = Object.keys(byTeam).sort().map((t) => `<button type="button" class="cascade-option" data-team="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join("")
+        || `<p class="hint" style="padding:12px 14px; margin:0;">No teams yet.</p>`;
+      listEl.querySelectorAll("[data-team]").forEach((btn) => {
+        btn.addEventListener("click", () => { pickedTeam = btn.dataset.team; step = "category"; renderStep(); });
+      });
+    } else if (step === "category") {
+      crumbEl.style.display = "block";
+      crumbEl.innerHTML = `<button type="button" class="cascade-back">← ${escapeHtml(pickedTeam)}</button>`;
+      crumbEl.querySelector(".cascade-back").addEventListener("click", () => { step = "team"; renderStep(); });
+      const cats = Object.keys(byTeam[pickedTeam] || {});
+      listEl.innerHTML = cats.sort().map((c) => `<button type="button" class="cascade-option" data-cat="${escapeHtml(c)}">${escapeHtml(c || "No category")}</button>`).join("");
+      listEl.querySelectorAll("[data-cat]").forEach((btn) => {
+        btn.addEventListener("click", () => { pickedCategory = btn.dataset.cat; step = "gender"; renderStep(); });
+      });
+    } else {
+      crumbEl.style.display = "block";
+      crumbEl.innerHTML = `<button type="button" class="cascade-back">← ${escapeHtml(pickedTeam)} / ${escapeHtml(pickedCategory || "No category")}</button>`;
+      crumbEl.querySelector(".cascade-back").addEventListener("click", () => { step = "category"; renderStep(); });
+      const genders = [...(byTeam[pickedTeam][pickedCategory] || new Set())];
+      listEl.innerHTML = genders.sort().map((g) => `<button type="button" class="cascade-option" data-gender="${escapeHtml(g)}">${escapeHtml(g || "Not set")}</button>`).join("");
+      listEl.querySelectorAll("[data-gender]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          popover.style.display = "none";
+          const team = pickedTeam, category = pickedCategory, gender = btn.dataset.gender;
+          step = "team"; pickedTeam = null; pickedCategory = null;
+          onChange(team, category, gender);
+        });
+      });
+    }
+  }
+
+  trigger.addEventListener("click", () => {
+    const opening = popover.style.display === "none";
+    popover.style.display = opening ? "block" : "none";
+    if (opening) { step = "team"; pickedTeam = null; pickedCategory = null; renderStep(); }
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.composedPath().includes(container)) popover.style.display = "none";
+  });
+}
+
+/**
+ * Fila de temporadas -- pastillas, no es parte del menú en cascada de
+ * arriba porque un mismo equipo/categoría/género puede tener varias
+ * temporadas cargadas al mismo tiempo (la actual y las anteriores).
+ * `seasons` = lista de temporadas que existen de verdad para el
+ * equipo/categoría/género elegido. `onNewSeason` es opcional -- si no
+ * se pasa, no se muestra la tarjeta de "+ Nueva temporada".
+ */
+function renderSeasonPicker(containerId, seasons, currentSeason, onSelect, onNewSeason) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const { current } = guessSeasonOptions();
+  container.innerHTML = "";
+  container.style.cssText = "display:flex; gap:8px; flex-wrap:wrap;";
+  seasons.forEach((s) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "season-pill" + (s === currentSeason ? " active" : "");
+    card.innerHTML = `<strong>${escapeHtml(s)}</strong><span>${s === current ? "Current" : "Past"}</span>`;
+    card.addEventListener("click", () => onSelect(s));
+    container.appendChild(card);
+  });
+  if (onNewSeason) {
+    const addCard = document.createElement("button");
+    addCard.type = "button";
+    addCard.className = "season-pill season-pill-new";
+    addCard.textContent = "+ New season";
+    addCard.addEventListener("click", onNewSeason);
+    container.appendChild(addCard);
+  }
+}
+
 
 /**
  * Popup que se muestra antes de importar un Excel -- pregunta a dónde
@@ -288,8 +419,10 @@ function promptImportTarget(rows, defaults, itemCount) {
     const byTeam = {};
     (rows || []).forEach((r) => {
       if (!r.team) return;
-      byTeam[r.team] = byTeam[r.team] || new Set();
-      byTeam[r.team].add(r.team_category || "");
+      byTeam[r.team] = byTeam[r.team] || {};
+      const catKey = r.team_category || "";
+      byTeam[r.team][catKey] = byTeam[r.team][catKey] || new Set();
+      byTeam[r.team][catKey].add(r.team_gender || "");
     });
     const teamNames = Object.keys(byTeam).sort();
     const { seasons, current } = guessSeasonOptions();
@@ -312,6 +445,11 @@ function promptImportTarget(rows, defaults, itemCount) {
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category</label>
         <select id="import-category-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;"></select>
 
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
+        <select id="import-gender-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+          ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}" ${g === defaults.team_gender ? "selected" : ""}>${g}</option>`).join("")}
+        </select>
+
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Season</label>
         <select id="import-season-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px;">
           ${seasons.map((s) => `<option value="${s}" ${s === (defaults.season || current) ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("")}
@@ -327,12 +465,13 @@ function promptImportTarget(rows, defaults, itemCount) {
     const teamSelect = overlay.querySelector("#import-team-select");
     const teamNewInput = overlay.querySelector("#import-team-new");
     const categorySelect = overlay.querySelector("#import-category-select");
+    const genderSelect = overlay.querySelector("#import-gender-select");
 
     function refreshCategories() {
       const team = teamSelect.value === "__new__" ? null : teamSelect.value;
-      const cats = team && byTeam[team] ? [...byTeam[team]] : [""];
+      const cats = team && byTeam[team] ? Object.keys(byTeam[team]) : [""];
       categorySelect.innerHTML = cats.sort().map((c) => `<option value="${c}" ${c === (defaults.team_category || "") ? "selected" : ""}>${c || "No category"}</option>`).join("")
-        + (cats.every((c) => c !== "__new__") ? '<option value="__typed__">+ Type a category…</option>' : "");
+        + '<option value="__typed__">+ Type a category…</option>';
     }
     refreshCategories();
 
@@ -357,8 +496,9 @@ function promptImportTarget(rows, defaults, itemCount) {
       const team = teamSelect.value === "__new__" ? teamNewInput.value.trim() : teamSelect.value;
       if (!team) { teamNewInput.focus(); return; }
       const team_category = categorySelect.value === "__typed__" ? "" : categorySelect.value;
+      const team_gender = genderSelect.value;
       const season = overlay.querySelector("#import-season-select").value;
-      close({ season, team, team_category });
+      close({ season, team, team_category, team_gender });
     });
   });
 }
@@ -386,8 +526,12 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
         <input id="new-team-name-input" type="text" value="${suggestedName ? suggestedName.replace(/"/g, "&quot;") : ""}" placeholder="e.g. DEL, Chicago Bulls" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category (optional)</label>
-        <select id="new-team-category-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px;">
+        <select id="new-team-category-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
           ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}">${c || "No category"}</option>`).join("")}
+        </select>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
+        <select id="new-team-gender-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px;">
+          ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}">${g}</option>`).join("")}
         </select>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button id="new-team-cancel-btn" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
@@ -412,13 +556,14 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
       const errorEl = overlay.querySelector("#new-team-error");
       if (!team) { errorEl.textContent = "Team name can't be empty."; errorEl.style.display = "block"; nameInput.focus(); return; }
       const teamCategory = overlay.querySelector("#new-team-category-input").value;
+      const teamGender = overlay.querySelector("#new-team-gender-input").value;
       const season = overlay.querySelector("#new-team-season-input").value;
-      const row = { organization_id: organizationId, season, team, team_category: teamCategory || null };
+      const row = { organization_id: organizationId, season, team, team_category: teamCategory || null, team_gender: teamGender };
       const btn = overlay.querySelector("#new-team-create-btn");
       btn.disabled = true; btn.textContent = "Creating…";
-      const { error } = await supabaseClient.from("teams").upsert(row, { onConflict: "organization_id,season,team,team_category" });
+      const { error } = await supabaseClient.from("teams").upsert(row, { onConflict: "organization_id,season,team,team_category,team_gender" });
       if (error) { errorEl.textContent = "Couldn't create that team: " + error.message; errorEl.style.display = "block"; btn.disabled = false; btn.textContent = "Create"; return; }
-      close({ season: row.season, team: row.team, team_category: row.team_category || "" });
+      close({ season: row.season, team: row.team, team_category: row.team_category || "", team_gender: row.team_gender });
     });
   });
 }
