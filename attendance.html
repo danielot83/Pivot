@@ -266,7 +266,7 @@
 
   <div id="attendance-wrap" style="display:none;">
     <div class="toolbar" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-      <button class="btn btn-primary" id="add-player-btn">+ Add player</button>
+      <button class="nav-btn" id="add-player-btn">+ Add player</button>
       <button class="nav-btn" id="add-event-btn">+ Add match / training / event</button>
       <div class="columns-menu" style="position:relative;">
         <button class="nav-btn" id="columns-btn">Columns ▾</button>
@@ -282,6 +282,7 @@
     <div class="attendance-card">
       <table class="attendance-table" id="attendance-table"></table>
     </div>
+    <p id="attendance-cols-hint" class="hint" style="display:none; margin-top:8px;">No matches, trainings, or events for this team yet — add one with the button above and it'll show up as a column here.</p>
     <div class="att-legend">
       <span><span class="dot" style="background:#dcfce7; border:1px solid #86efac;"></span>Present</span>
       <span><span class="dot" style="background:#fef2f2; border:1px solid #fca5a5;"></span>Absent</span>
@@ -532,11 +533,7 @@
   function renderAttendanceTable(players, cols, attendanceByKey) {
     const table = document.getElementById("attendance-table");
     if (players.length === 0) {
-      table.innerHTML = `<tr><td style="padding:20px; color:var(--muted);">No active players for this team yet — add them in Roster.</td></tr>`;
-      return;
-    }
-    if (cols.length === 0) {
-      table.innerHTML = `<tr><td style="padding:20px; color:var(--muted);">No matches, trainings, or events for this team yet.</td></tr>`;
+      table.innerHTML = `<tr><td style="padding:20px; color:var(--muted);">No active players for this team yet — add them above, or in Roster.</td></tr>`;
       return;
     }
 
@@ -568,6 +565,9 @@
     tbody += "</tbody>";
 
     table.innerHTML = thead + tbody;
+
+    const hint = document.getElementById("attendance-cols-hint");
+    if (hint) hint.style.display = cols.length === 0 ? "block" : "none";
 
     table.querySelectorAll(".att-status-btn").forEach((btn) => {
       btn.addEventListener("click", () => cycleAttendance(btn));

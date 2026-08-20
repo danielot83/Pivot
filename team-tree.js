@@ -141,22 +141,23 @@ function renderTeamTreeBar(containerId, rows, activeSeason, activeTeam, onSelect
 }
 
 /**
- * Vista en forma de árbol de carpetas -- Temporada → Equipo →
- * Categoría(s) -- usando <details>/<summary> nativos del navegador
- * (se abren/cierran solos, sin JS extra, y son accesibles de por sí).
- * Pensada para reemplazar la barra de pastillas cuando se quiere ver
- * TODO agrupado por temporada primero, no equipo primero.
+ * Vista en forma de árbol de carpetas -- Equipo → Categoría → Temporada
+ * -- usando <details>/<summary> nativos del navegador (se abren/cierran
+ * solos, sin JS extra, y son accesibles de por sí). El equipo va primero
+ * porque es lo que se mantiene igual entre años -- la categoría y la
+ * temporada son variaciones de ESE equipo, no al revés.
  */
 function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, activeCategory, onSelect, onDelete, onEditCategory, onRename) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  const bySeason = {};
+  const byTeam = {};
   (rows || []).forEach((r) => {
     if (!r.team) return;
-    bySeason[r.season] = bySeason[r.season] || {};
-    bySeason[r.season][r.team] = bySeason[r.season][r.team] || new Set();
-    bySeason[r.season][r.team].add(r.team_category || "");
+    byTeam[r.team] = byTeam[r.team] || {};
+    const catKey = r.team_category || "";
+    byTeam[r.team][catKey] = byTeam[r.team][catKey] || new Set();
+    byTeam[r.team][catKey].add(r.season);
   });
 
   // Botones que solo aparecen en la fila activa (la resaltada) -- editar
@@ -183,60 +184,63 @@ function renderTeamTreeFolders(containerId, rows, activeSeason, activeTeam, acti
     }
   }
 
-  Object.keys(bySeason).sort().reverse().forEach((season) => {
-    const teams = bySeason[season];
-    const seasonHasActive = activeSeason === season;
+  Object.keys(byTeam).sort().forEach((team) => {
+    const cats = byTeam[team];
+    const catKeys = Object.keys(cats);
+    const teamIsActive = activeTeam === team;
 
-    const seasonEl = document.createElement("details");
-    seasonEl.className = "tree-folder tree-folder-season";
-    if (seasonHasActive) seasonEl.open = true;
-    const seasonSummary = document.createElement("summary");
-    seasonSummary.textContent = season;
-    seasonEl.appendChild(seasonSummary);
+    const teamEl = document.createElement("details");
+    teamEl.className = "tree-folder tree-folder-season";
+    if (teamIsActive) teamEl.open = true;
+    const teamSummary = document.createElement("summary");
+    teamSummary.textContent = team;
+    teamEl.appendChild(teamSummary);
 
-    Object.keys(teams).sort().forEach((team) => {
-      const cats = [...teams[team]];
-      const teamIsActive = seasonHasActive && activeTeam === team;
-
-      if (cats.length === 1 && !cats[0]) {
-        // Sin categoría -- el equipo mismo es la hoja, sin una carpeta más adentro.
+    if (catKeys.length === 1 && !catKeys[0]) {
+      // Sin categoría -- las temporadas cuelgan directo del equipo, sin
+      // una carpeta de categoría de más.
+      [...cats[""]].sort().reverse().forEach((season) => {
+        const seasonIsActive = teamIsActive && !activeCategory && activeSeason === season;
         const leaf = document.createElement("div");
-        leaf.className = "tree-folder-leaf-row" + (teamIsActive ? " active-row" : "");
+        leaf.className = "tree-folder-leaf-row" + (seasonIsActive ? " active-row" : "");
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "tree-folder-leaf" + (teamIsActive ? " active" : "");
-        btn.textContent = team;
+        btn.className = "tree-folder-leaf" + (seasonIsActive ? " active" : "");
+        btn.textContent = season;
         btn.addEventListener("click", () => onSelect(season, team, ""));
         leaf.appendChild(btn);
-        if (teamIsActive) appendActiveLeafActions(leaf, season, team, "");
+        if (seasonIsActive) appendActiveLeafActions(leaf, season, team, "");
         if (onDelete) leaf.appendChild(makeDeleteBtn(team, season, "", onDelete));
-        seasonEl.appendChild(leaf);
-      } else {
-        const teamEl = document.createElement("details");
-        teamEl.className = "tree-folder tree-folder-team";
-        if (teamIsActive) teamEl.open = true;
-        const teamSummary = document.createElement("summary");
-        teamSummary.textContent = team;
-        teamEl.appendChild(teamSummary);
-        cats.sort().forEach((cat) => {
+        teamEl.appendChild(leaf);
+      });
+    } else {
+      catKeys.sort().forEach((cat) => {
+        const catIsActive = teamIsActive && (activeCategory || "") === (cat || "");
+        const catEl = document.createElement("details");
+        catEl.className = "tree-folder tree-folder-team";
+        if (catIsActive) catEl.open = true;
+        const catSummary = document.createElement("summary");
+        catSummary.textContent = cat || "No category";
+        catEl.appendChild(catSummary);
+        [...cats[cat]].sort().reverse().forEach((season) => {
+          const seasonIsActive = catIsActive && activeSeason === season;
           const leaf = document.createElement("div");
-          const catIsActive = teamIsActive && (activeCategory || "") === (cat || "");
-          leaf.className = "tree-folder-leaf-row" + (catIsActive ? " active-row" : "");
+          leaf.className = "tree-folder-leaf-row" + (seasonIsActive ? " active-row" : "");
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = "tree-folder-leaf" + (catIsActive ? " active" : "");
-          btn.textContent = cat || "No category";
+          btn.className = "tree-folder-leaf" + (seasonIsActive ? " active" : "");
+          btn.textContent = season;
           btn.addEventListener("click", () => onSelect(season, team, cat));
           leaf.appendChild(btn);
-          if (catIsActive) appendActiveLeafActions(leaf, season, team, cat);
+          if (seasonIsActive) appendActiveLeafActions(leaf, season, team, cat);
           if (onDelete) leaf.appendChild(makeDeleteBtn(team, season, cat, onDelete));
-          teamEl.appendChild(leaf);
+          catEl.appendChild(leaf);
         });
-        seasonEl.appendChild(teamEl);
-      }
-    });
+        teamEl.appendChild(catEl);
+      });
+    }
 
-    container.appendChild(seasonEl);
+    container.appendChild(teamEl);
   });
 }
 
