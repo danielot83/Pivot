@@ -130,9 +130,9 @@
     background: var(--accent-tint); border-radius: 10px 10px 0 0; padding: 18px 22px;
     display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
   }
-  .tsc-selected-info { display: flex; align-items: center; gap: 14px; }
-  .tsc-selected-info .icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; overflow: hidden; }
-  .tsc-selected-info .icon img { width: 100%; height: 100%; object-fit: contain; }
+  .tsc-selected-info { display: flex; align-items: center; gap: 20px; }
+  .tsc-selected-info .icon { width: 160px; height: 160px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; overflow: hidden; background: var(--card); }
+  .tsc-selected-info .icon img, .tsc-selected-info .icon svg { width: 100%; height: 100%; object-fit: contain; }
   .tsc-selected-name { font-weight: 700; font-size: 16px; color: var(--ink); }
   .tsc-selected-sub { font-size: 13px; color: var(--accent-deep); margin-top: 2px; }
   .tsc-chips {
@@ -327,7 +327,7 @@
     <p class="tsc-step-label">3. Team info</p>
     <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
       <div class="tsc-selected-info">
-        <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 20.5 19.5 5.5"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--muted)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
         <div>
           <div class="tsc-selected-name" id="tsc-selected-name"></div>
           <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
@@ -526,6 +526,7 @@
     periodEl.textContent = years.length === 2 ? `Jul ${years[0]} – Jun ${years[1]}` : "—";
 
     const iconEl = document.getElementById("tsc-selected-icon");
+    iconEl.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--muted)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg>`;
     const teamLogoUrl = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/teams/${encodeURIComponent(filterTeam)}.png?t=${Date.now()}`;
     const clubLogoUrl = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
     const teamImg = new Image();

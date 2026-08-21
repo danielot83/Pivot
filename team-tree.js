@@ -530,38 +530,65 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
     const overlay = document.createElement("div");
     overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
     overlay.innerHTML = `
-      <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
+      <div style="background:var(--card); border-radius:12px; max-width:640px; width:100%; padding:24px 26px;">
         <h3 style="margin:0 0 4px; font-size:17px;">New season/team</h3>
-        <p style="margin:0 0 16px; font-size:12.5px; color:var(--muted);">The team name stays the same across years — pick a new season for it later without retyping anything.</p>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Season</label>
-        <select id="new-team-season-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
-          ${seasons.map((s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("")}
-        </select>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
-        <input id="new-team-name-input" type="text" value="${suggestedName ? suggestedName.replace(/"/g, "&quot;") : ""}" placeholder="e.g. DEL, Chicago Bulls" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category (optional)</label>
-        <select id="new-team-category-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
-          ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}">${c || "No category"}</option>`).join("")}
-        </select>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
-        <select id="new-team-gender-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
-          ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}">${g}</option>`).join("")}
-        </select>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
-        <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Handy if this club has more than one team — helps tell them apart at a glance. Leave empty to use the club's own logo.</p>
-        <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Any PNG, JPG or WebP works — we'll crop it to a square and try to remove a plain background automatically. For best results, use a square-ish image with a plain, solid-colored background (a busy photo background won't get removed cleanly). If you'd rather remove the background yourself first, <a href="https://www.remove.bg" target="_blank" rel="noopener" style="color:var(--accent-deep);">remove.bg</a> is a quick free option.</p>
-        <input id="new-team-logo-input" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:18px;" />
-        <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <p style="margin:0 0 18px; font-size:12.5px; color:var(--muted);">The team name stays the same across years — pick a new season for it later without retyping anything.</p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:start;">
+          <div>
+            <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Season *</label>
+            <select id="new-team-season-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+              ${seasons.map((s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("")}
+            </select>
+            <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name *</label>
+            <input id="new-team-name-input" type="text" value="${suggestedName ? suggestedName.replace(/"/g, "&quot;") : ""}" placeholder="e.g. DEL, Chicago Bulls" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
+            <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category *</label>
+            <select id="new-team-category-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; color:#8a8a90;">
+              <option value="__unselected__" disabled selected>Select category…</option>
+              ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}" style="color:var(--ink);">${c || "No category"}</option>`).join("")}
+            </select>
+            <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender *</label>
+            <select id="new-team-gender-input" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:0; font-size:14px; color:#8a8a90;">
+              <option value="__unselected__" disabled selected>Select gender…</option>
+              ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}" style="color:var(--ink);">${g}</option>`).join("")}
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
+            <div id="new-team-logo-preview" style="width:100%; aspect-ratio:1; max-width:180px; border:1px dashed var(--line); border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden; background:var(--paper);">
+              <svg viewBox="0 0 24 24" width="56" height="56" stroke="var(--muted)" fill="none" stroke-width="1.3"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg>
+            </div>
+            <input id="new-team-logo-input" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:10px;" />
+            <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Handy if this club has more than one team — helps tell them apart at a glance. No logo? We'll show a plain ball icon until you add one (or the club's own logo, if it has one).</p>
+            <p style="margin:0; font-size:11.5px; color:var(--muted);">Any PNG, JPG or WebP works — we'll crop it to a square and try to remove a plain background automatically. For best results, use a square-ish image with a plain, solid-colored background (a busy photo background won't get removed cleanly). If you'd rather remove the background yourself first, <a href="https://www.remove.bg" target="_blank" rel="noopener" style="color:var(--accent-deep);">remove.bg</a> is a quick free option.</p>
+          </div>
+        </div>
+        <p id="new-team-error" style="display:none; margin:16px 0 0; font-size:12.5px; color:#991b1b;"></p>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:18px;">
           <button id="new-team-cancel-btn" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
           <button id="new-team-create-btn" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">Create</button>
         </div>
-        <p id="new-team-error" style="display:none; margin:10px 0 0; font-size:12.5px; color:#991b1b;"></p>
       </div>
     `;
     document.body.appendChild(overlay);
     const nameInput = overlay.querySelector("#new-team-name-input");
     nameInput.focus();
     nameInput.select();
+
+    // Los <select> arrancan grises (placeholder) -- en cuanto se elige
+    // algo de verdad, pasan a texto normal para que quede claro que ya
+    // se seleccionó.
+    ["#new-team-category-input", "#new-team-gender-input"].forEach((sel) => {
+      overlay.querySelector(sel).addEventListener("change", (e) => { e.target.style.color = "var(--ink)"; });
+    });
+
+    const logoInput = overlay.querySelector("#new-team-logo-input");
+    const logoPreview = overlay.querySelector("#new-team-logo-preview");
+    logoInput.addEventListener("change", () => {
+      const file = logoInput.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      logoPreview.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain;" />`;
+    });
 
     function close(result) {
       overlay.remove();
@@ -573,13 +600,18 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
       const team = nameInput.value.trim();
       const errorEl = overlay.querySelector("#new-team-error");
       if (!team) { errorEl.textContent = "Team name can't be empty."; errorEl.style.display = "block"; nameInput.focus(); return; }
-      const teamCategory = overlay.querySelector("#new-team-category-input").value;
-      const teamGender = overlay.querySelector("#new-team-gender-input").value;
+      const teamCategoryRaw = overlay.querySelector("#new-team-category-input").value;
+      const teamGenderRaw = overlay.querySelector("#new-team-gender-input").value;
+      if (teamCategoryRaw === "__unselected__") { errorEl.textContent = "Please select a category."; errorEl.style.display = "block"; return; }
+      if (teamGenderRaw === "__unselected__") { errorEl.textContent = "Please select a gender."; errorEl.style.display = "block"; return; }
+      const teamCategory = teamCategoryRaw;
+      const teamGender = teamGenderRaw;
       const season = overlay.querySelector("#new-team-season-input").value;
       const logoFile = overlay.querySelector("#new-team-logo-input").files[0];
       const row = { organization_id: organizationId, season, team, team_category: teamCategory || null, team_gender: teamGender };
       const btn = overlay.querySelector("#new-team-create-btn");
       btn.disabled = true; btn.textContent = "Creating…";
+
       const { error } = await supabaseClient.from("teams").upsert(row, { onConflict: "organization_id,season,team,team_category,team_gender" });
       if (error) { errorEl.textContent = "Couldn't create that team: " + error.message; errorEl.style.display = "block"; btn.disabled = false; btn.textContent = "Create"; return; }
       if (logoFile) {
