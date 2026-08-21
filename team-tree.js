@@ -549,6 +549,7 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
         </select>
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
         <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Handy if this club has more than one team — helps tell them apart at a glance. Leave empty to use the club's own logo.</p>
+        <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Any PNG, JPG or WebP works — we'll crop it to a square and try to remove a plain background automatically. For best results, use a square-ish image with a plain, solid-colored background (a busy photo background won't get removed cleanly). If you'd rather remove the background yourself first, <a href="https://www.remove.bg" target="_blank" rel="noopener" style="color:var(--accent-deep);">remove.bg</a> is a quick free option.</p>
         <input id="new-team-logo-input" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:18px;" />
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button id="new-team-cancel-btn" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
