@@ -568,9 +568,10 @@
           ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}" ${g === (oldGender || "") ? "selected" : ""}>${g}</option>`).join("")}
         </select>
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
-        <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Leave empty to keep the current one (or the club's logo, if this team never had its own).</p>
+        <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Leave empty to keep the current one. No logo of its own? Shows a plain ball icon.</p>
         <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Any PNG, JPG or WebP works — we'll crop it to a square and try to remove a plain background automatically. For best results, use a square-ish image with a plain, solid-colored background (a busy photo background won't get removed cleanly). If you'd rather remove the background yourself first, <a href="https://www.remove.bg" target="_blank" rel="noopener" style="color:var(--accent-deep);">remove.bg</a> is a quick free option.</p>
-        <input id="edit-team-logo" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:18px;" />
+        <input id="edit-team-logo" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:8px;" />
+        <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); margin-bottom:18px; cursor:pointer;"><input type="checkbox" id="edit-team-logo-remove" /> Remove this team's logo (go back to the plain ball icon)</label>
         <p id="edit-team-error" style="display:none; margin:0 0 10px; font-size:12.5px; color:#991b1b;"></p>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button id="edit-team-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
@@ -589,6 +590,7 @@
       const newCategory = document.getElementById("edit-team-category").value;
       const newGender = document.getElementById("edit-team-gender").value;
       const logoFile = document.getElementById("edit-team-logo").files[0];
+      const removeLogo = document.getElementById("edit-team-logo-remove").checked;
       const saveBtn = document.getElementById("edit-team-save");
       saveBtn.disabled = true; saveBtn.textContent = "Saving…";
       try {
@@ -614,7 +616,9 @@
           await supabaseClient.from("events").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
           currentTeam = newName;
         }
-        if (logoFile) {
+        if (removeLogo) {
+          await supabaseClient.storage.from("logos").remove([`${currentOrgId}/teams/${encodeURIComponent(currentTeam)}.png`]);
+        } else if (logoFile) {
           if (logoFile.size > 8 * 1024 * 1024) throw new Error("That image is over 8 MB — pick a smaller one.");
           const blob = await fileToSquareLogoBlob(logoFile, 400);
           const { error: logoErr } = await supabaseClient.storage.from("logos").upload(`${currentOrgId}/teams/${encodeURIComponent(currentTeam)}.png`, blob, { upsert: true, contentType: "image/webp" });
