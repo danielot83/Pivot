@@ -584,7 +584,7 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
       if (logoFile) {
         try {
           if (logoFile.size > 8 * 1024 * 1024) throw new Error("That image is over 8 MB — pick a smaller one.");
-          const blob = await fileToSquareLogoBlob(logoFile, 300);
+          const blob = await fileToSquareLogoBlob(logoFile, 400);
           await supabaseClient.storage.from("logos").upload(`${organizationId}/teams/${encodeURIComponent(team)}.png`, blob, { upsert: true, contentType: "image/webp" });
         } catch (e) { /* si el logo falla, el equipo ya se creó igual -- no es motivo para trabar todo */ }
       }
@@ -606,7 +606,7 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
  * Content-Type, no en el nombre del archivo.
  */
 function fileToSquareLogoBlob(file, maxSize) {
-  maxSize = maxSize || 300;
+  maxSize = maxSize || 400;
   return new Promise((resolve, reject) => {
     const img = new Image();
     const reader = new FileReader();

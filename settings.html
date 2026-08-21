@@ -743,7 +743,7 @@
   // y a diferencia de JPG sigue soportando fondo transparente si la
   // imagen original lo tenía).
   function fileToSquareLogoBlob(file, maxSize) {
-    maxSize = maxSize || 300;
+    maxSize = maxSize || 400;
     return new Promise((resolve, reject) => {
       const img = new Image();
       const reader = new FileReader();
@@ -816,7 +816,7 @@
       return;
     }
     try {
-      pendingBlob = await fileToSquareLogoBlob(file, 300);
+      pendingBlob = await fileToSquareLogoBlob(file, 400);
       const url = URL.createObjectURL(pendingBlob);
       els.logoPreview.innerHTML = `<img src="${url}" />`;
       els.logoSaveBtn.disabled = false;

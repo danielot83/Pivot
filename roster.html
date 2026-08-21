@@ -394,8 +394,8 @@
           </div>
         </div>
         <div style="display:flex; gap:6px;">
-          <button class="tree-folder-leaf-action" id="tsc-rename-btn">✎ Rename</button>
-          <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit category</button>
+          <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit</button>
+          <input type="file" id="tsc-logo-input" accept="image/png,image/jpeg,image/webp" style="display:none" />
           <button class="team-pill-del" id="tsc-delete-btn" title="Delete this team/season"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
         </div>
       </div>
@@ -751,8 +751,98 @@
     teamImg.src = teamLogoUrl;
   }
 
-  document.getElementById("tsc-rename-btn").addEventListener("click", () => renameTeam(currentTeam));
-  document.getElementById("tsc-edit-btn").addEventListener("click", () => editTeamCategory(currentSeason, currentTeam, currentTeamCategory));
+  // -----------------------------------------------------------------------
+  // Un solo botón "✎ Edit" -- nombre, categoría, género y logo, todo en
+  // el mismo cuadro, en vez de tres botones aparte que se apretaban en
+  // la fila y no se veían bien.
+  // -----------------------------------------------------------------------
+  function openEditTeamDialog() {
+    const team = currentTeam, season = currentSeason, oldCategory = currentTeamCategory, oldGender = currentTeamGender;
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
+        <h3 style="margin:0 0 16px; font-size:17px;">Edit team</h3>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
+        <input id="edit-team-name" type="text" value="${escapeHtml(team)}" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category</label>
+        <select id="edit-team-category" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+          ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}" ${c === (oldCategory || "") ? "selected" : ""}>${c || "No category"}</option>`).join("")}
+        </select>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
+        <select id="edit-team-gender" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+          ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}" ${g === (oldGender || "") ? "selected" : ""}>${g}</option>`).join("")}
+        </select>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
+        <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Leave empty to keep the current one (or the club's logo, if this team never had its own).</p>
+        <input id="edit-team-logo" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:18px;" />
+        <p id="edit-team-error" style="display:none; margin:0 0 10px; font-size:12.5px; color:#991b1b;"></p>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button id="edit-team-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
+          <button id="edit-team-save" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    document.getElementById("edit-team-cancel").addEventListener("click", close);
+
+    document.getElementById("edit-team-save").addEventListener("click", async () => {
+      const errorEl = document.getElementById("edit-team-error");
+      const newName = document.getElementById("edit-team-name").value.trim();
+      if (!newName) { errorEl.textContent = "Team name can't be empty."; errorEl.style.display = "block"; return; }
+      const newCategory = document.getElementById("edit-team-category").value;
+      const newGender = document.getElementById("edit-team-gender").value;
+      const logoFile = document.getElementById("edit-team-logo").files[0];
+      const saveBtn = document.getElementById("edit-team-save");
+      saveBtn.disabled = true; saveBtn.textContent = "Saving…";
+      try {
+        // Categoría/género -- solo para esta temporada+equipo puntual (lo mismo que hacía antes "Edit category").
+        if (newCategory !== (oldCategory || "") || newGender !== (oldGender || "")) {
+          await filterByGender(filterByCategory(
+            supabaseClient.from("players").update({ team_category: newCategory || null, team_gender: newGender || null })
+              .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+            oldCategory
+          ), oldGender);
+          await filterByGender(filterByCategory(
+            supabaseClient.from("teams").update({ team_category: newCategory || null, team_gender: newGender || null })
+              .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+            oldCategory
+          ), oldGender);
+          currentTeamCategory = newCategory; currentTeamGender = newGender;
+        }
+        // Nombre -- en todos lados, todas las temporadas/categorías, porque el nombre de equipo se mantiene igual entre años.
+        if (newName !== team) {
+          await supabaseClient.from("players").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("teams").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("matches").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("trainings").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("plays").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("events").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          currentTeam = newName;
+        }
+        // Logo -- solo si se eligió un archivo nuevo.
+        if (logoFile) {
+          if (logoFile.size > 8 * 1024 * 1024) throw new Error("That image is over 8 MB — pick a smaller one.");
+          const blob = await fileToSquareLogoBlob(logoFile, 400);
+          const { error: logoErr } = await supabaseClient.storage.from("logos").upload(`${currentOrgId}/teams/${encodeURIComponent(currentTeam)}.png`, blob, { upsert: true, contentType: "image/webp" });
+          if (logoErr) throw logoErr;
+        }
+        try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season: currentSeason, team: currentTeam, category: currentTeamCategory || "", gender: currentTeamGender || "" })); } catch (e) { /* pas grave */ }
+        close();
+        renderCurrentSelection();
+        await loadTree();
+        await loadPlayers();
+        showMessage("Team updated.", "success");
+      } catch (err) {
+        errorEl.textContent = err.message || "Couldn't save those changes.";
+        errorEl.style.display = "block";
+        saveBtn.disabled = false; saveBtn.textContent = "Save";
+      }
+    });
+  }
+
+  document.getElementById("tsc-edit-btn").addEventListener("click", openEditTeamDialog);
   document.getElementById("tsc-delete-btn").addEventListener("click", () => deleteTeam(currentSeason, currentTeam, currentTeamCategory));
 
   async function deleteTeam(season, team, category) {
