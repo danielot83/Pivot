@@ -554,8 +554,8 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
           </div>
           <div>
             <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
-            <div id="new-team-logo-preview" style="width:100%; aspect-ratio:1; max-width:180px; border:1px dashed var(--line); border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden; background:var(--paper);">
-              <svg viewBox="0 0 24 24" width="56" height="56" stroke="var(--muted)" fill="none" stroke-width="1.3"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg>
+            <div id="new-team-logo-preview" style="width:100%; aspect-ratio:1; max-width:180px; border:1px dashed var(--accent); border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden; background:var(--accent-tint);">
+              <svg viewBox="0 0 24 24" width="56" height="56" stroke="var(--accent)" fill="none" stroke-width="1.3"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg>
             </div>
             <input id="new-team-logo-input" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:10px;" />
             <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Handy if this club has more than one team — helps tell them apart at a glance. No logo? We'll show a plain ball icon until you add one (or the club's own logo, if it has one).</p>

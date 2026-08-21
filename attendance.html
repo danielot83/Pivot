@@ -325,7 +325,7 @@
     <p class="tsc-step-label">3. Team info</p>
     <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
       <div class="tsc-selected-info">
-        <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--muted)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
+        <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
         <div>
           <div class="tsc-selected-name" id="tsc-selected-name"></div>
           <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
@@ -524,7 +524,7 @@
     periodEl.textContent = years.length === 2 ? `Jul ${years[0]} – Jun ${years[1]}` : "—";
 
     const iconEl = document.getElementById("tsc-selected-icon");
-    iconEl.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--muted)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg>`;
+    iconEl.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg>`;
     const teamLogoUrl = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/teams/${encodeURIComponent(filterTeam)}.png?t=${Date.now()}`;
     const clubLogoUrl = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
     const teamImg = new Image();
