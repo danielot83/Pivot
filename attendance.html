@@ -597,7 +597,8 @@
           filterTeam = newName;
         }
         if (removeLogo) {
-          await supabaseClient.storage.from("logos").remove([`${currentOrgId}/teams/${encodeURIComponent(filterTeam)}.png`]);
+          const { error: removeErr } = await supabaseClient.storage.from("logos").remove([`${currentOrgId}/teams/${encodeURIComponent(filterTeam)}.png`]);
+          if (removeErr) throw removeErr;
         } else if (logoFile) {
           if (logoFile.size > 8 * 1024 * 1024) throw new Error("That image is over 8 MB — pick a smaller one.");
           const blob = await fileToSquareLogoBlob(logoFile, 400);
