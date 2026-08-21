@@ -423,6 +423,7 @@
   let canValidateAssociations = false;
   let isPlatformController = false;
   let filterSeason = null, filterTeam = null, filterTeamCategory = "", filterTeamGender = "";
+  let logoRequestToken = 0; // se incrementa cada vez que se pide un logo -- para descartar respuestas viejas que llegan tarde
   let lastTreeRows = [];
 
   const els = {
@@ -520,9 +521,14 @@
 
     const iconEl = document.getElementById("tsc-selected-icon");
     iconEl.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg>`;
+    // Ficha de "esta llamada es la más reciente" -- si cambiás de
+    // equipo rápido, una respuesta vieja que llega tarde ya no puede
+    // pisar lo que se ve ahora.
+    logoRequestToken++;
+    const myLogoToken = logoRequestToken;
     const teamLogoUrl = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/teams/${encodeURIComponent(filterTeam)}.png?t=${Date.now()}`;
     const teamImg = new Image();
-    teamImg.onload = () => { iconEl.innerHTML = `<img src="${teamLogoUrl}" alt="" />`; };
+    teamImg.onload = () => { if (myLogoToken === logoRequestToken) iconEl.innerHTML = `<img src="${teamLogoUrl}" alt="" />`; };
     teamImg.src = teamLogoUrl;
   }
 
