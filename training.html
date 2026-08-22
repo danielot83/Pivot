@@ -21,7 +21,6 @@
   h1, h2, h3, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
 
-  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
   .logotype-img { height: 28px; width: auto; display: block; }
   .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
@@ -185,6 +184,60 @@
     font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
     justify-content: center; padding: 0 3px;
   }
+
+  /* ---------------------------------------------------------------------
+     Teams & Seasons -- misma tarjeta que en Roster/Attendance/Match day,
+     agregada abajo del todo por ahora (este módulo se va a reorganizar
+     más adelante, esto es para que ya quede interconectado con las otras
+     páginas via localStorage).
+     --------------------------------------------------------------------- */
+  .team-bar-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
+  .team-bar-card h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 12px; }
+  .team-bar-card .tree-new {
+    font-size: 14px; color: var(--accent-deep); background: none; border: 1px dashed var(--accent-deep); border-radius: 100px;
+    cursor: pointer; padding: 7px 14px; text-align: left; width: auto;
+  }
+  .tsc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .tsc-header-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-deep); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .tsc-header-title { font-size: 16px; font-weight: 700; margin: 0; }
+  .tsc-header-sub { font-size: 13px; color: var(--muted); margin: 1px 0 0; }
+  .tsc-step-label { font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 0 0 10px; }
+  .cascade-option {
+    display: block; width: 100%; text-align: left; background: none; border: none; padding: 9px 14px;
+    font-size: 14px; color: var(--ink); cursor: pointer; border-bottom: 1px solid var(--line);
+  }
+  .cascade-option:last-child { border-bottom: none; }
+  .cascade-option:hover { background: var(--paper); }
+  .cascade-back { background: none; border: none; color: var(--accent-deep); font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 0; }
+  .season-pill {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; cursor: pointer;
+    text-align: left; min-width: 110px;
+  }
+  .season-pill strong { display: block; font-size: 14px; }
+  .season-pill span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .season-pill.active { background: var(--accent-tint); border-color: var(--accent); }
+  .season-pill.active span { color: var(--accent-deep); font-weight: 600; }
+  .season-pill-new { color: var(--accent-deep); font-weight: 600; border-style: dashed; display: flex; align-items: center; justify-content: center; }
+  .tsc-selected-card {
+    background: var(--accent-tint); border-radius: 10px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .tsc-selected-card > .icon { width: 96px; height: 96px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; overflow: hidden; background: var(--card); }
+  .tsc-selected-card > .icon img, .tsc-selected-card > .icon svg { width: 100%; height: 100%; object-fit: contain; }
+  .tsc-selected-name { font-weight: 700; font-size: 16px; color: var(--ink); }
+  .tsc-selected-sub { font-size: 13px; color: var(--accent-deep); margin-top: 2px; margin-bottom: 10px; }
+  .tsc-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 16px; }
+  .tsc-chip { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+  .tsc-chip .icon { color: var(--accent-deep); flex-shrink: 0; }
+  .tsc-chip strong { display: block; font-size: 14.5px; }
+  .tsc-chip span { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .tsc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 700px) { .tsc-cols { grid-template-columns: 1fr; } }
+  .tree-folder-leaf-action {
+    display: inline-flex; align-items: center; gap: 4px; background: none; border: none; color: var(--accent-deep);
+    font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 5px 8px; border-radius: 6px; flex-shrink: 0;
+  }
+  .tree-folder-leaf-action:hover { background: rgba(0,0,0,0.06); }
 </style>
 <!-- Matomo -->
 <script>
@@ -267,10 +320,6 @@
 
 <div class="layout">
   <div>
-    <div class="side-card">
-      <h2>Seasons &amp; teams</h2>
-      <div id="tree"></div>
-    </div>
     <div class="side-card" id="example-data-card"></div>
     <div class="side-card">
       <h2>Notebooks</h2>
@@ -430,6 +479,50 @@
   </div>
 </div>
 
+<div class="wrap" style="max-width:1080px; margin:0 auto; padding:0 32px;">
+  <div class="team-bar-card">
+    <div class="tsc-header">
+      <div class="tsc-header-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+      <div>
+        <p class="tsc-header-title">Teams &amp; Seasons</p>
+        <p class="tsc-header-sub">Manage your teams and seasons.</p>
+      </div>
+      <div style="flex:1;"></div>
+      <button class="tree-new" id="new-team-btn" style="margin-bottom:0;">+ New season/team</button>
+    </div>
+
+    <div class="tsc-cols">
+      <div>
+        <p class="tsc-step-label">1. Select team</p>
+        <div id="team-gender-category-select" style="position:relative;"></div>
+      </div>
+      <div>
+        <p class="tsc-step-label">2. Select season</p>
+        <div id="season-picker"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;" id="tsc-step3-wrap">
+    <p class="tsc-step-label">3. Team info</p>
+    <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
+      <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
+      <div style="flex:1; min-width:0;">
+        <div class="tsc-selected-name" id="tsc-selected-name"></div>
+        <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
+        <div class="tsc-chips" id="tsc-chips">
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 5 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3 3 0 0 0-2.2-2.9"/><path d="M14.5 4.9a3.2 3.2 0 0 1 0 6.2"/></svg></span><div><strong id="tsc-chip-players">0</strong><span>Players</span></div></div>
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.3 4 4.8"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.3-4 4.8"/></svg></span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg></span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
+      </div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit</button>
+        <button class="team-pill-del" id="tsc-delete-btn" title="Delete this team/season"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
 
 <footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; font-size:14.5px; color:var(--muted); max-width:1080px; margin-left:auto; margin-right:auto;">
   <span>© 2026 PlayPivot. All rights reserved.</span>
@@ -452,6 +545,9 @@
 
   function filterByCategory(query, category) {
     return category ? query.eq("team_category", category) : query.is("team_category", null);
+  }
+  function filterByGender(query, gender) {
+    return gender ? query.eq("team_gender", gender) : query.is("team_gender", null);
   }
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -502,7 +598,8 @@
   let myRole = null;
   let isPlatformController = false;
   const canDelete = () => myRole === "admin" || myRole === "coach";
-  let currentSeason = null, currentTeam = null, currentTeamCategory = "";
+  let currentSeason = null, currentTeam = null, currentTeamCategory = "", currentTeamGender = "";
+  let logoRequestToken = 0;
   let currentTrainingId = null;
   let currentTranslationGroupId = null;
   let teamPlayers = [];
@@ -837,39 +934,196 @@
   });
 
   async function loadTree() {
-    const { data, error } = await supabaseClient.from("players").select("season, team, team_category").eq("organization_id", currentOrgId);
+    const { data, error } = await supabaseClient.from("players").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
     if (error) {
       showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error");
       console.error("loadTree error:", error);
       return;
     }
-    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category").eq("organization_id", currentOrgId);
+    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
     const rows = mergeTeamRows(data, teamRows);
 
-    els.tree.innerHTML = "";
-    const newBtn = document.createElement("button");
-    newBtn.className = "tree-new";
-    newBtn.textContent = "+ New season/team";
-    newBtn.addEventListener("click", async () => {
+    // Igual que en Roster: si todavía no hay nada elegido, se recupera el
+    // último equipo usado en este club (compartido entre Roster/Attendance/
+    // Match day/etc. via la misma key de localStorage), o si no hay nada
+    // guardado, el primero disponible.
+    if (!currentSeason && !currentTeam && rows.length > 0) {
+      let restored = null;
+      try {
+        const saved = JSON.parse(localStorage.getItem(`pivot-roster-last-${currentOrgId}`) || "null");
+        if (saved && rows.some((r) => r.season === saved.season && r.team === saved.team && (r.team_category || "") === (saved.category || "") && (r.team_gender || "") === (saved.gender || ""))) restored = { season: saved.season, team: saved.team, team_category: saved.category || "", team_gender: saved.gender || "" };
+      } catch (e) { /* localStorage ilegible -- no pasa nada, se cae al primero de la lista */ }
+      const fallback = restored || [...rows].sort((a, b) => a.team.localeCompare(b.team) || b.season.localeCompare(a.season) || (a.team_category || "").localeCompare(b.team_category || ""))[0];
+      currentSeason = fallback.season;
+      currentTeam = fallback.team;
+      currentTeamCategory = fallback.team_category || "";
+      currentTeamGender = fallback.team_gender || "";
+    }
+
+    document.getElementById("new-team-btn").onclick = async () => {
       const created = await promptNewTeam(supabaseClient, currentOrgId, els.orgName.textContent);
       if (!created) return;
       currentTeamCategory = created.team_category || "";
+      currentTeamGender = created.team_gender || "";
       selectSeasonTeam(created.season, created.team);
-    });
-    els.tree.appendChild(newBtn);
+    };
 
-    if (rows.length === 0) {
-      const hint = document.createElement("p");
-      hint.className = "hint";
-      hint.style.cssText = "margin:8px 0 0; font-size:12.5px; color:var(--muted);";
-      hint.textContent = "No teams yet — add a player in Roster, or click \"+ New season/team\" above.";
-      els.tree.appendChild(hint);
-      return;
-    }
-    renderTeamTreeFolders("tree", rows, currentSeason, currentTeam, currentTeamCategory, (season, team, cat) => {
-      currentTeamCategory = cat || "";
-      selectSeasonTeam(season, team);
+    renderTeamGenderCategoryDropdown("team-gender-category-select", rows, { team: currentTeam, team_category: currentTeamCategory, team_gender: currentTeamGender }, (team, category, gender) => {
+      currentTeam = team; currentTeamCategory = category || ""; currentTeamGender = gender || "";
+      const seasonsForThis = [...new Set(rows.filter((r) => r.team === team && (r.team_category || "") === (category || "") && (r.team_gender || "") === (gender || "")).map((r) => r.season))].sort().reverse();
+      selectSeasonTeam(seasonsForThis.includes(currentSeason) ? currentSeason : seasonsForThis[0], team);
     });
+
+    const seasonsForCurrent = currentTeam
+      ? [...new Set(rows.filter((r) => r.team === currentTeam && (r.team_category || "") === (currentTeamCategory || "") && (r.team_gender || "") === (currentTeamGender || "")).map((r) => r.season))].sort().reverse()
+      : [];
+    renderSeasonPicker("season-picker", seasonsForCurrent, currentSeason, (season) => selectSeasonTeam(season, currentTeam), currentTeam ? async () => {
+      const created = await promptNewTeam(supabaseClient, currentOrgId, currentTeam);
+      if (!created) return;
+      currentTeamCategory = created.team_category || "";
+      currentTeamGender = created.team_gender || "";
+      selectSeasonTeam(created.season, created.team);
+    } : null);
+
+    updateSelectedSummaryCard();
+  }
+
+  function updateSelectedSummaryCard() {
+    const card = document.getElementById("tsc-selected-card");
+    const chips = document.getElementById("tsc-chips");
+    const wrap = document.getElementById("tsc-step3-wrap");
+    if (!currentTeam) { wrap.style.display = "none"; card.style.display = "none"; chips.style.display = "none"; return; }
+    wrap.style.display = "block"; card.style.display = "flex"; chips.style.display = "flex";
+    document.getElementById("tsc-selected-name").textContent = currentTeam;
+    document.getElementById("tsc-selected-sub").textContent = `Season ${currentSeason}`;
+    document.getElementById("tsc-chip-category").textContent = currentTeamCategory || "—";
+    document.getElementById("tsc-chip-gender").textContent = currentTeamGender || "—";
+    const playersChip = document.getElementById("tsc-chip-players");
+    if (playersChip) playersChip.textContent = teamPlayers.length;
+
+    const BALL_ICON_HTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg>`;
+    const iconEl = document.getElementById("tsc-selected-icon");
+    iconEl.innerHTML = BALL_ICON_HTML;
+    logoRequestToken++;
+    const myLogoToken = logoRequestToken;
+    const teamLogoUrl = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/teams/${encodeURIComponent(currentTeam)}.png?t=${Date.now()}`;
+    const teamImg = new Image();
+    teamImg.onload = () => { if (myLogoToken === logoRequestToken) iconEl.innerHTML = `<img src="${teamLogoUrl}" alt="" />`; };
+    teamImg.src = teamLogoUrl;
+  }
+
+  function openEditTeamDialog() {
+    const team = currentTeam, season = currentSeason, oldCategory = currentTeamCategory, oldGender = currentTeamGender;
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
+        <h3 style="margin:0 0 16px; font-size:17px;">Edit team</h3>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
+        <input id="edit-team-name" type="text" value="${escapeHtml(team)}" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category</label>
+        <select id="edit-team-category" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+          ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}" ${c === (oldCategory || "") ? "selected" : ""}>${c || "No category"}</option>`).join("")}
+        </select>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
+        <select id="edit-team-gender" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+          ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}" ${g === (oldGender || "") ? "selected" : ""}>${g}</option>`).join("")}
+        </select>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
+        <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Leave empty to keep the current one. No logo of its own? Shows a plain ball icon.</p>
+        <input id="edit-team-logo" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:18px;" />
+        <p id="edit-team-error" style="display:none; margin:0 0 10px; font-size:12.5px; color:#991b1b;"></p>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button id="edit-team-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
+          <button id="edit-team-save" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    document.getElementById("edit-team-cancel").addEventListener("click", close);
+
+    document.getElementById("edit-team-save").addEventListener("click", async () => {
+      const errorEl = document.getElementById("edit-team-error");
+      const newName = document.getElementById("edit-team-name").value.trim();
+      if (!newName) { errorEl.textContent = "Team name can't be empty."; errorEl.style.display = "block"; return; }
+      const newCategory = document.getElementById("edit-team-category").value;
+      const newGender = document.getElementById("edit-team-gender").value;
+      const logoFile = document.getElementById("edit-team-logo").files[0];
+      const saveBtn = document.getElementById("edit-team-save");
+      saveBtn.disabled = true; saveBtn.textContent = "Saving…";
+      try {
+        if (newCategory !== (oldCategory || "") || newGender !== (oldGender || "")) {
+          await filterByGender(filterByCategory(
+            supabaseClient.from("players").update({ team_category: newCategory || null, team_gender: newGender || null })
+              .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+            oldCategory
+          ), oldGender);
+          await filterByGender(filterByCategory(
+            supabaseClient.from("teams").update({ team_category: newCategory || null, team_gender: newGender || null })
+              .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+            oldCategory
+          ), oldGender);
+          currentTeamCategory = newCategory; currentTeamGender = newGender;
+        }
+        if (newName !== team) {
+          await supabaseClient.from("players").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("teams").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("matches").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("trainings").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("plays").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("events").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          currentTeam = newName;
+        }
+        if (logoFile) {
+          if (logoFile.size > 8 * 1024 * 1024) throw new Error("That image is over 8 MB — pick a smaller one.");
+          const blob = await fileToSquareLogoBlob(logoFile, 400);
+          const { error: logoErr } = await supabaseClient.storage.from("logos").upload(`${currentOrgId}/teams/${encodeURIComponent(currentTeam)}.png`, blob, { upsert: true, contentType: "image/webp" });
+          if (logoErr) throw logoErr;
+        }
+        try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season: currentSeason, team: currentTeam, category: currentTeamCategory || "", gender: currentTeamGender || "" })); } catch (e) { /* no pasa nada */ }
+        close();
+        await loadTree();
+        await loadTeamPlayers();
+        await loadTrainingsList();
+        showMessage("Team updated.", "success");
+      } catch (err) {
+        errorEl.textContent = err.message || "Couldn't save those changes.";
+        errorEl.style.display = "block";
+        saveBtn.disabled = false; saveBtn.textContent = "Save";
+      }
+    });
+  }
+
+  document.getElementById("tsc-edit-btn").addEventListener("click", openEditTeamDialog);
+  document.getElementById("tsc-delete-btn").addEventListener("click", () => deleteTeamSeason(currentSeason, currentTeam, currentTeamCategory));
+
+  async function deleteTeamSeason(season, team, category) {
+    const gender = currentTeamGender;
+    if (!confirm(`Remove "${team}"${category ? " (" + category + ")" : ""}${gender ? " " + gender : ""} (${season}) and all its players? This can't be undone.`)) return;
+    const { error } = await filterByGender(filterByCategory(
+      supabaseClient.from("players").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      category
+    ), gender);
+    if (error) { showMessage(error.message, "error"); return; }
+    await filterByGender(filterByCategory(
+      supabaseClient.from("teams").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      category
+    ), gender);
+
+    const { data: stillExists } = await supabaseClient.from("players").select("id").eq("organization_id", currentOrgId).eq("team", team).limit(1);
+    const { data: stillExistsTeams } = await supabaseClient.from("teams").select("season").eq("organization_id", currentOrgId).eq("team", team).limit(1);
+    if ((!stillExists || stillExists.length === 0) && (!stillExistsTeams || stillExistsTeams.length === 0)) {
+      try { await resetTeamLogoToBall(supabaseClient, currentOrgId, team); } catch (e) { /* no bloquea el borrado del equipo */ }
+    }
+
+    if (season === currentSeason && team === currentTeam && (category || "") === (currentTeamCategory || "")) {
+      currentSeason = null; currentTeam = null; currentTeamCategory = ""; currentTeamGender = "";
+      els.trainingArea.style.display = "none";
+      els.currentSelection.textContent = "Pick a season/team above.";
+    }
+    showMessage(`"${team}"${category ? " (" + category + ")" : ""} (${season}) removed.`, "success");
+    await loadTree();
   }
 
   async function loadExampleTeam(key) {
@@ -909,7 +1163,8 @@
 
   async function selectSeasonTeam(season, team) {
     currentSeason = season; currentTeam = team;
-    els.currentSelection.textContent = currentTeamCategory ? `${team} (${currentTeamCategory}) — ${season}` : `${team} — ${season}`;
+    els.currentSelection.textContent = `${team} — ${season}`;
+    try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team, category: currentTeamCategory || "", gender: currentTeamGender || "" })); } catch (e) { /* no pasa nada si el storage está lleno/bloqueado */ }
     els.trainingArea.style.display = "none";
     document.getElementById("notebook-editor").style.display = "none";
     currentTrainingId = null;
@@ -919,26 +1174,28 @@
   }
 
   async function loadTeamPlayers() {
-    const { data } = await filterByCategory(
+    const { data } = await filterByGender(filterByCategory(
       supabaseClient
         .from("players").select("id, first_name, last_name")
         .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
         .eq("active", true),
       currentTeamCategory
-    ).order("last_name");
+    ), currentTeamGender).order("last_name");
     teamPlayers = data || [];
+    const playersChip = document.getElementById("tsc-chip-players");
+    if (playersChip) playersChip.textContent = teamPlayers.length;
   }
 
   let allTrainingsCache = [];
 
   async function loadTrainingsList() {
     const { data, error } = await supabaseClient
-      .from("trainings").select("id, date, title, visibility, organization_id, season, team, number, team_category")
+      .from("trainings").select("id, date, title, visibility, organization_id, season, team, number, team_category, team_gender")
       .order("date", { ascending: false });
     els.trainingsList.innerHTML = "";
     if (error) { console.error(error); return; }
     allTrainingsCache = data || [];
-    const mine = (data || []).filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam && (t.team_category || "") === (currentTeamCategory || ""));
+    const mine = (data || []).filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam && (t.team_category || "") === (currentTeamCategory || "") && (t.team_gender || "") === (currentTeamGender || ""));
     const shared = (data || []).filter((t) => t.organization_id !== currentOrgId);
 
     mine.forEach((t) => {
@@ -1177,7 +1434,7 @@
   async function saveTraining() {
     if (!currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
     const payload = {
-      organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null,
+      organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null, team_gender: currentTeamGender || null,
       date: els.date.value, title: els.title.value.trim() || null,
       number: els.number.value ? parseInt(els.number.value, 10) : nextSessionNumber(),
       category: els.category.value || null,
@@ -1517,7 +1774,7 @@
   // -----------------------------------------------------------------------
   async function exportWholeBook() {
     if (!currentTeam) { showMessage("Pick a season/team on the left first.", "error"); return; }
-    const mine = allTrainingsCache.filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam);
+    const mine = allTrainingsCache.filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam && (t.team_category || "") === (currentTeamCategory || "") && (t.team_gender || "") === (currentTeamGender || ""));
     if (mine.length === 0) { showMessage("No sessions to export for this team yet.", "error"); return; }
 
     const { jsPDF } = window.jspdf;
