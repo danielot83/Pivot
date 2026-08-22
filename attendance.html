@@ -127,16 +127,15 @@
   .season-pill.active span { color: var(--accent-deep); font-weight: 600; }
   .season-pill-new { color: var(--accent-deep); font-weight: 600; border-style: dashed; display: flex; align-items: center; justify-content: center; }
   .tsc-selected-card {
-    background: var(--accent-tint); border-radius: 10px; padding: 12px 16px;
-    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    background: var(--accent-tint); border-radius: 10px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   }
-  .tsc-selected-info { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-  .tsc-selected-info .icon { width: 68px; height: 68px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; overflow: hidden; background: var(--card); }
-  .tsc-selected-info .icon img, .tsc-selected-info .icon svg { width: 100%; height: 100%; object-fit: contain; }
+  .tsc-selected-card > .icon { width: 96px; height: 96px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; overflow: hidden; background: var(--card); }
+  .tsc-selected-card > .icon img, .tsc-selected-card > .icon svg { width: 100%; height: 100%; object-fit: contain; }
   .tsc-selected-name { font-weight: 700; font-size: 16px; color: var(--ink); }
-  .tsc-selected-sub { font-size: 13px; color: var(--accent-deep); margin-top: 2px; }
+  .tsc-selected-sub { font-size: 13px; color: var(--accent-deep); margin-top: 2px; margin-bottom: 10px; }
   .tsc-chips {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 16px; flex: 1;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 16px;
   }
   .tsc-chip { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
   .tsc-chip .icon { color: var(--accent-deep); flex-shrink: 0; }
@@ -323,21 +322,18 @@
     <div style="margin-top:24px;" id="tsc-step3-wrap">
     <p class="tsc-step-label">3. Team info</p>
     <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
-      <div class="tsc-selected-info">
-        <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
-        <div>
-          <div class="tsc-selected-name" id="tsc-selected-name"></div>
-          <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
-        </div>
-      </div>
-      <div class="tsc-chips" id="tsc-chips">
+      <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
+      <div style="flex:1; min-width:0;">
+        <div class="tsc-selected-name" id="tsc-selected-name"></div>
+        <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
+        <div class="tsc-chips" id="tsc-chips">
         <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 5 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3 3 0 0 0-2.2-2.9"/><path d="M14.5 4.9a3.2 3.2 0 0 1 0 6.2"/></svg></span><div><strong id="tsc-chip-players">0</strong><span>Players</span></div></div>
         <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.3 4 4.8"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.3-4 4.8"/></svg></span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
         <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg></span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
       </div>
+      </div>
       <div style="display:flex; gap:6px;">
         <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit</button>
-        <input type="file" id="tsc-logo-input" accept="image/png,image/jpeg,image/webp" style="display:none" />
         <button class="team-pill-del" id="tsc-delete-btn" title="Delete this team/season"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
       </div>
     </div>
@@ -556,8 +552,7 @@
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
         <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Leave empty to keep the current one. No logo of its own? Shows a plain ball icon.</p>
         <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Any PNG, JPG or WebP works — we'll crop it to a square and try to remove a plain background automatically. For best results, use a square-ish image with a plain, solid-colored background (a busy photo background won't get removed cleanly). If you'd rather remove the background yourself first, <a href="https://www.remove.bg" target="_blank" rel="noopener" style="color:var(--accent-deep);">remove.bg</a> is a quick free option.</p>
-        <input id="edit-team-logo" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:8px;" />
-        <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); margin-bottom:18px; cursor:pointer;"><input type="checkbox" id="edit-team-logo-remove" /> Remove this team's logo (go back to the plain ball icon)</label>
+        <input id="edit-team-logo" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:18px;" />
         <p id="edit-team-error" style="display:none; margin:0 0 10px; font-size:12.5px; color:#991b1b;"></p>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button id="edit-team-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
@@ -576,7 +571,6 @@
       const newCategory = document.getElementById("edit-team-category").value;
       const newGender = document.getElementById("edit-team-gender").value;
       const logoFile = document.getElementById("edit-team-logo").files[0];
-      const removeLogo = document.getElementById("edit-team-logo-remove").checked;
       const saveBtn = document.getElementById("edit-team-save");
       saveBtn.disabled = true; saveBtn.textContent = "Saving…";
       try {
@@ -602,10 +596,7 @@
           await supabaseClient.from("events").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
           filterTeam = newName;
         }
-        if (removeLogo) {
-          const { error: removeErr } = await supabaseClient.storage.from("logos").remove([`${currentOrgId}/teams/${encodeURIComponent(filterTeam)}.png`]);
-          if (removeErr) throw removeErr;
-        } else if (logoFile) {
+        if (logoFile) {
           if (logoFile.size > 8 * 1024 * 1024) throw new Error("That image is over 8 MB — pick a smaller one.");
           const blob = await fileToSquareLogoBlob(logoFile, 400);
           const { error: logoErr } = await supabaseClient.storage.from("logos").upload(`${currentOrgId}/teams/${encodeURIComponent(filterTeam)}.png`, blob, { upsert: true, contentType: "image/webp" });
