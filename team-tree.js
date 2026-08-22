@@ -612,15 +612,29 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
       const btn = overlay.querySelector("#new-team-create-btn");
       btn.disabled = true; btn.textContent = "Creating…";
 
+      // ¿Este nombre de equipo ya existía de antes (otra temporada,
+      // otra categoría...)? Si es así, ya tiene su logo puesto (el
+      // balón u otro real) -- no hay que tocarlo solo porque esta vez
+      // no se eligió un archivo. El balón por defecto es solo para
+      // equipos genuinamente nuevos.
+      const { data: existingRows } = await supabaseClient.from("players").select("id").eq("organization_id", organizationId).eq("team", team).limit(1);
+      const { data: existingTeamRows } = await supabaseClient.from("teams").select("season").eq("organization_id", organizationId).eq("team", team).limit(1);
+      const teamAlreadyExisted = (existingRows && existingRows.length > 0) || (existingTeamRows && existingTeamRows.length > 0);
+
       const { error } = await supabaseClient.from("teams").upsert(row, { onConflict: "organization_id,season,team,team_category,team_gender" });
       if (error) { errorEl.textContent = "Couldn't create that team: " + error.message; errorEl.style.display = "block"; btn.disabled = false; btn.textContent = "Create"; return; }
-      if (logoFile) {
-        try {
+      try {
+        if (logoFile) {
           if (logoFile.size > 8 * 1024 * 1024) throw new Error("That image is over 8 MB — pick a smaller one.");
           const blob = await fileToSquareLogoBlob(logoFile, 400);
           await supabaseClient.storage.from("logos").upload(`${organizationId}/teams/${encodeURIComponent(team)}.png`, blob, { upsert: true, contentType: "image/webp" });
-        } catch (e) { /* si el logo falla, el equipo ya se creó igual -- no es motivo para trabar todo */ }
-      }
+        } else if (!teamAlreadyExisted) {
+          // Nada elegido, y es un nombre de equipo de verdad nuevo --
+          // el balón es el punto de partida por defecto, hasta que
+          // alguien suba una imagen real (acá o después, editando).
+          await resetTeamLogoToBall(supabaseClient, organizationId, team);
+        }
+      } catch (e) { /* si el logo falla, el equipo ya se creó igual -- no es motivo para trabar todo */ }
       close({ season: row.season, team: row.team, team_category: row.team_category || "", team_gender: row.team_gender });
     });
   });
@@ -638,6 +652,46 @@ function promptNewTeam(supabaseClient, organizationId, suggestedName) {
  * interpreta bien porque el tipo real (WebP) va en la cabecera
  * Content-Type, no en el nombre del archivo.
  */
+/**
+ * Genera la imagen del balón (la misma que se usa como ícono de
+ * reemplazo) como un Blob de verdad, para poder SUBIRLA a Storage en
+ * vez de tener que BORRAR el archivo viejo. Evita depender del permiso
+ * de DELETE (que ya dio problemas antes) -- "resetear" un logo pasa a
+ * ser una subida más, con el mismo permiso que ya funciona bien para
+ * crear/editar equipos.
+ */
+function generateBallLogoBlob(size) {
+  size = size || 400;
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fdefe7"; // var(--accent-tint)
+    ctx.fillRect(0, 0, size, size);
+    const cx = size / 2, cy = size / 2, r = size * 0.36;
+    ctx.strokeStyle = "#ec6718"; // var(--accent)
+    ctx.lineWidth = size * 0.022;
+    ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.62, cy - r * 0.62); ctx.quadraticCurveTo(cx - r * 0.3, cy, cx - r * 0.62, cy + r * 0.62); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + r * 0.62, cy - r * 0.62); ctx.quadraticCurveTo(cx + r * 0.3, cy, cx + r * 0.62, cy + r * 0.62); ctx.stroke();
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't generate the default ball icon."))), "image/webp", 0.9);
+  });
+}
+
+/**
+ * Sube la imagen del balón como logo de un equipo -- el "reset" de
+ * verdad, usando el mismo camino de subida de siempre (sin depender de
+ * borrar nada en Storage).
+ */
+async function resetTeamLogoToBall(supabaseClient, organizationId, team) {
+  const blob = await generateBallLogoBlob(400);
+  const { error } = await supabaseClient.storage.from("logos").upload(`${organizationId}/teams/${encodeURIComponent(team)}.png`, blob, { upsert: true, contentType: "image/webp" });
+  if (error) throw error;
+}
+
 function fileToSquareLogoBlob(file, maxSize) {
   maxSize = maxSize || 400;
   return new Promise((resolve, reject) => {

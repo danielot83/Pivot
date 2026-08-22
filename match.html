@@ -539,6 +539,17 @@
       supabaseClient.from("teams").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       category
     ), gender);
+
+    // Si ya no queda NINGUNA fila con este nombre de equipo (ninguna
+    // temporada/categoría/género), reseteamos su logo al balón --
+    // así, si más adelante se reutiliza el mismo nombre, no aparece un
+    // logo viejo que ya no corresponde a nada.
+    const { data: stillExists } = await supabaseClient.from("players").select("id").eq("organization_id", currentOrgId).eq("team", team).limit(1);
+    const { data: stillExistsTeams } = await supabaseClient.from("teams").select("season").eq("organization_id", currentOrgId).eq("team", team).limit(1);
+    if ((!stillExists || stillExists.length === 0) && (!stillExistsTeams || stillExistsTeams.length === 0)) {
+      try { await resetTeamLogoToBall(supabaseClient, currentOrgId, team); } catch (e) { /* si falla, no es motivo para trabar el borrado del equipo */ }
+    }
+
     if (season === currentSeason && team === currentTeam && (category || "") === (currentTeamCategory || "")) { currentSeason = null; currentTeam = null; currentTeamCategory = ""; currentTeamGender = ""; els.matchArea.classList.remove("open"); }
     showMessage(`"${team}"${category ? " (" + category + ")" : ""} (${season}) removed.`, "success");
     await loadTree();
