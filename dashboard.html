@@ -183,6 +183,29 @@
   .onboard-circle-row { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0; font-size: 14.5px; }
   .onboard-circle-row .emoji { font-size: 17px; flex-shrink: 0; filter: grayscale(0.85); }
   .onboard-card button { width: 100%; margin-top: 18px; }
+
+  /* ---------------------------------------------------------------------
+     Calendar -- color por equipo (una entrada de la paleta categórica por
+     cada equipo/categoría/género), con forma por tipo (partido/entreno/
+     evento) para no perder esa información. Filtro para aislar un
+     equipo; leyenda con las dos claves de lectura.
+     --------------------------------------------------------------------- */
+  .cal-day-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 4px 2px 6px; }
+  .cal-day-num { line-height: 1; }
+  .cal-day-marks { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 7px; flex-wrap: nowrap; }
+  .cal-mark { width: 6px; height: 6px; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
+  .cal-mark-match { border-radius: 50%; }
+  .cal-mark-training { border-radius: 1.5px; }
+  .cal-mark-event { border-radius: 1px; transform: rotate(45deg); }
+  .cal-day-overflow { font-size: 9px; font-weight: 700; color: inherit; opacity: 0.75; margin-left: 1px; }
+  .cal-toolbar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .cal-team-filter { padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13.5px; color: var(--ink); background: var(--card); max-width: 220px; }
+  .cal-legend { display: flex; gap: 14px 20px; margin-top: 12px; font-size: 13px; color: var(--muted); flex-wrap: wrap; align-items: flex-start; }
+  .cal-legend-group { display: flex; flex-direction: column; gap: 6px; }
+  .cal-legend-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+  .cal-legend-items { display: flex; gap: 12px; flex-wrap: wrap; }
+  .cal-legend-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .cal-legend-swatch { width: 9px; height: 9px; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
 </style>
 <!-- Matomo -->
 <script>
@@ -340,12 +363,12 @@
         <button id="cal-next-btn" class="icon-btn" style="width:32px; height:32px; border-radius:8px;" aria-label="Next month"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6"/></svg></button>
       </div>
     </div>
-    <div id="calendar-grid"></div>
-    <div style="display:flex; gap:16px; margin-top:12px; font-size:13.5px; color:var(--muted); flex-wrap:wrap;">
-      <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:var(--accent); margin-right:6px;"></span>Match</span>
-      <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:var(--navy); margin-right:6px;"></span>Training</span>
-      <span><span style="display:inline-block; width:9px; height:9px; border-radius:3px; background:#16a34a; margin-right:6px;"></span>Event</span>
+    <div class="cal-toolbar-row">
+      <label for="cal-team-filter" style="font-size:13.5px; color:var(--muted);">Team</label>
+      <select id="cal-team-filter" class="cal-team-filter"><option value="">All teams</option></select>
     </div>
+    <div id="calendar-grid"></div>
+    <div class="cal-legend" id="cal-legend"></div>
   </div>
 
   <div class="panel-card" style="margin:8px 0;">
@@ -1518,19 +1541,105 @@
   }
 
   // -----------------------------------------------------------------------
-  // Calendario -- pinta el mes visible con un punto naranja en los días
-  // con partido y un punto navy en los días con entrenamiento.
-  // "Bidireccional" por diseño: no hay ninguna tabla propia de
-  // calendario que mantener sincronizada -- lee directamente de
-  // matches/trainings, así que cualquier partido o entrenamiento creado
-  // en Match day / Training builder aparece aquí solo, sin ningún paso
-  // extra, y viceversa (borrar uno de esos lo quita de aquí también).
+  // Calendario -- cada equipo/categoría/género tiene su propio color (de
+  // una paleta categórica fija, siempre en el mismo orden), y cada tipo
+  // (partido/entreno/evento) su propia forma -- así no se pierde ninguna
+  // de las dos lecturas. Filtro para aislar un equipo; leyenda con las
+  // dos claves. "Bidireccional" por diseño: no hay ninguna tabla propia
+  // de calendario que mantener sincronizada -- lee directamente de
+  // matches/trainings/events, así que cualquier partido o entrenamiento
+  // creado en Match day / Training builder aparece aquí solo, sin ningún
+  // paso extra, y viceversa (borrar uno de esos lo quita de aquí también).
   // -----------------------------------------------------------------------
+  const TEAM_PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
+  const TEAM_COLOR_OTHER = "#898781"; // más de 8 equipos: se agrupan en un gris compartido, no se inventa un 9º tono
+  const TEAM_COLOR_NONE = "#898781"; // eventos "club entero" (sin equipo asignado)
+  let orgTeamRoster = []; // [{team, category, gender, key, color, label}], orden estable -> color estable
+  let calendarTeamFilter = ""; // "" = todos los equipos; si no, la key de un equipo
+
+  function teamRosterKey(team, category, gender) { return `${team}|||${category || ""}|||${gender || ""}`; }
+
+  async function loadOrgTeamRoster() {
+    const [{ data: playerRows }, { data: teamRows }] = await Promise.all([
+      supabaseClient.from("players").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId),
+      supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId),
+    ]);
+    // Se excluyen los equipos de ejemplo (Bulls/Celtics de la demo) --
+    // igual que en el resto del Dashboard, no deberían aparecer como
+    // opción real para partidos/entrenos de verdad.
+    const rows = mergeTeamRows(playerRows, teamRows).filter((r) => !isExampleTeam(r.season, r.team));
+    const seen = new Set();
+    const combos = [];
+    rows.forEach((r) => {
+      const key = teamRosterKey(r.team, r.team_category, r.team_gender);
+      if (seen.has(key)) return;
+      seen.add(key);
+      combos.push({ team: r.team, category: r.team_category || "", gender: r.team_gender || "", key });
+    });
+    // Orden estable (alfabético), independiente de qué eventos existan
+    // este mes -- así el color de cada equipo no cambia de un mes a otro.
+    combos.sort((a, b) => a.team.localeCompare(b.team) || a.category.localeCompare(b.category) || a.gender.localeCompare(b.gender));
+    orgTeamRoster = combos.map((c, i) => ({
+      ...c,
+      color: i < TEAM_PALETTE.length ? TEAM_PALETTE[i] : TEAM_COLOR_OTHER,
+      label: c.team + (c.category || c.gender ? ` (${[c.category, c.gender].filter(Boolean).join(", ")})` : ""),
+    }));
+  }
+
+  function teamColorFor(team, category, gender) {
+    if (!team) return TEAM_COLOR_NONE;
+    const found = orgTeamRoster.find((t) => t.key === teamRosterKey(team, category, gender));
+    return found ? found.color : TEAM_COLOR_OTHER;
+  }
+
+  function populateCalendarTeamFilter() {
+    const sel = document.getElementById("cal-team-filter");
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">All teams</option>' + orgTeamRoster.map((t) => `<option value="${escapeHtml(t.key)}">${escapeHtml(t.label)}</option>`).join("");
+    if (orgTeamRoster.some((t) => t.key === current)) sel.value = current;
+    else calendarTeamFilter = sel.value = "";
+  }
+  document.getElementById("cal-team-filter").addEventListener("change", (e) => {
+    calendarTeamFilter = e.target.value;
+    renderCalendarGrid(calendarLastFirstDay, calendarLastLastDay);
+    renderCalendarLegend();
+  });
+
+  function renderCalendarLegend() {
+    const el = document.getElementById("cal-legend");
+    if (!el) return;
+    // Más allá de las 8 entradas de la paleta, un equipo comparte el gris
+    // de "Other teams" -- no se lista además con su propio nombre, para
+    // no repetir el mismo punto gris dos veces en la leyenda.
+    const teamsToShow = calendarTeamFilter ? orgTeamRoster.filter((t) => t.key === calendarTeamFilter) : orgTeamRoster.slice(0, TEAM_PALETTE.length);
+    const teamItems = teamsToShow.map((t) => `<span class="cal-legend-item"><span class="cal-legend-swatch" style="background:${t.color}; border-radius:50%;"></span>${escapeHtml(t.label)}</span>`).join("");
+    const hasOverflow = !calendarTeamFilter && orgTeamRoster.length > TEAM_PALETTE.length;
+    const overflowItem = hasOverflow ? `<span class="cal-legend-item"><span class="cal-legend-swatch" style="background:${TEAM_COLOR_OTHER}; border-radius:50%;"></span>Other teams</span>` : "";
+    const wholeClubItem = `<span class="cal-legend-item"><span class="cal-legend-swatch" style="background:${TEAM_COLOR_NONE}; border-radius:50%;"></span>Whole club</span>`;
+    el.innerHTML = `
+      <div class="cal-legend-group">
+        <span class="cal-legend-group-title">Type</span>
+        <div class="cal-legend-items">
+          <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:var(--muted); border-radius:50%;"></span>Match</span>
+          <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:var(--muted); border-radius:1.5px;"></span>Training</span>
+          <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:var(--muted); border-radius:1px; transform:rotate(45deg);"></span>Event</span>
+        </div>
+      </div>
+      <div class="cal-legend-group">
+        <span class="cal-legend-group-title">Team</span>
+        <div class="cal-legend-items">${teamItems || '<span class="cal-legend-item">No teams yet</span>'}${overflowItem}${wholeClubItem}</div>
+      </div>`;
+  }
+
   let calendarViewDate = new Date();
   let calendarEventsByDay = {};
+  let calendarLastFirstDay = null, calendarLastLastDay = null;
 
   async function loadCalendar() {
     if (!currentOrgId) return;
+    await loadOrgTeamRoster();
+    populateCalendarTeamFilter();
     const year = calendarViewDate.getFullYear();
     const month = calendarViewDate.getMonth(); // 0-indexado
     document.getElementById("cal-month-label").textContent = calendarViewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -1542,12 +1651,12 @@
     const endStr = `${year}-${pad(month + 1)}-${pad(lastDay.getDate())}`;
 
     const [{ data: matches }, { data: trainings }, eventsRes] = await Promise.all([
-      supabaseClient.from("matches").select("id, date, opponent, location, team").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
-      supabaseClient.from("trainings").select("id, date, title, team").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
+      supabaseClient.from("matches").select("id, date, opponent, location, team, team_category, team_gender").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
+      supabaseClient.from("trainings").select("id, date, title, team, team_category, team_gender").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
       // La tabla "events" es opcional (paso extra de configuración) -- si
       // todavía no existe, simplemente no mostramos ese tercer tipo, sin
       // romper el resto del calendario.
-      supabaseClient.from("events").select("id, date, title").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr).then((r) => r, () => ({ data: [] })),
+      supabaseClient.from("events").select("id, date, title, team, team_category, team_gender").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr).then((r) => r, () => ({ data: [] })),
     ]);
     const events = (eventsRes && eventsRes.data) || [];
 
@@ -1562,7 +1671,36 @@
       (calendarEventsByDay[e.date] = calendarEventsByDay[e.date] || { matches: [], trainings: [], events: [] }).events.push(e);
     });
 
+    calendarLastFirstDay = firstDay; calendarLastLastDay = lastDay;
     renderCalendarGrid(firstDay, lastDay);
+    renderCalendarLegend();
+  }
+
+  const CAL_MAX_MARKS = 4;
+
+  // Un ítem pasa el filtro si no hay filtro activo, si es exactamente el
+  // equipo elegido, o si es un evento "club entero" (sin equipo) -- esos
+  // últimos aplican a todos los equipos por igual, así que se siguen
+  // viendo aunque estés mirando un equipo en concreto.
+  function calendarItemPassesFilter(item) {
+    if (!calendarTeamFilter) return true;
+    if (!item.team) return true;
+    return teamRosterKey(item.team, item.team_category, item.team_gender) === calendarTeamFilter;
+  }
+
+  function dayMarksHtml(dateStr) {
+    const ev = calendarEventsByDay[dateStr];
+    if (!ev) return { html: "", count: 0 };
+    const items = [];
+    ev.matches.forEach((m) => { if (calendarItemPassesFilter(m)) items.push({ shapeClass: "cal-mark-match", color: teamColorFor(m.team, m.team_category, m.team_gender) }); });
+    ev.trainings.forEach((t) => { if (calendarItemPassesFilter(t)) items.push({ shapeClass: "cal-mark-training", color: teamColorFor(t.team, t.team_category, t.team_gender) }); });
+    ev.events.forEach((e) => { if (calendarItemPassesFilter(e)) items.push({ shapeClass: "cal-mark-event", color: teamColorFor(e.team, e.team_category, e.team_gender) }); });
+    if (items.length === 0) return { html: "", count: 0 };
+    const shown = items.slice(0, CAL_MAX_MARKS);
+    const overflow = items.length - shown.length;
+    let html = shown.map((it) => `<span class="cal-mark ${it.shapeClass}" style="background:${it.color};"></span>`).join("");
+    if (overflow > 0) html += `<span class="cal-day-overflow">+${overflow}</span>`;
+    return { html, count: items.length };
   }
 
   function renderCalendarGrid(firstDay, lastDay) {
@@ -1580,18 +1718,13 @@
     for (let i = 0; i < startWeekday; i++) html += "<div></div>";
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
-      const ev = calendarEventsByDay[dateStr];
       const isToday = dateStr === todayStr;
-      // El cuadro entero se colorea según lo que haya ese día (no solo un
-      // puntito) -- prioridad partido > entrenamiento > evento si hay
-      // varios el mismo día.
-      let bg = "transparent", fg = "var(--ink)", weight = "500";
-      if (ev && ev.matches.length) { bg = "var(--accent)"; fg = "#fff"; weight = "700"; }
-      else if (ev && ev.trainings.length) { bg = "var(--navy)"; fg = "#fff"; weight = "700"; }
-      else if (ev && ev.events.length) { bg = "#16a34a"; fg = "#fff"; weight = "700"; }
-      else if (isToday) { bg = "var(--accent-tint)"; fg = "var(--accent-deep)"; weight = "700"; }
-      const todayRing = isToday && bg === "transparent" ? "" : (isToday ? "box-shadow:inset 0 0 0 2px var(--ink);" : "");
-      html += `<button type="button" data-date="${dateStr}" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:14px; border:none; background:${bg}; color:${fg}; font-weight:${weight}; cursor:pointer; ${todayRing}">${d}</button>`;
+      const marks = dayMarksHtml(dateStr);
+      const bg = isToday ? "var(--accent-tint)" : "transparent";
+      const fg = isToday ? "var(--accent-deep)" : "var(--ink)";
+      const weight = isToday || marks.count ? "700" : "500";
+      const todayRing = isToday ? "box-shadow:inset 0 0 0 2px var(--ink);" : "";
+      html += `<button type="button" class="cal-day-btn" data-date="${dateStr}" style="aspect-ratio:1; border-radius:8px; font-size:14px; border:none; background:${bg}; color:${fg}; font-weight:${weight}; cursor:pointer; ${todayRing}"><span class="cal-day-num">${d}</span><span class="cal-day-marks">${marks.html}</span></button>`;
     }
     html += "</div>";
     grid.innerHTML = html;
@@ -1625,15 +1758,16 @@
   function openCalendarAddModal(dateStr, dayLabel) {
     const ev = calendarEventsByDay[dateStr] || { matches: [], trainings: [], events: [] };
     const delBtn = (table, id) => `<button type="button" class="cal-del-btn" data-del-table="${table}" data-del-id="${id}" title="Delete" style="background:none; border:none; cursor:pointer; color:#b91c1c; padding:6px; border-radius:8px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button>`;
+    const teamDot = (team, category, gender) => `<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${teamColorFor(team, category, gender)}; box-shadow:inset 0 0 0 1px rgba(0,0,0,0.12); margin-right:5px; flex-shrink:0;"></span>`;
     let existingRows = "";
     ev.matches.forEach((m) => {
-      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:var(--accent-tint); color:var(--accent-deep);">🏀</div><div class="activity-text" style="flex:1;"><strong>vs ${escapeHtml(m.opponent || "TBD")}</strong><span>${escapeHtml(m.team || "")}${m.location ? " · " + escapeHtml(m.location) : ""}</span></div>${delBtn("matches", m.id)}</div>`;
+      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:var(--accent-tint); color:var(--accent-deep);">🏀</div><div class="activity-text" style="flex:1;"><strong>vs ${escapeHtml(m.opponent || "TBD")}</strong><span>${teamDot(m.team, m.team_category, m.team_gender)}${escapeHtml(m.team || "")}${m.location ? " · " + escapeHtml(m.location) : ""}</span></div>${delBtn("matches", m.id)}</div>`;
     });
     ev.trainings.forEach((t) => {
-      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:#e7e5f5; color:var(--navy);">⏱</div><div class="activity-text" style="flex:1;"><strong>${escapeHtml(t.title || "Training session")}</strong><span>${escapeHtml(t.team || "")}</span></div>${delBtn("trainings", t.id)}</div>`;
+      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:#e7e5f5; color:var(--navy);">⏱</div><div class="activity-text" style="flex:1;"><strong>${escapeHtml(t.title || "Training session")}</strong><span>${teamDot(t.team, t.team_category, t.team_gender)}${escapeHtml(t.team || "")}</span></div>${delBtn("trainings", t.id)}</div>`;
     });
     ev.events.forEach((e) => {
-      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:#dcfce7; color:#16a34a;">📌</div><div class="activity-text" style="flex:1;"><strong>${escapeHtml(e.title)}</strong><span>Event</span></div>${delBtn("events", e.id)}</div>`;
+      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:#dcfce7; color:#16a34a;">📌</div><div class="activity-text" style="flex:1;"><strong>${escapeHtml(e.title)}</strong><span>${teamDot(e.team, e.team_category, e.team_gender)}${e.team ? escapeHtml(e.team) : "Whole club"}</span></div>${delBtn("events", e.id)}</div>`;
     });
 
     const overlay = document.createElement("div");
@@ -1679,36 +1813,18 @@
     const fieldsEl = overlay.querySelector("#cal-add-fields");
     const saveBtn = overlay.querySelector("#cal-add-save-btn");
 
-    // Los equipos existentes (para no tener que escribir "U16" a mano
-    // cada vez, y porque team es obligatorio en matches/trainings).
-    // Cada equipo se guarda junto a su categoría -- "DEL" (U8) y "DEL"
-    // (U10) son dos opciones distintas, no una.
-    let existingTeams = [];
-    Promise.all([
-      supabaseClient.from("players").select("season, team, team_category").eq("organization_id", currentOrgId),
-      supabaseClient.from("teams").select("season, team, team_category").eq("organization_id", currentOrgId),
-    ]).then(([{ data: playerRows }, { data: teamRows }]) => {
-      const rows = mergeTeamRows(playerRows, teamRows);
-      const seen = new Set();
-      existingTeams = rows
-        .filter((r) => !isExampleTeam(r.season, r.team))
-        .filter((r) => { const k = `${r.team}|${r.team_category || ""}`; if (seen.has(k)) return false; seen.add(k); return true; })
-        .map((r) => ({ team: r.team, category: r.team_category || "" }));
-      const sel = document.getElementById("cal-field-team");
-      if (sel && sel.tagName === "SELECT") {
-        sel.innerHTML = existingTeams.length
-          ? existingTeams.map((t) => `<option value="${escapeHtml(t.team)}|||${escapeHtml(t.category)}">${escapeHtml(t.team)}${t.category ? " (" + escapeHtml(t.category) + ")" : ""}</option>`).join("") + '<option value="__new__">+ New team/category…</option>'
-          : '<option value="__new__">Type a team name…</option>';
-      }
-    });
+    // Los equipos vienen de orgTeamRoster (ya cargado por loadCalendar --
+    // mismo listado que colorea el calendario y alimenta su filtro, con
+    // categoría Y género). Ya no se puede escribir un equipo nuevo aquí a
+    // mano: si no existe todavía, se manda a crearlo primero en Roster --
+    // así no se cuelan equipos "sueltos" sin género que luego no
+    // coincidan con el que ya está dado de alta.
+    const noTeamsHint = `<p style="margin:0 0 10px; font-size:12.5px; color:var(--muted);">No teams yet — <a href="./roster.html" style="color:var(--accent-deep); font-weight:600;">create one first in Roster</a>, then come back.</p>`;
 
     const teamFieldHtml = `
         <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Team</label>
-        <select id="cal-field-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;"><option>Loading…</option></select>
-        <div id="cal-field-team-new-wrap" style="display:none;">
-          <input id="cal-field-team-new" type="text" placeholder="Team name (e.g. U16)" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;" />
-          <input id="cal-field-team-category-new" type="text" placeholder="Category, optional (e.g. U8)" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;" />
-        </div>`;
+        <select id="cal-field-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;"></select>
+        <div id="cal-field-team-hint"></div>`;
 
     const FIELD_TEMPLATES = {
       match: `
@@ -1725,39 +1841,41 @@
         <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Comment / title</label>
         <input id="cal-field-title" type="text" placeholder="e.g. Championship game, Team photo day…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;" />
         <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Team (optional — leave as "Whole club" for a general event)</label>
-        <select id="cal-field-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;"><option value="">Whole club</option></select>
-        <div id="cal-field-team-new-wrap" style="display:none;">
-          <input id="cal-field-team-new" type="text" placeholder="Team name (e.g. U16)" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;" />
-          <input id="cal-field-team-category-new" type="text" placeholder="Category, optional (e.g. U8)" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;" />
-        </div>`,
+        <select id="cal-field-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;"><option value="">Whole club</option></select>
+        <div id="cal-field-team-hint"></div>`,
     };
 
     function wireTeamSelect() {
       const sel = document.getElementById("cal-field-team");
-      const newWrap = document.getElementById("cal-field-team-new-wrap");
+      const hintEl = document.getElementById("cal-field-team-hint");
       if (!sel) return;
       const isEventOptional = selectedType === "event";
-      sel.innerHTML = (isEventOptional ? '<option value="">Whole club</option>' : "") + (existingTeams.length
-        ? existingTeams.map((t) => `<option value="${escapeHtml(t.team)}|||${escapeHtml(t.category)}">${escapeHtml(t.team)}${t.category ? " (" + escapeHtml(t.category) + ")" : ""}</option>`).join("") + '<option value="__new__">+ New team/category…</option>'
-        : '<option value="__new__">Type a team name…</option>');
-      sel.addEventListener("change", () => {
-        newWrap.style.display = sel.value === "__new__" ? "block" : "none";
-      });
-      if (sel.value === "__new__") newWrap.style.display = "block";
+      sel.innerHTML = (isEventOptional ? '<option value="">Whole club</option>' : "") + orgTeamRoster.map((t) => `<option value="${escapeHtml(t.key)}">${escapeHtml(t.label)}</option>`).join("");
+      if (orgTeamRoster.length === 0) {
+        if (hintEl) hintEl.innerHTML = noTeamsHint;
+        if (!isEventOptional) { sel.disabled = true; saveBtn.disabled = true; }
+      } else {
+        sel.disabled = false;
+        if (hintEl) hintEl.innerHTML = "";
+      }
     }
 
     function getTeamValue() {
       const sel = document.getElementById("cal-field-team");
       if (!sel || !sel.value) return "";
-      if (sel.value === "__new__") return document.getElementById("cal-field-team-new").value.trim();
       return sel.value.split("|||")[0];
     }
 
     function getTeamCategoryValue() {
       const sel = document.getElementById("cal-field-team");
       if (!sel || !sel.value) return "";
-      if (sel.value === "__new__") return document.getElementById("cal-field-team-category-new").value.trim();
       return sel.value.split("|||")[1] || "";
+    }
+
+    function getTeamGenderValue() {
+      const sel = document.getElementById("cal-field-team");
+      if (!sel || !sel.value) return "";
+      return sel.value.split("|||")[2] || "";
     }
 
     overlay.querySelectorAll(".cal-type-btn").forEach((btn) => {
@@ -1768,8 +1886,8 @@
           b.style.color = b === btn ? "#fff" : "var(--ink)";
         });
         fieldsEl.innerHTML = FIELD_TEMPLATES[selectedType];
-        if (selectedType === "match" || selectedType === "training" || selectedType === "event") wireTeamSelect();
         saveBtn.disabled = false;
+        if (selectedType === "match" || selectedType === "training" || selectedType === "event") wireTeamSelect();
       });
     });
 
@@ -1788,7 +1906,7 @@
           const team = getTeamValue();
           if (!team) throw new Error("Team is required.");
           const location = document.getElementById("cal-field-location").value.trim();
-          const row = { organization_id: currentOrgId, date: dateStr, opponent, team, season, team_category: getTeamCategoryValue() || null };
+          const row = { organization_id: currentOrgId, date: dateStr, opponent, team, season, team_category: getTeamCategoryValue() || null, team_gender: getTeamGenderValue() || null };
           if (location) row.location = location;
           const { error } = await supabaseClient.from("matches").insert(row);
           if (error) throw error;
@@ -1797,7 +1915,7 @@
           if (!title) throw new Error("Title is required for a training session.");
           const team = getTeamValue();
           if (!team) throw new Error("Team is required.");
-          const row = { organization_id: currentOrgId, date: dateStr, title, team, season, team_category: getTeamCategoryValue() || null };
+          const row = { organization_id: currentOrgId, date: dateStr, title, team, season, team_category: getTeamCategoryValue() || null, team_gender: getTeamGenderValue() || null };
           const { error } = await supabaseClient.from("trainings").insert(row);
           if (error) throw error;
         } else {
@@ -1805,7 +1923,7 @@
           if (!title) throw new Error("Please write a comment/title.");
           const team = getTeamValue();
           const row = { organization_id: currentOrgId, date: dateStr, title };
-          if (team) { row.team = team; row.season = season; row.team_category = getTeamCategoryValue() || null; }
+          if (team) { row.team = team; row.season = season; row.team_category = getTeamCategoryValue() || null; row.team_gender = getTeamGenderValue() || null; }
           const { error } = await supabaseClient.from("events").insert(row);
           if (error) throw error;
         }
