@@ -173,17 +173,14 @@
   .team-pill-del { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; color: var(--muted); font-size: 12px; background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0; }
   .team-pill-del:hover { background: rgba(0,0,0,0.08); color: #991b1b; }
 
-  /* -------- lista de partidos, fila que se despliega abajo -------- */
-  .matches-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
-  .match-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); cursor: pointer; }
-  .match-row:hover { background: var(--paper); }
-  .match-row.open { background: var(--accent-tint); }
-  .match-row-caret { color: var(--muted); font-size: 12px; transition: transform 0.15s; flex-shrink: 0; }
-  .match-row.open .match-row-caret { transform: rotate(90deg); }
-  .match-row-main { flex: 1; }
-  .match-row-date { font-weight: 600; font-size: 14.5px; }
-  .match-row-sub { font-size: 13px; color: var(--muted); }
-  .match-row-score { font-size: 14.5px; font-weight: 600; color: var(--accent-deep); }
+  /* -------- módulo 2 (fecha): tabla de partidos, clic en una fila abre el módulo 3 (ficha) debajo -- mismo patrón que en training.html -------- */
+  table.date-table tbody tr { cursor: pointer; }
+  table.date-table tbody tr:hover td { background: var(--paper); }
+  table.date-table tbody tr.row-selected td { background: var(--accent-tint); }
+  table.date-table tbody tr.row-group-header { cursor: default; }
+  table.date-table tbody tr.row-group-header td { background: var(--paper); font-weight: 600; color: var(--muted); font-size: 11.5px; text-transform: none; }
+  table.date-table tbody tr.row-group-header:hover td { background: var(--paper); }
+  .match-score-cell { font-weight: 600; color: var(--accent-deep); }
   .match-detail { display: none; padding: 20px; border-bottom: 1px solid var(--line); background: var(--paper); }
   .match-detail.open { display: block; }
 
@@ -378,9 +375,11 @@
       <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
     </div>
     <button class="btn btn-primary" id="new-match-btn" style="margin-bottom:12px;">+ New match</button>
-    <div class="matches-card" id="matches-card">
-      <div class="empty-state" id="matches-empty">Pick a team above to see its matches.</div>
-    </div>
+    <table class="date-table" id="matches-table">
+      <thead><tr><th>Date</th><th>Opponent</th><th>Score</th></tr></thead>
+      <tbody id="matches-card"></tbody>
+    </table>
+    <div class="empty-state" id="matches-empty" style="display:none;">Pick a team above to see its matches.</div>
   </div>
 
   <div id="match-area" class="match-detail">
@@ -483,6 +482,7 @@
     logoutBtn: document.getElementById("logout-btn"),
     tree: document.getElementById("tree"),
     matchesCard: document.getElementById("matches-card"),
+    matchesTable: document.getElementById("matches-table"),
     matchesEmpty: document.getElementById("matches-empty"),
     currentSelection: document.getElementById("current-selection"),
     matchArea: document.getElementById("match-area"),
@@ -910,27 +910,22 @@
     allMatchesCache = mine;
 
     els.matchesCard.innerHTML = "";
-    if (mine.length === 0 && shared.length === 0) {
-      els.matchesEmpty.style.display = "block";
-      els.matchesCard.appendChild(els.matchesEmpty);
-      return;
-    }
-    els.matchesEmpty.style.display = "none";
+    const isEmpty = mine.length === 0 && shared.length === 0;
+    els.matchesEmpty.style.display = isEmpty ? "block" : "none";
+    els.matchesTable.style.display = isEmpty ? "none" : "table";
+    if (isEmpty) return;
 
     function buildRow(m, isShared) {
-      const row = document.createElement("div");
-      row.className = "match-row" + (m.id === currentMatchId ? " open" : "");
+      const row = document.createElement("tr");
+      row.className = m.id === currentMatchId ? "row-selected" : "";
       row.dataset.matchId = m.id;
-      const score = (m.team_score != null && m.opponent_score != null) ? `${m.team_score} – ${m.opponent_score}` : "";
+      const score = (m.team_score != null && m.opponent_score != null) ? `${m.team_score} – ${m.opponent_score}` : "—";
       row.innerHTML = `
-        <span class="match-row-caret">▸</span>
-        <div class="match-row-main">
-          <div class="match-row-date">${VISIBILITY_ICONS[m.visibility || "team"] || ""} ${m.date}</div>
-          <div class="match-row-sub">${m.opponent ? "vs " + escapeHtml(m.opponent) : "No opponent set"}${isShared ? " · shared by another club" : ""}</div>
-        </div>
-        <div class="match-row-score">${score}</div>
+        <td>${VISIBILITY_ICONS[m.visibility || "team"] || ""} ${m.date}</td>
+        <td>${m.opponent ? "vs " + escapeHtml(m.opponent) : "No opponent set"}${isShared ? ' <span class="hint" style="font-size:11px;">· shared by another club</span>' : ""}</td>
+        <td class="match-score-cell">${score}</td>
       `;
-      row.addEventListener("click", () => toggleMatchRow(m.id, row));
+      row.addEventListener("click", () => openMatchRow(m.id, row));
       return row;
     }
 
@@ -941,42 +936,34 @@
     // club, les mélanger dans TA sélection saison/équipe n'aurait pas de
     // sens (une simple coïncidence de texte, rien de plus).
     if (shared.length > 0) {
-      const header = document.createElement("div");
-      header.style.cssText = "padding:8px 16px; font-size:12.5px; font-weight:600; color:var(--muted); background:var(--paper); border-bottom:1px solid var(--line);";
-      header.textContent = "🌐 Shared by other clubs";
+      const header = document.createElement("tr");
+      header.className = "row-group-header";
+      header.innerHTML = `<td colspan="3">🌐 Shared by other clubs</td>`;
       els.matchesCard.appendChild(header);
       shared.forEach((m) => els.matchesCard.appendChild(buildRow(m, true)));
-    }
-
-    // Si un match est déjà ouvert (on vient de le sauvegarder, ou on
-    // revient d'un import), on le remet visible sous sa ligne.
-    if (currentMatchId) {
-      const openRow = els.matchesCard.querySelector(`.match-row[data-match-id="${currentMatchId}"]`);
-      if (openRow) openRow.after(els.matchArea);
     }
   }
 
   // -----------------------------------------------------------------------
-  // Ouvre/ferme le détail d'un match juste en-dessous de sa ligne --
-  // c'est le MÊME panneau (match-area) qui se déplace dans le DOM,
-  // plutôt qu'un panneau dupliqué par match.
+  // Ouvre/ferme le détail d'un match, module 3 fixe juste en-dessous de la
+  // table du module 2 (déjà sa position dans le DOM -- on ne le déplace
+  // plus, juste montrer/cacher + surligner la ligne active).
   // -----------------------------------------------------------------------
-  function toggleMatchRow(matchId, rowEl) {
+  function openMatchRow(matchId, rowEl) {
     if (currentMatchId === matchId && els.matchArea.classList.contains("open")) {
       els.matchArea.classList.remove("open");
-      rowEl.classList.remove("open");
+      rowEl.classList.remove("row-selected");
       currentMatchId = null;
       return;
     }
-    els.matchesCard.querySelectorAll(".match-row.open").forEach((r) => r.classList.remove("open"));
-    rowEl.classList.add("open");
-    rowEl.after(els.matchArea);
+    els.matchesCard.querySelectorAll("tr.row-selected").forEach((r) => r.classList.remove("row-selected"));
+    rowEl.classList.add("row-selected");
     els.matchArea.classList.add("open");
     openMatch(matchId);
   }
 
   function newMatch() {
-    if (!currentTeam) { showMessage("Pick a season/team on the left first.", "error"); return; }
+    if (!currentTeam) { showMessage("Pick a season/team above first.", "error"); return; }
     currentMatchId = null;
     els.matchDate.value = new Date().toISOString().slice(0, 10);
     els.matchOpponent.value = "";
@@ -992,8 +979,9 @@
     opponentStats = [];
     renderCallupTable();
     renderOpponentStats();
-    els.matchesCard.prepend(els.matchArea);
+    els.matchesCard.querySelectorAll("tr.row-selected").forEach((r) => r.classList.remove("row-selected"));
     els.matchArea.classList.add("open");
+    els.matchArea.scrollIntoView({ behavior: "smooth", block: "nearest" });
     document.getElementById("save-match-btn").style.display = "inline-block";
     document.getElementById("delete-match-btn").style.display = "none";
     [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]

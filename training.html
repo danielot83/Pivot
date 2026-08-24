@@ -100,6 +100,15 @@
   td button { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--muted); }
   td button:hover { color: var(--accent); }
   td input[type="number"] { width: 60px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; }
+
+  /* -------- módulo 2 (fecha): tabla de sesiones, clic en una fila abre el módulo 3 debajo -------- */
+  table.date-table tbody tr { cursor: pointer; }
+  table.date-table tbody tr:hover td { background: var(--paper); }
+  table.date-table tbody tr.row-selected td { background: var(--accent-tint); }
+  table.date-table tbody tr.row-group-header { cursor: default; }
+  table.date-table tbody tr.row-group-header td { background: var(--paper); font-weight: 600; color: var(--muted); font-size: 11.5px; text-transform: none; }
+  table.date-table tbody tr.row-group-header:hover td { background: var(--paper); }
+
   .section-label { font-size: 13px; font-weight: 600; margin: 20px 0 10px; }
   .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }  .checkbox-field { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
   .multiselect { max-height: 130px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-bottom: 12px; }
@@ -186,10 +195,10 @@
   }
 
   /* ---------------------------------------------------------------------
-     Teams & Seasons -- misma tarjeta que en Roster/Attendance/Match day,
-     agregada abajo del todo por ahora (este módulo se va a reorganizar
-     más adelante, esto es para que ya quede interconectado con las otras
-     páginas via localStorage).
+     Teams & Seasons -- misma tarjeta que en Roster/Attendance/Match day.
+     Ahora es el módulo 1 de la página (arriba del todo): equipo -> fecha
+     (tabla de sesiones, abajo) -> ficha de la sesión (se abre debajo de
+     la tabla), igual patrón que en match.html.
      --------------------------------------------------------------------- */
   .team-bar-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
   .team-bar-card h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 12px; }
@@ -318,33 +327,78 @@
   </div>
 </div>
 
-<div class="layout">
-  <div>
-    <div class="side-card" id="example-data-card"></div>
-    <div class="side-card">
-      <h2>Notebooks</h2>
-      <p class="hint" style="font-size:11.5px; color:var(--muted); margin:0 0 8px;">Ready-made exercise lists, grouped by theme (e.g. "Defense", "U8") — not tied to a season/team.</p>
-      <button class="new-btn" id="new-notebook-btn">+ New notebook</button>
-      <div id="notebooks-list"></div>
+<div class="wrap" style="max-width:1080px; margin:0 auto; padding:0 32px;">
+
+  <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+  <h1>
+    Training builder
+    <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+  </h1>
+  <p class="sub" id="current-selection">Pick a season/team above.</p>
+  <div class="help-box" id="help-box"></div>
+  <div class="msg" id="msg"></div>
+
+  <!-- Módulo 1: Teams & Seasons -->
+  <div class="team-bar-card">
+    <div class="tsc-header">
+      <div class="tsc-header-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+      <div>
+        <p class="tsc-header-title">Teams &amp; Seasons</p>
+        <p class="tsc-header-sub">Manage your teams and seasons.</p>
+      </div>
+      <div style="flex:1;"></div>
+      <button class="tree-new" id="new-team-btn" style="margin-bottom:0;">+ New season/team</button>
     </div>
-    <div class="side-card">
-      <h2>Sessions</h2>
-      <button class="new-btn" id="new-training-btn">+ New session</button>
-      <div id="trainings-list"></div>
-      <button class="btn btn-secondary" id="export-book-btn" style="width:100%; margin-top:10px;">📖 Export whole book (PDF)</button>
+
+    <div class="tsc-cols">
+      <div>
+        <p class="tsc-step-label">1. Select team</p>
+        <div id="team-gender-category-select" style="position:relative;"></div>
+      </div>
+      <div>
+        <p class="tsc-step-label">2. Select season</p>
+        <div id="season-picker"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;" id="tsc-step3-wrap">
+    <p class="tsc-step-label">3. Team info</p>
+    <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
+      <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
+      <div style="flex:1; min-width:0;">
+        <div class="tsc-selected-name" id="tsc-selected-name"></div>
+        <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
+        <div class="tsc-chips" id="tsc-chips">
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 5 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3 3 0 0 0-2.2-2.9"/><path d="M14.5 4.9a3.2 3.2 0 0 1 0 6.2"/></svg></span><div><strong id="tsc-chip-players">0</strong><span>Players</span></div></div>
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.3 4 4.8"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.3-4 4.8"/></svg></span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg></span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
+      </div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit</button>
+        <button class="team-pill-del" id="tsc-delete-btn" title="Delete this team/season"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
+      </div>
+    </div>
     </div>
   </div>
 
-  <div>
-    <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
-    <h1>
-      Training builder
-      <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
-    </h1>
-    <p class="sub" id="current-selection">Pick a season/team on the left.</p>
-    <div class="help-box" id="help-box"></div>
-    <div class="msg" id="msg"></div>
+  <div class="team-bar-card" id="example-data-card"></div>
 
+  <!-- Módulo 2: Fecha -- sesiones del equipo/temporada seleccionados arriba, en tabla; clic en una fila abre el módulo 3 debajo -->
+  <div class="team-bar-card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+      <h2 style="margin:0;">Sessions</h2>
+    </div>
+    <button class="btn btn-primary" id="new-training-btn" style="margin-bottom:12px;">+ New session</button>
+    <table class="date-table" id="trainings-table">
+      <thead><tr><th>Date</th><th>Title</th><th>#</th></tr></thead>
+      <tbody id="trainings-list"></tbody>
+    </table>
+    <div class="empty-state" id="trainings-empty" style="display:none;">Pick a team above to see its sessions.</div>
+    <button class="btn btn-secondary" id="export-book-btn" style="width:100%; margin-top:10px;">📖 Export whole book (PDF)</button>
+  </div>
+
+  <!-- Módulo 3: ficha de la sesión (se abre debajo del módulo 2 al elegir/crear una fecha) -->
     <div id="training-area" style="display:none">
       <div class="toolbar">
         <div class="field"><label for="tr-title">Title</label><input id="tr-title" type="text" placeholder="e.g. Tuesday practice" /></div>
@@ -476,52 +530,15 @@
         <button class="btn btn-secondary" id="delete-notebook-btn" style="display:none; color:#991b1b;">Delete this notebook</button>
       </div>
     </div>
-  </div>
-</div>
 
-<div class="wrap" style="max-width:1080px; margin:0 auto; padding:0 32px;">
+  <!-- Notebooks: listas de ejercicios reutilizables, no ligadas a un equipo/temporada -- aparte del flujo equipo -> fecha -> ficha -->
   <div class="team-bar-card">
-    <div class="tsc-header">
-      <div class="tsc-header-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-      <div>
-        <p class="tsc-header-title">Teams &amp; Seasons</p>
-        <p class="tsc-header-sub">Manage your teams and seasons.</p>
-      </div>
-      <div style="flex:1;"></div>
-      <button class="tree-new" id="new-team-btn" style="margin-bottom:0;">+ New season/team</button>
-    </div>
-
-    <div class="tsc-cols">
-      <div>
-        <p class="tsc-step-label">1. Select team</p>
-        <div id="team-gender-category-select" style="position:relative;"></div>
-      </div>
-      <div>
-        <p class="tsc-step-label">2. Select season</p>
-        <div id="season-picker"></div>
-      </div>
-    </div>
-
-    <div style="margin-top:24px;" id="tsc-step3-wrap">
-    <p class="tsc-step-label">3. Team info</p>
-    <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
-      <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
-      <div style="flex:1; min-width:0;">
-        <div class="tsc-selected-name" id="tsc-selected-name"></div>
-        <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
-        <div class="tsc-chips" id="tsc-chips">
-        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 5 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3 3 0 0 0-2.2-2.9"/><path d="M14.5 4.9a3.2 3.2 0 0 1 0 6.2"/></svg></span><div><strong id="tsc-chip-players">0</strong><span>Players</span></div></div>
-        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.3 4 4.8"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.3-4 4.8"/></svg></span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
-        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg></span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
-      </div>
-      </div>
-      <div style="display:flex; gap:6px;">
-        <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit</button>
-        <button class="team-pill-del" id="tsc-delete-btn" title="Delete this team/season"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
-      </div>
-    </div>
-    </div>
+    <h2>Notebooks</h2>
+    <p class="hint" style="font-size:11.5px; color:var(--muted); margin:0 0 8px;">Ready-made exercise lists, grouped by theme (e.g. "Defense", "U8") — not tied to a season/team.</p>
+    <button class="new-btn" id="new-notebook-btn">+ New notebook</button>
+    <div id="notebooks-list"></div>
   </div>
+
 </div>
 
 <footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; font-size:14.5px; color:var(--muted); max-width:1080px; margin-left:auto; margin-right:auto;">
@@ -561,6 +578,8 @@
     tree: document.getElementById("tree"),
     notebooksList: document.getElementById("notebooks-list"),
     trainingsList: document.getElementById("trainings-list"),
+    trainingsTable: document.getElementById("trainings-table"),
+    trainingsEmpty: document.getElementById("trainings-empty"),
     currentSelection: document.getElementById("current-selection"),
     trainingArea: document.getElementById("training-area"),
     title: document.getElementById("tr-title"),
@@ -1128,7 +1147,7 @@
 
   async function loadExampleTeam(key) {
     const ex = EXAMPLE_TEAMS[key];
-    if (!currentOrgId) { showMessage("Pick a season/team on the left first.", "error"); return; }
+    if (!currentOrgId) { showMessage("Pick a season/team above first.", "error"); return; }
     if (!confirm(`Add ${ex.players.length} example players (${ex.team}, ${ex.season}) to your club?`)) return;
     try {
       await supabaseClient.from("players").delete()
@@ -1136,7 +1155,7 @@
       const rows = ex.players.map((p) => ({ ...p, organization_id: currentOrgId, season: ex.season, team: ex.team }));
       const { error } = await supabaseClient.from("players").insert(rows);
       if (error) throw error;
-      showMessage(`${ex.players.length} example players loaded — pick "${ex.team}" under "${ex.season}" on the left to start.`, "success");
+      showMessage(`${ex.players.length} example players loaded — pick "${ex.team}" under "${ex.season}" above to start.`, "success");
       await loadTree();
     } catch (err) {
       showMessage(err.message || "Couldn't load the example data.", "error");
@@ -1153,7 +1172,7 @@
     if (currentSeason === ex.season && currentTeam === ex.team) {
       currentSeason = null; currentTeam = null;
       els.trainingArea.style.display = "none";
-      els.currentSelection.textContent = "Pick a season/team on the left.";
+      els.currentSelection.textContent = "Pick a season/team above.";
     }
     showMessage("Example data removed.", "success");
     await loadTree();
@@ -1198,29 +1217,35 @@
     const mine = (data || []).filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam && (t.team_category || "") === (currentTeamCategory || "") && (t.team_gender || "") === (currentTeamGender || ""));
     const shared = (data || []).filter((t) => t.organization_id !== currentOrgId);
 
-    mine.forEach((t) => {
-      const row = document.createElement("div");
-      row.className = "item-row" + (t.id === currentTrainingId ? " active" : "");
-      row.textContent = `${VISIBILITY_ICONS[t.visibility || "team"] || ""} ${t.date}${t.title ? " — " + t.title : ""}`;
+    const isEmpty = mine.length === 0 && shared.length === 0;
+    els.trainingsEmpty.style.display = isEmpty ? "block" : "none";
+    els.trainingsTable.style.display = isEmpty ? "none" : "table";
+    if (isEmpty) return;
+
+    function buildRow(t, isShared) {
+      const row = document.createElement("tr");
+      row.className = t.id === currentTrainingId ? "row-selected" : "";
+      row.dataset.trainingId = t.id;
+      row.innerHTML = `
+        <td>${VISIBILITY_ICONS[t.visibility || "team"] || ""} ${t.date}</td>
+        <td>${t.title ? escapeHtml(t.title) : "—"}${isShared ? ' <span class="hint" style="font-size:11px;">· shared by another club</span>' : ""}</td>
+        <td>${t.number || "—"}</td>
+      `;
       row.addEventListener("click", () => openTraining(t.id));
-      els.trainingsList.appendChild(row);
-    });
+      return row;
+    }
+
+    mine.forEach((t) => els.trainingsList.appendChild(buildRow(t, false)));
 
     // Même logique que pour les matchs : le season/team d'un
     // entrenamiento partagé appartient au roster d'un autre club, on ne
     // le mélange pas dans TA sélection.
     if (shared.length > 0) {
-      const header = document.createElement("div");
-      header.className = "tree-season";
-      header.textContent = "🌐 Shared by other clubs";
+      const header = document.createElement("tr");
+      header.className = "row-group-header";
+      header.innerHTML = `<td colspan="3">🌐 Shared by other clubs</td>`;
       els.trainingsList.appendChild(header);
-      shared.forEach((t) => {
-        const row = document.createElement("div");
-        row.className = "item-row" + (t.id === currentTrainingId ? " active" : "");
-        row.textContent = `${VISIBILITY_ICONS[t.visibility || "team"] || ""} ${t.date}${t.title ? " — " + t.title : ""}`;
-        row.addEventListener("click", () => openTraining(t.id));
-        els.trainingsList.appendChild(row);
-      });
+      shared.forEach((t) => els.trainingsList.appendChild(buildRow(t, true)));
     }
   }
 
@@ -1230,7 +1255,7 @@
   }
 
   function newTraining() {
-    if (!currentTeam) { showMessage("Pick a season/team on the left first.", "error"); return; }
+    if (!currentTeam) { showMessage("Pick a season/team above first.", "error"); return; }
     currentTrainingId = null;
     els.title.value = ""; els.date.value = new Date().toISOString().slice(0, 10); els.planned.value = "90";
     els.number.value = nextSessionNumber();
@@ -1773,7 +1798,7 @@
   // une page par séance du classeur actuel, dans un seul PDF.
   // -----------------------------------------------------------------------
   async function exportWholeBook() {
-    if (!currentTeam) { showMessage("Pick a season/team on the left first.", "error"); return; }
+    if (!currentTeam) { showMessage("Pick a season/team above first.", "error"); return; }
     const mine = allTrainingsCache.filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam && (t.team_category || "") === (currentTeamCategory || "") && (t.team_gender || "") === (currentTeamGender || ""));
     if (mine.length === 0) { showMessage("No sessions to export for this team yet.", "error"); return; }
 
@@ -2212,9 +2237,9 @@
     box.innerHTML = `
       <strong>How to use Training builder</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li><strong>Notebooks</strong> (top left) — ready-made exercise lists grouped by theme (e.g. "Defense", "U8"), not tied to a season or team. Build one once, reuse it in any session, in any team, forever. Check exercises from your library to fill one in, then <strong>Export whole notebook</strong> for a real printable booklet: a cover page, followed by the full sheet for every exercise in it — court diagrams included, same as exporting one from Create exercise or Library.</li>
-        <li>No teams showing up on the left? Click <strong>"+ New season/team"</strong> to create one on the spot — no need to add players first. Or use <strong>★ Load example</strong> below it to try everything with a sample roster (Chicago Bulls, pick a season).</li>
-        <li>Pick a season/team on the left, then "+ New session" or an existing one from the list.</li>
+        <li><strong>Teams &amp; Seasons</strong>, at the top, is where you pick who you're planning for — then <strong>Sessions</strong> below it lists that team's sessions as a table; click a row or hit <strong>"+ New session"</strong> to open the session builder underneath it.</li>
+        <li><strong>Notebooks</strong> (further down the page) — ready-made exercise lists grouped by theme (e.g. "Defense", "U8"), not tied to a season or team. Build one once, reuse it in any session, in any team, forever. Check exercises from your library to fill one in, then <strong>Export whole notebook</strong> for a real printable booklet: a cover page, followed by the full sheet for every exercise in it — court diagrams included, same as exporting one from Create exercise or Library.</li>
+        <li>No teams showing up? Click <strong>"+ New season/team"</strong> to create one on the spot — no need to add players first. Or use <strong>★ Load example</strong> below it to try everything with a sample roster (Chicago Bulls, pick a season).</li>
         <li><strong>Filter by notebook</strong> narrows "Add from library" down to just that notebook's exercises — leave it on "All exercises" to search everything.</li>
         <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, and <strong>⏸ Add pause</strong> to drop in a rest period between exercises — it counts toward the total time same as anything else.</li>
         <li>The banner above the exercise list tracks your running total against the planned length, and turns red if you go over.</li>
