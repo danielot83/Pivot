@@ -183,6 +183,18 @@
   .match-score-cell { font-weight: 600; color: var(--accent-deep); }
   .match-detail { display: none; padding: 20px; border-bottom: 1px solid var(--line); background: var(--paper); }
   .match-detail.open { display: block; }
+  /* -------- módulo 5: ficha del partido, una sola columna (no todo el ancho) -------- */
+  .match-detail-col { max-width: 820px; margin-bottom: 20px; }
+
+  /* -------- menu de columnas (tabla de convocatoria, igual que Roster) -------- */
+  .columns-menu { position: relative; }
+  .columns-panel {
+    display: none; position: absolute; top: 100%; right: 0; margin-top: 6px; z-index: 5;
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08); min-width: 240px; max-height: 360px; overflow-y: auto;
+  }
+  .columns-panel.open { display: block; }
+  .columns-panel label { display: flex; align-items: center; gap: 8px; font-size: 14.5px; padding: 4px 0; cursor: pointer; }
 
   .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 14px; }
   .field { display: flex; flex-direction: column; gap: 4px; }
@@ -356,27 +368,17 @@
     </div>
   </div>
 
-  <div class="team-bar-card" id="example-data-card"></div>
-
-  <div class="team-bar-card" id="match-fields-card" style="display:none">
-    <h2>Match stat columns</h2>
-    <p class="hint" style="margin:0 0 8px;">Minutes, points, rebounds, assists and fouls are always there. Add whatever else your club tracks (steals, turnovers, +/-…) in any language.</p>
-    <div id="match-fields-list" style="margin-bottom:10px;"></div>
-    <div style="display:flex; gap:6px;">
-      <input id="match-field-input" type="text" placeholder="e.g. Steals" style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14px;" />
-      <button id="add-match-field-btn" class="btn btn-secondary">+ Add</button>
-    </div>
-  </div>
+  <!-- Datos de ejemplo (Chicago Bulls) quitados por el momento a petición de Dani -- el contenedor se
+       deja en el DOM (oculto) para no tocar renderExampleDataCard(), reactivar es quitar este display:none. -->
+  <div class="team-bar-card" id="example-data-card" style="display:none"></div>
 
   <div class="team-bar-card">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-      <h2 style="margin:0;">Matches</h2>
-      <button class="btn btn-secondary" id="import-stats-btn">Import stats from Excel</button>
-      <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
+      <h2 style="margin:0;">4. Matches</h2>
     </div>
     <button class="btn btn-primary" id="new-match-btn" style="margin-bottom:12px;">+ New match</button>
     <table class="date-table" id="matches-table">
-      <thead><tr><th>Date</th><th>Opponent</th><th>Score</th></tr></thead>
+      <thead><tr><th>Date</th><th>Opponent</th><th>Location</th><th>Result</th><th>Score</th></tr></thead>
       <tbody id="matches-card"></tbody>
     </table>
     <div class="empty-state" id="matches-empty" style="display:none;">Pick a team above to see its matches.</div>
@@ -384,61 +386,91 @@
 
   <div id="match-area" class="match-detail">
 
-      <div class="toolbar">
-        <div class="field"><label for="match-date">Date</label><input id="match-date" type="date" /></div>
-        <div class="field"><label for="match-opponent">Opponent</label><input id="match-opponent" type="text" /></div>
-        <div class="field"><label for="match-location">Location</label><input id="match-location" type="text" placeholder="Optional" /></div>
-        <div class="field">
-          <label for="match-home-away">Home/Away</label>
-          <select id="match-home-away"><option value="home">Home</option><option value="away">Away</option></select>
-        </div>
-        <div class="field"><label for="match-team-score">Score (us)</label><input id="match-team-score" type="number" style="width:70px;" /></div>
-        <div class="field"><label for="match-opponent-score">Score (them)</label><input id="match-opponent-score" type="number" style="width:70px;" /></div>
-        <div class="field"><label for="match-visibility">Who can see it?</label>
-          <select id="match-visibility">
-            <option value="private">🔒 Only me</option>
-            <option value="team">👥 My team</option>
-            <option value="association">🤝 My club association</option>
-          </select>
-          <p class="hint" style="margin:2px 0 0; font-size:12px;">No "PlayPivot Community" option here on purpose — player stats always name real players.</p>
-        </div>
-        <div class="field"><label for="match-language">Language</label>
-          <select id="match-language">
-            <option value="en">English</option>
-            <option value="fr">Français</option>
-            <option value="es">Español</option>
-          </select>
-        </div>
-      </div>
-      <div class="toolbar">
-        <button class="btn btn-primary" id="save-match-btn">Save match details</button>
-        <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
-        <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
-        <div class="spacer"></div>
-        <button class="btn btn-secondary" id="delete-match-btn" style="display:none; color:#991b1b;">Delete this match</button>
-      </div>
+      <p class="section-label" style="margin-top:0;">5. Match details</p>
 
-      <p class="section-label">Call-up &amp; stats</p>
-      <p class="sub" style="margin-top:-6px;">"Called up" is yours to tick. "Present" comes straight from Attendance — mark it there, it shows up here on its own. Click any stat cell to edit.</p>
-      <table>
-        <thead><tr id="callup-head"></tr></thead>
-        <tbody id="callup-body"></tbody>
-      </table>
+      <div class="match-detail-col">
+        <div class="team-bar-card">
+          <h2>General info</h2>
+          <div class="toolbar">
+            <div class="field"><label for="match-date">Date</label><input id="match-date" type="date" /></div>
+            <div class="field"><label for="match-opponent">Opponent</label><input id="match-opponent" type="text" /></div>
+            <div class="field"><label for="match-location">Location</label><input id="match-location" type="text" placeholder="Optional" /></div>
+            <div class="field">
+              <label for="match-home-away">Home/Away</label>
+              <select id="match-home-away"><option value="home">Home</option><option value="away">Away</option></select>
+            </div>
+            <div class="field"><label for="match-number">Match #</label><input id="match-number" type="number" style="width:70px;" /></div>
+            <div class="field"><label for="match-referee">Referee</label><input id="match-referee" type="text" style="width:150px;" /></div>
+            <div class="field"><label for="match-coach">Coach</label><input id="match-coach" type="text" style="width:150px;" /></div>
+            <div class="field"><label for="match-team-score">Score (us)</label><input id="match-team-score" type="number" style="width:70px;" /></div>
+            <div class="field"><label for="match-opponent-score">Score (them)</label><input id="match-opponent-score" type="number" style="width:70px;" /></div>
+            <div class="field"><label for="match-visibility">Who can see it?</label>
+              <select id="match-visibility">
+                <option value="private">🔒 Only me</option>
+                <option value="team">👥 My team</option>
+                <option value="association">🤝 My club association</option>
+              </select>
+              <p class="hint" style="margin:2px 0 0; font-size:12px;">No "PlayPivot Community" option here on purpose — player stats always name real players.</p>
+            </div>
+            <div class="field"><label for="match-language">Language</label>
+              <select id="match-language">
+                <option value="en">English</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+              </select>
+            </div>
+          </div>
+          <div class="toolbar" style="margin-top:8px;">
+            <button class="btn btn-secondary" id="import-stats-btn">Import stats from Excel</button>
+            <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
+          </div>
+          <div class="toolbar" style="margin-top:16px;">
+            <button class="btn btn-primary" id="save-match-btn">Save match details</button>
+            <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
+            <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
+            <div class="spacer"></div>
+            <button class="btn btn-secondary" id="delete-match-btn" style="display:none; color:#991b1b;">Delete this match</button>
+          </div>
+        </div>
 
-      <p class="section-label">Opponent stats <span style="font-weight:400; color:var(--muted); font-size:13px; text-transform:none;">(optional — no roster on file for them, so names are typed in)</span></p>
-      <table>
-        <thead><tr><th>Player name</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Fouls</th><th></th></tr></thead>
-        <tbody id="opponent-stats-body"></tbody>
-      </table>
-      <button class="btn btn-secondary" id="add-opponent-row-btn" style="margin-top:-12px; margin-bottom:20px;">+ Add opponent player</button>
+        <!-- Tabla de convocatoria/minutos/puntos por jugador -- ahora visible (a petición de
+             Dani), justo debajo de la info general, con su propio menú "Columns ▾" (igual que
+             Roster) que fusiona lo que antes era la tarjeta separada "Match stat columns". -->
+        <div id="callup-section">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <p class="section-label" style="margin-bottom:2px;">Call-up &amp; stats</p>
+            <div class="columns-menu">
+              <button class="btn btn-secondary" id="callup-columns-btn">Columns ▾</button>
+              <div class="columns-panel" id="callup-columns-panel"></div>
+            </div>
+          </div>
+          <p class="sub" style="margin-top:-6px;">"Called up" is yours to tick. "Present" comes straight from Attendance — mark it there, it shows up here on its own. Click any stat cell to edit. "Columns ▾" shows/hides and reorders columns (just for you), and — for admins/coaches — adds or removes your club's own custom stats (steals, turnovers, +/-…).</p>
+          <table>
+            <thead><tr id="callup-head"></tr></thead>
+            <tbody id="callup-body"></tbody>
+          </table>
+        </div>
+
+        <p class="section-label">Opponent stats <span style="font-weight:400; color:var(--muted); font-size:13px; text-transform:none;">(optional — no roster on file for them, so names are typed in)</span></p>
+        <table>
+          <thead><tr><th>Player name</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Fouls</th><th></th></tr></thead>
+          <tbody id="opponent-stats-body"></tbody>
+        </table>
+        <button class="btn btn-secondary" id="add-opponent-row-btn" style="margin-top:-12px; margin-bottom:20px;">+ Add opponent player</button>
+      </div>
     </div>
 
-  <p class="section-label">Season summary — <span id="summary-team-label"></span></p>
-  <table>
-    <thead><tr id="summary-head"></tr></thead>
-    <tbody id="summary-body"></tbody>
-  </table>
-  <div class="empty-state" id="summary-empty" style="display:none">No matches recorded yet for this team.</div>
+  <!-- Season summary -- oculto por ahora a petición de Dani ("puedes quitarlo"). El código/los
+       datos siguen intactos (loadSeasonSummary() sigue rellenándola), solo no se muestra; para
+       reactivarla basta con quitar este display:none. -->
+  <div id="season-summary-section" style="display:none">
+    <p class="section-label">Season summary — <span id="summary-team-label"></span></p>
+    <table>
+      <thead><tr id="summary-head"></tr></thead>
+      <tbody id="summary-body"></tbody>
+    </table>
+    <div class="empty-state" id="summary-empty" style="display:none">No matches recorded yet for this team.</div>
+  </div>
 
   <div style="margin-top:32px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
     <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right?</span>
@@ -490,6 +522,9 @@
     matchOpponent: document.getElementById("match-opponent"),
     matchLocation: document.getElementById("match-location"),
     matchHomeAway: document.getElementById("match-home-away"),
+    matchNumber: document.getElementById("match-number"),
+    matchReferee: document.getElementById("match-referee"),
+    matchCoach: document.getElementById("match-coach"),
     matchTeamScore: document.getElementById("match-team-score"),
     matchOpponentScore: document.getElementById("match-opponent-score"),
     matchVisibility: document.getElementById("match-visibility"),
@@ -524,6 +559,54 @@
   let matchFields = []; // colonnes de stats personnalisées de ce club, en plus des basiques
   let lastTreeRows = [];
   let allMatchesCache = []; // tous les matchs de l'équipe sélectionnée, pour le popup d'import
+
+  // ---------------------------------------------------------------------
+  // Menu "Columns ▾" de la table de convocatoria -- fusionne l'ancienne
+  // carte séparée "Match stat columns" avec le même système que Roster :
+  // quelles colonnes on voit et dans quel ordre (mémorisé par personne,
+  // via localStorage), + pour admin/coach, ajouter/retirer une colonne
+  // personnalisée du club (ça, ça reste partagé -- table match_stat_fields).
+  // ---------------------------------------------------------------------
+  const CALLUP_FIXED_COLUMNS = [
+    { key: "called_up", label: "Called up", default: true },
+    { key: "present", label: "Present", default: true },
+    { key: "started", label: "Starter", default: true },
+    { key: "player", label: "Player", default: true },
+    { key: "minutes", label: "Min", default: true },
+    { key: "points", label: "Pts", default: true },
+    { key: "rebounds", label: "Reb", default: true },
+    { key: "assists", label: "Ast", default: true },
+    { key: "fouls", label: "Fouls", default: true },
+  ];
+  function callupColumnDefs() {
+    return [
+      ...CALLUP_FIXED_COLUMNS.map((c) => ({ ...c, custom: false })),
+      ...matchFields.map((f) => ({ key: "custom:" + f.key, label: f.label, default: true, custom: true, fieldKey: f.key, fieldId: f.id })),
+    ];
+  }
+  function loadVisibleCallupColumns() {
+    const saved = localStorage.getItem("pivot_match_columns");
+    if (saved) { try { return JSON.parse(saved); } catch (e) {} }
+    return callupColumnDefs().filter((c) => c.default).map((c) => c.key);
+  }
+  function saveVisibleCallupColumns(keys) { localStorage.setItem("pivot_match_columns", JSON.stringify(keys)); }
+  let visibleCallupColumns = loadVisibleCallupColumns();
+
+  function loadCallupColumnOrder() {
+    const saved = localStorage.getItem("pivot_match_column_order");
+    let order = [];
+    if (saved) { try { order = JSON.parse(saved); } catch (e) {} }
+    const defs = callupColumnDefs();
+    defs.forEach((c) => { if (!order.includes(c.key)) order.push(c.key); });
+    return order.filter((k) => defs.some((c) => c.key === k));
+  }
+  function saveCallupColumnOrder(order) { localStorage.setItem("pivot_match_column_order", JSON.stringify(order)); }
+  let callupColumnOrder = loadCallupColumnOrder();
+
+  function orderedVisibleCallupColumns() {
+    const defs = callupColumnDefs();
+    return callupColumnOrder.map((k) => defs.find((c) => c.key === k)).filter((c) => c && visibleCallupColumns.includes(c.key));
+  }
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
 
@@ -671,91 +754,135 @@
   }
 
   // -----------------------------------------------------------------------
-  // Colonnes de stats personnalisées de ce club (voir Settings) -- en
-  // plus des basiques (minutes/points/rebonds/passes/fautes), qui
-  // restent toujours là. Chaque club peut avoir une liste différente.
+  // Colonnes de stats personnalisées de ce club -- en plus des basiques
+  // (minutes/points/rebonds/passes/fautes), qui restent toujours là.
+  // Gérées directement depuis le menu "Columns ▾" de la table de
+  // convocatoria (avant, une carte séparée "Match stat columns" --
+  // fusionnée ici à la demande de Dani). Ajouter/retirer une colonne
+  // reste partagé pour tout le club (admin/coach seulement) ; les voir/
+  // les cacher/les réordonner est personnel à chacun (localStorage).
   // -----------------------------------------------------------------------
   async function loadMatchFields() {
     const { data, error } = await supabaseClient
       .from("match_stat_fields").select("*").eq("organization_id", currentOrgId).eq("enabled", true).order("position");
     if (error) { console.error("loadMatchFields error:", error); return; }
     matchFields = data || [];
+    // Si todavía no hay preferencia guardada, recalculamos los valores por
+    // defecto ahora que ya conocemos las columnas personalizadas del club
+    // (antes de esto, matchFields todavía estaba vacío).
+    if (!localStorage.getItem("pivot_match_columns")) visibleCallupColumns = callupColumnDefs().filter((c) => c.default).map((c) => c.key);
+    callupColumnOrder = loadCallupColumnOrder();
     renderTableHeads();
+    renderCallupColumnsMenu();
   }
 
-  // -----------------------------------------------------------------------
-  // Gérer les colonnes (ajouter/retirer/réordonner) -- vit ici, dans
-  // Match day, pas dans Settings : c'est là qu'on les utilise vraiment.
-  // Visible pour admin/coach seulement (peuvent créer/éditer du contenu).
-  // -----------------------------------------------------------------------
-  let allMatchFieldsForAdmin = [];
-
-  async function loadMatchFieldsAdmin() {
-    if (!(myRole === "admin" || myRole === "coach")) return;
-    document.getElementById("match-fields-card").style.display = "block";
-    const { data, error } = await supabaseClient
-      .from("match_stat_fields").select("*").eq("organization_id", currentOrgId).order("position");
-    if (error) { console.error("loadMatchFieldsAdmin error:", error); return; }
-    allMatchFieldsForAdmin = data || [];
-    renderMatchFieldsAdmin();
-  }
-
-  function renderMatchFieldsAdmin() {
-    const list = document.getElementById("match-fields-list");
-    if (allMatchFieldsForAdmin.length === 0) { list.innerHTML = '<p class="hint" style="margin:0 0 8px; font-size:12px;">No custom columns yet.</p>'; return; }
-    list.innerHTML = allMatchFieldsForAdmin.map((f, i) => `
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:4px 0; border-bottom:1px solid var(--line); font-size:12.5px;">
-        <span>${escapeHtml(f.label)}</span>
-        <span style="display:flex; gap:2px;">
-          <button class="match-field-btn" data-act="up" data-i="${i}" style="border:none; background:none; cursor:pointer; color:var(--muted); padding:2px 5px;">↑</button>
-          <button class="match-field-btn" data-act="down" data-i="${i}" style="border:none; background:none; cursor:pointer; color:var(--muted); padding:2px 5px;">↓</button>
-          <button class="match-field-btn" data-act="remove" data-i="${i}" style="border:none; background:none; cursor:pointer; color:#991b1b; padding:2px 5px;">✕</button>
-        </span>
-      </div>
-    `).join("");
-    list.querySelectorAll(".match-field-btn").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const i = parseInt(btn.dataset.i, 10);
-        if (btn.dataset.act === "remove") {
-          if (!confirm(`Remove "${allMatchFieldsForAdmin[i].label}"? Numbers already entered for past matches stay saved, just hidden.`)) return;
-          const { error } = await supabaseClient.from("match_stat_fields").delete().eq("id", allMatchFieldsForAdmin[i].id);
-          if (error) { showMessage(error.message, "error"); return; }
-          await loadMatchFieldsAdmin(); await loadMatchFields();
-          if (currentMatchId) await openMatch(currentMatchId); else renderCallupTable();
-          return;
-        }
-        const swapWith = btn.dataset.act === "up" ? i - 1 : i + 1;
-        if (swapWith < 0 || swapWith >= allMatchFieldsForAdmin.length) return;
-        const a = allMatchFieldsForAdmin[i], b = allMatchFieldsForAdmin[swapWith];
-        await supabaseClient.from("match_stat_fields").update({ position: swapWith }).eq("id", a.id);
-        await supabaseClient.from("match_stat_fields").update({ position: i }).eq("id", b.id);
-        await loadMatchFieldsAdmin(); await loadMatchFields();
-      });
-    });
-  }
-
-  document.getElementById("add-match-field-btn").addEventListener("click", async () => {
-    const input = document.getElementById("match-field-input");
-    const label = input.value.trim();
-    if (!label) return;
-    const key = label.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "field_" + Date.now();
-    try {
-      const { error } = await supabaseClient.from("match_stat_fields").insert({
-        organization_id: currentOrgId, key, label, position: allMatchFieldsForAdmin.length,
-      });
-      if (error) throw error;
-      input.value = "";
-      await loadMatchFieldsAdmin(); await loadMatchFields();
-    } catch (err) {
-      showMessage(err.message || "Couldn't add that column.", "error");
-    }
+  document.getElementById("callup-columns-btn").addEventListener("click", () => {
+    document.getElementById("callup-columns-panel").classList.toggle("open");
   });
 
+  function renderCallupColumnsMenu() {
+    const panel = document.getElementById("callup-columns-panel");
+    panel.innerHTML = "";
+    const defs = callupColumnDefs();
+    const canManage = myRole === "admin" || myRole === "coach";
+
+    callupColumnOrder.forEach((key, idx) => {
+      const col = defs.find((c) => c.key === key);
+      if (!col) return;
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex; align-items:center; gap:2px;";
+
+      const label = document.createElement("label");
+      label.style.cssText = "flex:1; display:flex; align-items:center; gap:8px; font-size:13px; padding:4px 0; cursor:pointer;";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = visibleCallupColumns.includes(col.key);
+      cb.addEventListener("change", () => {
+        visibleCallupColumns = cb.checked ? [...visibleCallupColumns, col.key] : visibleCallupColumns.filter((k) => k !== col.key);
+        saveVisibleCallupColumns(visibleCallupColumns);
+        renderTableHeads();
+        renderCallupTable();
+      });
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(col.label));
+      row.appendChild(label);
+
+      const upBtn = document.createElement("button");
+      upBtn.type = "button"; upBtn.textContent = "↑"; upBtn.title = "Move up";
+      upBtn.disabled = idx === 0;
+      upBtn.style.cssText = "background:none; border:none; cursor:pointer; color:var(--muted); font-size:13px; padding:2px 4px;" + (idx === 0 ? " opacity:0.3; cursor:default;" : "");
+      upBtn.addEventListener("click", () => {
+        [callupColumnOrder[idx - 1], callupColumnOrder[idx]] = [callupColumnOrder[idx], callupColumnOrder[idx - 1]];
+        saveCallupColumnOrder(callupColumnOrder);
+        renderCallupColumnsMenu(); renderTableHeads(); renderCallupTable();
+      });
+      row.appendChild(upBtn);
+
+      const downBtn = document.createElement("button");
+      downBtn.type = "button"; downBtn.textContent = "↓"; downBtn.title = "Move down";
+      downBtn.disabled = idx === callupColumnOrder.length - 1;
+      downBtn.style.cssText = "background:none; border:none; cursor:pointer; color:var(--muted); font-size:13px; padding:2px 4px;" + (idx === callupColumnOrder.length - 1 ? " opacity:0.3; cursor:default;" : "");
+      downBtn.addEventListener("click", () => {
+        [callupColumnOrder[idx + 1], callupColumnOrder[idx]] = [callupColumnOrder[idx], callupColumnOrder[idx + 1]];
+        saveCallupColumnOrder(callupColumnOrder);
+        renderCallupColumnsMenu(); renderTableHeads(); renderCallupTable();
+      });
+      row.appendChild(downBtn);
+
+      if (col.custom && canManage) {
+        const delBtn = document.createElement("button");
+        delBtn.type = "button"; delBtn.textContent = "✕"; delBtn.title = "Remove this stat column for the whole club";
+        delBtn.style.cssText = "background:none; border:none; cursor:pointer; color:#991b1b; font-size:13px; padding:2px 4px;";
+        delBtn.addEventListener("click", async () => {
+          if (!confirm(`Remove "${col.label}"? Numbers already entered for past matches stay saved, just hidden.`)) return;
+          const { error } = await supabaseClient.from("match_stat_fields").delete().eq("id", col.fieldId);
+          if (error) { showMessage(error.message, "error"); return; }
+          visibleCallupColumns = visibleCallupColumns.filter((k) => k !== col.key);
+          callupColumnOrder = callupColumnOrder.filter((k) => k !== col.key);
+          saveVisibleCallupColumns(visibleCallupColumns);
+          saveCallupColumnOrder(callupColumnOrder);
+          await loadMatchFields();
+          if (currentMatchId) await openMatch(currentMatchId); else renderCallupTable();
+        });
+        row.appendChild(delBtn);
+      }
+
+      panel.appendChild(row);
+    });
+
+    if (canManage) {
+      const addRow = document.createElement("div");
+      addRow.style.cssText = "display:flex; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid var(--line);";
+      addRow.innerHTML = `
+        <input id="callup-add-field-input" type="text" placeholder="e.g. Steals" style="flex:1; min-width:0; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
+        <button type="button" id="callup-add-field-btn" class="btn btn-secondary" style="padding:6px 10px; font-size:12.5px;">+ Add</button>
+      `;
+      panel.appendChild(addRow);
+      const addInput = addRow.querySelector("#callup-add-field-input");
+      addRow.querySelector("#callup-add-field-btn").addEventListener("click", async () => {
+        const label = addInput.value.trim();
+        if (!label) return;
+        const key = label.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "field_" + Date.now();
+        try {
+          const { error } = await supabaseClient.from("match_stat_fields").insert({
+            organization_id: currentOrgId, key, label, position: matchFields.length,
+          });
+          if (error) throw error;
+          addInput.value = "";
+          const newKey = "custom:" + key;
+          if (!visibleCallupColumns.includes(newKey)) visibleCallupColumns.push(newKey);
+          saveVisibleCallupColumns(visibleCallupColumns);
+          await loadMatchFields();
+          if (currentMatchId) await openMatch(currentMatchId); else renderCallupTable();
+        } catch (err) {
+          showMessage(err.message || "Couldn't add that column.", "error");
+        }
+      });
+    }
+  }
+
   function renderTableHeads() {
-    els.callupHead.innerHTML = `
-      <th>Called up</th><th>Present</th><th>Starter</th><th>Player</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Fouls</th>
-      ${matchFields.map((f) => `<th>${escapeHtml(f.label)}</th>`).join("")}
-    `;
+    els.callupHead.innerHTML = orderedVisibleCallupColumns().map((c) => `<th>${escapeHtml(c.label)}</th>`).join("");
     els.summaryHead.innerHTML = `
       <th>Player</th><th>GP</th><th>Pts/g</th><th>Reb/g</th><th>Ast/g</th><th>Fouls/g</th>
       ${matchFields.map((f) => `<th>${escapeHtml(f.label)}/g</th>`).join("")}
@@ -900,9 +1027,18 @@
   // -----------------------------------------------------------------------
   // Liste des matchs de l'équipe sélectionnée
   // -----------------------------------------------------------------------
+  // Mismo "estilo insignia" que el icono de presencia/asistencia --
+  // pequeño cuadrito de color, nunca un logo o foto real del rival.
+  function matchResultBadge(m) {
+    if (m.team_score == null || m.opponent_score == null) return `<span class="present-badge present-unknown" title="No score yet">—</span>`;
+    if (m.team_score === m.opponent_score) return `<span class="present-badge present-other" title="Draw">D</span>`;
+    const won = m.team_score > m.opponent_score;
+    return `<span class="present-badge ${won ? "present-yes" : "present-no"}" title="${won ? "Win" : "Loss"}">${won ? "W" : "L"}</span>`;
+  }
+
   async function loadMatchesList() {
     const { data, error } = await supabaseClient
-      .from("matches").select("id, date, opponent, team_score, opponent_score, visibility, organization_id, season, team, team_category, team_gender")
+      .from("matches").select("id, date, opponent, location, team_score, opponent_score, visibility, organization_id, season, team, team_category, team_gender")
       .order("date", { ascending: false });
     if (error) { console.error(error); return; }
     const mine = (data || []).filter((m) => m.organization_id === currentOrgId && m.season === currentSeason && m.team === currentTeam && (m.team_category || "") === (currentTeamCategory || "") && (m.team_gender || "") === (currentTeamGender || ""));
@@ -923,6 +1059,8 @@
       row.innerHTML = `
         <td>${VISIBILITY_ICONS[m.visibility || "team"] || ""} ${m.date}</td>
         <td>${m.opponent ? "vs " + escapeHtml(m.opponent) : "No opponent set"}${isShared ? ' <span class="hint" style="font-size:11px;">· shared by another club</span>' : ""}</td>
+        <td>${m.location ? "📍 " + escapeHtml(m.location) : '<span class="hint">—</span>'}</td>
+        <td>${matchResultBadge(m)}</td>
         <td class="match-score-cell">${score}</td>
       `;
       row.addEventListener("click", () => openMatchRow(m.id, row));
@@ -938,7 +1076,7 @@
     if (shared.length > 0) {
       const header = document.createElement("tr");
       header.className = "row-group-header";
-      header.innerHTML = `<td colspan="3">🌐 Shared by other clubs</td>`;
+      header.innerHTML = `<td colspan="5">🌐 Shared by other clubs</td>`;
       els.matchesCard.appendChild(header);
       shared.forEach((m) => els.matchesCard.appendChild(buildRow(m, true)));
     }
@@ -969,6 +1107,9 @@
     els.matchOpponent.value = "";
     els.matchLocation.value = "";
     els.matchHomeAway.value = "home";
+    els.matchNumber.value = "";
+    els.matchReferee.value = "";
+    els.matchCoach.value = "";
     els.matchTeamScore.value = "";
     els.matchOpponentScore.value = "";
     els.matchVisibility.value = "team";
@@ -984,7 +1125,7 @@
     els.matchArea.scrollIntoView({ behavior: "smooth", block: "nearest" });
     document.getElementById("save-match-btn").style.display = "inline-block";
     document.getElementById("delete-match-btn").style.display = "none";
-    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
+    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchNumber, els.matchReferee, els.matchCoach, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
       .forEach((el) => (el.disabled = false));
   }
 
@@ -996,6 +1137,9 @@
     els.matchOpponent.value = match.opponent || "";
     els.matchLocation.value = match.location || "";
     els.matchHomeAway.value = match.home_away || "home";
+    els.matchNumber.value = match.match_number ?? "";
+    els.matchReferee.value = match.referee || "";
+    els.matchCoach.value = match.coach || "";
     els.matchTeamScore.value = match.team_score ?? "";
     els.matchOpponentScore.value = match.opponent_score ?? "";
     els.matchVisibility.value = match.visibility || "team";
@@ -1023,7 +1167,7 @@
     document.getElementById("save-match-btn").style.display = owned ? "inline-block" : "none";
     document.getElementById("delete-match-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     document.getElementById("add-opponent-row-btn").style.display = owned ? "inline-block" : "none";
-    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
+    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchNumber, els.matchReferee, els.matchCoach, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
       .forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This match belongs to another club — you can look, but not edit or save changes.", "success");
     await loadMatchesList();
@@ -1036,25 +1180,32 @@
     late: { label: "L", cls: "present-other" },
   };
 
+  function callupCellHtml(col, p, s, badge) {
+    switch (col.key) {
+      case "called_up": return `<td><input type="checkbox" data-player="${p.id}" data-field="called_up" ${s.called_up ? "checked" : ""}></td>`;
+      case "present": return `<td>${badge ? `<span class="present-badge ${badge.cls}" title="From Attendance">${badge.label}</span>` : `<span class="present-badge present-unknown" title="Not marked in Attendance yet">—</span>`}</td>`;
+      case "started": return `<td><input type="checkbox" data-player="${p.id}" data-field="started" ${s.started ? "checked" : ""}></td>`;
+      case "player": return `<td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>`;
+      case "minutes": return `<td class="editable" data-player="${p.id}" data-field="minutes">${s.minutes ?? ""}</td>`;
+      case "points": return `<td class="editable" data-player="${p.id}" data-field="points">${s.points ?? 0}</td>`;
+      case "rebounds": return `<td class="editable" data-player="${p.id}" data-field="rebounds">${s.rebounds ?? 0}</td>`;
+      case "assists": return `<td class="editable" data-player="${p.id}" data-field="assists">${s.assists ?? 0}</td>`;
+      case "fouls": return `<td class="editable" data-player="${p.id}" data-field="fouls">${s.fouls ?? 0}</td>`;
+      default:
+        if (col.custom) return `<td class="editable" data-player="${p.id}" data-custom="${escapeHtml(col.fieldKey)}">${(s.custom_stats && s.custom_stats[col.fieldKey]) ?? 0}</td>`;
+        return "<td></td>";
+    }
+  }
+
   function renderCallupTable() {
     els.callupBody.innerHTML = "";
+    const cols = orderedVisibleCallupColumns();
     teamPlayers.forEach((p) => {
       const s = statsByPlayer[p.id];
       const att = attendanceByPlayer[p.id];
       const badge = att ? ATTENDANCE_BADGE[att] : null;
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><input type="checkbox" data-player="${p.id}" data-field="called_up" ${s.called_up ? "checked" : ""}></td>
-        <td>${badge ? `<span class="present-badge ${badge.cls}" title="From Attendance">${badge.label}</span>` : `<span class="present-badge present-unknown" title="Not marked in Attendance yet">—</span>`}</td>
-        <td><input type="checkbox" data-player="${p.id}" data-field="started" ${s.started ? "checked" : ""}></td>
-        <td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>
-        <td class="editable" data-player="${p.id}" data-field="minutes">${s.minutes ?? ""}</td>
-        <td class="editable" data-player="${p.id}" data-field="points">${s.points ?? 0}</td>
-        <td class="editable" data-player="${p.id}" data-field="rebounds">${s.rebounds ?? 0}</td>
-        <td class="editable" data-player="${p.id}" data-field="assists">${s.assists ?? 0}</td>
-        <td class="editable" data-player="${p.id}" data-field="fouls">${s.fouls ?? 0}</td>
-        ${matchFields.map((f) => `<td class="editable" data-player="${p.id}" data-custom="${escapeHtml(f.key)}">${(s.custom_stats && s.custom_stats[f.key]) ?? 0}</td>`).join("")}
-      `;
+      tr.innerHTML = cols.map((col) => callupCellHtml(col, p, s, badge)).join("");
       els.callupBody.appendChild(tr);
     });
     els.callupBody.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
@@ -1177,11 +1328,19 @@
       const rawRows = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
       if (rawRows.length === 0) { showMessage("That file doesn't have any rows.", "error"); return; }
 
+      // Columnas fijas por alias (varios idiomas) + las columnas
+      // personalizadas de este club, reconocidas automáticamente por
+      // nombre exacto (clave o etiqueta) -- "lo más flexible posible",
+      // sin necesidad de mapear nada a mano.
       const fieldMap = {};
       Object.keys(rawRows[0]).forEach((h) => {
         const norm = normalizeMatchHeader(h);
         for (const field in MATCH_STAT_ALIASES) {
           if (MATCH_STAT_ALIASES[field].some((alias) => normalizeMatchHeader(alias) === norm)) { fieldMap[h] = field; break; }
+        }
+        if (!fieldMap[h]) {
+          const custom = matchFields.find((f) => normalizeMatchHeader(f.label) === norm || normalizeMatchHeader(f.key) === norm);
+          if (custom) fieldMap[h] = "custom:" + custom.key;
         }
       });
 
@@ -1189,11 +1348,19 @@
       let unmatched = 0;
       rawRows.forEach((raw) => {
         const r = {};
-        for (const header in raw) { const field = fieldMap[header]; if (field) r[field] = raw[header]; }
+        const rCustom = {};
+        for (const header in raw) {
+          const field = fieldMap[header];
+          if (!field) continue;
+          if (field.startsWith("custom:")) { rCustom[field.slice(7)] = raw[header]; }
+          else r[field] = raw[header];
+        }
         const name = normalizeMatchHeader(r.player_name);
         if (!name) return;
         const player = teamPlayers.find((p) => normalizeMatchHeader(`${p.first_name} ${p.last_name}`) === name || normalizeMatchHeader(`${p.last_name} ${p.first_name}`) === name);
         if (!player) { unmatched++; return; }
+        const custom_stats = {};
+        Object.keys(rCustom).forEach((k) => { custom_stats[k] = rCustom[k] ? parseFloat(rCustom[k]) : 0; });
         parsedRows.push({
           player_id: player.id,
           minutes: r.minutes ? parseFloat(r.minutes) : null,
@@ -1201,6 +1368,7 @@
           rebounds: r.rebounds ? parseInt(r.rebounds, 10) : 0,
           assists: r.assists ? parseInt(r.assists, 10) : 0,
           fouls: r.fouls ? parseInt(r.fouls, 10) : 0,
+          custom_stats,
         });
       });
 
@@ -1222,7 +1390,8 @@
       (existing || []).forEach((s) => { const clean = { ...s }; delete clean.id; delete clean.match_id; byPlayer[s.player_id] = clean; });
       parsedRows.forEach((r) => {
         const prev = byPlayer[r.player_id] || {};
-        byPlayer[r.player_id] = { ...prev, ...r, called_up: true, started: prev.started || false, custom_stats: prev.custom_stats || {} };
+        const mergedCustom = { ...(prev.custom_stats || {}), ...(r.custom_stats || {}) };
+        byPlayer[r.player_id] = { ...prev, ...r, called_up: true, started: prev.started || false, custom_stats: mergedCustom };
       });
       await supabaseClient.from("match_player_stats").delete().eq("match_id", matchId);
       const rows = Object.keys(byPlayer).map((pid) => ({ match_id: matchId, player_id: pid, ...byPlayer[pid] }));
@@ -1268,6 +1437,9 @@
       organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null, team_gender: currentTeamGender || null,
       date: els.matchDate.value, opponent: els.matchOpponent.value.trim() || null,
       location: els.matchLocation.value.trim() || null, home_away: els.matchHomeAway.value,
+      match_number: els.matchNumber.value ? parseInt(els.matchNumber.value, 10) : null,
+      referee: els.matchReferee.value.trim() || null,
+      coach: els.matchCoach.value.trim() || null,
       team_score: els.matchTeamScore.value ? parseInt(els.matchTeamScore.value, 10) : null,
       opponent_score: els.matchOpponentScore.value ? parseInt(els.matchOpponentScore.value, 10) : null,
       visibility: els.matchVisibility.value,
@@ -1465,14 +1637,14 @@
       <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
         <li><strong>Called up</strong> is yours to tick. <strong>Present</strong> is read straight from Attendance for this same match — mark it there, not here; the two are kept separate on purpose (a player can be called up and miss the game, or show up without being called up).</li>
         <li>Tick "Starter" for the five who start, then click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
+        <li><strong>"Columns ▾"</strong>, right above the table, shows/hides and reorders columns — just for you, remembered next time. Admins/coaches can also add or remove your club's own custom stats there (steals, turnovers, +/-, in any language) — that's shared with the whole team.</li>
         <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
-        <li><strong>"Import stats from Excel"</strong> reads a file (name + minutes/points/rebounds/assists/fouls columns), matches names against this team's roster, then asks which match to save it to.</li>
+        <li><strong>"Import stats from Excel"</strong> reads a file (name, minutes/points/rebounds/assists/fouls, and your own custom stat columns — recognized automatically by name), matches names against this team's roster, then asks which match to save it to.</li>
       </ol>
       <p style="margin:8px 0 4px; font-weight:600;">4. The rest</p>
       <ul style="margin:0; padding-left:18px; line-height:1.7;">
-        <li><strong>Your own stat columns</strong> — every club is different. Add whatever yours tracks beyond the basics (steals, turnovers, +/-, in any language) in the box above the match list. Only admins/coaches see it.</li>
+        <li><strong>Location and result</strong>, in the matches list above, are filled in from what's saved in each match's general info.</li>
         <li><strong>"Print blank sheet"</strong> — an empty box score with your columns, ready to fill in by hand during the game.</li>
-        <li><strong>"Season summary"</strong> — adds up every saved match for this team automatically, custom columns included.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association, or 🌐 every club on PlayPivot. Match reports contain real player stats, so think before sharing beyond your team.</li>
       </ul>`;
     box.style.display = "block";
@@ -1490,7 +1662,7 @@
     const orgId = await loadMyOrganization();
     pivotInitTopbarWidgets();
     if (orgId) {
-      await loadMatchFields(); await loadMatchFieldsAdmin(); await loadTree();
+      await loadMatchFields(); await loadTree();
       if (currentSeason && currentTeam) {
         els.currentSelection.textContent = currentTeamCategory ? `${currentTeam} (${currentTeamCategory}) — ${currentSeason}` : `${currentTeam} — ${currentSeason}`;
         els.summaryTeamLabel.textContent = currentTeamCategory ? `${currentTeam} (${currentTeamCategory}) (${currentSeason})` : `${currentTeam} (${currentSeason})`;
