@@ -374,7 +374,7 @@
 
   <div class="team-bar-card">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-      <h2 style="margin:0;">4. Matches</h2>
+      <p class="tsc-step-label" style="margin:0;">4. Matches</p>
     </div>
     <button class="btn btn-primary" id="new-match-btn" style="margin-bottom:12px;">+ New match</button>
     <table class="date-table" id="matches-table">
@@ -386,11 +386,11 @@
 
   <div id="match-area" class="match-detail">
 
-      <p class="section-label" style="margin-top:0;">5. Match details</p>
+      <p class="tsc-step-label" style="margin-top:0;">5. Match details</p>
 
       <div class="match-detail-col">
         <div class="team-bar-card">
-          <h2>General info</h2>
+          <p class="tsc-step-label">General info</p>
           <div class="toolbar">
             <div class="field"><label for="match-date">Date</label><input id="match-date" type="date" /></div>
             <div class="field"><label for="match-opponent">Opponent</label><input id="match-opponent" type="text" /></div>
@@ -438,20 +438,20 @@
              Roster) que fusiona lo que antes era la tarjeta separada "Match stat columns". -->
         <div id="callup-section">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-            <p class="section-label" style="margin-bottom:2px;">Call-up &amp; stats</p>
+            <p class="tsc-step-label" style="margin-bottom:2px;">Call-up &amp; stats</p>
             <div class="columns-menu">
               <button class="btn btn-secondary" id="callup-columns-btn">Columns ▾</button>
               <div class="columns-panel" id="callup-columns-panel"></div>
             </div>
           </div>
-          <p class="sub" style="margin-top:-6px;">"Called up" is yours to tick. "Present" comes straight from Attendance — mark it there, it shows up here on its own. Click any stat cell to edit. "Columns ▾" shows/hides and reorders columns (just for you), and — for admins/coaches — adds or removes your club's own custom stats (steals, turnovers, +/-…).</p>
+          <p class="sub" style="margin-top:-6px;">"Called up" is yours to tick. Click "Present" to cycle through — Present → Absent → Excused → Late → — same options as Attendance, and it's the same record: mark it here or there, it shows up in both. Click any stat cell to edit. "Columns ▾" shows/hides and reorders columns (just for you), and — for admins/coaches — adds or removes your club's own custom stats (steals, turnovers, +/-…). Save the match once before marking presence.</p>
           <table>
             <thead><tr id="callup-head"></tr></thead>
             <tbody id="callup-body"></tbody>
           </table>
         </div>
 
-        <p class="section-label">Opponent stats <span style="font-weight:400; color:var(--muted); font-size:13px; text-transform:none;">(optional — no roster on file for them, so names are typed in)</span></p>
+        <p class="tsc-step-label">Opponent stats <span style="font-weight:400; color:var(--muted); font-size:13px; text-transform:none;">(optional — no roster on file for them, so names are typed in)</span></p>
         <table>
           <thead><tr><th>Player name</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Fouls</th><th></th></tr></thead>
           <tbody id="opponent-stats-body"></tbody>
@@ -505,7 +505,6 @@
   }
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
   function escapeHtml(str) { return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
   const els = {
@@ -551,11 +550,12 @@
   let currentTeamGender = "";
   let logoRequestToken = 0; // se incrementa cada vez que se pide un logo -- para descartar respuestas viejas que llegan tarde
   let currentMatchId = null;
+  let currentMatchOwned = true; // false para un partido compartido de otro club (solo lectura)
   let currentTranslationGroupId = null;
   let teamPlayers = []; // joueurs actifs de l'équipe sélectionnée
   let statsByPlayer = {}; // player_id -> { called_up, started, minutes, points, rebounds, assists, fouls, custom_stats }
   let opponentStats = []; // [{ id, player_name, minutes, points, rebounds, assists, fouls, custom_stats }] -- optionnel
-  let attendanceByPlayer = {}; // player_id -> statut de Attendance pour le match ouvert (lecture seule ici)
+  let attendanceByPlayer = {}; // player_id -> { id, status } dans "attendance" pour le match ouvert -- éditable ici, partagé avec Attendance
   let matchFields = []; // colonnes de stats personnalisées de ce club, en plus des basiques
   let lastTreeRows = [];
   let allMatchesCache = []; // tous les matchs de l'équipe sélectionnée, pour le popup d'import
@@ -1057,7 +1057,7 @@
       row.dataset.matchId = m.id;
       const score = (m.team_score != null && m.opponent_score != null) ? `${m.team_score} – ${m.opponent_score}` : "—";
       row.innerHTML = `
-        <td>${VISIBILITY_ICONS[m.visibility || "team"] || ""} ${m.date}</td>
+        <td>${m.date}</td>
         <td>${m.opponent ? "vs " + escapeHtml(m.opponent) : "No opponent set"}${isShared ? ' <span class="hint" style="font-size:11px;">· shared by another club</span>' : ""}</td>
         <td>${m.location ? "📍 " + escapeHtml(m.location) : '<span class="hint">—</span>'}</td>
         <td>${matchResultBadge(m)}</td>
@@ -1103,6 +1103,7 @@
   function newMatch() {
     if (!currentTeam) { showMessage("Pick a season/team above first.", "error"); return; }
     currentMatchId = null;
+    currentMatchOwned = true;
     els.matchDate.value = new Date().toISOString().slice(0, 10);
     els.matchOpponent.value = "";
     els.matchLocation.value = "";
@@ -1133,6 +1134,7 @@
     const { data: match, error } = await supabaseClient.from("matches").select("*").eq("id", id).single();
     if (error) { showMessage(error.message, "error"); return; }
     currentMatchId = id;
+    currentMatchOwned = match.organization_id === currentOrgId;
     els.matchDate.value = match.date;
     els.matchOpponent.value = match.opponent || "";
     els.matchLocation.value = match.location || "";
@@ -1152,18 +1154,20 @@
       statsByPlayer[s.player_id] = { called_up: s.called_up, started: s.started, minutes: s.minutes, points: s.points, rebounds: s.rebounds, assists: s.assists, fouls: s.fouls, custom_stats: s.custom_stats || {} };
     });
 
-    // Presente viene de Attendance, de solo lectura acá -- se marca en
-    // Attendance, no en este panel.
-    const { data: attRows } = await supabaseClient.from("attendance").select("player_id, status").eq("match_id", id);
+    // Presente ahora se puede marcar desde aquí O desde Attendance --
+    // las dos páginas leen/escriben la misma tabla "attendance", así que
+    // un cambio en una se ve en la otra al instante (no hace falta ir a
+    // Attendance para marcar quién vino a este partido).
+    const { data: attRows } = await supabaseClient.from("attendance").select("id, player_id, status").eq("match_id", id);
     attendanceByPlayer = {};
-    (attRows || []).forEach((a) => { attendanceByPlayer[a.player_id] = a.status; });
+    (attRows || []).forEach((a) => { attendanceByPlayer[a.player_id] = { id: a.id, status: a.status }; });
 
     const { data: oppRows } = await supabaseClient.from("match_opponent_stats").select("*").eq("match_id", id).order("created_at");
     opponentStats = oppRows || [];
 
     renderCallupTable();
     renderOpponentStats();
-    const owned = match.organization_id === currentOrgId;
+    const owned = currentMatchOwned;
     document.getElementById("save-match-btn").style.display = owned ? "inline-block" : "none";
     document.getElementById("delete-match-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     document.getElementById("add-opponent-row-btn").style.display = owned ? "inline-block" : "none";
@@ -1180,10 +1184,19 @@
     late: { label: "L", cls: "present-other" },
   };
 
-  function callupCellHtml(col, p, s, badge) {
+  // Mismo ciclo que Attendance: sin marcar -> present -> absent -> excused -> late -> sin marcar.
+  const PRESENT_STATUS_CYCLE = [null, "present", "absent", "excused", "late"];
+
+  function callupCellHtml(col, p, s, badge, attRec) {
     switch (col.key) {
       case "called_up": return `<td><input type="checkbox" data-player="${p.id}" data-field="called_up" ${s.called_up ? "checked" : ""}></td>`;
-      case "present": return `<td>${badge ? `<span class="present-badge ${badge.cls}" title="From Attendance">${badge.label}</span>` : `<span class="present-badge present-unknown" title="Not marked in Attendance yet">—</span>`}</td>`;
+      case "present": {
+        const canEdit = currentMatchId && currentMatchOwned;
+        const cls = badge ? badge.cls : "present-unknown";
+        const label = badge ? badge.label : "—";
+        const title = canEdit ? "Click to cycle: — → Present → Absent → Excused → Late → — (same as Attendance)" : "Save the match first to mark presence";
+        return `<td><button type="button" class="present-badge ${cls}" style="border:none;${canEdit ? " cursor:pointer;" : ""}" data-player="${p.id}" data-record-id="${attRec ? attRec.id : ""}" data-status="${(attRec && attRec.status) || ""}" ${canEdit ? "" : "disabled"} title="${title}">${label}</button></td>`;
+      }
       case "started": return `<td><input type="checkbox" data-player="${p.id}" data-field="started" ${s.started ? "checked" : ""}></td>`;
       case "player": return `<td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>`;
       case "minutes": return `<td class="editable" data-player="${p.id}" data-field="minutes">${s.minutes ?? ""}</td>`;
@@ -1202,10 +1215,10 @@
     const cols = orderedVisibleCallupColumns();
     teamPlayers.forEach((p) => {
       const s = statsByPlayer[p.id];
-      const att = attendanceByPlayer[p.id];
-      const badge = att ? ATTENDANCE_BADGE[att] : null;
+      const attRec = attendanceByPlayer[p.id];
+      const badge = attRec && attRec.status ? ATTENDANCE_BADGE[attRec.status] : null;
       const tr = document.createElement("tr");
-      tr.innerHTML = cols.map((col) => callupCellHtml(col, p, s, badge)).join("");
+      tr.innerHTML = cols.map((col) => callupCellHtml(col, p, s, badge, attRec)).join("");
       els.callupBody.appendChild(tr);
     });
     els.callupBody.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
@@ -1214,6 +1227,63 @@
     els.callupBody.querySelectorAll("td.editable").forEach((td) => {
       td.addEventListener("click", () => makeCellEditable(td));
     });
+    els.callupBody.querySelectorAll("button.present-badge").forEach((btn) => {
+      btn.addEventListener("click", () => cyclePresentStatus(btn));
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Marcar presencia desde Match day escribe directamente en la misma
+  // tabla "attendance" que usa la página Attendance -- mismo ciclo de
+  // estados (present/absent/excused/late), mismo patrón de "buscar antes
+  // de insertar" que ya usa attendance.html (el índice único es parcial,
+  // upsert no lo entiende bien).
+  // -----------------------------------------------------------------------
+  async function cyclePresentStatus(btn) {
+    if (!currentMatchId) return;
+    const playerId = btn.dataset.player;
+    const currentStatus = btn.dataset.status || null;
+    const nextIndex = (PRESENT_STATUS_CYCLE.indexOf(currentStatus) + 1) % PRESENT_STATUS_CYCLE.length;
+    const nextStatus = PRESENT_STATUS_CYCLE[nextIndex];
+    btn.disabled = true;
+    try {
+      if (nextStatus === null) {
+        if (btn.dataset.recordId) {
+          const { error } = await supabaseClient.from("attendance").delete().eq("id", btn.dataset.recordId);
+          if (error) throw error;
+        }
+        btn.dataset.recordId = "";
+        attendanceByPlayer[playerId] = null;
+      } else {
+        let recordId = btn.dataset.recordId || null;
+        if (recordId) {
+          const { error } = await supabaseClient.from("attendance").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", recordId);
+          if (error) throw error;
+        } else {
+          const { data: existing } = await supabaseClient.from("attendance").select("id").eq("match_id", currentMatchId).eq("player_id", playerId).maybeSingle();
+          if (existing) {
+            const { error } = await supabaseClient.from("attendance").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", existing.id);
+            if (error) throw error;
+            recordId = existing.id;
+          } else {
+            const payload = { organization_id: currentOrgId, player_id: playerId, status: nextStatus, created_by: currentUserId, match_id: currentMatchId };
+            const { data, error } = await supabaseClient.from("attendance").insert(payload).select("id").single();
+            if (error) throw error;
+            recordId = data.id;
+          }
+        }
+        btn.dataset.recordId = recordId;
+        attendanceByPlayer[playerId] = { id: recordId, status: nextStatus };
+      }
+      btn.dataset.status = nextStatus || "";
+      const cls = nextStatus ? ATTENDANCE_BADGE[nextStatus].cls : "present-unknown";
+      btn.className = "present-badge " + cls;
+      btn.textContent = nextStatus ? ATTENDANCE_BADGE[nextStatus].label : "—";
+    } catch (err) {
+      showMessage(err.message || "Couldn't update attendance.", "error");
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   function renderOpponentStats() {
@@ -1624,29 +1694,25 @@
     if (box.style.display === "block") { box.style.display = "none"; return; }
     box.innerHTML = `
       <strong>How to use Match day — step by step</strong>
-      <p style="margin:8px 0 4px; font-weight:600;">1. Pick a team</p>
+      <p style="margin:10px 0 4px; font-weight:600;">1–3. Pick a team</p>
       <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
-        <li>Use the tree above — same one as Roster and Attendance, and the exact same teams. Create, rename, or delete one here and it shows up everywhere.</li>
+        <li>Select team, select season, then "Team info" shows the one you picked — same tree as Roster and Attendance, the exact same teams. Create, rename, or delete one here and it shows up everywhere.</li>
       </ol>
-      <p style="margin:8px 0 4px; font-weight:600;">2. Add or open a match</p>
+      <p style="margin:10px 0 4px; font-weight:600;">4. Matches</p>
       <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
-        <li>"+ New match", or click an existing one in the list — it opens right below that row, with all its details.</li>
-        <li>Fill in date, opponent, location, and the score once you have it.</li>
+        <li>The list of matches for the team you picked above. "+ New match", or click an existing row — its details open right below, as "5. Match details".</li>
+        <li>Each row shows where it was played and, once there's a score, a small W/L/D badge — green win, red loss, yellow draw.</li>
       </ol>
-      <p style="margin:8px 0 4px; font-weight:600;">3. Call-up and stats</p>
+      <p style="margin:10px 0 4px; font-weight:600;">5. Match details</p>
       <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
-        <li><strong>Called up</strong> is yours to tick. <strong>Present</strong> is read straight from Attendance for this same match — mark it there, not here; the two are kept separate on purpose (a player can be called up and miss the game, or show up without being called up).</li>
-        <li>Tick "Starter" for the five who start, then click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
-        <li><strong>"Columns ▾"</strong>, right above the table, shows/hides and reorders columns — just for you, remembered next time. Admins/coaches can also add or remove your club's own custom stats there (steals, turnovers, +/-, in any language) — that's shared with the whole team.</li>
-        <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
+        <li><strong>General info</strong> — date, opponent, location, home/away, match number, referee, coach, score, who can see it, language. Fill in what you have, "Save match details" when ready.</li>
+        <li><strong>Call-up &amp; stats</strong> — tick <strong>"Called up"</strong> for who's on the roster for this match, and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
+        <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole team.</li>
         <li><strong>"Import stats from Excel"</strong> reads a file (name, minutes/points/rebounds/assists/fouls, and your own custom stat columns — recognized automatically by name), matches names against this team's roster, then asks which match to save it to.</li>
-      </ol>
-      <p style="margin:8px 0 4px; font-weight:600;">4. The rest</p>
-      <ul style="margin:0; padding-left:18px; line-height:1.7;">
-        <li><strong>Location and result</strong>, in the matches list above, are filled in from what's saved in each match's general info.</li>
+        <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
         <li><strong>"Print blank sheet"</strong> — an empty box score with your columns, ready to fill in by hand during the game.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association, or 🌐 every club on PlayPivot. Match reports contain real player stats, so think before sharing beyond your team.</li>
-      </ul>`;
+      </ol>`;
     box.style.display = "block";
   });
 
