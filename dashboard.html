@@ -6,11 +6,13 @@
 <link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PlayPivot — Dashboard</title>
+<title>PlayPivot | Basketball Coaching Dashboard</title>
+<meta name="description" content="Everything basketball coaches need in one place. Manage rosters, training, plays, matches and player development with PlayPivot." />
 <style>
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
     --accent: #ec6718; --accent-deep: #b85012; --accent-tint: #fdefe7;
+    --navy: #080026; --navy-hover: #191235; --sidebar-w: 244px;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
@@ -19,64 +21,207 @@
   h1, h2, h3, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
 
-  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--card); }
+  /* ---------------------------------------------------------------------
+     App shell: sidebar (fixed on desktop/tablet, off-canvas on mobile)
+     + main content column. Same shell will be reused on every page later.
+     --------------------------------------------------------------------- */
+  .app-shell { display: flex; min-height: 100vh; align-items: stretch; }
+
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0; background: var(--navy); color: #fff;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; z-index: 100;
+  }
+  .sidebar-header { padding: 22px 20px 18px; display: flex; align-items: center; justify-content: space-between; background: transparent; }
+  .sidebar-logo-img { height: 24px; width: auto; display: block; }
+  .sidebar-close-btn { display: none; background: none; border: none; color: #b5b2be; font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; }
+
+  .sidebar-nav { display: block; padding: 4px 12px; background: transparent; }
+  .sidebar-section-gap { height: 14px; }
+  .sidebar-link {
+    display: block; padding: 9px 12px; border-radius: 8px; background: transparent;
+    color: #dad9de; text-decoration: none; font-size: 15px; font-weight: 500;
+    white-space: nowrap; margin-bottom: 2px;
+  }
+  .sidebar-link svg { width: 17px; height: 17px; vertical-align: -4px; margin-right: 10px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .sidebar-link:hover { background: var(--navy-hover); color: #fff; }
+  .sidebar-link.active { background: var(--accent); color: #fff; }
+  .sidebar-divider { height: 1px; background: #211a3c; margin: 10px 20px; }
+
+  .sidebar-footer { margin-top: auto; padding: 8px 12px 16px; background: transparent; }
+  .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 10px 10px; margin-top: 6px; border-radius: 10px; background: #140d31; }
+  .sidebar-user-avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14.5px;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-user-info { flex: 1; min-width: 0; }
+  .sidebar-user-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-role { font-size: 12.5px; color: #848092; }
+  .sidebar-logout-btn { background: none; border: none; color: #848092; cursor: pointer; padding: 5px; flex-shrink: 0; border-radius: 6px; }
+  .sidebar-logout-btn:hover { color: #fff; background: #191235; }
+  .sidebar-logout-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; display: block; }
+
+  .mobile-topbar { display: none; }
+  .sidebar-overlay { display: none; }
+
+  @media (max-width: 767px) {
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: 0 0 40px rgba(0,0,0,0.3); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-close-btn { display: block; }
+    .mobile-topbar {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--card);
+      border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 40;
+    }
+    .mobile-topbar img { height: 22px; }
+    .hamburger-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink); padding: 4px; line-height: 1; }
+    .sidebar-overlay {
+      display: block; position: fixed; inset: 0; background: rgba(8,0,38,0.5); z-index: 90;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+  }
+
+  .main-content { flex: 1; min-width: 0; }
+
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 28px 32px 4px; flex-wrap: wrap; max-width: 1080px; margin: 0 auto; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .icon-btn {
+    width: 58px; height: 58px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); position: relative;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .icon-badge {
+    position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 10px;
+    font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
+    justify-content: center; padding: 0 3px;
+  }
+  /* ------------------------------------------------------------------- */
+
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
   .logotype-img { height: 28px; width: auto; display: block; }
-  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
-  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
-  .btn { padding: 9px 16px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 15px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 15px; cursor: pointer; filter: grayscale(0.85); }
+  .btn { padding: 9px 16px; border-radius: 6px; font-size: 15px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-deep); }
   .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
   .btn-secondary:hover { border-color: var(--accent); }
   .nav-btn:hover { border-color: var(--accent); }
 
-  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 60px; }
-  h1 { font-size: 24px; margin: 0 0 4px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 32px 60px; }
+  h1 { font-size: 23px; margin: 0 0 4px; }
   p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
-  .msg { margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  .msg { margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
 
-  .section-label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 32px 0 14px; }
+  .section-label { font-size: 14.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 32px 0 14px; }
   .section-label:first-of-type { margin-top: 0; }
 
-  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
-  @media (max-width: 640px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
-  .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  /* Stat cards v2: icon circle + number/label, matches the reference design */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 8px; }
+  @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .stat-icon-circle {
+    width: 40px; height: 40px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-deep);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .stat-icon-circle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6; }
   .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
-  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
-  .tree-new, .tree-example { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
-  .stat-card .num { font-size: 26px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  .stat-card .label { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .side-card h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .tree-new, .tree-example { font-size: 14px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
+  .stat-card .num { font-size: 21px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.15; }
+  .stat-card .label { font-size: 13.5px; color: var(--muted); margin-top: 1px; }
 
-  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  /* Next event + Recent activity, side by side */
+  .dashboard-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0 8px; align-items: start; }
+  @media (max-width: 800px) { .dashboard-row-2 { grid-template-columns: 1fr; } }
+  .panel-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .panel-card h2 { font-size: 14.5px; margin: 0 0 14px; }
+  .activity-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+  .activity-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .activity-row:first-child { padding-top: 0; }
+  .activity-icon {
+    width: 26px; height: 26px; border-radius: 8px; background: var(--accent-tint); color: var(--accent-deep);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .activity-icon svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .activity-text { flex: 1; min-width: 0; }
+  .activity-text strong { display: block; font-size: 14.5px; }
+  .activity-text span { display: block; font-size: 13.5px; color: var(--muted); }
+  .activity-time { color: var(--muted); font-size: 13px; white-space: nowrap; padding-left: 8px; flex-shrink: 0; }
+  .activity-empty { font-size: 14.5px; color: var(--muted); }
+
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
   .module-card { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; text-decoration: none; color: inherit; transition: border-color 0.15s; }
   .module-card:hover { border-color: var(--accent); }
-  .module-card .icon { width: 26px; height: 26px; margin-bottom: 10px; color: var(--ink); }
+  .module-card .icon { width: 26px; height: 26px; margin-bottom: 10px; color: var(--accent-deep); }
   .module-card h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; justify-content: space-between; }
-  .module-card h3 .chevron { font-size: 13px; color: var(--accent); }
-  .module-card p.blurb { font-size: 13.5px; color: var(--muted); margin: 0; }
-  .module-card .badge-soon { display: inline-block; font-size: 10.5px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); padding: 2px 8px; border-radius: 100px; margin-left: 8px; }
+  .module-card h3 .chevron { font-size: 14.5px; color: var(--accent); }
+  .module-card p.blurb { font-size: 15px; color: var(--muted); margin: 0; }
+  .module-card .badge-soon { display: inline-block; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); padding: 2px 8px; border-radius: 100px; margin-left: 8px; }
 
   .pending-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 0; margin-bottom: 8px; }
-  .request-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 20px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
+  .request-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 20px; font-size: 15px; border-bottom: 1px solid var(--line); }
   .request-row:last-child { border-bottom: none; }
   .request-info strong { display: block; }
-  .request-info span { color: var(--muted); font-size: 12.5px; }
+  .request-info span { color: var(--muted); font-size: 14px; }
   .request-actions { display: flex; gap: 6px; flex-shrink: 0; }
-  .request-actions button { width: auto; padding: 6px 12px; font-size: 12.5px; border: none; border-radius: 6px; cursor: pointer; }
+  .request-actions button { width: auto; padding: 6px 12px; font-size: 14px; border: none; border-radius: 6px; cursor: pointer; }
   .btn-approve { background: var(--accent); color: #fff; }
   .btn-reject { background: transparent; color: #991b1b; border: 1px solid var(--line); }
   .onboard-overlay { position: fixed; inset: 0; background: rgba(20,20,22,0.55); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 20px; }
   .onboard-card { background: var(--card); border-radius: 14px; max-width: 480px; width: 100%; padding: 28px 26px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); max-height: 88vh; overflow-y: auto; }
   .onboard-card h2 { margin: 0 0 4px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 21px; }
-  .onboard-card p { font-size: 13.5px; line-height: 1.6; color: var(--muted); margin: 8px 0; }
-  .onboard-circle-row { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0; font-size: 13px; }
+  .onboard-card p { font-size: 15px; line-height: 1.6; color: var(--muted); margin: 8px 0; }
+  .onboard-circle-row { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0; font-size: 14.5px; }
   .onboard-circle-row .emoji { font-size: 17px; flex-shrink: 0; filter: grayscale(0.85); }
   .onboard-card button { width: 100%; margin-top: 18px; }
+
+  /* ---------------------------------------------------------------------
+     Calendar -- color por equipo (una entrada de la paleta categórica por
+     cada equipo/categoría/género), con forma por tipo (partido/entreno/
+     evento) para no perder esa información. Filtro para aislar un
+     equipo; leyenda con las dos claves de lectura.
+     --------------------------------------------------------------------- */
+  .cal-day-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 4px 2px 6px; }
+  .cal-day-num { line-height: 1; }
+  .cal-day-marks { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 7px; flex-wrap: nowrap; }
+  .cal-mark { width: 6px; height: 6px; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
+  .cal-mark-match { border-radius: 50%; }
+  .cal-mark-training { border-radius: 1.5px; }
+  .cal-mark-event { border-radius: 1px; transform: rotate(45deg); }
+  .cal-day-overflow { font-size: 9px; font-weight: 700; color: inherit; opacity: 0.75; margin-left: 1px; }
+  .cal-toolbar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .cal-team-filter { padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13.5px; color: var(--ink); background: var(--card); max-width: 220px; }
+  .cal-legend { display: flex; gap: 14px 20px; margin-top: 12px; font-size: 13px; color: var(--muted); flex-wrap: wrap; align-items: flex-start; }
+  .cal-legend-group { display: flex; flex-direction: column; gap: 6px; }
+  .cal-legend-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+  .cal-legend-items { display: flex; gap: 12px; flex-wrap: wrap; }
+  .cal-legend-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .cal-legend-swatch { width: 9px; height: 9px; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
 </style>
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//playpivot.app/analytics/matomo/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '1']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
 </head>
 <body>
 
@@ -88,117 +233,190 @@
     <div class="onboard-circle-row"><span class="emoji">👥</span><span><strong>My team</strong> — everyone active in your club (this is the default).</span></div>
     <div class="onboard-circle-row"><span class="emoji">🤝</span><span><strong>My club association</strong> — a small group of clubs who agreed to share, needs approval.</span></div>
     <div class="onboard-circle-row"><span class="emoji">🌐</span><span><strong>PlayPivot Community</strong> — every club on PlayPivot can see it (view only).</span></div>
-    <p>If you're a club admin, <strong>Settings</strong> also lets you set all of a type at once (e.g. every exercise), manage who's in your club and their role, and — for players specifically — link their account to their roster entry so they can see what's meant for them, and nothing more.</p>
-    <p style="font-size:12.5px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; margin-top:14px;"><strong>Worth knowing too:</strong> only add data about players you actually coach, and you're responsible for having the right to hold it (a guardian's consent, especially for a minor — see <a href="./privacy.html" target="_blank" style="color:var(--accent-deep);">Privacy &amp; Terms</a>). Don't republish someone else's shared content outside PlayPivot as your own.</p>
+    <p>If you're a club admin, <strong>Settings</strong> also lets you set all of a type at once (e.g. every exercise), and manage who's in your club and their role (Team admin or Coach).</p>
+    <p style="font-size:14px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; margin-top:14px;"><strong>Worth knowing too:</strong> only add data about players you actually coach, and you're responsible for having the right to hold it (a guardian's consent, especially for a minor — see <a href="./privacy.html" target="_blank" style="color:var(--accent-deep);">Privacy &amp; Terms</a>). Don't republish someone else's shared content outside PlayPivot as your own.</p>
     <button class="btn btn-primary" id="onboard-close-btn">Got it, let's go</button>
   </div>
 </div>
 
 
-<nav>
-  <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo.png" alt="PlayPivot" class="logotype-img" /></a>
-  <div class="nav-right">
-    <img id="org-logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover; display:none;" />
-    <div id="pending-requests-widget" style="position:relative; display:none;">
-      <button id="pending-requests-btn" class="nav-btn" style="cursor:pointer;">🔔 <span id="pending-requests-count"></span></button>
-      <div id="pending-requests-panel" style="display:none; position:absolute; top:36px; left:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
-    </div>
-    <div id="messages-widget" style="position:relative;">
-      <button id="messages-btn" class="nav-btn" style="cursor:pointer;">✉️ <span id="messages-count"></span></button>
-      <div id="messages-panel" style="display:none; position:absolute; top:36px; left:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:13px;"></div>
-    </div>
-    <span id="org-name"></span>
-    <select id="org-switcher" style="display:none; margin-left:6px; padding:2px 6px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; background:var(--card); color:var(--ink);"></select>
-    <a href="./settings.html" class="nav-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">⚙ Settings</a>
-    <select id="nav-menu" class="nav-btn" style="cursor:pointer;">
-      <option value="">Go to…</option>
-      <option value="roster.html">Roster</option>
-      <option value="assessment.html">Player assessment</option>
-      <option value="play_design.html">Play design</option>
-      <option value="compare.html">Statistics</option>
-      <option value="match.html">Match day</option>
-      <option value="exercises.html">Exercise creator</option>
-      <option value="library.html">Library</option>
-      <option value="training.html">Training builder</option>
-      <option value="settings.html">Settings</option>
-      <option value="privacy.html">Privacy &amp; Terms</option>
-    </select>
-    <button class="nav-btn" id="logout-btn">Log out</button>
-  </div>
-</nav>
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">☰</button>
+  <img src="./playpivot-logo.png" alt="PlayPivot" />
+</div>
 
-<div class="wrap">
-  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px;">
+<div class="app-shell">
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo-negativo.png" alt="PlayPivot" class="sidebar-logo-img" /></a>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close menu">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div id="sidebar-admin-badge" style="display:none; font-size:12px; font-weight:700; letter-spacing:0.05em; color:var(--accent); padding:0 12px 6px;">⚡ PLATFORM ADMIN</div>
+
+      <div style="padding:8px 12px 12px;">
+        <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
+      </div>
+      <a href="./dashboard.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+      <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
+      <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
+      <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
+      <a href="./exercises.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg>Exercise creator</a>
+      <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
+      <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
+      <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
+      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-divider"></div>
+      <nav class="sidebar-nav" style="padding:0;">
+        <a href="./settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
+        <a href="#" id="sidebar-help-link" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
+      </nav>
+      <div class="sidebar-user" id="sidebar-user">
+        <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">—</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">—</div>
+        </div>
+        <button class="sidebar-logout-btn" id="logout-btn" title="Log out">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<div class="topbar" style="align-items:center;">
     <div>
       <h1 style="display:flex; align-items:center; gap:8px;">
         <span id="greeting">Welcome</span>
         <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
       </h1>
       <p class="sub" id="club-status-text"></p>
-      <p class="sub" id="my-clubs-list" style="margin-top:-8px; font-size:12.5px;"></p>
-      <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
+      <div class="help-box" id="help-box" style="display:none; background:var(--accent-tint); border-radius:8px; padding:12px 16px; font-size:14.5px; color:var(--ink); margin-bottom:12px; max-width:520px;"></div>
     </div>
-    <div style="text-align:center; flex-shrink:0;">
-      <img id="org-logo-big" style="width:64px; height:64px; border-radius:10px; object-fit:cover; display:none;" />
-      <div id="org-name-big" style="font-size:13px; color:var(--muted); margin-top:6px; font-weight:600; max-width:120px;"></div>
+    <div class="topbar-right">
+      <div id="pending-requests-widget" style="position:relative; display:none;">
+        <button id="pending-requests-btn" class="icon-btn" aria-label="Pending requests">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
+          <span class="icon-badge" id="pending-requests-count" style="display:none;"></span>
+        </button>
+        <div id="pending-requests-panel" style="display:none; position:absolute; top:44px; right:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
+      </div>
+      <div id="messages-widget" style="position:relative;">
+        <button id="messages-btn" class="icon-btn" aria-label="Messages">
+          <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+          <span class="icon-badge" id="messages-count" style="display:none;"></span>
+        </button>
+        <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
+      </div>
+      <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
+      <div id="org-name-big" style="display:none;"></div>
     </div>
   </div>
 
+  <div class="wrap">
+
   <div class="msg" id="msg"></div>
+
+  <div id="no-club-gate" style="display:none; text-align:center; max-width:440px; margin:48px auto; padding:32px 28px; background:var(--card); border:1px solid var(--line); border-radius:14px;">
+    <h2 style="margin:0 0 8px;">You need a club to use PlayPivot</h2>
+    <p style="color:var(--muted); font-size:14px; margin:0 0 4px;">PlayPivot is built around coaching a real team — create your own club, or ask to join one you already coach for, to unlock the Dashboard and every tool.</p>
+  </div>
+
+  <div id="app-gated-content" style="display:none;">
+
+  <div id="normal-view-only">
 
   <div id="pending-section" style="display:none">
     <p class="section-label">Pending requests to approve</p>
     <div class="pending-card" id="pending-requests"></div>
   </div>
 
-  <p class="section-label">Your stats at a glance (Mine — your own club)</p>
-  <div class="stats-row" style="grid-template-columns: repeat(3, 1fr);">
-    <div class="stat-card"><div class="num" id="stat-teams">—</div><div class="label">Teams</div></div>
-    <div class="stat-card"><div class="num" id="stat-players">—</div><div class="label">Players</div></div>
-    <div class="stat-card"><div class="num" id="stat-assessments">—</div><div class="label">Assessments</div></div>
-    <div class="stat-card"><div class="num" id="stat-exercises">—</div><div class="label">Exercises</div></div>
-    <div class="stat-card"><div class="num" id="stat-notebooks">—</div><div class="label">Notebooks</div></div>
-    <div class="stat-card"><div class="num" id="stat-plays">—</div><div class="label">Play designs</div></div>
-    <div class="stat-card"><div class="num" id="stat-matches">—</div><div class="label">Matches</div></div>
-    <div class="stat-card"><div class="num" id="stat-wins">—</div><div class="label">Wins</div></div>
-    <div class="stat-card"><div class="num" id="stat-losses">—</div><div class="label">Losses</div></div>
+  <p class="section-label">Your stats at a glance</p>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5.3 5.5-5.3s5.5 2.3 5.5 5.3"/><circle cx="18" cy="8.5" r="2.4"/><path d="M15.8 14.3c2.6.2 4.7 2.3 4.7 5"/></svg></div><div><div class="num" id="stat-teams">—</div><div class="label">Teams</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg></div><div><div class="num" id="stat-players">—</div><div class="label">Players</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg></div><div><div class="num" id="stat-assessments">—</div><div class="label">Assessments</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg></div><div><div class="num" id="stat-exercises">—</div><div class="label">Exercises</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg></div><div><div class="num" id="stat-notebooks">—</div><div class="label">Notebooks</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg></div><div><div class="num" id="stat-plays">—</div><div class="label">Play designs</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg></div><div><div class="num" id="stat-matches">—</div><div class="label">Matches</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><line x1="48.63" y1="12.63" x2="42.66" y2="12.63"/><path d="M53.13,12.63h2.54c2.92,0,5.29,2.37,5.29,5.29v31.5c0,2.91-2.37,5.28-5.29,5.28H8.33c-2.92,0-5.29-2.37-5.29-5.28v-31.5c0-2.92,2.37-5.29,5.29-5.29h2.54"/><line x1="38.16" y1="12.63" x2="25.84" y2="12.63"/><line x1="21.34" y1="12.63" x2="15.37" y2="12.63"/><line x1="32" y1="12.63" x2="32" y2="54.69"/><line x1="3.04" y1="25.15" x2="60.96" y2="25.15"/><g><g><rect x="10.87" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="21.34" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g><g><rect x="38.16" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="48.63" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g></g><polyline points="7.25 43.01 7.25 46.42 15.53 46.42 15.53 32.07 7.25 32.07 7.25 38.65"/><rect x="19.61" y="32.06" width="8.28" height="14.35"/><rect x="36.11" y="32.06" width="8.28" height="14.35"/><polyline points="56.75 32.07 48.47 32.07 48.47 38.65 48.47 46.42 56.75 46.42 56.75 38.65"/><line x1="7.25" y1="38.65" x2="15.53" y2="38.65"/><line x1="36.11" y1="39.24" x2="44.39" y2="39.24"/><line x1="48.47" y1="38.65" x2="56.75" y2="38.65"/></g></svg></div><div><div class="num" id="stat-wins">—</div><div class="label">Wins</div></div></div>
+    <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><line x1="48.63" y1="12.63" x2="42.66" y2="12.63"/><path d="M53.13,12.63h2.54c2.92,0,5.29,2.37,5.29,5.29v31.5c0,2.91-2.37,5.28-5.29,5.28H8.33c-2.92,0-5.29-2.37-5.29-5.28v-31.5c0-2.92,2.37-5.29,5.29-5.29h2.54"/><line x1="38.16" y1="12.63" x2="25.84" y2="12.63"/><line x1="21.34" y1="12.63" x2="15.37" y2="12.63"/><line x1="32" y1="12.63" x2="32" y2="54.69"/><line x1="3.04" y1="25.15" x2="60.96" y2="25.15"/><g><g><rect x="10.87" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="21.34" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g><g><rect x="38.16" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/><rect x="48.63" y="9.3" width="4.5" height="9.59" rx="1.54" ry="1.54"/></g></g><polyline points="7.25 43.01 7.25 46.42 15.53 46.42 15.53 32.07 7.25 32.07 7.25 38.65"/><rect x="19.61" y="32.06" width="8.28" height="14.35"/><rect x="36.11" y="32.06" width="8.28" height="14.35"/><polyline points="56.75 32.07 48.47 32.07 48.47 38.65 48.47 46.42 56.75 46.42 56.75 38.65"/><line x1="7.25" y1="38.65" x2="15.53" y2="38.65"/><line x1="36.11" y1="39.24" x2="44.39" y2="39.24"/><line x1="48.47" y1="38.65" x2="56.75" y2="38.65"/></g></svg></div><div><div class="num" id="stat-losses">—</div><div class="label">Losses</div></div></div>
   </div>
 
-  <div id="platform-stats-section" style="display:none;">
-    <p class="section-label">All clubs (PlayPivot Community — you're the platform admin)</p>
-    <div class="stats-row" style="grid-template-columns: repeat(3, 1fr);">
-      <div class="stat-card"><div class="num" id="pstat-orgs">—</div><div class="label">Clubs</div></div>
-      <div class="stat-card"><div class="num" id="pstat-players">—</div><div class="label">Players</div></div>
-      <div class="stat-card"><div class="num" id="pstat-assessments">—</div><div class="label">Assessments</div></div>
-      <div class="stat-card"><div class="num" id="pstat-exercises">—</div><div class="label">Exercises</div></div>
-      <div class="stat-card"><div class="num" id="pstat-plays">—</div><div class="label">Play designs</div></div>
-      <div class="stat-card"><div class="num" id="pstat-trainings">—</div><div class="label">Training sessions</div></div>
-      <div class="stat-card"><div class="num" id="pstat-matches">—</div><div class="label">Matches</div></div>
-      <div class="stat-card"><div class="num" id="pstat-users">—</div><div class="label">Users, total</div></div>
-      <div class="stat-card"><div class="num" id="pstat-online">—</div><div class="label">Online now</div></div>
+  <div class="dashboard-row-2">
+  <div class="panel-card" style="margin:8px 0;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+      <h2 style="margin:0;">Calendar</h2>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button id="cal-prev-btn" class="icon-btn" style="width:32px; height:32px; border-radius:8px;" aria-label="Previous month"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <span id="cal-month-label" style="font-size:14.5px; font-weight:600; min-width:130px; text-align:center;"></span>
+        <button id="cal-next-btn" class="icon-btn" style="width:32px; height:32px; border-radius:8px;" aria-label="Next month"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
     </div>
-    <button class="nav-btn" id="copy-newsletter-emails-btn" style="margin-top:12px;">📰 Copy newsletter list (opted-in emails)</button>
+    <div class="cal-toolbar-row">
+      <label for="cal-team-filter" style="font-size:13.5px; color:var(--muted);">Team</label>
+      <select id="cal-team-filter" class="cal-team-filter"><option value="">All teams</option></select>
+    </div>
+    <div id="calendar-grid"></div>
+    <div class="cal-legend" id="cal-legend"></div>
+  </div>
+
+  <div class="panel-card" style="margin:8px 0;">
+    <h2>Recent activity</h2>
+    <div id="recent-activity-content"><p class="activity-empty">Loading…</p></div>
+  </div>
+  </div><!-- /dashboard-row-2 -->
+  </div><!-- /normal-view-only -->
+
+  <div id="admin-view-only" style="display:none;">
+    <p class="section-label">Platform overview — Admin general</p>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5.3 5.5-5.3s5.5 2.3 5.5 5.3"/><circle cx="18" cy="8.5" r="2.4"/><path d="M15.8 14.3c2.6.2 4.7 2.3 4.7 5"/></svg></div><div><div class="num" id="pstat-orgs">—</div><div class="label">Clubs</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg></div><div><div class="num" id="pstat-players">—</div><div class="label">Players</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg></div><div><div class="num" id="pstat-assessments">—</div><div class="label">Assessments</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg></div><div><div class="num" id="pstat-exercises">—</div><div class="label">Exercises</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg></div><div><div class="num" id="pstat-plays">—</div><div class="label">Play designs</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg></div><div><div class="num" id="pstat-trainings">—</div><div class="label">Training sessions</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg></div><div><div class="num" id="pstat-matches">—</div><div class="label">Matches</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5.3 5.5-5.3s5.5 2.3 5.5 5.3"/><circle cx="18" cy="8.5" r="2.4"/><path d="M15.8 14.3c2.6.2 4.7 2.3 4.7 5"/></svg></div><div><div class="num" id="pstat-users">—</div><div class="label">Users, total</div></div></div>
+      <div class="stat-card"><div class="stat-icon-circle"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="5"/></svg></div><div><div class="num" id="pstat-online">—</div><div class="label">Online now</div></div></div>
+    </div>
+    <p class="section-label">Clubs on PlayPivot</p>
+    <div id="admin-clubs-table" style="background:var(--card); border:1px solid var(--line); border-radius:10px; overflow-x:auto;"><p style="padding:16px; color:var(--muted); font-size:14.5px;">Loading…</p></div>
   </div>
 
   <p class="section-label">Tools</p>
   <div class="grid" id="modules-grid"></div>
 
-  <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
-    <div class="side-card" id="privacy-status-card" style="flex:1 1 380px; max-width:420px;"></div>
-    <div class="side-card" id="example-data-card" style="flex:1 1 260px; max-width:320px;"></div>
-  </div>
-
-  <div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-    <label style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); cursor:pointer;">
-      <input type="checkbox" id="newsletter-opt-in" style="width:auto;" />
-      <span style="filter: grayscale(0.85);">📰</span> Email me a couple of times a year about big new PlayPivot features — never spam, unsubscribe any time.
-    </label>
+  <div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+    <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right?</span>
     <button class="nav-btn" id="contact-support-btn" title="Send a message straight to the PlayPivot admin">💬 Contact us</button>
   </div>
-</div>
+
+  </div><!-- /app-gated-content -->
+  </div><!-- /wrap -->
+
+  <footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--muted);">
+    <span>© 2026 PlayPivot. All rights reserved.</span>
+    <a href="./privacy.html" style="color:var(--muted); text-decoration:none;">Privacy Policy</a>
+    <a href="./privacy.html#use" style="color:var(--muted); text-decoration:none;">Terms of Use</a>
+  </footer>
+  </main>
+</div><!-- /app-shell -->
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
+<script src="team-tree.js"></script>
 <script src="modules-grid.js"></script>
 <script src="example-data.js"></script>
 <script src="terms-version.js"></script>
@@ -209,8 +427,6 @@
 
   const els = {
     greeting: document.getElementById("greeting"),
-    orgName: document.getElementById("org-name"),
-    orgLogo: document.getElementById("org-logo"),
     orgLogoBig: document.getElementById("org-logo-big"),
     orgNameBig: document.getElementById("org-name-big"),
     logoutBtn: document.getElementById("logout-btn"),
@@ -242,6 +458,62 @@
   let isPlatformController = false;
   let canValidateAssociations = false;
 
+  // Expuestas en window porque org-switcher.js (archivo compartido, sin
+  // acceso directo a supabaseClient de esta página) las llama cuando
+  // alguien elige "+ Create a new club" / "+ Join a club" en el selector.
+  window.pivotCreateClub_ = async function (name) {
+    try {
+      const { data: org, error: orgErr } = await supabaseClient.from("organizations").insert({ name }).select().single();
+      if (orgErr) throw orgErr;
+      const { error: memErr } = await supabaseClient.from("memberships").insert({ organization_id: org.id, user_id: currentUserId, role: "admin", status: "active" });
+      if (memErr) throw memErr;
+      pivotSetStoredOrgId(org.id);
+      window.location.reload();
+    } catch (err) {
+      showMessage(err.message || "Couldn't create that club.", "error");
+    }
+  };
+
+  window.pivotJoinClub_ = async function (clubName) {
+    try {
+      const { data: org, error: findErr } = await supabaseClient.from("organizations").select("id, name").ilike("name", clubName).eq("is_active", true).maybeSingle();
+      if (findErr) throw findErr;
+      if (!org) { showMessage(`No club found named "${clubName}".`, "error"); return; }
+      const { error } = await supabaseClient.from("memberships").insert({ organization_id: org.id, user_id: currentUserId, role: "coach", status: "pending" });
+      if (error) throw error;
+      showMessage(`Request sent to join "${org.name}" — waiting for their admin to approve.`, "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't send that request.", "error");
+    }
+  };
+
+  function applyClubGate(hasAccess) {
+    document.getElementById("app-gated-content").style.display = hasAccess ? "flow-root" : "none";
+    document.getElementById("no-club-gate").style.display = hasAccess ? "none" : "block";
+  }
+
+  // -----------------------------------------------------------------------
+  // Sidebar : ouverture/fermeture sur mobile (hamburger), et le petit bloc
+  // utilisateur en bas (avatar avec initiale, nom, rôle).
+  // -----------------------------------------------------------------------
+  const sidebarEl = document.getElementById("sidebar");
+  const sidebarOverlayEl = document.getElementById("sidebar-overlay");
+  function openSidebar() { sidebarEl.classList.add("open"); sidebarOverlayEl.classList.add("visible"); }
+  function closeSidebar() { sidebarEl.classList.remove("open"); sidebarOverlayEl.classList.remove("visible"); }
+  document.getElementById("hamburger-btn").addEventListener("click", openSidebar);
+  document.getElementById("sidebar-close-btn").addEventListener("click", closeSidebar);
+  sidebarOverlayEl.addEventListener("click", closeSidebar);
+  // Fermer le menu automatiquement après avoir cliqué un lien (mobile).
+  document.querySelectorAll(".sidebar-link").forEach((link) => link.addEventListener("click", closeSidebar));
+
+  function updateSidebarUser(name, role) {
+    if (name) {
+      document.getElementById("sidebar-user-name").textContent = name;
+      document.getElementById("sidebar-user-avatar").textContent = name.trim().charAt(0).toUpperCase() || "?";
+    }
+    if (role) document.getElementById("sidebar-user-role").textContent = role;
+  }
+
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
 
   // -----------------------------------------------------------------------
@@ -254,66 +526,466 @@
   }
 
   async function loadMyOrganization(user) {
+   try {
     // le nom du profil, pour dire "Welcome, Daniel" plutôt que l'email
     const { data: profile } = await supabaseClient.from("profiles").select("full_name, is_platform_controller, is_association_validator, onboarded_at, newsletter_opt_in, terms_accepted_at").eq("id", user.id).maybeSingle();
-    myTermsAcceptedAt = profile && profile.terms_accepted_at;
-    renderPrivacyStatusCard();
-    document.getElementById("newsletter-opt-in").checked = !!(profile && profile.newsletter_opt_in);
+    // El estado de aceptación de privacidad ahora se muestra en
+    // privacy.html directamente, no aquí en el Dashboard.
     const displayName = (profile && profile.full_name) || user.email;
     els.greeting.textContent = `Welcome, ${displayName}`;
     isPlatformController = !!(profile && profile.is_platform_controller);
+    updateSidebarUser(displayName, isPlatformController ? "Platform admin" : null);
     if (profile && !profile.onboarded_at) document.getElementById("onboard-overlay").style.display = "flex";
     canValidateAssociations = isPlatformController || !!(profile && profile.is_association_validator);
 
     const { data, error } = await supabaseClient
       .from("memberships")
       .select("organization_id, status, role, team_season, team_name, organizations(name)")
-      .eq("status", "active");
+      .eq("status", "active")
+      .eq("user_id", currentUserId);
 
     if (error) console.error("loadMyOrganization error:", error);
 
-    // "DEL basket — admin (whole club)" ; "DEL basket — coach (U8 only)" -- para
-    // que se vea de un vistazo en qué clubes está y con qué rol en cada uno,
-    // sin tener que abrir el selector de arriba uno a uno.
-    const clubLines = (data || []).map((m) => `${(m.organizations && m.organizations.name) || "?"} — ${m.role}${m.team_season ? ` (${m.team_name} only)` : " (whole club)"}`);
-    if (isPlatformController) clubLines.unshift("Platform admin — access to every club");
-    document.getElementById("my-clubs-list").textContent = clubLines.join("  ·  ");
+    // El nombre del club (o "Admin general") y el rol se muestran juntos,
+    // en una sola línea, más abajo -- ya no hace falta este texto aparte.
 
     if (error) console.error("loadMyOrganization error:", error);
     if ((error || !data || data.length === 0) && !isPlatformController) {
       els.clubStatusText.textContent = "You're not an active member of any club or association yet.";
+      applyClubGate(false);
       showJoinPrompt();
       return null;
     }
     const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
     if (!chosen) {
       els.clubStatusText.textContent = "You're not an active member of any club or association yet.";
+      // Un contrôleur de plateforme sans club à lui garde quand même accès
+      // (il gère toute la plateforme) -- tout le monde d'autre reste bloqué
+      // tant qu'il n'a pas rejoint ou créé un club.
+      applyClubGate(isPlatformController);
       showJoinPrompt();
-      await pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supabaseClient });
+      pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController });
       return null;
     }
-    await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
+    applyClubGate(true);
+    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController });
+
+    if (chosen.is_admin_view) {
+      // Vista de Admin general: nada de club concreto -- estadísticas de
+      // toda la plataforma + la tabla con cada club.
+      currentOrgId = null;
+      document.getElementById("normal-view-only").style.display = "none";
+      document.getElementById("admin-view-only").style.display = "block";
+      document.getElementById("sidebar-admin-badge").style.display = "block";
+      updateSidebarUser(null, "Platform admin");
+      els.orgNameBig.textContent = "";
+      els.orgLogoBig.style.display = "none";
+      els.clubStatusText.textContent = "Admin general — access to every club";
+      loadAdminClubsTable();
+      return null;
+    }
+
+    document.getElementById("normal-view-only").style.display = "flow-root";
+    document.getElementById("admin-view-only").style.display = "none";
+    document.getElementById("sidebar-admin-badge").style.display = "none";
     currentOrgId = chosen.organization_id;
+    // El rol que se muestra es el TUYO en ESTE club concreto -- aunque
+    // también seas platform admin, si tienes una membresía real aquí
+    // (como "DEL", donde eres admin de verdad) se ve "Team admin", no
+    // "Platform admin" -- eso solo aparece cuando estás fisgoneando un
+    // club del que no eres miembro (browsing_as_platform_admin).
+    const roleLabel = chosen.role === "admin" ? "Team admin" : "Coach";
+    updateSidebarUser(null, roleLabel);
     const orgName = (chosen.organizations && chosen.organizations.name) || "";
-    els.orgName.textContent = orgName;
-    els.clubStatusText.textContent = orgName ? `Club: ${orgName}${chosen.browsing_as_platform_admin ? " (browsing as platform admin)" : ""}` : "";
+    els.orgNameBig.textContent = orgName;
+    els.clubStatusText.textContent = orgName ? `${orgName} — ${roleLabel}${chosen.browsing_as_platform_admin ? " (browsing as platform admin)" : ""}` : "";
     loadOrgLogo(currentOrgId, orgName);
     loadPendingRequestsWidget();
     return currentOrgId;
+   } catch (err) {
+    console.error("loadMyOrganization error:", err);
+    els.msg.textContent = "⚠ Something went wrong loading the Dashboard: " + (err.message || String(err));
+    els.msg.className = "msg error";
+    els.msg.style.display = "block";
+    document.getElementById("app-gated-content").style.display = "flow-root";
+    document.getElementById("normal-view-only").style.display = "none";
+    document.getElementById("admin-view-only").style.display = "none";
+    return null;
+   }
+  }
+
+  // -----------------------------------------------------------------------
+  // Vista de Admin general: cada club activo de la plataforma, con sus
+  // números clave y un botón para entrar directamente (desde ahí, la
+  // gestión de roles/miembros de ESE club ya existe en su Settings).
+  // -----------------------------------------------------------------------
+  let adminClubsRowsCache = [];
+
+  async function loadAdminClubsTable() {
+    const container = document.getElementById("admin-clubs-table");
+    try {
+      const { data: orgs } = await supabaseClient.from("organizations").select("id, name").eq("is_active", true).order("name");
+      if (!orgs || orgs.length === 0) {
+        container.innerHTML = '<p style="padding:16px; color:var(--muted); font-size:14.5px;">No clubs yet.</p>';
+        return;
+      }
+      const rows = await Promise.all(orgs.map(async (org) => {
+        const [{ count: playerCount }, { count: matchCount }, { data: teamRows }, { data: memberRows }] = await Promise.all([
+          supabaseClient.from("players").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
+          supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
+          supabaseClient.from("players").select("season, team").eq("organization_id", org.id),
+          supabaseClient.from("memberships").select("profiles(full_name)").eq("organization_id", org.id).eq("status", "active"),
+        ]);
+        const teamCount = teamRows ? new Set(teamRows.filter((r) => !isExampleTeam(r.season, r.team)).map((r) => `${r.season}|${r.team}`)).size : 0;
+        const memberNames = (memberRows || []).map((m) => (m.profiles && m.profiles.full_name) || "").filter(Boolean);
+        return { org, playerCount: playerCount ?? 0, matchCount: matchCount ?? 0, teamCount, memberNames };
+      }));
+      adminClubsRowsCache = rows;
+
+      container.innerHTML = `
+        <div style="padding:12px 16px; border-bottom:1px solid var(--line);">
+          <input id="admin-clubs-search" type="text" placeholder="Search people/clubs…" style="width:100%; max-width:280px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px;" />
+        </div>
+        <table style="width:100%; border-collapse:collapse; font-size:14.5px;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--line); text-align:left;">
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:12.5px; text-transform:uppercase;">Club</th>
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:12.5px; text-transform:uppercase;">Teams</th>
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:12.5px; text-transform:uppercase;">Players</th>
+              <th style="padding:10px 16px; font-weight:600; color:var(--muted); font-size:12.5px; text-transform:uppercase;">Matches</th>
+              <th style="padding:10px 16px;"></th>
+            </tr>
+          </thead>
+          <tbody id="admin-clubs-tbody"></tbody>
+        </table>`;
+
+      renderAdminClubsRows(rows);
+      document.getElementById("admin-clubs-search").addEventListener("input", (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        renderAdminClubsRows(rows.filter((r) =>
+          r.org.name.toLowerCase().includes(q) || r.memberNames.some((n) => n.toLowerCase().includes(q))
+        ));
+      });
+    } catch (err) {
+      console.error("loadAdminClubsTable error:", err);
+      container.innerHTML = `<p style="padding:16px; color:#991b1b; font-size:14.5px;">Couldn't load the clubs table: ${escapeHtml(err.message || String(err))}</p>`;
+    }
+  }
+
+  function renderAdminClubsRows(rows) {
+    const tbody = document.getElementById("admin-clubs-tbody");
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="padding:16px; color:var(--muted);">No clubs match that search.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map((r) => `
+      <tr style="border-bottom:1px solid var(--line);">
+        <td style="padding:10px 16px; font-weight:600;">${escapeHtml(r.org.name)}</td>
+        <td style="padding:10px 16px;">${r.teamCount}</td>
+        <td style="padding:10px 16px;">${r.playerCount}</td>
+        <td style="padding:10px 16px;">${r.matchCount}</td>
+        <td style="padding:10px 16px; text-align:right;">
+          <div style="display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px 10px;">
+            <button class="tree-example" data-manage-org-id="${r.org.id}" style="color:var(--ink); font-weight:600; cursor:pointer; white-space:nowrap;">Manage</button>
+            <button class="tree-example" data-msg-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:var(--ink); font-weight:600; cursor:pointer; white-space:nowrap;">✉ Message admin</button>
+            <button class="tree-example" data-delete-data-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="display:inline-flex; align-items:center; gap:5px; color:#b91c1c; font-weight:600; cursor:pointer; white-space:nowrap;"><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg>Delete data…</button>
+            <button class="tree-example" data-deactivate-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer; white-space:nowrap;">Remove whole team</button>
+            <button class="tree-example" data-enter-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer; white-space:nowrap;">See club →</button>
+          </div>
+        </td>
+      </tr>
+      <tr id="admin-manage-row-${r.org.id}" style="display:none;"><td colspan="5" style="padding:14px 16px; background:var(--paper);"><div id="admin-manage-content-${r.org.id}"></div></td></tr>
+    `).join("");
+
+    tbody.querySelectorAll("button[data-enter-org-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        pivotSetStoredOrgId(btn.dataset.enterOrgId);
+        window.location.reload();
+      });
+    });
+
+    tbody.querySelectorAll("button[data-msg-org-id]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        try {
+          const { data: admin, error } = await supabaseClient
+            .from("memberships")
+            .select("user_id, profiles(full_name)")
+            .eq("organization_id", btn.dataset.msgOrgId)
+            .eq("role", "admin")
+            .eq("status", "active")
+            .limit(1)
+            .maybeSingle();
+          if (error) throw error;
+          if (!admin) { showMessage(`No active admin found for "${btn.dataset.orgName}".`, "error"); return; }
+          openComposeTo(admin.user_id, (admin.profiles && admin.profiles.full_name) || btn.dataset.orgName);
+        } catch (err) {
+          showMessage(err.message || "Couldn't find that club's admin.", "error");
+        }
+      });
+    });
+
+    tbody.querySelectorAll("button[data-manage-org-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const orgId = btn.dataset.manageOrgId;
+        const row = document.getElementById(`admin-manage-row-${orgId}`);
+        const opening = row.style.display === "none";
+        row.style.display = opening ? "table-row" : "none";
+        if (opening) loadAdminClubMembers(orgId);
+      });
+    });
+
+    tbody.querySelectorAll("button[data-deactivate-org-id]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const orgId = btn.dataset.deactivateOrgId;
+        const orgName = btn.dataset.orgName;
+        const typed = prompt(`This hides "${orgName}" from the platform (its data stays, nothing is deleted — you can reactivate it later from Supabase directly). Type the club name to confirm:`);
+        if (typed !== orgName) { if (typed !== null) showMessage("Name didn't match — nothing was changed.", "error"); return; }
+        try {
+          const { error } = await supabaseClient.from("organizations").update({ is_active: false }).eq("id", orgId);
+          if (error) throw error;
+          showMessage(`"${orgName}" deactivated.`, "success");
+          loadAdminClubsTable();
+        } catch (err) {
+          showMessage(err.message || "Couldn't deactivate that club.", "error");
+        }
+      });
+    });
+
+    tbody.querySelectorAll("button[data-delete-data-org-id]").forEach((btn) => {
+      btn.addEventListener("click", () => openDeleteDataPopup(btn.dataset.deleteDataOrgId, btn.dataset.orgName));
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Popup de borrado selectivo -- a diferencia de "Remove whole team" (que
+  // solo desactiva TODO el club), esto permite elegir un equipo/temporada
+  // concreto dentro de un club y decidir, categoría por categoría, qué
+  // borrar de verdad. exercises y notebooks NO aparecen aquí a propósito:
+  // viven a nivel de club, no de equipo (ver step34/step12), así que
+  // borrar un equipo no debería tocarlos.
+  // -----------------------------------------------------------------------
+  async function openDeleteDataPopup(orgId, orgName) {
+    const overlay = document.createElement("div");
+    overlay.className = "onboard-overlay";
+    overlay.id = "delete-data-overlay";
+    overlay.innerHTML = `
+      <div class="onboard-card" style="max-width:440px;">
+        <h2 style="margin-bottom:4px;">Delete data — ${escapeHtml(orgName)}</h2>
+        <p style="margin-top:0;">Pick a team/season, then choose exactly what to delete for it. Nothing outside your choices gets touched.</p>
+        <div id="delete-data-team-picker"><p style="color:var(--muted);">Loading teams…</p></div>
+        <div id="delete-data-checks" style="display:none;">
+          <div style="display:flex; flex-direction:column; gap:8px; margin:14px 0;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" data-cat="players" style="width:auto;" /> <span>Roster / players (<span data-count="players">—</span>) — also removes their assessments, match stats and attendance</span></label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" data-cat="matches" style="width:auto;" /> <span>Matches (<span data-count="matches">—</span>)</span></label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" data-cat="trainings" style="width:auto;" /> <span>Training sessions (<span data-count="trainings">—</span>)</span></label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" data-cat="plays" style="width:auto;" /> <span>Plays for this team (<span data-count="plays">—</span>)</span></label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" data-cat="registry" style="width:auto;" /> <span>The team entry itself (just removes it from the team list)</span></label>
+          </div>
+          <p style="font-size:12.5px; color:var(--muted);">Exercises and notebooks aren't listed — they belong to the whole club, not to one team, so they're never affected here.</p>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:16px;">
+          <button id="delete-data-cancel-btn" class="btn btn-secondary" style="flex:1;">Close</button>
+          <button id="delete-data-confirm-btn" class="btn" style="flex:1; background:#991b1b; color:#fff;" disabled>Delete selected</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.querySelector("#delete-data-cancel-btn").addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+    let selectedSeason = null, selectedTeam = null;
+
+    const { data: playerRows } = await supabaseClient.from("players").select("season, team").eq("organization_id", orgId);
+    const teamKeys = playerRows ? [...new Set(playerRows.filter((r) => !isExampleTeam(r.season, r.team)).map((r) => `${r.season}|||${r.team}`))] : [];
+
+    const pickerEl = overlay.querySelector("#delete-data-team-picker");
+    if (teamKeys.length === 0) {
+      pickerEl.innerHTML = `<p style="color:var(--muted);">No teams with data found for this club.</p>`;
+      return;
+    }
+    pickerEl.innerHTML = `
+      <select id="delete-data-team-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px;">
+        <option value="">Choose a team/season…</option>
+        ${teamKeys.map((k) => { const [season, team] = k.split("|||"); return `<option value="${escapeHtml(k)}">${escapeHtml(team)} — ${escapeHtml(season)}</option>`; }).join("")}
+      </select>`;
+
+    const checksEl = overlay.querySelector("#delete-data-checks");
+    const confirmBtn = overlay.querySelector("#delete-data-confirm-btn");
+    const checkboxes = () => [...overlay.querySelectorAll("input[data-cat]")];
+
+    const refreshConfirmState = () => {
+      confirmBtn.disabled = !selectedTeam || !checkboxes().some((c) => c.checked);
+    };
+
+    overlay.querySelector("#delete-data-team-select").addEventListener("change", async (e) => {
+      const val = e.target.value;
+      if (!val) { checksEl.style.display = "none"; selectedSeason = selectedTeam = null; refreshConfirmState(); return; }
+      [selectedSeason, selectedTeam] = val.split("|||");
+      checksEl.style.display = "block";
+      checkboxes().forEach((c) => { c.checked = false; });
+      refreshConfirmState();
+
+      const [{ count: pCount }, { count: mCount }, { count: tCount }, { count: plCount }] = await Promise.all([
+        supabaseClient.from("players").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam),
+        supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam),
+        supabaseClient.from("trainings").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam),
+        supabaseClient.from("plays").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam),
+      ]);
+      overlay.querySelector('[data-count="players"]').textContent = pCount ?? 0;
+      overlay.querySelector('[data-count="matches"]').textContent = mCount ?? 0;
+      overlay.querySelector('[data-count="trainings"]').textContent = tCount ?? 0;
+      overlay.querySelector('[data-count="plays"]').textContent = plCount ?? 0;
+    });
+
+    checksEl.addEventListener("change", refreshConfirmState);
+
+    confirmBtn.addEventListener("click", async () => {
+      const chosen = checkboxes().filter((c) => c.checked).map((c) => c.dataset.cat);
+      const labels = { players: "Roster/players", matches: "Matches", trainings: "Training sessions", plays: "Plays", registry: "the team entry" };
+      const summary = chosen.map((c) => labels[c]).join(", ");
+      const typed = prompt(`This permanently deletes: ${summary}\nfor "${selectedTeam}" (${selectedSeason}) in "${orgName}". This can't be undone.\n\nType the team name ("${selectedTeam}") to confirm:`);
+      if (typed !== selectedTeam) { if (typed !== null) showMessage("Team name didn't match — nothing was deleted.", "error"); return; }
+
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = "Deleting…";
+      try {
+        if (chosen.includes("players")) {
+          const { error } = await supabaseClient.from("players").delete().eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam);
+          if (error) throw error;
+        }
+        if (chosen.includes("matches")) {
+          const { error } = await supabaseClient.from("matches").delete().eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam);
+          if (error) throw error;
+        }
+        if (chosen.includes("trainings")) {
+          const { error } = await supabaseClient.from("trainings").delete().eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam);
+          if (error) throw error;
+        }
+        if (chosen.includes("plays")) {
+          const { error } = await supabaseClient.from("plays").delete().eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam);
+          if (error) throw error;
+        }
+        if (chosen.includes("registry")) {
+          const { error } = await supabaseClient.from("teams").delete().eq("organization_id", orgId).eq("season", selectedSeason).eq("team", selectedTeam);
+          if (error) throw error;
+        }
+        showMessage(`Deleted for "${selectedTeam}": ${summary}.`, "success");
+        close();
+        loadAdminClubsTable();
+      } catch (err) {
+        showMessage(err.message || "Something failed partway through — check what's left before retrying.", "error");
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = "Delete selected";
+      }
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Gestión de roles de un club concreto, desde la vista de Admin general
+  // -- sin tener que entrar al club para ir a su Settings. Mismo patrón
+  // que Settings (rol admin/coach + quitar del club), con su propio
+  // buscador para clubes con muchos miembros.
+  // -----------------------------------------------------------------------
+  // Reutilizado por la gestión de clubs/miembros del Admin general -- el
+  // mismo panel de mensajes de siempre, apuntando a una persona concreta
+  // en vez de al soporte de PlayPivot.
+  function openComposeTo(recipientId, label) {
+    els.msgWidget.scrollIntoView({ behavior: "smooth", block: "center" });
+    els.msgPanel.style.display = "block";
+    els.msgPanel.innerHTML = `
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <div style="font-weight:600; margin-bottom:8px;">Message ${escapeHtml(label)}</div>
+      <textarea id="new-msg-body" rows="4" placeholder="What's up?" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px; font-family:inherit;"></textarea>
+      <button id="new-msg-send-btn" class="nav-btn" style="width:100%;">Send</button>
+    `;
+    document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
+    document.getElementById("new-msg-send-btn").addEventListener("click", async () => {
+      const body = document.getElementById("new-msg-body").value.trim();
+      if (!body) return;
+      const { error: sendErr } = await supabaseClient.from("messages").insert({ sender_id: currentUserId, recipient_id: recipientId, body });
+      if (sendErr) { showMessage(sendErr.message || "Couldn't send that.", "error"); return; }
+      showMessage("Message sent.", "success");
+      openConversationWith = recipientId;
+      await loadMessagesWidget();
+    });
+  }
+
+  async function loadAdminClubMembers(orgId) {
+    const content = document.getElementById(`admin-manage-content-${orgId}`);
+    content.innerHTML = `<p style="font-size:14px; color:var(--muted);">Loading members…</p>`;
+    try {
+      const { data, error } = await supabaseClient
+        .from("memberships")
+        .select("id, user_id, role, status, profiles(full_name)")
+        .eq("organization_id", orgId)
+        .in("status", ["active", "blocked"]);
+      if (error) throw error;
+
+      content.innerHTML = `
+        <input class="admin-member-search" type="text" placeholder="Search coaches/admins…" style="width:100%; max-width:240px; padding:6px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; margin-bottom:10px;" />
+        <div class="admin-member-list"></div>`;
+
+      const renderMembers = (list) => {
+        const listEl = content.querySelector(".admin-member-list");
+        if (list.length === 0) { listEl.innerHTML = `<p style="font-size:14px; color:var(--muted);">No members found.</p>`; return; }
+        listEl.innerHTML = list.map((m) => `
+          <div style="display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--line); font-size:14.5px;">
+            <span style="flex:1;">${escapeHtml((m.profiles && m.profiles.full_name) || "—")}${m.status === "blocked" ? ' <span style="color:#991b1b; font-size:12.5px;">(blocked)</span>' : ""}</span>
+            <select data-membership-id="${m.id}" style="padding:5px 8px; border:1px solid var(--line); border-radius:6px; font-size:14px;">
+              <option value="admin" ${m.role === "admin" ? "selected" : ""}>admin</option>
+              <option value="coach" ${m.role === "coach" ? "selected" : ""}>coach</option>
+            </select>
+            <button data-msg-user-id="${m.user_id}" data-msg-name="${escapeHtml((m.profiles && m.profiles.full_name) || "this person")}" style="background:none; border:none; color:var(--ink); font-size:13.5px; cursor:pointer;" title="Send a message">✉</button>
+            <button data-remove-membership-id="${m.id}" style="background:none; border:none; color:#991b1b; font-size:13.5px; cursor:pointer;">Remove</button>
+          </div>
+        `).join("");
+
+        listEl.querySelectorAll("select[data-membership-id]").forEach((sel) => {
+          sel.addEventListener("change", async () => {
+            try {
+              const { error } = await supabaseClient.from("memberships").update({ role: sel.value }).eq("id", sel.dataset.membershipId);
+              if (error) throw error;
+              showMessage("Role updated.", "success");
+            } catch (err) {
+              showMessage(err.message || "Couldn't change that role.", "error");
+            }
+          });
+        });
+        listEl.querySelectorAll("button[data-msg-user-id]").forEach((btn) => {
+          btn.addEventListener("click", () => openComposeTo(btn.dataset.msgUserId, btn.dataset.msgName));
+        });
+        listEl.querySelectorAll("button[data-remove-membership-id]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            if (!confirm("Remove this person from the club?")) return;
+            try {
+              const { error } = await supabaseClient.from("memberships").delete().eq("id", btn.dataset.removeMembershipId);
+              if (error) throw error;
+              loadAdminClubMembers(orgId);
+            } catch (err) {
+              showMessage(err.message || "Couldn't remove that member.", "error");
+            }
+          });
+        });
+      };
+
+      renderMembers(data || []);
+      content.querySelector(".admin-member-search").addEventListener("input", (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        renderMembers((data || []).filter((m) => ((m.profiles && m.profiles.full_name) || "").toLowerCase().includes(q)));
+      });
+    } catch (err) {
+      content.innerHTML = `<p style="font-size:14px; color:#991b1b;">Couldn't load members: ${escapeHtml(err.message || String(err))}</p>`;
+    }
   }
 
   // Essaie de charger le logo du club -- si aucun n'a été mis en ligne,
   // l'image échoue silencieusement et reste cachée (pas d'erreur affichée).
   function loadOrgLogo(orgId, orgName) {
     const url = `${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png?t=${Date.now()}`;
-    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
-    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
-    els.orgLogo.src = url;
-
     els.orgLogoBig.onload = () => { els.orgLogoBig.style.display = "inline-block"; };
     els.orgLogoBig.onerror = () => { els.orgLogoBig.style.display = "none"; };
     els.orgLogoBig.src = url;
-    els.orgNameBig.textContent = orgName || "";
   }
 
   // -----------------------------------------------------------------------
@@ -343,13 +1015,14 @@
       if (rows.length === 0) { els.assocWidget.style.display = "none"; return; }
       els.assocWidget.style.display = "inline-block";
       els.assocCount.textContent = rows.length;
+      els.assocCount.style.display = "flex";
       els.assocPanel.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Pending association requests</div>` + rows.map((r) => `
         <div style="padding:8px 0; border-bottom:1px solid var(--line);">
           <div><strong>${escapeHtml((r.organizations && r.organizations.name) || "—")}</strong> wants to join <strong>${escapeHtml((r.club_associations && r.club_associations.name) || "—")}</strong></div>
-          ${r.message ? `<div style="font-size:12.5px; color:var(--muted); font-style:italic; margin-top:4px;">"${escapeHtml(r.message)}"</div>` : ""}
+          ${r.message ? `<div style="font-size:14px; color:var(--muted); font-style:italic; margin-top:4px;">"${escapeHtml(r.message)}"</div>` : ""}
           <div style="margin-top:6px; display:flex; gap:6px;">
-            <button class="btn btn-approve assoc-approve-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:12px;">Approve</button>
-            <button class="btn btn-reject assoc-reject-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:12px;">Reject</button>
+            <button class="btn btn-approve assoc-approve-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:13.5px;">Approve</button>
+            <button class="btn btn-reject assoc-reject-btn" data-assoc="${r.association_id}" data-org="${r.organization_id}" style="padding:4px 10px; font-size:13.5px;">Reject</button>
           </div>
         </div>
       `).join("");
@@ -366,6 +1039,7 @@
       if (rows.length === 0) { els.assocWidget.style.display = "none"; return; }
       els.assocWidget.style.display = "inline-block";
       els.assocCount.textContent = rows.length;
+      els.assocCount.style.display = "flex";
       els.assocPanel.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Your requests</div>` + rows.map((r) => `
         <div style="padding:8px 0; border-bottom:1px solid var(--line);">⏳ Waiting for approval to join <strong>${escapeHtml((r.club_associations && r.club_associations.name) || "—")}</strong></div>
       `).join("");
@@ -394,7 +1068,7 @@
     els.assocPanel.style.display = els.assocPanel.style.display === "none" ? "block" : "none";
   });
   document.addEventListener("click", (e) => {
-    if (!els.assocWidget.contains(e.target)) els.assocPanel.style.display = "none";
+    if (!e.composedPath().includes(els.assocWidget)) els.assocPanel.style.display = "none";
   });
 
   // -----------------------------------------------------------------------
@@ -415,6 +1089,7 @@
 
     const unread = (data || []).filter((m) => m.recipient_id === currentUserId && !m.read_at).length;
     els.msgCount.textContent = unread > 0 ? unread : "";
+    els.msgCount.style.display = unread > 0 ? "flex" : "none";
 
     // Regroupe par "autre personne" -- on ne garde que le message le plus
     // récent de chaque conversation pour la liste.
@@ -431,7 +1106,8 @@
   function renderMessagesPanel(conversations) {
     if (openConversationWith) { renderThread(openConversationWith); return; }
     let html = `<div style="font-weight:600; margin-bottom:8px;">Messages</div>
-      <button id="new-message-btn" class="nav-btn" style="width:100%; margin-bottom:10px;">+ New message</button>`;
+      <button id="new-message-btn" class="nav-btn" style="width:100%; margin-bottom:6px;">+ New message</button>
+      <button id="new-message-support-btn" style="width:100%; margin-bottom:10px; background:none; border:none; color:var(--accent-deep); font-size:13.5px; cursor:pointer; padding:2px 0;">✉️ Message the PlayPivot team</button>`;
     if (conversations.length === 0) {
       html += `<p class="hint" style="margin:0;">No messages yet.</p>`;
     } else {
@@ -439,15 +1115,16 @@
         <div class="conv-row" data-other="${c.otherId}" style="padding:8px 0; border-bottom:1px solid var(--line); cursor:pointer;">
           <div style="display:flex; justify-content:space-between;">
             <strong>${escapeHtml(c.otherName)}</strong>
-            ${c.unread > 0 ? `<span style="background:var(--accent); color:#fff; border-radius:100px; font-size:11px; padding:1px 7px;">${c.unread}</span>` : ""}
+            ${c.unread > 0 ? `<span style="background:var(--accent); color:#fff; border-radius:100px; font-size:12.5px; padding:1px 7px;">${c.unread}</span>` : ""}
           </div>
-          <div style="font-size:12.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(c.latest.body)}</div>
+          <div style="font-size:14px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(c.latest.body)}</div>
         </div>
       `).join("");
     }
     els.msgPanel.innerHTML = html;
     els.msgPanel.querySelectorAll(".conv-row").forEach((row) => row.addEventListener("click", () => { openConversationWith = row.dataset.other; loadMessagesWidget(); }));
     document.getElementById("new-message-btn").addEventListener("click", showComposeNew);
+    document.getElementById("new-message-support-btn").addEventListener("click", showComposeToSupport);
   }
 
   async function renderThread(otherId) {
@@ -466,17 +1143,17 @@
 
     const otherName = (data && data[0] && (data[0].sender_id === otherId ? data[0].sender.full_name : null)) || "Conversation";
     els.msgPanel.innerHTML = `
-      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:12.5px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
       <div style="font-weight:600; margin-bottom:8px;">${escapeHtml(otherName)}</div>
       <div id="thread-messages" style="max-height:220px; overflow-y:auto; margin-bottom:10px;">
         ${(data || []).map((m) => `
           <div style="margin-bottom:8px; text-align:${m.sender_id === currentUserId ? "right" : "left"};">
-            <div style="display:inline-block; max-width:80%; background:${m.sender_id === currentUserId ? "var(--accent-tint)" : "var(--paper)"}; border-radius:8px; padding:6px 10px; font-size:12.5px;">${escapeHtml(m.body)}</div>
+            <div style="display:inline-block; max-width:80%; background:${m.sender_id === currentUserId ? "var(--accent-tint)" : "var(--paper)"}; border-radius:8px; padding:6px 10px; font-size:14px;">${escapeHtml(m.body)}</div>
           </div>
         `).join("")}
       </div>
       <div style="display:flex; gap:6px;">
-        <input id="reply-input" type="text" placeholder="Write a reply…" style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
+        <input id="reply-input" type="text" placeholder="Write a reply…" style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px;" />
         <button id="reply-send-btn" class="nav-btn">Send</button>
       </div>
     `;
@@ -495,25 +1172,115 @@
     document.getElementById("reply-input").addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
   }
 
-  function showComposeNew() {
+  async function showComposeNew() {
     els.msgPanel.innerHTML = `
-      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:12.5px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
       <div style="font-weight:600; margin-bottom:8px;">New message</div>
-      <p class="hint" style="margin:0 0 8px;">You can message a teammate from your own club, or the PlayPivot admins.</p>
-      <input id="new-msg-email" type="text" placeholder="Their email" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:6px;" />
-      <textarea id="new-msg-body" rows="3" placeholder="Your message…" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:6px;"></textarea>
-      <button id="new-msg-send-btn" class="nav-btn" style="width:100%;">Send</button>
+      <p class="hint" style="margin:0 0 8px;">Loading who you can message…</p>
     `;
     document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
+
+    // Une liste plutôt qu'un champ email libre -- personne ne connaît
+    // l'email exact d'un coéquipier par cœur, et deviner ne marche pas
+    // puisque l'envoi est bloqué si le compte n'existe pas ou n'est pas
+    // autorisé (club en commun, ou admin plateforme).
+    //
+    // Pour le platform admin : TOUT LE MONDE, sur tous les clubs -- pas
+    // seulement les clubs où lui-même a une adhésion active. Il gère déjà
+    // tous les clubes depuis Admin general (Manage, Delete data...), donc
+    // limiter juste la messagerie à ses propres clubes n'avait pas de
+    // sens -- c'est justement l'accès le moins risqué de tous ceux qu'il
+    // a déjà.
+    let teammates = [];
+    if (isPlatformController) {
+      const { data } = await supabaseClient
+        .from("memberships")
+        .select("user_id, profiles(full_name), organizations(name)")
+        .eq("status", "active")
+        .neq("user_id", currentUserId);
+      const seen = new Set();
+      teammates = (data || []).filter((m) => {
+        if (!m.profiles || seen.has(m.user_id)) return false;
+        seen.add(m.user_id);
+        return true;
+      });
+    } else {
+      // Coéquipiers de TOUS tes clubs, pas juste celui actif dans le
+      // sélecteur -- sinon un coéquipier d'un autre de tes clubs
+      // n'apparaissait jamais, même s'il t'est parfaitement possible de
+      // lui écrire.
+      const { data: myOrgs } = await supabaseClient
+        .from("memberships")
+        .select("organization_id")
+        .eq("user_id", currentUserId)
+        .eq("status", "active");
+      const myOrgIds = [...new Set((myOrgs || []).map((m) => m.organization_id))];
+
+      if (myOrgIds.length > 0) {
+        const { data } = await supabaseClient
+          .from("memberships")
+          .select("user_id, profiles(full_name), organizations(name)")
+          .in("organization_id", myOrgIds)
+          .eq("status", "active")
+          .neq("user_id", currentUserId);
+        // La même personne peut être coéquipière dans plus d'un club --
+        // une seule ligne par personne suffit pour écrire un message.
+        const seen = new Set();
+        teammates = (data || []).filter((m) => {
+          if (!m.profiles || seen.has(m.user_id)) return false;
+          seen.add(m.user_id);
+          return true;
+        });
+      }
+    }
+    const { data: adminsRaw } = await supabaseClient.rpc("get_platform_admin_contact");
+    const admins = (adminsRaw || []).filter((a) => a.id !== currentUserId);
+
+    // Une seule liste plate, plutôt que des groupes -- pas de vraie
+    // notion d'équipe par personne dans la base pour l'instant (voir
+    // discussion avec Daniel), donc pas de regroupement fictif.
+    const people = [
+      ...teammates.map((m) => ({ id: m.user_id, name: m.profiles.full_name || "Teammate" })),
+      ...(admins.map((a) => ({ id: a.id, name: a.full_name || "PlayPivot support" }))),
+    ];
+
+    if (people.length === 0) {
+      els.msgPanel.innerHTML = `
+        <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+        <div style="font-weight:600; margin-bottom:8px;">New message</div>
+        <p class="hint" style="margin:0;">No one to message yet — join a club to message teammates.</p>
+      `;
+      document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
+      return;
+    }
+
+    els.msgPanel.innerHTML = `
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <div style="font-weight:600; margin-bottom:8px;">New message — who to?</div>
+      <div id="new-msg-people-list" style="max-height:220px; overflow-y:auto; margin-bottom:6px;">
+        ${people.map((p) => `<div class="new-msg-person-row" data-person-id="${p.id}" data-person-name="${escapeHtml(p.name)}" style="padding:8px 4px; border-bottom:1px solid var(--line); cursor:pointer;">${escapeHtml(p.name)}</div>`).join("")}
+      </div>
+    `;
+    document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
+    els.msgPanel.querySelectorAll(".new-msg-person-row").forEach((row) => {
+      row.addEventListener("click", () => showComposeToPerson(row.dataset.personId, row.dataset.personName));
+    });
+  }
+
+  function showComposeToPerson(recipientId, recipientName) {
+    els.msgPanel.innerHTML = `
+      <button id="back-to-new-msg-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <div style="font-weight:600; margin-bottom:8px;">To: ${escapeHtml(recipientName)}</div>
+      <textarea id="new-msg-body" rows="3" placeholder="Your message…" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;"></textarea>
+      <button id="new-msg-send-btn" class="nav-btn" style="width:100%;">Send</button>
+    `;
+    document.getElementById("back-to-new-msg-btn").addEventListener("click", () => showComposeNew());
     document.getElementById("new-msg-send-btn").addEventListener("click", async () => {
-      const email = document.getElementById("new-msg-email").value.trim();
       const body = document.getElementById("new-msg-body").value.trim();
-      if (!email || !body) return;
-      const { data: recipient, error: findErr } = await supabaseClient.from("profiles").select("id").eq("email", email).maybeSingle();
-      if (findErr || !recipient) { showMessage("No PlayPivot account found with that email, or you're not allowed to message them yet.", "error"); return; }
-      const { error: sendErr } = await supabaseClient.from("messages").insert({ sender_id: currentUserId, recipient_id: recipient.id, body });
-      if (sendErr) { showMessage("Couldn't send — you can message teammates from your club, or a PlayPivot admin/validator.", "error"); return; }
-      openConversationWith = recipient.id;
+      if (!body) return;
+      const { error: sendErr } = await supabaseClient.from("messages").insert({ sender_id: currentUserId, recipient_id: recipientId, body });
+      if (sendErr) { showMessage("Couldn't send that — try again in a moment.", "error"); return; }
+      openConversationWith = recipientId;
       await loadMessagesWidget();
     });
   }
@@ -521,17 +1288,22 @@
   async function showComposeToSupport() {
     els.msgPanel.style.display = "block";
     els.msgPanel.innerHTML = `<div class="hint" style="padding:8px 0;">Finding the PlayPivot team…</div>`;
-    const { data: admins, error } = await supabaseClient.rpc("get_platform_admin_contact");
-    if (error || !admins || admins.length === 0) {
-      els.msgPanel.innerHTML = `<div class="hint" style="padding:8px 0;">Couldn't find anyone to contact right now — try again later.</div>`;
+    const { data: adminsRaw, error } = await supabaseClient.rpc("get_platform_admin_contact");
+    const admins = (adminsRaw || []).filter((a) => a.id !== currentUserId);
+    if (error || admins.length === 0) {
+      els.msgPanel.innerHTML = `
+        <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+        <div class="hint" style="padding:8px 0;">You're the only PlayPivot admin right now — there's no one else here to message. (Other coaches using "Contact us" will reach you fine.)</div>
+      `;
+      document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
       return;
     }
     const recipient = admins[0]; // en pratique il n'y en a qu'un ou deux -- le premier suffit
     els.msgPanel.innerHTML = `
-      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:12.5px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
+      <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
       <div style="font-weight:600; margin-bottom:4px;">Message the PlayPivot team</div>
-      <p class="hint" style="margin:0 0 8px;">Straight to ${escapeHtml(recipient.full_name || "the PlayPivot admin")} — bug report, question, anything.</p>
-      <textarea id="new-msg-body" rows="4" placeholder="What's up?" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:6px; font-family:inherit;"></textarea>
+      <p class="hint" style="margin:0 0 8px;">Straight to ${escapeHtml(recipient.full_name || "the PlayPivot admin")} — bug report, question, anything. Sent as ${escapeHtml(document.getElementById("sidebar-user-name").textContent || "you")} — they'll see it's from you.</p>
+      <textarea id="new-msg-body" rows="4" placeholder="What's up?" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px; font-family:inherit;"></textarea>
       <button id="new-msg-send-btn" class="nav-btn" style="width:100%;">Send</button>
     `;
     document.getElementById("back-to-inbox-btn").addEventListener("click", () => loadMessagesWidget());
@@ -548,6 +1320,12 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
     showComposeToSupport();
   });
+  document.getElementById("sidebar-help-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    closeSidebar();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    showComposeToSupport();
+  });
 
   els.msgBtn.addEventListener("click", () => {
     const opening = els.msgPanel.style.display === "none";
@@ -555,7 +1333,7 @@
     if (opening) loadMessagesWidget();
   });
   document.addEventListener("click", (e) => {
-    if (!els.msgWidget.contains(e.target)) els.msgPanel.style.display = "none";
+    if (!e.composedPath().includes(els.msgWidget)) els.msgPanel.style.display = "none";
   });
 
   // -----------------------------------------------------------------------
@@ -572,7 +1350,7 @@
     wrap.appendChild(openBtn);
 
     openBtn.addEventListener("click", () => openJoinForm(wrap, openBtn), { once: true });
-    els.clubStatusText.insertAdjacentElement("afterend", wrap);
+    document.getElementById("no-club-gate").appendChild(wrap);
   }
 
   async function openJoinForm(wrap, openBtn) {
@@ -583,17 +1361,14 @@
     box.style.padding = "16px 20px";
     box.style.marginTop = "8px";
     box.innerHTML = `
-      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which club or association?</label>
+      <label style="display:block; font-size:14px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which club or association?</label>
       <select id="join-org-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;"><option>Loading…</option></select>
-      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">As what?</label>
+      <label style="display:block; font-size:14px; font-weight:600; color:var(--muted); margin-bottom:6px;">As what?</label>
       <select id="join-org-role" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;">
         <option value="coach">Coach</option>
-        <option value="assistant">Assistant coach</option>
-        <option value="player">Player</option>
-        <option value="viewer">Viewer (read-only)</option>
       </select>
-      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Message to the admin (optional)</label>
-      <textarea id="join-org-message" rows="2" placeholder="e.g. Hi, I'm the new U16 coach…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-family:inherit; font-size:13px;"></textarea>
+      <label style="display:block; font-size:14px; font-weight:600; color:var(--muted); margin-bottom:6px;">Message to the admin (optional)</label>
+      <textarea id="join-org-message" rows="2" placeholder="e.g. Hi, I'm the new U16 coach…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-family:inherit; font-size:14.5px;"></textarea>
       <button class="nav-btn" id="join-org-btn" style="width:100%;">Send request</button>
     `;
     wrap.appendChild(box);
@@ -697,7 +1472,7 @@
       info.appendChild(name); info.appendChild(detail);
       if (req.join_message) {
         const msg = document.createElement("div");
-        msg.style.cssText = "font-size:12.5px; color:var(--muted); font-style:italic; margin-top:4px;";
+        msg.style.cssText = "font-size:14px; color:var(--muted); font-style:italic; margin-top:4px;";
         msg.textContent = `"${req.join_message}"`;
         info.appendChild(msg);
       }
@@ -735,10 +1510,13 @@
 
   async function loadStats() {
     if (!currentOrgId) return;
-    const { data: playerRows } = await supabaseClient.from("players").select("id, team, season").eq("organization_id", currentOrgId);
+    const { data: playerRows } = await supabaseClient.from("players").select("id, team, season, team_category, team_gender").eq("organization_id", currentOrgId);
     const realPlayers = (playerRows || []).filter((p) => !isExampleTeam(p.season, p.team));
     els.statPlayers.textContent = realPlayers.length;
-    els.statTeams.textContent = new Set(realPlayers.map((r) => `${r.season}|${r.team}`)).size;
+    // "Teams" cuenta por team+categoría+género, no solo por team -- un
+    // club con DEL (U8 y U10) tiene 2 equipos reales, no 1, igual que en
+    // el resto de la app (Match day, Training builder, etc.).
+    els.statTeams.textContent = new Set(realPlayers.map((r) => `${r.season}|${r.team}|${r.team_category || ""}|${r.team_gender || ""}`)).size;
 
     const realPlayerIds = new Set(realPlayers.map((p) => p.id));
     const { data: assessmentRows } = await supabaseClient.from("player_assessments").select("id, player_id").eq("organization_id", currentOrgId);
@@ -766,13 +1544,511 @@
   }
 
   // -----------------------------------------------------------------------
+  // Calendario -- cada equipo/categoría/género tiene su propio color (de
+  // una paleta categórica fija, siempre en el mismo orden), y cada tipo
+  // (partido/entreno/evento) su propia forma -- así no se pierde ninguna
+  // de las dos lecturas. Filtro para aislar un equipo; leyenda con las
+  // dos claves. "Bidireccional" por diseño: no hay ninguna tabla propia
+  // de calendario que mantener sincronizada -- lee directamente de
+  // matches/trainings/events, así que cualquier partido o entrenamiento
+  // creado en Match day / Training builder aparece aquí solo, sin ningún
+  // paso extra, y viceversa (borrar uno de esos lo quita de aquí también).
+  // -----------------------------------------------------------------------
+  const TEAM_PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
+  const TEAM_COLOR_OTHER = "#898781"; // más de 8 equipos: se agrupan en un gris compartido, no se inventa un 9º tono
+  const TEAM_COLOR_NONE = "#898781"; // eventos "club entero" (sin equipo asignado)
+  let orgTeamRoster = []; // [{team, category, gender, key, color, label}], orden estable -> color estable
+  let calendarTeamFilter = ""; // "" = todos los equipos; si no, la key de un equipo
+
+  function teamRosterKey(team, category, gender) { return `${team}|||${category || ""}|||${gender || ""}`; }
+
+  async function loadOrgTeamRoster() {
+    const [{ data: playerRows }, { data: teamRows }] = await Promise.all([
+      supabaseClient.from("players").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId),
+      supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId),
+    ]);
+    // Se excluyen los equipos de ejemplo (Bulls/Celtics de la demo) --
+    // igual que en el resto del Dashboard, no deberían aparecer como
+    // opción real para partidos/entrenos de verdad.
+    const rows = mergeTeamRows(playerRows, teamRows).filter((r) => !isExampleTeam(r.season, r.team));
+    const seen = new Set();
+    const combos = [];
+    rows.forEach((r) => {
+      const key = teamRosterKey(r.team, r.team_category, r.team_gender);
+      if (seen.has(key)) return;
+      seen.add(key);
+      combos.push({ team: r.team, category: r.team_category || "", gender: r.team_gender || "", key });
+    });
+    // Orden estable (alfabético), independiente de qué eventos existan
+    // este mes -- así el color de cada equipo no cambia de un mes a otro.
+    combos.sort((a, b) => a.team.localeCompare(b.team) || a.category.localeCompare(b.category) || a.gender.localeCompare(b.gender));
+    orgTeamRoster = combos.map((c, i) => ({
+      ...c,
+      color: i < TEAM_PALETTE.length ? TEAM_PALETTE[i] : TEAM_COLOR_OTHER,
+      label: c.team + (c.category || c.gender ? ` (${[c.category, c.gender].filter(Boolean).join(", ")})` : ""),
+    }));
+  }
+
+  function teamColorFor(team, category, gender) {
+    if (!team) return TEAM_COLOR_NONE;
+    const found = orgTeamRoster.find((t) => t.key === teamRosterKey(team, category, gender));
+    return found ? found.color : TEAM_COLOR_OTHER;
+  }
+
+  function populateCalendarTeamFilter() {
+    const sel = document.getElementById("cal-team-filter");
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">All teams</option>' + orgTeamRoster.map((t) => `<option value="${escapeHtml(t.key)}">${escapeHtml(t.label)}</option>`).join("");
+    if (orgTeamRoster.some((t) => t.key === current)) sel.value = current;
+    else calendarTeamFilter = sel.value = "";
+  }
+  document.getElementById("cal-team-filter").addEventListener("change", (e) => {
+    calendarTeamFilter = e.target.value;
+    renderCalendarGrid(calendarLastFirstDay, calendarLastLastDay);
+    renderCalendarLegend();
+  });
+
+  function renderCalendarLegend() {
+    const el = document.getElementById("cal-legend");
+    if (!el) return;
+    // Más allá de las 8 entradas de la paleta, un equipo comparte el gris
+    // de "Other teams" -- no se lista además con su propio nombre, para
+    // no repetir el mismo punto gris dos veces en la leyenda.
+    const teamsToShow = calendarTeamFilter ? orgTeamRoster.filter((t) => t.key === calendarTeamFilter) : orgTeamRoster.slice(0, TEAM_PALETTE.length);
+    const teamItems = teamsToShow.map((t) => `<span class="cal-legend-item"><span class="cal-legend-swatch" style="background:${t.color}; border-radius:50%;"></span>${escapeHtml(t.label)}</span>`).join("");
+    const hasOverflow = !calendarTeamFilter && orgTeamRoster.length > TEAM_PALETTE.length;
+    const overflowItem = hasOverflow ? `<span class="cal-legend-item"><span class="cal-legend-swatch" style="background:${TEAM_COLOR_OTHER}; border-radius:50%;"></span>Other teams</span>` : "";
+    const wholeClubItem = `<span class="cal-legend-item"><span class="cal-legend-swatch" style="background:${TEAM_COLOR_NONE}; border-radius:50%;"></span>Whole club</span>`;
+    el.innerHTML = `
+      <div class="cal-legend-group">
+        <span class="cal-legend-group-title">Type</span>
+        <div class="cal-legend-items">
+          <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:var(--muted); border-radius:50%;"></span>Match</span>
+          <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:var(--muted); border-radius:1.5px;"></span>Training</span>
+          <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:var(--muted); border-radius:1px; transform:rotate(45deg);"></span>Event</span>
+        </div>
+      </div>
+      <div class="cal-legend-group">
+        <span class="cal-legend-group-title">Team</span>
+        <div class="cal-legend-items">${teamItems || '<span class="cal-legend-item">No teams yet</span>'}${overflowItem}${wholeClubItem}</div>
+      </div>`;
+  }
+
+  let calendarViewDate = new Date();
+  let calendarEventsByDay = {};
+  let calendarLastFirstDay = null, calendarLastLastDay = null;
+
+  async function loadCalendar() {
+    if (!currentOrgId) return;
+    await loadOrgTeamRoster();
+    populateCalendarTeamFilter();
+    const year = calendarViewDate.getFullYear();
+    const month = calendarViewDate.getMonth(); // 0-indexado
+    document.getElementById("cal-month-label").textContent = calendarViewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const pad = (n) => String(n).padStart(2, "0");
+    const startStr = `${year}-${pad(month + 1)}-01`;
+    const endStr = `${year}-${pad(month + 1)}-${pad(lastDay.getDate())}`;
+
+    const [{ data: matches }, { data: trainings }, eventsRes] = await Promise.all([
+      supabaseClient.from("matches").select("id, date, opponent, location, team, team_category, team_gender").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
+      supabaseClient.from("trainings").select("id, date, title, team, team_category, team_gender").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr),
+      // La tabla "events" es opcional (paso extra de configuración) -- si
+      // todavía no existe, simplemente no mostramos ese tercer tipo, sin
+      // romper el resto del calendario.
+      supabaseClient.from("events").select("id, date, title, team, team_category, team_gender").eq("organization_id", currentOrgId).gte("date", startStr).lte("date", endStr).then((r) => r, () => ({ data: [] })),
+    ]);
+    const events = (eventsRes && eventsRes.data) || [];
+
+    calendarEventsByDay = {};
+    (matches || []).forEach((m) => {
+      (calendarEventsByDay[m.date] = calendarEventsByDay[m.date] || { matches: [], trainings: [], events: [] }).matches.push(m);
+    });
+    (trainings || []).forEach((t) => {
+      (calendarEventsByDay[t.date] = calendarEventsByDay[t.date] || { matches: [], trainings: [], events: [] }).trainings.push(t);
+    });
+    events.forEach((e) => {
+      (calendarEventsByDay[e.date] = calendarEventsByDay[e.date] || { matches: [], trainings: [], events: [] }).events.push(e);
+    });
+
+    calendarLastFirstDay = firstDay; calendarLastLastDay = lastDay;
+    renderCalendarGrid(firstDay, lastDay);
+    renderCalendarLegend();
+  }
+
+  const CAL_MAX_MARKS = 4;
+
+  // Un ítem pasa el filtro si no hay filtro activo, si es exactamente el
+  // equipo elegido, o si es un evento "club entero" (sin equipo) -- esos
+  // últimos aplican a todos los equipos por igual, así que se siguen
+  // viendo aunque estés mirando un equipo en concreto.
+  function calendarItemPassesFilter(item) {
+    if (!calendarTeamFilter) return true;
+    if (!item.team) return true;
+    return teamRosterKey(item.team, item.team_category, item.team_gender) === calendarTeamFilter;
+  }
+
+  function dayMarksHtml(dateStr) {
+    const ev = calendarEventsByDay[dateStr];
+    if (!ev) return { html: "", count: 0 };
+    const items = [];
+    ev.matches.forEach((m) => { if (calendarItemPassesFilter(m)) items.push({ shapeClass: "cal-mark-match", color: teamColorFor(m.team, m.team_category, m.team_gender) }); });
+    ev.trainings.forEach((t) => { if (calendarItemPassesFilter(t)) items.push({ shapeClass: "cal-mark-training", color: teamColorFor(t.team, t.team_category, t.team_gender) }); });
+    ev.events.forEach((e) => { if (calendarItemPassesFilter(e)) items.push({ shapeClass: "cal-mark-event", color: teamColorFor(e.team, e.team_category, e.team_gender) }); });
+    if (items.length === 0) return { html: "", count: 0 };
+    const shown = items.slice(0, CAL_MAX_MARKS);
+    const overflow = items.length - shown.length;
+    let html = shown.map((it) => `<span class="cal-mark ${it.shapeClass}" style="background:${it.color};"></span>`).join("");
+    if (overflow > 0) html += `<span class="cal-day-overflow">+${overflow}</span>`;
+    return { html, count: items.length };
+  }
+
+  function renderCalendarGrid(firstDay, lastDay) {
+    const grid = document.getElementById("calendar-grid");
+    const pad = (n) => String(n).padStart(2, "0");
+    const year = firstDay.getFullYear();
+    const month = firstDay.getMonth();
+    const startWeekday = firstDay.getDay(); // 0 = dimanche
+    const daysInMonth = lastDay.getDate();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    let html = '<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; font-size:12px; color:var(--muted); text-align:center; margin-bottom:6px; font-weight:600;">';
+    ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach((d) => { html += `<div>${d}</div>`; });
+    html += '</div><div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px;">';
+    for (let i = 0; i < startWeekday; i++) html += "<div></div>";
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
+      const isToday = dateStr === todayStr;
+      const marks = dayMarksHtml(dateStr);
+      const bg = isToday ? "var(--accent-tint)" : "transparent";
+      const fg = isToday ? "var(--accent-deep)" : "var(--ink)";
+      const weight = isToday || marks.count ? "700" : "500";
+      const todayRing = isToday ? "box-shadow:inset 0 0 0 2px var(--ink);" : "";
+      html += `<button type="button" class="cal-day-btn" data-date="${dateStr}" style="aspect-ratio:1; border-radius:8px; font-size:14px; border:none; background:${bg}; color:${fg}; font-weight:${weight}; cursor:pointer; ${todayRing}"><span class="cal-day-num">${d}</span><span class="cal-day-marks">${marks.html}</span></button>`;
+    }
+    html += "</div>";
+    grid.innerHTML = html;
+
+    grid.querySelectorAll("button[data-date]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const dateStr = btn.dataset.date;
+        const d = new Date(dateStr + "T00:00:00");
+        const label = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+        openCalendarAddModal(dateStr, label);
+      });
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Ventana única para añadir algo a un día: elige Match / Training /
+  // Comment (evento), rellena lo básico, y al guardar crea la fila DE
+  // VERDAD en matches/trainings/events -- por eso aparece automáticamente
+  // en Match day / Training builder también, sin ningún paso extra (la
+  // misma idea de "bidireccional" que ya tiene el calendario para leer,
+  // ahora también para crear).
+  // -----------------------------------------------------------------------
+  // La temporada ("2026-2027") no se le pregunta a nadie -- se calcula
+  // sola a partir de la fecha, siguiendo la convención habitual de que
+  // la temporada empieza en agosto.
+  function pivotSeasonFromDate(dateStr) {
+    const [y, m] = dateStr.split("-").map(Number);
+    return m >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
+  }
+
+  function openCalendarAddModal(dateStr, dayLabel) {
+    const ev = calendarEventsByDay[dateStr] || { matches: [], trainings: [], events: [] };
+    const delBtn = (table, id) => `<button type="button" class="cal-del-btn" data-del-table="${table}" data-del-id="${id}" title="Delete" style="background:none; border:none; cursor:pointer; color:#b91c1c; padding:6px; border-radius:8px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button>`;
+    const teamDot = (team, category, gender) => `<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${teamColorFor(team, category, gender)}; box-shadow:inset 0 0 0 1px rgba(0,0,0,0.12); margin-right:5px; flex-shrink:0;"></span>`;
+    let existingRows = "";
+    ev.matches.forEach((m) => {
+      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:var(--accent-tint); color:var(--accent-deep);">🏀</div><div class="activity-text" style="flex:1;"><strong>vs ${escapeHtml(m.opponent || "TBD")}</strong><span>${teamDot(m.team, m.team_category, m.team_gender)}${escapeHtml(m.team || "")}${m.location ? " · " + escapeHtml(m.location) : ""}</span></div>${delBtn("matches", m.id)}</div>`;
+    });
+    ev.trainings.forEach((t) => {
+      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:#e7e5f5; color:var(--navy);">⏱</div><div class="activity-text" style="flex:1;"><strong>${escapeHtml(t.title || "Training session")}</strong><span>${teamDot(t.team, t.team_category, t.team_gender)}${escapeHtml(t.team || "")}</span></div>${delBtn("trainings", t.id)}</div>`;
+    });
+    ev.events.forEach((e) => {
+      existingRows += `<div class="activity-row" style="align-items:center;"><div class="activity-icon" style="background:#dcfce7; color:#16a34a;">📌</div><div class="activity-text" style="flex:1;"><strong>${escapeHtml(e.title)}</strong><span>${teamDot(e.team, e.team_category, e.team_gender)}${e.team ? escapeHtml(e.team) : "Whole club"}</span></div>${delBtn("events", e.id)}</div>`;
+    });
+
+    const overlay = document.createElement("div");
+    overlay.className = "onboard-overlay";
+    overlay.id = "cal-add-overlay";
+    overlay.innerHTML = `
+      <div class="onboard-card" style="max-width:420px;">
+        <h2 style="margin-bottom:4px;">${escapeHtml(dayLabel)}</h2>
+        ${existingRows ? `<div style="border-bottom:1px solid var(--line); padding-bottom:10px; margin-bottom:10px;">${existingRows}</div>` : ""}
+        <p style="margin-top:0;">Add something?</p>
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+          <button type="button" class="btn btn-secondary cal-type-btn" data-type="match" style="flex:1;">🏀 Match</button>
+          <button type="button" class="btn btn-secondary cal-type-btn" data-type="training" style="flex:1;">⏱ Training</button>
+          <button type="button" class="btn btn-secondary cal-type-btn" data-type="event" style="flex:1;">📌 Event</button>
+        </div>
+        <div id="cal-add-fields"></div>
+        <div style="display:flex; gap:8px; margin-top:16px;">
+          <button id="cal-add-cancel-btn" class="btn btn-secondary" style="flex:1;">Close</button>
+          <button id="cal-add-save-btn" class="btn btn-primary" style="flex:1;" disabled>Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    overlay.querySelectorAll(".cal-del-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const table = btn.dataset.delTable;
+        const id = btn.dataset.delId;
+        if (!confirm("Are you sure you want to delete this? It'll also disappear from its module and from Recent activity.")) return;
+        try {
+          const { error } = await supabaseClient.from(table).delete().eq("id", id);
+          if (error) throw error;
+          overlay.remove();
+          loadCalendar();
+          loadRecentActivity();
+          showMessage("Deleted.", "success");
+        } catch (err) {
+          showMessage(err.message || "Couldn't delete that.", "error");
+        }
+      });
+    });
+
+    let selectedType = null;
+    const fieldsEl = overlay.querySelector("#cal-add-fields");
+    const saveBtn = overlay.querySelector("#cal-add-save-btn");
+
+    // Los equipos vienen de orgTeamRoster (ya cargado por loadCalendar --
+    // mismo listado que colorea el calendario y alimenta su filtro, con
+    // categoría Y género). Ya no se puede escribir un equipo nuevo aquí a
+    // mano: si no existe todavía, se manda a crearlo primero en Roster --
+    // así no se cuelan equipos "sueltos" sin género que luego no
+    // coincidan con el que ya está dado de alta.
+    const noTeamsHint = `<p style="margin:0 0 10px; font-size:12.5px; color:var(--muted);">No teams yet — <a href="./roster.html" style="color:var(--accent-deep); font-weight:600;">create one first in Roster</a>, then come back.</p>`;
+
+    const teamFieldHtml = `
+        <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Team</label>
+        <select id="cal-field-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;"></select>
+        <div id="cal-field-team-hint"></div>`;
+
+    const FIELD_TEMPLATES = {
+      match: `
+        <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Opponent</label>
+        <input id="cal-field-opponent" type="text" placeholder="e.g. Madrid Hoops" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;" />
+        ${teamFieldHtml}
+        <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Location (optional)</label>
+        <input id="cal-field-location" type="text" placeholder="e.g. Pabellón Municipal" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px;" />`,
+      training: `
+        <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Title</label>
+        <input id="cal-field-title" type="text" placeholder="e.g. Competition week" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;" />
+        ${teamFieldHtml}`,
+      event: `
+        <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Comment / title</label>
+        <input id="cal-field-title" type="text" placeholder="e.g. Championship game, Team photo day…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:10px;" />
+        <label style="display:block; font-size:14px; font-weight:600; margin-bottom:4px;">Team (optional — leave as "Whole club" for a general event)</label>
+        <select id="cal-field-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14.5px; margin-bottom:6px;"><option value="">Whole club</option></select>
+        <div id="cal-field-team-hint"></div>`,
+    };
+
+    function wireTeamSelect() {
+      const sel = document.getElementById("cal-field-team");
+      const hintEl = document.getElementById("cal-field-team-hint");
+      if (!sel) return;
+      const isEventOptional = selectedType === "event";
+      sel.innerHTML = (isEventOptional ? '<option value="">Whole club</option>' : "") + orgTeamRoster.map((t) => `<option value="${escapeHtml(t.key)}">${escapeHtml(t.label)}</option>`).join("");
+      if (orgTeamRoster.length === 0) {
+        if (hintEl) hintEl.innerHTML = noTeamsHint;
+        if (!isEventOptional) { sel.disabled = true; saveBtn.disabled = true; }
+      } else {
+        sel.disabled = false;
+        if (hintEl) hintEl.innerHTML = "";
+      }
+    }
+
+    function getTeamValue() {
+      const sel = document.getElementById("cal-field-team");
+      if (!sel || !sel.value) return "";
+      return sel.value.split("|||")[0];
+    }
+
+    function getTeamCategoryValue() {
+      const sel = document.getElementById("cal-field-team");
+      if (!sel || !sel.value) return "";
+      return sel.value.split("|||")[1] || "";
+    }
+
+    function getTeamGenderValue() {
+      const sel = document.getElementById("cal-field-team");
+      if (!sel || !sel.value) return "";
+      return sel.value.split("|||")[2] || "";
+    }
+
+    overlay.querySelectorAll(".cal-type-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectedType = btn.dataset.type;
+        overlay.querySelectorAll(".cal-type-btn").forEach((b) => {
+          b.style.background = b === btn ? "var(--accent)" : "transparent";
+          b.style.color = b === btn ? "#fff" : "var(--ink)";
+        });
+        fieldsEl.innerHTML = FIELD_TEMPLATES[selectedType];
+        saveBtn.disabled = false;
+        if (selectedType === "match" || selectedType === "training" || selectedType === "event") wireTeamSelect();
+      });
+    });
+
+    overlay.querySelector("#cal-add-cancel-btn").addEventListener("click", () => overlay.remove());
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+    saveBtn.addEventListener("click", async () => {
+      if (!selectedType || !currentOrgId) return;
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving…";
+      try {
+        const season = pivotSeasonFromDate(dateStr);
+        if (selectedType === "match") {
+          const opponent = document.getElementById("cal-field-opponent").value.trim();
+          if (!opponent) throw new Error("Opponent is required for a match.");
+          const team = getTeamValue();
+          if (!team) throw new Error("Team is required.");
+          const location = document.getElementById("cal-field-location").value.trim();
+          const row = { organization_id: currentOrgId, date: dateStr, opponent, team, season, team_category: getTeamCategoryValue() || null, team_gender: getTeamGenderValue() || null };
+          if (location) row.location = location;
+          const { error } = await supabaseClient.from("matches").insert(row);
+          if (error) throw error;
+        } else if (selectedType === "training") {
+          const title = document.getElementById("cal-field-title").value.trim();
+          if (!title) throw new Error("Title is required for a training session.");
+          const team = getTeamValue();
+          if (!team) throw new Error("Team is required.");
+          const row = { organization_id: currentOrgId, date: dateStr, title, team, season, team_category: getTeamCategoryValue() || null, team_gender: getTeamGenderValue() || null };
+          const { error } = await supabaseClient.from("trainings").insert(row);
+          if (error) throw error;
+        } else {
+          const title = document.getElementById("cal-field-title").value.trim();
+          if (!title) throw new Error("Please write a comment/title.");
+          const team = getTeamValue();
+          const row = { organization_id: currentOrgId, date: dateStr, title };
+          if (team) { row.team = team; row.season = season; row.team_category = getTeamCategoryValue() || null; row.team_gender = getTeamGenderValue() || null; }
+          const { error } = await supabaseClient.from("events").insert(row);
+          if (error) throw error;
+        }
+        overlay.remove();
+        await Promise.all([loadCalendar(), loadRecentActivity()]);
+        showMessage("Added to the calendar — and it'll show up in its module too.", "success");
+      } catch (err) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save";
+        showMessage(err.message || "Couldn't save that.", "error");
+      }
+    });
+  }
+
+  document.getElementById("cal-prev-btn").addEventListener("click", () => {
+    calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() - 1, 1);
+    loadCalendar();
+  });
+  document.getElementById("cal-next-btn").addEventListener("click", () => {
+    calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() + 1, 1);
+    loadCalendar();
+  });
+
+  // -----------------------------------------------------------------------
+  // "Recent activity" -- un petit flux fabriqué côté client, PAS une
+  // table dédiée : on prend les quelques lignes les plus récentes de
+  // chaque table pertinente (created_at), on les mélange, on trie, on
+  // garde le top 5. Pas de nouvelle table à maintenir.
+  // -----------------------------------------------------------------------
+  const ACTIVITY_ICONS = {
+    exercise: '<g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g>',
+    play: '<g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g>',
+    match: '<g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g>',
+    training: '<g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g>',
+    assessment: '<g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g>',
+    event: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  };
+
+  function timeAgo(iso) {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(iso).toLocaleDateString("en-US");
+  }
+
+  async function loadRecentActivity() {
+    if (!currentOrgId) return;
+    const container = document.getElementById("recent-activity-content");
+    const [{ data: ex }, { data: pl }, { data: ma }, { data: tr }, { data: as_ }, evRes] = await Promise.all([
+      supabaseClient.from("exercises").select("id, name, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("plays").select("id, name, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("matches").select("id, opponent, team, team_category, team_gender, location, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("trainings").select("id, title, team, team_category, team_gender, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("player_assessments").select("id, created_at, players(first_name, last_name)").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("events").select("id, title, date, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3).then((r) => r, () => ({ data: [] })),
+    ]);
+    const ev = (evRes && evRes.data) || [];
+
+    const ACTIVITY_TABLES = { exercise: "exercises", play: "plays", match: "matches", training: "trainings", assessment: "player_assessments", event: "events" };
+
+    // Nombre completo del equipo -- team + (categoría, género) si los
+    // tiene, igual que en el resto de la app (Match day, Training
+    // builder…), para no mostrar solo "DEL" cuando en realidad hay
+    // varias categorías bajo ese mismo nombre.
+    function teamFullName(r) {
+      if (!r.team) return "";
+      const suffix = [r.team_category, r.team_gender].filter(Boolean).join(", ");
+      return r.team + (suffix ? ` (${suffix})` : "");
+    }
+
+    const items = [];
+    (ex || []).forEach((r) => items.push({ type: "exercise", title: "Exercise created", detail: r.name, at: r.created_at, id: r.id }));
+    (pl || []).forEach((r) => items.push({ type: "play", title: "Play design created", detail: r.name, at: r.created_at, id: r.id }));
+    (ma || []).forEach((r) => items.push({ type: "match", title: "Match added", detail: `vs ${r.opponent || "?"}${r.team ? " — " + teamFullName(r) : ""}${r.location ? " · " + r.location : ""}`, at: r.created_at, id: r.id }));
+    (tr || []).forEach((r) => items.push({ type: "training", title: "Training planned", detail: `${r.title || "Training"}${r.team ? " — " + teamFullName(r) : ""}`, at: r.created_at, id: r.id }));
+    (as_ || []).forEach((r) => items.push({ type: "assessment", title: "Assessment completed", detail: r.players ? `${r.players.first_name} ${r.players.last_name}` : "", at: r.created_at, id: r.id }));
+    (ev || []).forEach((r) => items.push({ type: "event", title: "Event added", detail: r.title, at: r.created_at, id: r.id }));
+
+    items.sort((a, b) => new Date(b.at) - new Date(a.at));
+    const top = items.slice(0, 5);
+
+    if (top.length === 0) {
+      container.innerHTML = `<p class="activity-empty">Nothing yet — your recent additions will show up here.</p>`;
+      return;
+    }
+    container.innerHTML = top.map((it) => `
+      <div class="activity-row" style="align-items:center;">
+        <div class="activity-icon"><svg viewBox="0 0 24 24" width="20" height="20">${ACTIVITY_ICONS[it.type] || ACTIVITY_ICONS.exercise}</svg></div>
+        <div class="activity-text" style="flex:1;"><strong>${escapeHtml(it.title)}</strong><span>${escapeHtml(it.detail || "")}</span></div>
+        <div class="activity-time">${timeAgo(it.at)}</div>
+        <button type="button" class="activity-del-btn" data-del-table="${ACTIVITY_TABLES[it.type]}" data-del-id="${it.id}" title="Delete" style="background:none; border:none; cursor:pointer; color:#b91c1c; padding:6px; border-radius:8px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
+      </div>
+    `).join("");
+
+    container.querySelectorAll(".activity-del-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Are you sure you want to delete this? It'll also disappear from its module and from the calendar (if it had a date).")) return;
+        try {
+          const { error } = await supabaseClient.from(btn.dataset.delTable).delete().eq("id", btn.dataset.delId);
+          if (error) throw error;
+          loadRecentActivity();
+          loadCalendar();
+          showMessage("Deleted.", "success");
+        } catch (err) {
+          showMessage(err.message || "Couldn't delete that.", "error");
+        }
+      });
+    });
+  }
+
+  // -----------------------------------------------------------------------
   // Panel global -- visible UNIQUEMENT pour toi (is_platform_controller).
   // Chiffres sur TOUT PlayPivot, sans filtre de club -- juste pour regarder,
   // aucun droit d'édition n'est donné par ça.
   // -----------------------------------------------------------------------
   async function loadPlatformStats() {
     if (!isPlatformController) return;
-    document.getElementById("platform-stats-section").style.display = "block";
 
     const { count: orgCount } = await supabaseClient.from("organizations").select("id", { count: "exact", head: true });
     document.getElementById("pstat-orgs").textContent = orgCount ?? 0;
@@ -811,19 +2087,6 @@
     const { count: onlineCount } = await supabaseClient.from("profiles").select("id", { count: "exact", head: true }).gte("last_seen", threeMinAgo);
     document.getElementById("pstat-online").textContent = onlineCount ?? 0;
   }
-
-  document.getElementById("copy-newsletter-emails-btn").addEventListener("click", async () => {
-    const { data, error } = await supabaseClient.from("profiles").select("email").eq("newsletter_opt_in", true);
-    if (error) { showMessage("Couldn't load that list right now.", "error"); return; }
-    const emails = (data || []).map((p) => p.email).filter(Boolean);
-    if (emails.length === 0) { showMessage("Nobody's opted in yet.", "success"); return; }
-    try {
-      await navigator.clipboard.writeText(emails.join(", "));
-      showMessage(`Copied ${emails.length} email(s) to your clipboard.`, "success");
-    } catch (e) {
-      showMessage(emails.join(", "), "success"); // au pire, affiché dans le message pour copier à la main
-    }
-  });
 
   // -----------------------------------------------------------------------
   // Signe de vie -- une simple mise à jour de last_seen, pour pouvoir
@@ -894,29 +2157,9 @@
     }
   }
 
-  renderExampleDataCard("example-data-card", { onLoad: loadExampleTeam, onRemove: removeExampleTeam });
-
-  document.getElementById("nav-menu").addEventListener("change", (e) => {
-    if (e.target.value) window.location.href = "./" + e.target.value;
-  });
-
-  let myTermsAcceptedAt = null;
-
-  function renderPrivacyStatusCard() {
-    const acceptedLine = myTermsAcceptedAt
-      ? `<strong style="color:var(--ink);">✓ You accepted version ${TERMS_VERSION}</strong> on ${new Date(myTermsAcceptedAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}.`
-      : `<strong style="color:var(--accent-deep);">No record of you accepting this yet</strong> (your account may predate this page) — worth a read.`;
-    document.getElementById("privacy-status-card").innerHTML = `
-      <h2>Privacy &amp; consent</h2>
-      <p style="font-size:13px; margin:0 0 8px;">${acceptedLine}</p>
-      <ul style="margin:0 0 10px; padding-left:18px; font-size:12.5px; color:var(--muted); line-height:1.6;">
-        <li>Your club is responsible for the sporting data it enters; PlayPivot processes it on your club's instructions.</li>
-        <li>Adding a minor's data confirms you already have the right to do so where you are.</li>
-        <li><strong>Allowed:</strong> data about players you actually coach. <strong>Not allowed:</strong> data you don't have the right to hold, or republishing someone else's shared content as your own.</li>
-      </ul>
-      <a href="./privacy.html" style="color:var(--accent-deep); font-size:13px;">Read the full Privacy &amp; Terms of Service →</a>
-    `;
-  }
+  // La tarjeta de datos de ejemplo (Chicago Bulls) se quitó del Dashboard
+  // por ahora, a petición de Dani -- sigue disponible en Roster/Assessment/
+  // Training si alguien la necesita para probar la plataforma.
 
   document.getElementById("help-btn").addEventListener("click", () => {
     const box = document.getElementById("help-box");
@@ -924,22 +2167,17 @@
     box.innerHTML = `
       <strong>How to use the Dashboard</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li>This is your home screen — your club, your role, and quick stats about what's in PlayPivot so far. If you're not in any club yet, you can request to join one (as a coach, assistant, player, or viewer) or create your own club straight from here.</li>
-        <li><strong>Your stats at a glance</strong> — Teams, Players, Assessments, Exercises, Notebooks (folders in your play notebook), Play designs, Matches, Wins, Losses. All counted from your own club only. Example data (any Bulls season, the Celtics) is never counted here, even if it's still loaded.</li>
-        <li>✉️ next to your club name is your <strong>messages</strong> inbox — direct messages between you and a teammate, or you and a PlayPivot admin/validator. A number badge means unread messages. Click "+ New message" to start one by typing someone's email.</li>
-        <li>🔔 (only shows up when there's something) is for <strong>club association requests</strong> — if you're a platform admin or validator, you'll see every pending request here with Approve/Reject; otherwise you'll see the status of your own club's requests.</li>
-        <li>If you're an admin, <strong>pending requests</strong> to join your club show up here too, with Approve/Reject buttons — separate from the association ones above.</li>
-        <li><strong>Example data</strong> (below the tools) fills your club with a real historical roster and sample evaluations — pick a Bulls season, or the Celtics — to try everything before you have your own data. "Remove" clears it out again, cleanly.</li>
-        <li>Click any tile in "Tools" to open that module, or use the "Go to…" menu at the top on any page to jump straight to another one.</li>
-        <li>If you're a PlayPivot platform admin, you'll also see a <strong>"PlayPivot Community — all clubs"</strong> section with read-only totals across every club on PlayPivot, not just yours.</li>
+        <li>This is your home screen — your club, your role, and quick stats about what's in PlayPivot so far. If you're not in any club yet, you can request to join one or create your own club from the club selector in the sidebar.</li>
+        <li><strong>Sidebar (left)</strong> — every module, always one click away. Below "Dashboard" is your club selector: switch between clubs you belong to, create a new one, or ask to join another. Settings, Help, and Privacy live at the bottom, along with your name and role.</li>
+        <li><strong>Your stats at a glance</strong> — Teams, Players, Assessments, Exercises, Notebooks (folders in your play notebook), Play designs, Matches, Wins, Losses. All counted from your own club only. Example data (any Bulls season, the Celtics) is never counted here, even if it's still loaded on Roster/Assessment/Training.</li>
+        <li><strong>Calendar</strong> — matches (orange), trainings (navy), and events (green) for your club. Click any day to see what's on it, or to add a match, training, or event right there — it'll show up in its own module automatically.</li>
+        <li><strong>Recent activity</strong> — the last few things added to your club: exercises, plays, matches, trainings, events, assessments.</li>
+        <li>✉️ (top right) is your <strong>messages</strong> inbox — direct messages between you and a teammate, or you and a PlayPivot admin/validator. A number badge means unread messages.</li>
+        <li>🔔 (only shows up when there's something) is for <strong>club association requests</strong> — if you're a platform admin or validator, you'll see every pending request here with Approve/Reject; otherwise you'll see the status of your own club's requests. Pending requests to join your own club show up further down the page too.</li>
+        <li>Click any tile in "Tools" to open that module.</li>
+        <li>If you're a PlayPivot platform admin, choosing <strong>"⚡ Admin (all clubs)"</strong> from the club selector takes you to a platform-wide view: totals across every club, a searchable clubs table, and the ability to message a club's admin, manage roles, or deactivate a club.</li>
       </ul>`;
     box.style.display = "block";
-  });
-
-  document.getElementById("newsletter-opt-in").addEventListener("change", async (e) => {
-    if (!currentUserId) return;
-    try { await supabaseClient.from("profiles").update({ newsletter_opt_in: e.target.checked }).eq("id", currentUserId); }
-    catch (err) { /* si ça rate, la case garde son état visuel -- pas grave, on retentera au prochain changement */ }
   });
 
   document.getElementById("onboard-close-btn").addEventListener("click", async () => {
@@ -950,12 +2188,14 @@
     }
   });
 
-  els.logoutBtn.addEventListener("click", async () => {
+  els.logoutBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
     await supabaseClient.auth.signOut();
     window.location.href = "./login.html";
   });
 
   async function init() {
+   try {
     const { data } = await supabaseClient.auth.getSession();
     if (!data.session) { window.location.href = "./login.html"; return; }
     currentUserId = data.session.user.id;
@@ -972,9 +2212,17 @@
     if (orgId) {
       await loadPendingRequestsForAdmin();
       await loadStats();
+      await loadCalendar();
+      await loadRecentActivity();
     }
     await loadPlatformStats();
     await loadMessagesWidget();
+   } catch (err) {
+    console.error("init error:", err);
+    els.msg.textContent = "⚠ Something went wrong loading the Dashboard: " + (err.message || String(err));
+    els.msg.className = "msg error";
+    els.msg.style.display = "block";
+   }
   }
   init();
 </script>
