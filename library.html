@@ -29,10 +29,15 @@
   .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
   .back-link:hover { color: var(--ink); }
 
-  .layout { display: grid; grid-template-columns: 240px 1fr; gap: 20px; max-width: 1000px; margin: 0 auto; padding: 24px; align-items: start; }
-  @media (max-width: 700px) { .layout { grid-template-columns: 1fr; } }
-  .filters-col { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
-  @media (max-width: 700px) { .filters-col { position: static; max-height: none; } }
+  /* -------- una sola columna: filtros arriba, librería debajo (antes
+     eran 2 columnas lado a lado) -------- */
+  .layout { display: flex; flex-direction: column; gap: 20px; max-width: 1080px; margin: 0 auto; padding: 24px; }
+  .filters-row { display: flex; flex-wrap: wrap; gap: 16px 22px; align-items: flex-end; }
+  .filters-row .field { margin-bottom: 0; }
+  .filters-row .multiselect { margin-bottom: 0; }
+  .filters-row .checkbox-group { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+  .filters-row .checkbox-field { margin-bottom: 0; }
+  .filters-row .reset-btn { width: auto; padding: 8px 16px; align-self: center; }
 
   h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
   p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
@@ -44,7 +49,8 @@
   .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
   .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
   .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-  .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field label, .field-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field-label { display: block; margin-bottom: 4px; }
   .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; width: 100%; }
   .checkbox-field { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
   .checkbox-field input { width: auto; }
@@ -253,33 +259,32 @@
 </div>
 
 <div class="layout">
-  <!-- Filtres -->
-  <div class="filters-col">
-    <div class="side-card">
-      <h2>Search</h2>
-      <div class="field"><input id="search-input" type="text" placeholder="Name, tag, description…" /></div>
-    </div>
-    <div class="side-card">
-      <h2>Filters</h2>
-      <div class="field"><label for="difficulty-filter">Difficulty</label><select id="difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
-      <div class="field"><label for="language-filter">Language</label><select id="language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
-      <label class="field-label" style="font-size:12px; font-weight:600; color:var(--muted);">Category</label>
-      <div class="multiselect" id="category-filter"></div>
-      <label class="field-label" style="font-size:12px; font-weight:600; color:var(--muted);">Age</label>
-      <div class="multiselect" id="age-filter"></div>
-      <div class="checkbox-field"><input type="checkbox" id="favorites-filter" /><label for="favorites-filter">Favorites only</label></div>
-      <div class="checkbox-field"><input type="checkbox" id="unused-filter" /><label for="unused-filter">Never used in a session</label></div>
+  <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+  <h1>
+    Library
+    <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+  </h1>
+
+  <!-- Filtros -- ahora en su propia fila arriba del todo, en vez de una
+       columna estrecha al lado de la lista. -->
+  <div class="side-card">
+    <h2>Search &amp; filters</h2>
+    <div class="filters-row">
+      <div class="field" style="flex:1 1 220px; min-width:220px;"><label for="search-input">Search</label><input id="search-input" type="text" placeholder="Name, tag, description…" /></div>
+      <div class="field" style="flex:0 0 150px;"><label for="difficulty-filter">Difficulty</label><select id="difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
+      <div class="field" style="flex:0 0 170px;"><label for="language-filter">Language</label><select id="language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
+      <div class="field" style="flex:0 0 200px;"><label class="field-label">Category</label><div class="multiselect" id="category-filter"></div></div>
+      <div class="field" style="flex:0 0 200px;"><label class="field-label">Age</label><div class="multiselect" id="age-filter"></div></div>
+      <div class="checkbox-group">
+        <div class="checkbox-field"><input type="checkbox" id="favorites-filter" /><label for="favorites-filter">Favorites only</label></div>
+        <div class="checkbox-field"><input type="checkbox" id="unused-filter" /><label for="unused-filter">Never used in a session</label></div>
+      </div>
       <button class="reset-btn" id="reset-filters-btn">Reset filters</button>
     </div>
   </div>
 
-  <!-- Liste -->
+  <!-- Librería -->
   <div>
-    <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
-    <h1>
-      Library
-      <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
-    </h1>
     <p class="sub" id="result-count">Loading…</p>
     <div class="msg" id="msg"></div>
     <div class="toolbar">
@@ -488,7 +493,7 @@
       const objText = (e.objectives || []).slice(0, 2).join(" · ");
       row.innerHTML = `
         <div>
-          <div class="name">${e.favorite ? "★ " : ""}${e.number ? e.number + ". " : ""}${escapeHtml(e.name)}</div>
+          <div class="name">${e.favorite ? "★ " : ""}${(e.number && e.organization_id === currentOrgId) ? e.number + ". " : ""}${escapeHtml(e.name)}</div>
           <div class="meta">${catIcons ? `<span class="category-icon">${catIcons}</span>` : ""}${escapeHtml((e.categories || []).join(", "))}${ageText ? ` · ${escapeHtml(ageText)}` : ""}</div>
           ${objText ? `<div class="meta" style="color:var(--muted); font-size:11.5px; margin-top:2px;">${escapeHtml(objText)}</div>` : ""}
         </div>
