@@ -24,7 +24,7 @@
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
   .logotype-img { height: 28px; width: auto; display: block; }
   .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
-  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 15px; cursor: pointer; filter: grayscale(0.85); }
   .nav-btn:hover { border-color: var(--accent); }
 
   /* -------- una sola columna: filtros arriba, librería debajo (antes
@@ -37,19 +37,19 @@
   .filters-row .checkbox-field { margin-bottom: 0; }
   .filters-row .reset-btn { width: auto; padding: 8px 16px; align-self: center; }
 
-  h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
-  p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
-  .msg { margin-bottom: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  h1 { font-size: 23px; margin: 0 0 4px; display:flex; align-items:center; justify-content:space-between; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+  .msg { margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
-  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--ink); margin-bottom: 12px; }
+  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 14px; color: var(--ink); margin-bottom: 12px; }
 
   .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
   .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
   .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-  .field label, .field-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field label, .field-label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
   .field-label { display: block; margin-bottom: 4px; }
-  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; width: 100%; }
+  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 14.5px; width: 100%; }
   .checkbox-field { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
   .checkbox-field input { width: auto; }
   /* Category/Age -- antes una caja siempre visible con scroll, ahora un
@@ -69,7 +69,7 @@
   .reset-btn:hover { border-color: var(--accent); }
 
   .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-  .btn { padding: 7px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600; border: none; cursor: pointer; }
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-deep); }
   .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
@@ -275,7 +275,7 @@
       </button>
       <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
     </div>
-    <img id="org-logo-big" style="width:44px; height:44px; border-radius:10px; object-fit:cover; display:none;" />
+    <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
     <div id="org-name-big" style="display:none;"></div>
   </div>
 </div>
@@ -468,19 +468,24 @@
   // filtre "jamais utilisé" et le badge "Nx" dans la liste.
   // -----------------------------------------------------------------------
   async function loadExercises() {
-    const { data, error } = await supabaseClient.from("exercises").select("*").order("number");
+    // Las 3 consultas no dependen unas de otras -- se lanzan a la vez
+    // (Promise.all) en vez de una detrás de otra, para no sumar round-trips
+    // de red innecesarios cada vez que se abre o refresca la página.
+    const [{ data, error }, { data: usageRows }, { data: favRows }] = await Promise.all([
+      supabaseClient.from("exercises").select("*").order("number"),
+      supabaseClient.from("training_exercises").select("exercise_id"),
+      // Favoritos personales -- propios de este usuario, no la vieja columna
+      // "exercises.favorite" (que era la misma para todo el mundo que viera
+      // esa fila, así que el favorito de otra persona se colaba en tu lista).
+      supabaseClient.from("exercise_favorites").select("exercise_id").eq("user_id", currentUserId),
+    ]);
     if (error) { console.error(error); return; }
     allExercises = data || [];
     buildTranslationGroups();
 
-    const { data: usageRows } = await supabaseClient.from("training_exercises").select("exercise_id");
     usageCounts = {};
     (usageRows || []).forEach((r) => { if (r.exercise_id) usageCounts[r.exercise_id] = (usageCounts[r.exercise_id] || 0) + 1; });
 
-    // Favoritos personales -- propios de este usuario, no la vieja columna
-    // "exercises.favorite" (que era la misma para todo el mundo que viera
-    // esa fila, así que el favorito de otra persona se colaba en tu lista).
-    const { data: favRows } = await supabaseClient.from("exercise_favorites").select("exercise_id").eq("user_id", currentUserId);
     myFavoriteIds = new Set((favRows || []).map((r) => r.exercise_id));
 
     refresh();
