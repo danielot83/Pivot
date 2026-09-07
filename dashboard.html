@@ -641,12 +641,15 @@
         // vez de una query de count aparte.
         const [{ count: matchCount }, { data: playerRows }, { data: memberRows }] = await Promise.all([
           supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
-          supabaseClient.from("players").select("season, team").eq("organization_id", org.id),
+          supabaseClient.from("players").select("season, team, team_category, team_gender").eq("organization_id", org.id),
           supabaseClient.from("memberships").select("profiles(full_name)").eq("organization_id", org.id).eq("status", "active"),
         ]);
         const realPlayerRows = playerRows ? playerRows.filter((r) => !isExampleTeam(r.season, r.team)) : [];
         const playerCount = realPlayerRows.length;
-        const teamCount = new Set(realPlayerRows.map((r) => `${r.season}|${r.team}`)).size;
+        // Mismo criterio que loadStats() (vista de un club): un equipo es
+        // team+categoría+género, no solo el nombre -- si no, "DEL" con U8
+        // y U10 cuenta como 1 equipo en vez de 2.
+        const teamCount = new Set(realPlayerRows.map((r) => `${r.season}|${teamRosterKey(r.team, r.team_category, r.team_gender)}`)).size;
         const memberNames = (memberRows || []).map((m) => (m.profiles && m.profiles.full_name) || "").filter(Boolean);
         return { org, playerCount, matchCount: matchCount ?? 0, teamCount, memberNames };
       }));
@@ -1520,10 +1523,14 @@
 
   async function loadStats() {
     if (!currentOrgId) return;
-    const { data: playerRows } = await supabaseClient.from("players").select("id, team, season").eq("organization_id", currentOrgId);
+    const { data: playerRows } = await supabaseClient.from("players").select("id, team, season, team_category, team_gender").eq("organization_id", currentOrgId);
     const realPlayers = (playerRows || []).filter((p) => !isExampleTeam(p.season, p.team));
     els.statPlayers.textContent = realPlayers.length;
-    els.statTeams.textContent = new Set(realPlayers.map((r) => `${r.season}|${r.team}`)).size;
+    // "Teams" cuenta por team+categoría+género, no solo por team -- un
+    // club con DEL (U8 y U10) tiene 2 equipos reales, no 1, igual que en
+    // el resto de la app (Match day, Training builder, el propio
+    // teamRosterKey de más abajo, etc.).
+    els.statTeams.textContent = new Set(realPlayers.map((r) => `${r.season}|${teamRosterKey(r.team, r.team_category, r.team_gender)}`)).size;
 
     const realPlayerIds = new Set(realPlayers.map((p) => p.id));
     const { data: assessmentRows } = await supabaseClient.from("player_assessments").select("id, player_id").eq("organization_id", currentOrgId);
