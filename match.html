@@ -198,8 +198,10 @@
 
   .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 14px; }
   .field { display: flex; flex-direction: column; gap: 4px; }
-  .field label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
-  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
+  /* Mismo tamaño que Roster (a petición de Dani -- las letras de Match day
+     se veían más pequeñas que el resto de la app): label 13px, campo 14.5px. */
+  .field label { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 14.5px; }
   .spacer { flex: 1; }
   .btn { padding: 8px 14px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
@@ -412,7 +414,14 @@
               </select>
               <p class="hint" style="margin:2px 0 0; font-size:12px;">No "PlayPivot Community" option here on purpose — player stats always name real players.</p>
             </div>
-            <div class="field"><label for="match-language">Language</label>
+            <!-- Oculto por ahora, a petición de Dani -- este campo es la misma
+                 infraestructura de "traducciones" que exercises/plays/trainings
+                 usan para que un club comparta un ejercicio en varios idiomas
+                 con la comunidad. Un partido no se comparte así (es un
+                 registro privado de un juego real), así que aquí no hacía
+                 nada útil. No se ha tocado la base de datos: el partido se
+                 sigue guardando con language="en" por defecto. -->
+            <div class="field" style="display:none;"><label for="match-language">Language</label>
               <select id="match-language">
                 <option value="en">English</option>
                 <option value="fr">Français</option>
@@ -571,6 +580,9 @@
     { key: "called_up", label: "Called up", default: true },
     { key: "present", label: "Present", default: true },
     { key: "started", label: "Starter", default: true },
+    // "Number" (dorsal/jersey_number de Roster) -- faltaba en esta tabla, a
+    // petición de Dani; mismo campo que Roster, solo lectura aquí.
+    { key: "number", label: "#", default: true },
     { key: "player", label: "Player", default: true },
     { key: "minutes", label: "Min", default: true },
     { key: "points", label: "Pts", default: true },
@@ -884,7 +896,7 @@
   function renderTableHeads() {
     els.callupHead.innerHTML = orderedVisibleCallupColumns().map((c) => `<th>${escapeHtml(c.label)}</th>`).join("");
     els.summaryHead.innerHTML = `
-      <th>Player</th><th>GP</th><th>Pts/g</th><th>Reb/g</th><th>Ast/g</th><th>Fouls/g</th>
+      <th>#</th><th>Player</th><th>GP</th><th>Pts/g</th><th>Reb/g</th><th>Ast/g</th><th>Fouls/g</th>
       ${matchFields.map((f) => `<th>${escapeHtml(f.label)}/g</th>`).join("")}
     `;
   }
@@ -1015,7 +1027,7 @@
   async function loadTeamPlayers() {
     const { data, error } = await filterByGender(filterByCategory(
       supabaseClient
-        .from("players").select("id, first_name, last_name")
+        .from("players").select("id, first_name, last_name, jersey_number")
         .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
         .eq("active", true),
       currentTeamCategory
@@ -1198,6 +1210,7 @@
         return `<td><button type="button" class="present-badge ${cls}" style="border:none;${canEdit ? " cursor:pointer;" : ""}" data-player="${p.id}" data-record-id="${attRec ? attRec.id : ""}" data-status="${(attRec && attRec.status) || ""}" ${canEdit ? "" : "disabled"} title="${title}">${label}</button></td>`;
       }
       case "started": return `<td><input type="checkbox" data-player="${p.id}" data-field="started" ${s.started ? "checked" : ""}></td>`;
+      case "number": return `<td>${escapeHtml(p.jersey_number || "")}</td>`;
       case "player": return `<td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>`;
       case "minutes": return `<td class="editable" data-player="${p.id}" data-field="minutes">${s.minutes ?? ""}</td>`;
       case "points": return `<td class="editable" data-player="${p.id}" data-field="points">${s.points ?? 0}</td>`;
@@ -1596,7 +1609,7 @@
       if (!b) return;
       const tr = document.createElement("tr");
       const customCells = matchFields.map((f) => `<td>${(b.custom[f.key] / b.gp).toFixed(1)}</td>`).join("");
-      tr.innerHTML = `<td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td><td>${b.gp}</td><td>${(b.points / b.gp).toFixed(1)}</td><td>${(b.rebounds / b.gp).toFixed(1)}</td><td>${(b.assists / b.gp).toFixed(1)}</td><td>${(b.fouls / b.gp).toFixed(1)}</td>${customCells}`;
+      tr.innerHTML = `<td>${escapeHtml(p.jersey_number || "")}</td><td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td><td>${b.gp}</td><td>${(b.points / b.gp).toFixed(1)}</td><td>${(b.rebounds / b.gp).toFixed(1)}</td><td>${(b.assists / b.gp).toFixed(1)}</td><td>${(b.fouls / b.gp).toFixed(1)}</td>${customCells}`;
       els.summaryBody.appendChild(tr);
     });
   }
@@ -1642,7 +1655,7 @@
     doc.line(marginX, y, pageW - marginX, y);
     y += 20;
 
-    const headers = ["Player", "Min", "Pts", "Reb", "Ast", "Fouls", ...matchFields.map((f) => f.label)];
+    const headers = ["#", "Player", "Min", "Pts", "Reb", "Ast", "Fouls", ...matchFields.map((f) => f.label)];
     const colW = (pageW - marginX * 2) / headers.length;
     doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...muted);
     headers.forEach((h, i) => doc.text(h.toUpperCase(), marginX + i * colW, y));
@@ -1655,8 +1668,8 @@
     rowPlayers.forEach((p) => {
       const s = statsByPlayer[p.id] || {};
       const row = blank
-        ? [`${p.first_name} ${p.last_name}`, "", "", "", "", "", ...matchFields.map(() => "")]
-        : [`${p.first_name} ${p.last_name}`, s.minutes ?? "—", s.points ?? 0, s.rebounds ?? 0, s.assists ?? 0, s.fouls ?? 0, ...matchFields.map((f) => (s.custom_stats && s.custom_stats[f.key]) ?? 0)];
+        ? [p.jersey_number || "", `${p.first_name} ${p.last_name}`, "", "", "", "", "", ...matchFields.map(() => "")]
+        : [p.jersey_number || "", `${p.first_name} ${p.last_name}`, s.minutes ?? "—", s.points ?? 0, s.rebounds ?? 0, s.assists ?? 0, s.fouls ?? 0, ...matchFields.map((f) => (s.custom_stats && s.custom_stats[f.key]) ?? 0)];
       row.forEach((v, i) => doc.text(String(v), marginX + i * colW, y));
       if (blank) { doc.setDrawColor(225, 225, 225); doc.line(marginX, y + 5, pageW - marginX, y + 5); }
       y += blank ? 22 : 16;
