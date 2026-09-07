@@ -661,17 +661,17 @@
     overlay.innerHTML = `
       <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
         <h3 style="margin:0 0 16px; font-size:17px;">Edit team</h3>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
         <input id="edit-team-name" type="text" value="${escapeHtml(team)}" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category</label>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category</label>
         <select id="edit-team-category" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
           ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}" ${c === (oldCategory || "") ? "selected" : ""}>${c || "No category"}</option>`).join("")}
         </select>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
         <select id="edit-team-gender" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
           ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}" ${g === (oldGender || "") ? "selected" : ""}>${g}</option>`).join("")}
         </select>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
         <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Leave empty to keep the current one. No logo of its own? Shows a plain ball icon.</p>
         <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Any PNG, JPG or WebP works — we'll crop it to a square and try to remove a plain background automatically. For best results, use a square-ish image with a plain, solid-colored background (a busy photo background won't get removed cleanly). If you'd rather remove the background yourself first, <a href="https://www.remove.bg" target="_blank" rel="noopener" style="color:var(--accent-deep);">remove.bg</a> is a quick free option.</p>
         <input id="edit-team-logo" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:18px;" />

@@ -71,6 +71,13 @@
   .btn:disabled { opacity: 0.5; cursor: default; }
   input[type="file"] { font-size: 13px; }
 
+  /* Faltaba del todo -- estos dos campos (asociación de club) se veían con
+     el tamaño de letra por defecto del navegador, distinto del resto de la
+     app. Mismo tamaño que en Roster/el resto de páginas. */
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .field input, .field select, .field textarea { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 14.5px; font-family: inherit; }
+
   /* ---------------------------------------------------------------------
      App shell: sidebar (fixed on desktop/tablet, off-canvas on mobile)
      + main content column. Same shell as dashboard.html/roster.html.

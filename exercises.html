@@ -49,7 +49,7 @@
 
   .field-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
   .field { display: flex; flex-direction: column; gap: 4px; }
-  .field label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .field label { font-size: 13px; font-weight: 600; color: var(--muted); }
   .field input, .field select, .field textarea { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 14.5px; font-family: inherit; }
   .checkbox-field { display: flex; align-items: center; gap: 6px; }
   .category-icon { font-size: 14px; filter: grayscale(1) contrast(0.9) brightness(0.75); opacity: 0.75; }
@@ -251,7 +251,12 @@
 </div>
 
 <div class="layout">
-  <div class="side-card">
+  <!-- Ocultado por ahora, a petición de Dani -- "Export PDF" (más abajo, junto
+       a "Save exercise") ya genera el mismo PDF directamente, así que esta
+       vista previa era un paso extra. No se ha borrado nada: los botones
+       #update-pdf-btn/#pdf-preview-frame se siguen usando en el diálogo de
+       ayuda ("?") -- si se quiere recuperar, basta con quitar este display:none. -->
+  <div class="side-card" style="display:none;">
     <h2>PDF preview</h2>
     <p class="hint" style="margin:0 0 10px;">Not live as you type — click "Update PDF" whenever you want to see your latest changes.</p>
     <button class="btn btn-primary" id="update-pdf-btn" style="width:100%; margin-bottom:10px;">🔄 Update PDF</button>
@@ -279,7 +284,10 @@
 
       <div id="tab-data">
         <div class="side-card" style="margin-bottom:16px;">
-          <a href="#" id="ai-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Fill in with AI</a>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <a href="#" id="ai-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Fill in with AI</a>
+            <a href="#" id="ai-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap;">❔ Step-by-step guide</a>
+          </div>
           <div id="ai-section" style="display:none; margin-top:12px;">
             <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">
               Copy this template into any AI chat (ChatGPT, Claude…), describe your exercise idea on the last line, then paste its reply below. This never draws the diagram — that stays manual, in the "Court diagram" section below.
@@ -292,6 +300,40 @@
             <p class="hint" style="margin:0 0 8px;">"Copy my last exercise" gives the AI a real example of your style and the right next number — paste it in the chat before your new idea.</p>
             <textarea id="ai-block-input" placeholder="Paste the AI's reply here…" style="width:100%; min-height:100px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit;"></textarea>
             <button class="btn btn-primary" id="fill-from-ai-btn" style="margin-top:8px;">Fill from AI reply</button>
+          </div>
+        </div>
+
+        <!-- "Fill in from a photo" (a petición de Dani) -- lee el texto de una
+             foto de una ficha en papel/pizarra, TODO dentro del navegador de
+             cada persona (Tesseract.js, WebAssembly) -- sin servidor propio,
+             sin IA, sin ningún coste ni límite que dependa de la cuenta de
+             Dani. A propósito NO intenta adivinar categoría/edad/dificultad
+             -- eso necesitaría entender el texto, no solo leerlo, y ahí un
+             OCR se equivoca mucho. Se limita a volcar el texto reconocido en
+             "Description" para que quien lo use rellene el resto a mano
+             mirándolo -- ahorra teclear, no ahorra revisar.
+        -->
+        <div class="side-card" id="photo-fill-card" style="margin-bottom:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <a href="#" id="photo-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Fill in from a photo</a>
+            <a href="#" id="photo-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap;">❔ What this does</a>
+          </div>
+          <div id="photo-section" style="display:none; margin-top:12px;">
+            <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">
+              Take or upload a photo of a paper exercise sheet, a whiteboard, or your own notes — this reads the text straight into "Description" below, so you don't have to type it out by hand. It only recognizes text: you still fill in Name, Category, Material, etc. yourself, using the photo as reference. Works best with a clear, well-lit, fairly legible sheet.
+            </p>
+            <div class="field" style="max-width:200px; margin-bottom:10px;">
+              <label for="photo-lang-select">Text is mostly in</label>
+              <select id="photo-lang-select">
+                <option value="eng">English</option>
+                <option value="fra">Français</option>
+                <option value="spa">Español</option>
+              </select>
+            </div>
+            <input type="file" id="photo-file-input" accept="image/*" capture="environment" style="width:100%; font-size:13px; margin-bottom:10px;" />
+            <img id="photo-preview" style="display:none; max-width:100%; max-height:180px; border-radius:8px; margin-bottom:10px; border:1px solid var(--line);" />
+            <button class="btn btn-primary" id="read-photo-btn" disabled>📷 Read this photo</button>
+            <p class="hint" id="photo-status" style="margin:8px 0 0;"></p>
           </div>
         </div>
 
@@ -629,14 +671,177 @@
   // assessment. Le format du bloc (étiquettes, "copier mon dernier
   // exercice") reste celui de l'app de bureau, mais l'écran ne change
   // plus -- on reste sur le même formulaire du début à la fin.
+  //
+  // Guía paso a paso (a petición de Dani -- este flujo de copiar/pegar con
+  // una IA externa no se entendía a la primera). Aparece sola la primera
+  // vez que alguien abre "Fill in with AI" en este club (localStorage por
+  // club, no por persona -- así el segundo coach del mismo club tampoco se
+  // pierde), y siempre se puede volver a abrir con el enlace "❔ Step-by-
+  // step guide", al lado del desplegable.
   // -----------------------------------------------------------------------
+  function openAiGuideModal() {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:460px; width:100%; padding:24px 26px; max-height:85vh; overflow-y:auto;">
+        <h3 style="margin:0 0 6px; font-size:17px;">Fill in with AI — step by step</h3>
+        <p class="hint" style="margin:0 0 14px;">This uses an AI chat you already have (ChatGPT, Claude…) — PlayPivot doesn't send anything anywhere by itself, you copy and paste between the two tabs.</p>
+        <ol style="margin:0 0 16px; padding-left:20px; line-height:1.8; font-size:13.5px;">
+          <li>Click <strong>"📋 Copy this template"</strong> — it's copied to your clipboard.</li>
+          <li>Also click <strong>"📎 Copy my last exercise"</strong> and paste it in the chat first, before your idea — it shows the AI your style and picks the right next number. (Skip this if it's your first exercise.)</li>
+          <li>Open any AI chat in another tab, paste what you copied, and replace the last line ("The exercise is about: …") with your own idea.</li>
+          <li>Send it. If your idea was too vague, the AI will ask you questions first — just answer in that same chat.</li>
+          <li>Once it gives you the finished sheet, copy its whole reply.</li>
+          <li>Come back to this tab, paste it into the box below "Fill in with AI", and click <strong>"Fill from AI reply"</strong> — the form fills in. Review everything, draw the diagram yourself (the AI never touches that), then Save.</li>
+        </ol>
+        <p class="hint" style="margin:0 0 16px;">You can reopen this guide anytime with "❔ Step-by-step guide", next to "Fill in with AI".</p>
+        <button class="btn btn-primary" id="ai-guide-close-btn" style="width:100%;">Got it</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector("#ai-guide-close-btn").addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    try { localStorage.setItem(`pivot_ai_guide_seen_${currentOrgId || "x"}`, "1"); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
+  }
+
   document.getElementById("ai-toggle-link").addEventListener("click", (e) => {
     e.preventDefault();
     const section = document.getElementById("ai-section");
     const open = section.style.display === "block";
     section.style.display = open ? "none" : "block";
     e.target.textContent = open ? "▸ Fill in with AI" : "▾ Fill in with AI";
-    if (!open) document.getElementById("ai-block-template").value = AI_BLOCK_TEMPLATE;
+    if (!open) {
+      document.getElementById("ai-block-template").value = AI_BLOCK_TEMPLATE;
+      let seen = true;
+      try { seen = localStorage.getItem(`pivot_ai_guide_seen_${currentOrgId || "x"}`) === "1"; } catch (e) { /* no pasa nada */ }
+      if (!seen) openAiGuideModal();
+    }
+  });
+
+  document.getElementById("ai-guide-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    openAiGuideModal();
+  });
+
+  // -----------------------------------------------------------------------
+  // "Fill in from a photo" -- lectura de texto (OCR) enteramente en el
+  // navegador, con Tesseract.js (WebAssembly) -- a petición de Dani, sin IA
+  // y sin servidor propio: nada que él tenga que pagar, ni límite que
+  // dependa de su cuenta, ni riesgo de que otro club de la plataforma le
+  // dispare la factura. La librería (varios MB) se carga sola, y solo, la
+  // primera vez que alguien abre esta sección -- no en cada visita a la
+  // página. El texto reconocido cae en "Description"; el resto de campos
+  // (Name, Category...) se rellenan a mano, igual que si se copiara de un
+  // papel -- un OCR lee letras, no entiende una ficha de ejercicio.
+  // -----------------------------------------------------------------------
+  let tesseractLoadPromise = null;
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve();
+    if (!tesseractLoadPromise) {
+      tesseractLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Couldn't load the text-reading library — check your internet connection and try again."));
+        document.head.appendChild(script);
+      });
+    }
+    return tesseractLoadPromise;
+  }
+
+  // Explicación aparte (a petición de Dani: "tendremos que explicarlo") --
+  // esto NO es IA, así que hay que dejar claro qué hace y qué no hace, para
+  // que nadie espere que le rellene Category/Material solo. Igual que la
+  // guía de "Fill in with AI": popup solo la primera vez por club, y un
+  // enlace "❔" siempre a mano para volver a verlo.
+  function openPhotoGuideModal() {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:460px; width:100%; padding:24px 26px; max-height:85vh; overflow-y:auto;">
+        <h3 style="margin:0 0 6px; font-size:17px;">Fill in from a photo — what it actually does</h3>
+        <p class="hint" style="margin:0 0 14px;">This is NOT AI — it's plain text recognition (OCR), running on your own device. No account, no setup, no internet service reading your exercises.</p>
+        <p style="font-size:13.5px; line-height:1.7; margin:0 0 10px;"><strong>What it does:</strong> reads the letters it can see in the photo and drops that text into "Description" — saves you typing it out by hand.</p>
+        <p style="font-size:13.5px; line-height:1.7; margin:0 0 14px;"><strong>What it doesn't do:</strong> it doesn't understand what an exercise is. It won't pick the right Category, Material, Age group or Difficulty for you, and it won't separate "objectives" from "description" — those you still fill in yourself, using the photo and the recognized text as reference.</p>
+        <p style="font-size:13.5px; line-height:1.7; margin:0 0 16px;"><strong>Tips for a better read:</strong> good light, the sheet held flat and filling the frame, and fairly neat handwriting (or printed text) all make a real difference. Very messy handwriting may come out garbled — that's the technology's limit, not a bug.</p>
+        <p class="hint" style="margin:0 0 16px;">You can reopen this anytime with "❔ What this does", next to "Fill in from a photo".</p>
+        <button class="btn btn-primary" id="photo-guide-close-btn" style="width:100%;">Got it</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector("#photo-guide-close-btn").addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    try { localStorage.setItem(`pivot_photo_guide_seen_${currentOrgId || "x"}`, "1"); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
+  }
+
+  document.getElementById("photo-toggle-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    const section = document.getElementById("photo-section");
+    const open = section.style.display === "block";
+    section.style.display = open ? "none" : "block";
+    e.target.textContent = open ? "▸ Fill in from a photo" : "▾ Fill in from a photo";
+    if (!open) {
+      loadTesseract().catch(() => {}); // precarga en segundo plano; si falla, ya avisará el botón "Read this photo"
+      let seen = true;
+      try { seen = localStorage.getItem(`pivot_photo_guide_seen_${currentOrgId || "x"}`) === "1"; } catch (e) { /* no pasa nada */ }
+      if (!seen) openPhotoGuideModal();
+    }
+  });
+
+  document.getElementById("photo-guide-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    openPhotoGuideModal();
+  });
+
+  let selectedPhotoFile = null;
+  document.getElementById("photo-file-input").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    selectedPhotoFile = file || null;
+    const preview = document.getElementById("photo-preview");
+    const readBtn = document.getElementById("read-photo-btn");
+    document.getElementById("photo-status").textContent = "";
+    if (!file) { preview.style.display = "none"; readBtn.disabled = true; return; }
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = "block";
+    readBtn.disabled = false;
+  });
+
+  document.getElementById("read-photo-btn").addEventListener("click", async () => {
+    if (!selectedPhotoFile) return;
+    const btn = document.getElementById("read-photo-btn");
+    const status = document.getElementById("photo-status");
+    const lang = document.getElementById("photo-lang-select").value;
+    btn.disabled = true;
+    status.textContent = "Loading the text reader…";
+    try {
+      await loadTesseract();
+      status.textContent = "Reading the photo… this can take 10–30 seconds the first time.";
+      const worker = await window.Tesseract.createWorker(lang, 1, {
+        logger: (m) => {
+          if (m.status === "recognizing text" && typeof m.progress === "number") {
+            status.textContent = `Reading the photo… ${Math.round(m.progress * 100)}%`;
+          }
+        },
+      });
+      let result;
+      try {
+        result = await worker.recognize(selectedPhotoFile);
+      } finally {
+        await worker.terminate();
+      }
+      const text = ((result && result.data && result.data.text) || "").trim();
+      if (!text) throw new Error("Couldn't find any readable text in that photo.");
+      const descEl = document.getElementById("ex-description");
+      descEl.value = descEl.value ? descEl.value + "\n\n" + text : text;
+      status.textContent = "Photo read — check \"Description\" below, then fill in Name, Category, Material, etc. by hand from what you see.";
+      descEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      descEl.focus();
+    } catch (err) {
+      console.error("Photo read error:", err);
+      status.textContent = "Couldn't read that photo: " + (err && err.message ? err.message : "unknown error") + ". A clearer, better-lit photo usually helps.";
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   document.getElementById("copy-ai-template-btn").addEventListener("click", async () => {
@@ -1435,13 +1640,14 @@
           </ol>
         </li>
         <li><strong>"📎 Copy my last exercise"</strong> — before describing a new idea to the AI, paste this in the chat first. It shows the AI a real exercise you already made, so it keeps the same style and picks the next free number correctly.</li>
+        <li><strong>"▸ Fill in from a photo"</strong> — take or upload a photo of a paper sheet, whiteboard, or notes; it reads the text straight into "Description" so you don't have to type it out. This just recognizes letters, it doesn't understand the exercise — you still pick Name, Category, Material, etc. yourself, using the photo as reference. Runs entirely on your device (nothing sent anywhere), so it works even without setting anything up.</li>
         <li><strong>Start from an existing exercise</strong> (also at the top) — pick one from the dropdown and "Use as starting point": copies everything, including the diagram, into this new exercise. The original is untouched.</li>
         <li>Placing a player or defender on the diagram numbers them automatically (1, 2, 3…) — attack and defense count separately, same as Play design. Double-click one to change its label by hand.</li>
         <li>Anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.</li>
         <li><strong>Court diagram section</strong> — 5 steps (3 half-court, 1 vertical, 1 full horizontal). Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
         <li><strong>Color</strong> picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).</li>
         <li><strong>Copy to next step</strong> duplicates everything into the next step, so you can draw a sequence step by step without starting from scratch each time.</li>
-        <li><strong>Preview PDF</strong> opens the sheet in a new browser tab so you can check it before deciding to download — same idea as the "PDF preview" tab in the desktop app. <strong>Export PDF</strong> downloads it straight away. Both make the same one-page sheet as the desktop app: your club's logo and name, number, name, only the categories/material you actually picked, objectives, difficulty stars, description, variants, and all 5 diagram steps.</li>
+        <li><strong>Export PDF</strong> downloads the exercise sheet straight away: your club's logo and name, number, name, only the categories/material you actually picked, objectives, difficulty stars, description, variants, and all 5 diagram steps — same one-page sheet as the desktop app.</li>
         <li><strong>Numbering</strong> — the next free number in your own club is filled in automatically; nobody has to track it by hand. <strong>Language</strong> — this page always edits one language at a time; to add a translation of an exercise, use "Duplicate as translation" in the Library, which creates a linked copy in another language.</li>
         <li>Editing an existing exercise bumps its version number (v1 at creation) — visible in the Library, handy for tracking which ones changed recently.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them).</li>

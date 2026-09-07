@@ -539,17 +539,17 @@
     overlay.innerHTML = `
       <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
         <h3 style="margin:0 0 16px; font-size:17px;">Edit team</h3>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
         <input id="edit-team-name" type="text" value="${escapeHtml(team)}" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category</label>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category</label>
         <select id="edit-team-category" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
           ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}" ${c === (oldCategory || "") ? "selected" : ""}>${c || "No category"}</option>`).join("")}
         </select>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
         <select id="edit-team-gender" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
           ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}" ${g === (oldGender || "") ? "selected" : ""}>${g}</option>`).join("")}
         </select>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
         <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Leave empty to keep the current one. No logo of its own? Shows a plain ball icon.</p>
         <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Any PNG, JPG or WebP works — we'll crop it to a square and try to remove a plain background automatically. For best results, use a square-ish image with a plain, solid-colored background (a busy photo background won't get removed cleanly). If you'd rather remove the background yourself first, <a href="https://www.remove.bg" target="_blank" rel="noopener" style="color:var(--accent-deep);">remove.bg</a> is a quick free option.</p>
         <input id="edit-team-logo" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:18px;" />
@@ -925,9 +925,9 @@
     overlay.innerHTML = `
       <div style="background:var(--card); border-radius:12px; max-width:360px; width:100%; padding:24px 26px;">
         <h3 style="margin:0 0 14px; font-size:17px;">Add a player to ${escapeHtml(filterTeam)}</h3>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">First name</label>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">First name</label>
         <input id="new-player-first" type="text" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Last name</label>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Last name</label>
         <input id="new-player-last" type="text" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px; box-sizing:border-box;" />
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button id="new-player-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
@@ -1141,7 +1141,7 @@
       <div style="background:var(--card); border-radius:12px; max-width:400px; width:100%; padding:24px 26px;">
         <h3 style="margin:0 0 4px; font-size:17px;">Add for ${escapeHtml(filterTeam)}${filterTeamCategory ? " (" + escapeHtml(filterTeamCategory) + ")" : ""}</h3>
         <p style="margin:0 0 14px; font-size:12.5px; color:var(--muted);">This creates the real thing — shows up in the Calendar and its own module too.</p>
-        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Date</label>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Date</label>
         <input id="ev-date" type="date" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
         <div style="display:flex; gap:8px; margin-bottom:14px;">
           <button type="button" class="ev-type-btn" data-type="match" style="flex:1; padding:9px; border-radius:6px; border:1px solid var(--line); background:none; cursor:pointer; font-size:13.5px;">🏀 Match</button>
@@ -1160,11 +1160,11 @@
     document.getElementById("ev-cancel").addEventListener("click", close);
 
     const FIELDS = {
-      match: `<label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Opponent</label>
+      match: `<label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Opponent</label>
         <input id="ev-opponent" type="text" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:6px; font-size:14px; box-sizing:border-box;" />`,
-      training: `<label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Title</label>
+      training: `<label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Title</label>
         <input id="ev-title" type="text" placeholder="e.g. Shooting drills" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:6px; font-size:14px; box-sizing:border-box;" />`,
-      event: `<label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Comment / title</label>
+      event: `<label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Comment / title</label>
         <input id="ev-title" type="text" placeholder="e.g. Team photo day" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:6px; font-size:14px; box-sizing:border-box;" />`,
     };
     overlay.querySelectorAll(".ev-type-btn").forEach((btn) => {
