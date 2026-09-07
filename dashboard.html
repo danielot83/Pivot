@@ -137,7 +137,12 @@
   .stat-card .label { font-size: 13.5px; color: var(--muted); margin-top: 1px; }
 
   /* Next event + Recent activity, side by side */
-  .dashboard-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0 8px; align-items: start; }
+  /* align-items: stretch (el valor por defecto de grid) para que "Recent
+     activity" tenga siempre la misma altura que "Calendar" -- antes era
+     "start" y cada tarjeta se ajustaba a su propio contenido, así que
+     Recent activity (con pocos items) se quedaba mucho más baja. */
+  .dashboard-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0 8px; align-items: stretch; }
+  .dashboard-row-2 .panel-card { display: flex; flex-direction: column; }
   @media (max-width: 800px) { .dashboard-row-2 { grid-template-columns: 1fr; } }
   .panel-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
   .panel-card h2 { font-size: 14.5px; margin: 0 0 14px; }
@@ -395,8 +400,14 @@
     <div id="admin-clubs-table" style="background:var(--card); border:1px solid var(--line); border-radius:10px; overflow-x:auto;"><p style="padding:16px; color:var(--muted); font-size:14.5px;">Loading…</p></div>
   </div>
 
-  <p class="section-label">Tools</p>
-  <div class="grid" id="modules-grid"></div>
+  <!-- La rejilla "Tools" se oculta por ahora, a petición de Dani -- ya
+       está todo en el menú lateral, así que duplicaba la navegación.
+       modules-grid.js se sigue cargando (lo usa también index.html), solo
+       dejamos de pintarlo aquí y de rellenar #modules-grid. -->
+  <div style="display:none;">
+    <p class="section-label">Tools</p>
+    <div class="grid" id="modules-grid"></div>
+  </div>
 
   <div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
     <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right?</span>
@@ -1979,6 +1990,21 @@
     event: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
   };
 
+  // Un color por tipo en "Recent activity" -- antes todos los iconos
+  // salían del mismo naranja por defecto de .activity-icon, así que no
+  // se distinguía un partido de un entreno de un ejercicio de un vistazo.
+  // match/training/event reutilizan los mismos colores que ya usa el
+  // popup de "añadir al calendario" (más arriba, openCalendarAddModal),
+  // para que un partido/entreno/evento se vea igual en todas partes.
+  const ACTIVITY_COLORS = {
+    match: { bg: "var(--accent-tint)", fg: "var(--accent-deep)" },
+    training: { bg: "#e7e5f5", fg: "var(--navy)" },
+    event: { bg: "#dcfce7", fg: "#16a34a" },
+    exercise: { bg: "#d7f5f0", fg: "#0f766e" },
+    play: { bg: "#dbeafe", fg: "#1d4ed8" },
+    assessment: { bg: "#ede9fe", fg: "#6d28d9" },
+  };
+
   function timeAgo(iso) {
     const diffMs = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diffMs / 60000);
@@ -2021,14 +2047,17 @@
       container.innerHTML = `<p class="activity-empty">Nothing yet — your recent additions will show up here.</p>`;
       return;
     }
-    container.innerHTML = top.map((it) => `
+    container.innerHTML = top.map((it) => {
+      const c = ACTIVITY_COLORS[it.type] || ACTIVITY_COLORS.exercise;
+      return `
       <div class="activity-row" style="align-items:center;">
-        <div class="activity-icon"><svg viewBox="0 0 24 24" width="20" height="20">${ACTIVITY_ICONS[it.type] || ACTIVITY_ICONS.exercise}</svg></div>
-        <div class="activity-text" style="flex:1;"><strong>${escapeHtml(it.title)}</strong><span>${escapeHtml(it.detail || "")}</span></div>
+        <div class="activity-icon" style="background:${c.bg}; color:${c.fg};"><svg viewBox="0 0 24 24" width="20" height="20">${ACTIVITY_ICONS[it.type] || ACTIVITY_ICONS.exercise}</svg></div>
+        <div class="activity-text" style="flex:1;"><strong style="color:${c.fg};">${escapeHtml(it.title)}</strong><span>${escapeHtml(it.detail || "")}</span></div>
         <div class="activity-time">${timeAgo(it.at)}</div>
         <button type="button" class="activity-del-btn" data-del-table="${ACTIVITY_TABLES[it.type]}" data-del-id="${it.id}" title="Delete" style="background:none; border:none; cursor:pointer; color:#b91c1c; padding:6px; border-radius:8px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
       </div>
-    `).join("");
+    `;
+    }).join("");
 
     container.querySelectorAll(".activity-del-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
@@ -2178,7 +2207,6 @@
         <li><strong>Recent activity</strong> — the last few things added to your club: exercises, plays, matches, trainings, events, assessments.</li>
         <li>✉️ (top right) is your <strong>messages</strong> inbox — direct messages between you and a teammate, or you and a PlayPivot admin/validator. A number badge means unread messages.</li>
         <li>🔔 (only shows up when there's something) is for <strong>club association requests</strong> — if you're a platform admin or validator, you'll see every pending request here with Approve/Reject; otherwise you'll see the status of your own club's requests. Pending requests to join your own club show up further down the page too.</li>
-        <li>Click any tile in "Tools" to open that module.</li>
         <li>If you're a PlayPivot platform admin, choosing <strong>"⚡ Admin (all clubs)"</strong> from the club selector takes you to a platform-wide view: totals across every club, a searchable clubs table, and the ability to message a club's admin, manage roles, or deactivate a club.</li>
       </ul>`;
     box.style.display = "block";
