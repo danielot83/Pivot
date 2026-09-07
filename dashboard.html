@@ -630,15 +630,25 @@
         return;
       }
       const rows = await Promise.all(orgs.map(async (org) => {
-        const [{ count: playerCount }, { count: matchCount }, { data: teamRows }, { data: memberRows }] = await Promise.all([
-          supabaseClient.from("players").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
+        // "Players" aquí tiene que contar lo mismo que "Players" en el
+        // resumen de la plataforma (loadPlatformStats) -- antes esta
+        // columna contaba TODAS las filas de players, incluidos los
+        // equipos de ejemplo (Bulls/Celtics) que carga el botón "Load
+        // example team", así que un club con datos de ejemplo mostraba
+        // aquí muchos más jugadores de los que el total de la plataforma
+        // contaba. Reutilizamos la misma query que ya usaba teamCount
+        // (season, team) para filtrar ejemplos también en playerCount, en
+        // vez de una query de count aparte.
+        const [{ count: matchCount }, { data: playerRows }, { data: memberRows }] = await Promise.all([
           supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
           supabaseClient.from("players").select("season, team").eq("organization_id", org.id),
           supabaseClient.from("memberships").select("profiles(full_name)").eq("organization_id", org.id).eq("status", "active"),
         ]);
-        const teamCount = teamRows ? new Set(teamRows.filter((r) => !isExampleTeam(r.season, r.team)).map((r) => `${r.season}|${r.team}`)).size : 0;
+        const realPlayerRows = playerRows ? playerRows.filter((r) => !isExampleTeam(r.season, r.team)) : [];
+        const playerCount = realPlayerRows.length;
+        const teamCount = new Set(realPlayerRows.map((r) => `${r.season}|${r.team}`)).size;
         const memberNames = (memberRows || []).map((m) => (m.profiles && m.profiles.full_name) || "").filter(Boolean);
-        return { org, playerCount: playerCount ?? 0, matchCount: matchCount ?? 0, teamCount, memberNames };
+        return { org, playerCount, matchCount: matchCount ?? 0, teamCount, memberNames };
       }));
       adminClubsRowsCache = rows;
 
