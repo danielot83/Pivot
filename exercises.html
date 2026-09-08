@@ -279,9 +279,6 @@
       Create exercise
       <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
     </h1>
-    <p class="sub">
-      <a href="#" id="start-new-link">+ Start a new exercise</a>
-    </p>
     <!-- Nuevo, a petición de Dani: quién creó el ejercicio -- solo se muestra
          al abrir uno ya existente (no tiene sentido en uno nuevo, todavía sin
          guardar). Usa exercises.created_by, que ya existía en la BD (se
@@ -1718,7 +1715,6 @@
   }
   document.getElementById("update-pdf-btn").addEventListener("click", updatePdfPreview);
 
-  document.getElementById("start-new-link").addEventListener("click", (e) => { e.preventDefault(); newExercise(); });
   document.getElementById("save-ex-btn").addEventListener("click", saveExercise);
   document.getElementById("pdf-ex-btn").addEventListener("click", exportExercisePdf);
   document.getElementById("delete-ex-btn").addEventListener("click", deleteExercise);

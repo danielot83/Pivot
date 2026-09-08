@@ -299,6 +299,7 @@
       <div class="field" style="flex:1 1 220px; min-width:220px;"><label for="search-input">Search</label><input id="search-input" type="text" placeholder="Name, tag, description…" /></div>
       <div class="field" style="flex:0 0 150px;"><label for="difficulty-filter">Difficulty</label><select id="difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
       <div class="field" style="flex:0 0 170px;"><label for="language-filter">Language</label><select id="language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
+      <div class="field" style="flex:0 0 170px;"><label for="source-filter">Source</label><select id="source-filter"><option value="">All</option><option value="mine">👤 Created by me</option><option value="team">👥 My team</option><option value="community">🌐 Other clubs</option></select></div>
       <div class="field" style="flex:0 0 150px;">
         <label class="field-label">Category</label>
         <div class="filter-dropdown">
@@ -391,6 +392,7 @@
     search: document.getElementById("search-input"),
     difficultyFilter: document.getElementById("difficulty-filter"),
     languageFilter: document.getElementById("language-filter"),
+    sourceFilter: document.getElementById("source-filter"),
     categoryFilter: document.getElementById("category-filter"),
     ageFilter: document.getElementById("age-filter"),
     favoritesFilter: document.getElementById("favorites-filter"),
@@ -554,6 +556,7 @@
     const text = els.search.value.toLowerCase().trim();
     const diff = els.difficultyFilter.value;
     const lang = els.languageFilter.value;
+    const source = els.sourceFilter.value;
     const cats = checkedValues("category-filter");
     const ages = checkedValues("age-filter");
     const favOnly = els.favoritesFilter.checked;
@@ -576,6 +579,16 @@
       if (favOnly && !myFavoriteIds.has(e.id)) return false;
       if (diff && String(e.difficulty) !== diff) return false;
       if (lang && (e.language || "en") !== lang) return false;
+      // "Source" -- de dónde viene el ejercicio: yo lo hice, alguien de mi
+      // club lo hizo, o viene de otro club (compartido). Los tres son
+      // excluyentes entre sí (cada ejercicio tiene exactamente un origen).
+      // Nota: "Created by me" solo funciona bien para ejercicios creados a
+      // partir del 8/9/2026 (ronda 4) -- created_by no se guardaba antes,
+      // así que un ejercicio antiguo tuyo cae en "My team" en vez de "Created
+      // by me" porque no hay forma de saber quién lo hizo.
+      if (source === "mine" && e.created_by !== currentUserId) return false;
+      if (source === "team" && (e.organization_id !== currentOrgId || e.created_by === currentUserId)) return false;
+      if (source === "community" && e.organization_id === currentOrgId) return false;
       if (cats.length && !cats.every((c) => (e.categories || []).includes(c))) return false;
       if (ages.length && !ages.every((a) => (e.age || []).includes(a))) return false;
       if (unusedOnly && (usageCounts[e.id] || 0) > 0) return false;
@@ -1240,7 +1253,7 @@
     // "Language" queda fuera del reset a propósito -- si lo borráramos a
     // "All" cada vez, volveríamos al mismo lío de duplicados que Dani pidió
     // arreglar. Quien quiera ver todos los idiomas a la vez lo elige a mano.
-    els.search.value = ""; els.difficultyFilter.value = "";
+    els.search.value = ""; els.difficultyFilter.value = ""; els.sourceFilter.value = "";
     els.favoritesFilter.checked = false; els.unusedFilter.checked = false;
     document.querySelectorAll("#category-filter input, #age-filter input").forEach((cb) => (cb.checked = false));
     refresh();
@@ -1250,7 +1263,7 @@
     try { localStorage.setItem(libraryLangStorageKey(), els.languageFilter.value); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
   });
 
-  [els.search, els.difficultyFilter, els.languageFilter, els.favoritesFilter, els.unusedFilter].forEach((el) => {
+  [els.search, els.difficultyFilter, els.languageFilter, els.sourceFilter, els.favoritesFilter, els.unusedFilter].forEach((el) => {
     el.addEventListener("input", refresh);
     el.addEventListener("change", refresh);
   });
@@ -1278,9 +1291,6 @@
       document.getElementById("help-box-inline").remove();
     }
   });
-
-  // El "Help" del menú lateral todavía no tiene su propia sección aquí --
-  // de momento manda al Dashboard, que sí sabe abrir "Contact us" directamente.
 
   els.logoutBtn.addEventListener("click", async () => {
     await supabaseClient.auth.signOut();
