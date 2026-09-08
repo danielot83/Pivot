@@ -382,7 +382,65 @@
     </div>
   </div>
 
-  <div class="team-bar-card" id="example-data-card"></div>
+  <!-- Datos de ejemplo (Chicago Bulls) quitados por el momento a petición de Dani -- el contenedor se
+       deja en el DOM (oculto) para no tocar renderExampleDataCard(), reactivar es quitar este display:none. -->
+  <div class="team-bar-card" id="example-data-card" style="display:none"></div>
+
+  <!-- Notebooks: listas de ejercicios reutilizables, no ligadas a un equipo/temporada
+       -- aparte del flujo equipo -> fecha -> ficha. Subido aquí arriba (antes vivía
+       al final de la página, después de todo lo demás) a petición de Dani: "acabo
+       de encontrarlo ahora" -- estaba enterrado y no se veía. -->
+  <div class="team-bar-card">
+    <h2>Notebooks</h2>
+    <p class="hint" style="font-size:11.5px; color:var(--muted); margin:0 0 8px;">Ready-made exercise lists, grouped by theme (e.g. "Defense", "U8") — not tied to a season/team.</p>
+    <button class="new-btn" id="new-notebook-btn">+ New notebook</button>
+    <div id="notebooks-list"></div>
+  </div>
+
+  <div id="notebook-editor" style="display:none;">
+    <a href="#" id="notebook-back-link" class="back-link">&larr; Back</a>
+    <div class="toolbar" style="margin-top:8px;">
+      <div class="field" style="flex:1;"><label for="notebook-name">Notebook name</label><input id="notebook-name" type="text" placeholder="e.g. Defense, U8, Warm-ups" /></div>
+      <div class="field"><label for="notebook-visibility">Who can see it?</label>
+        <select id="notebook-visibility">
+          <option value="private">🔒 Only me</option>
+          <option value="team">👥 My team</option>
+          <option value="association">🤝 My club association</option>
+          <option value="community">🌐 PlayPivot Community</option>
+        </select>
+      </div>
+    </div>
+    <p class="section-label">Exercises in this notebook</p>
+    <p class="hint" style="margin:0 0 8px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">Your library — click to add</p>
+    <input id="notebook-exercise-search" type="text" placeholder="Name, tag, description…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:8px;" />
+    <div class="toolbar" style="margin-bottom:8px; align-items:flex-start;">
+      <div class="field"><label for="notebook-difficulty-filter" style="font-size:11.5px;">Difficulty</label><select id="notebook-difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
+      <div class="field"><label for="notebook-language-filter" style="font-size:11.5px;">Language</label><select id="notebook-language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
+      <div class="field" style="flex:1; min-width:180px;">
+        <label class="field-label" style="font-size:13px; font-weight:600; color:var(--muted); display:block;">Category</label>
+        <div class="multiselect" id="notebook-category-filter" style="max-height:76px;"></div>
+      </div>
+      <div class="field" style="flex:1; min-width:180px;">
+        <label class="field-label" style="font-size:13px; font-weight:600; color:var(--muted); display:block;">Age</label>
+        <div class="multiselect" id="notebook-age-filter" style="max-height:76px;"></div>
+      </div>
+      <div class="field">
+        <div class="checkbox-field"><input type="checkbox" id="notebook-favorites-filter" /><label for="notebook-favorites-filter" style="font-size:12.5px;">Favorites only</label></div>
+        <div class="checkbox-field"><input type="checkbox" id="notebook-unused-filter" /><label for="notebook-unused-filter" style="font-size:12.5px;">Never used</label></div>
+        <button class="reset-btn" id="notebook-reset-filters-btn">Reset filters</button>
+      </div>
+    </div>
+    <div id="notebook-library-list" style="max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px; margin-bottom:20px;"></div>
+
+    <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">In this notebook</p>
+    <div id="notebook-contents-list" style="max-height:340px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
+    <div class="toolbar" style="margin-top:16px;">
+      <button class="btn btn-primary" id="save-notebook-btn">Save notebook</button>
+      <button class="btn btn-secondary" id="export-notebook-btn" style="display:none;">📖 Export whole notebook (PDF)</button>
+      <div class="spacer"></div>
+      <button class="btn btn-secondary" id="delete-notebook-btn" style="display:none; color:#991b1b;">Delete this notebook</button>
+    </div>
+  </div>
 
   <!-- Módulo 2: Fecha -- sesiones del equipo/temporada seleccionados arriba, en tabla; clic en una fila abre el módulo 3 debajo -->
   <div class="team-bar-card">
@@ -401,11 +459,18 @@
   <!-- Módulo 3: ficha de la sesión (se abre debajo del módulo 2 al elegir/crear una fecha) -->
     <div id="training-area" style="display:none">
       <div class="toolbar">
-        <div class="field"><label for="tr-title">Title</label><input id="tr-title" type="text" placeholder="e.g. Tuesday practice" /></div>
+        <div class="field"><label for="tr-title">Session title</label><input id="tr-title" type="text" placeholder="e.g. Tuesday practice" /></div>
         <div class="field"><label for="tr-date">Date</label><input id="tr-date" type="date" /></div>
         <div class="field"><label for="tr-number">Session #</label><input id="tr-number" type="number" style="width:70px;" /></div>
         <div class="field"><label for="tr-category">Category</label>
           <select id="tr-category"><option value="">—</option></select>
+        </div>
+        <!-- Nuevo, a petición de Dani: "puedes meter ahí objetivo principal,
+             que sea un desplegable" -- reutiliza la misma lista de enfoques
+             (Warm-up, Shooting, Defense...) que ya usan los ejercicios, en
+             vez de inventar una lista nueva. -->
+        <div class="field"><label for="tr-main-objective">Main objective</label>
+          <select id="tr-main-objective"><option value="">—</option></select>
         </div>
         <div class="field"><label for="tr-planned">Planned length (min)</label><input id="tr-planned" type="number" style="width:90px;" value="90" /></div>
       </div>
@@ -420,9 +485,12 @@
             <option value="team">👥 My team</option>
             <option value="association">🤝 My club association</option>
           </select>
-          <p class="hint" style="margin:2px 0 0; font-size:11px;">No "Community" here — attendance names real players.</p>
         </div>
-        <div class="field"><label for="tr-language">Language</label>
+        <!-- Oculto a petición de Dani (mismo criterio que en Match day: no
+             aporta nada real a una sesión de entreno) -- el select se queda
+             en el DOM con su valor "en" por defecto, para no tocar nada del
+             guardado/carga ni de la traducción de ejercicios/entrenos. -->
+        <div class="field" style="display:none;"><label for="tr-language">Language</label>
           <select id="tr-language">
             <option value="en">English</option>
             <option value="fr">Français</option>
@@ -430,17 +498,51 @@
           </select>
         </div>
       </div>
+      <!-- El aviso de "Who can see it?" se saca de dentro del field y se pone
+           debajo de toda la fila -- estaba dentro del recuadro estrecho de
+           "Who can see it?" y, al ser más alto que los demás campos, con
+           align-items:end (ver .toolbar) desalineaba esa fila entera hacia
+           arriba. A petición de Dani: "está un poco descalibrado todo lo que
+           sale al principio". -->
+      <p class="hint" style="margin:-8px 0 14px; font-size:11px;">"Who can see it?" has no "Community" option here — attendance names real players.</p>
 
       <div class="duration-banner" id="duration-banner"></div>
 
       <p class="section-label">Exercises in this session</p>
-      <div class="toolbar">
+      <!-- Filtros para "Add from library" -- a petición de Dani: "cuando
+           empiezas a elegir los ejercicios, tiene que haber filtros. Si no
+           es imposible de encontrar nada." Mismo patrón (mismos campos) que
+           ya usaban Library y el editor de Notebooks, aplicado aquí al
+           desplegable de añadir ejercicios a la sesión. -->
+      <div class="toolbar" style="margin-bottom:8px; align-items:flex-start;">
         <div class="field" style="min-width:170px;">
           <label for="notebook-filter">Filter by notebook</label>
           <select id="notebook-filter"><option value="">All exercises</option></select>
         </div>
+        <div class="field" style="flex:0 0 130px;">
+          <label for="add-exercise-difficulty-filter" style="font-size:11.5px;">Difficulty</label>
+          <select id="add-exercise-difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select>
+        </div>
+        <div class="field" style="flex:0 0 150px;">
+          <label for="add-exercise-language-filter" style="font-size:11.5px;">Language</label>
+          <select id="add-exercise-language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select>
+        </div>
+        <div class="field" style="flex:1; min-width:170px;">
+          <label class="field-label" style="font-size:13px; font-weight:600; color:var(--muted); display:block;">Category</label>
+          <div class="multiselect" id="add-exercise-category-filter" style="max-height:76px;"></div>
+        </div>
+        <div class="field" style="flex:1; min-width:170px;">
+          <label class="field-label" style="font-size:13px; font-weight:600; color:var(--muted); display:block;">Age</label>
+          <div class="multiselect" id="add-exercise-age-filter" style="max-height:76px;"></div>
+        </div>
+        <div class="field">
+          <div class="checkbox-field"><input type="checkbox" id="add-exercise-favorites-filter" /><label for="add-exercise-favorites-filter" style="font-size:12.5px;">Favorites only</label></div>
+          <button class="reset-btn" id="add-exercise-reset-filters-btn">Reset filters</button>
+        </div>
+      </div>
+      <div class="toolbar">
         <div class="field" style="flex:1; min-width:220px;">
-          <label for="add-exercise-select">Add from library</label>
+          <label for="add-exercise-select">Add from library <span id="add-exercise-count" class="hint" style="font-weight:400; text-transform:none;"></span></label>
           <select id="add-exercise-select"><option value="">Pick an exercise…</option></select>
         </div>
         <button class="btn btn-secondary" id="add-exercise-btn">+ Add</button>
@@ -485,59 +587,6 @@
         <button class="btn btn-secondary" id="delete-training-btn" style="color:#991b1b;">Delete this session</button>
       </div>
     </div>
-
-    <div id="notebook-editor" style="display:none;">
-      <a href="#" id="notebook-back-link" class="back-link">&larr; Back</a>
-      <div class="toolbar" style="margin-top:8px;">
-        <div class="field" style="flex:1;"><label for="notebook-name">Notebook name</label><input id="notebook-name" type="text" placeholder="e.g. Defense, U8, Warm-ups" /></div>
-        <div class="field"><label for="notebook-visibility">Who can see it?</label>
-          <select id="notebook-visibility">
-            <option value="private">🔒 Only me</option>
-            <option value="team">👥 My team</option>
-            <option value="association">🤝 My club association</option>
-            <option value="community">🌐 PlayPivot Community</option>
-          </select>
-        </div>
-      </div>
-      <p class="section-label">Exercises in this notebook</p>
-      <p class="hint" style="margin:0 0 8px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">Your library — click to add</p>
-      <input id="notebook-exercise-search" type="text" placeholder="Name, tag, description…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:8px;" />
-      <div class="toolbar" style="margin-bottom:8px; align-items:flex-start;">
-        <div class="field"><label for="notebook-difficulty-filter" style="font-size:11.5px;">Difficulty</label><select id="notebook-difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
-        <div class="field"><label for="notebook-language-filter" style="font-size:11.5px;">Language</label><select id="notebook-language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
-        <div class="field" style="flex:1; min-width:180px;">
-          <label class="field-label" style="font-size:13px; font-weight:600; color:var(--muted); display:block;">Category</label>
-          <div class="multiselect" id="notebook-category-filter" style="max-height:76px;"></div>
-        </div>
-        <div class="field" style="flex:1; min-width:180px;">
-          <label class="field-label" style="font-size:13px; font-weight:600; color:var(--muted); display:block;">Age</label>
-          <div class="multiselect" id="notebook-age-filter" style="max-height:76px;"></div>
-        </div>
-        <div class="field">
-          <div class="checkbox-field"><input type="checkbox" id="notebook-favorites-filter" /><label for="notebook-favorites-filter" style="font-size:12.5px;">Favorites only</label></div>
-          <div class="checkbox-field"><input type="checkbox" id="notebook-unused-filter" /><label for="notebook-unused-filter" style="font-size:12.5px;">Never used</label></div>
-          <button class="reset-btn" id="notebook-reset-filters-btn">Reset filters</button>
-        </div>
-      </div>
-      <div id="notebook-library-list" style="max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px; margin-bottom:20px;"></div>
-
-      <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">In this notebook</p>
-      <div id="notebook-contents-list" style="max-height:340px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
-      <div class="toolbar" style="margin-top:16px;">
-        <button class="btn btn-primary" id="save-notebook-btn">Save notebook</button>
-        <button class="btn btn-secondary" id="export-notebook-btn" style="display:none;">📖 Export whole notebook (PDF)</button>
-        <div class="spacer"></div>
-        <button class="btn btn-secondary" id="delete-notebook-btn" style="display:none; color:#991b1b;">Delete this notebook</button>
-      </div>
-    </div>
-
-  <!-- Notebooks: listas de ejercicios reutilizables, no ligadas a un equipo/temporada -- aparte del flujo equipo -> fecha -> ficha -->
-  <div class="team-bar-card">
-    <h2>Notebooks</h2>
-    <p class="hint" style="font-size:11.5px; color:var(--muted); margin:0 0 8px;">Ready-made exercise lists, grouped by theme (e.g. "Defense", "U8") — not tied to a season/team.</p>
-    <button class="new-btn" id="new-notebook-btn">+ New notebook</button>
-    <div id="notebooks-list"></div>
-  </div>
 
 </div>
 
@@ -586,6 +635,7 @@
     date: document.getElementById("tr-date"),
     number: document.getElementById("tr-number"),
     category: document.getElementById("tr-category"),
+    mainObjective: document.getElementById("tr-main-objective"),
     planned: document.getElementById("tr-planned"),
     players: document.getElementById("tr-players"),
     coach1: document.getElementById("tr-coach1"),
@@ -637,6 +687,15 @@
     const opt = document.createElement("option");
     opt.value = c; opt.textContent = c;
     els.category.appendChild(opt);
+  });
+
+  // "Main objective" reutiliza CATEGORIES (Warm-up, Shooting, Defense...),
+  // ya cargado desde exercise-categories.js -- mismo enfoque que usan los
+  // ejercicios, para no tener dos vocabularios distintos en la misma app.
+  CATEGORIES.forEach((c) => {
+    const opt = document.createElement("option");
+    opt.value = c; opt.textContent = (CATEGORY_ICONS[c] ? CATEGORY_ICONS[c] + " " : "") + c;
+    els.mainObjective.appendChild(opt);
   });
 
   // -----------------------------------------------------------------------
@@ -696,21 +755,54 @@
     populateExerciseSelect();
   }
 
-  // Remplit "Add from library" -- filtré par notebook si un est choisi
-  // dans "Filter by notebook".
+  // Remplit "Add from library" -- filtré par notebook si un est choisi dans
+  // "Filter by notebook", et maintenant aussi par difficulté/langue/
+  // catégorie/âge/favoris (a petición de Dani: "es imposible de encontrar
+  // nada" -- mismo patrón de filtros que ya usaban Library y el editor de
+  // Notebooks, ver buildMultiselect/checkedValues más abajo).
+  function addExerciseFilterCheckedValues(containerId) {
+    return Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map((cb) => cb.value);
+  }
   function populateExerciseSelect() {
     const notebookId = els.notebookFilter.value;
     const allowedIds = notebookId ? new Set((notebookExerciseIds[notebookId] || [])) : null;
+    const diff = document.getElementById("add-exercise-difficulty-filter").value;
+    const lang = document.getElementById("add-exercise-language-filter").value;
+    const cats = addExerciseFilterCheckedValues("add-exercise-category-filter");
+    const ages = addExerciseFilterCheckedValues("add-exercise-age-filter");
+    const favOnly = document.getElementById("add-exercise-favorites-filter").checked;
+    const current = els.addExerciseSelect.value;
     els.addExerciseSelect.innerHTML = '<option value="">Pick an exercise…</option>';
-    allExercises
+    const shown = allExercises
       .filter((e) => !allowedIds || allowedIds.has(e.id))
-      .forEach((e) => {
-        const opt = document.createElement("option");
-        opt.value = e.id; opt.textContent = e.name;
-        els.addExerciseSelect.appendChild(opt);
-      });
+      .filter((e) => !diff || String(e.difficulty) === diff)
+      .filter((e) => !lang || (e.language || "en") === lang)
+      .filter((e) => cats.length === 0 || cats.every((c) => (e.categories || []).includes(c)))
+      .filter((e) => ages.length === 0 || ages.every((a) => (e.age || []).includes(a)))
+      .filter((e) => !favOnly || e.favorite);
+    shown.forEach((e) => {
+      const opt = document.createElement("option");
+      opt.value = e.id; opt.textContent = e.name;
+      els.addExerciseSelect.appendChild(opt);
+    });
+    els.addExerciseSelect.value = shown.some((e) => e.id === current) ? current : "";
+    const countLabel = document.getElementById("add-exercise-count");
+    if (countLabel) countLabel.textContent = allExercises.length ? `(${shown.length} of ${allExercises.length})` : "";
   }
   els.notebookFilter.addEventListener("change", populateExerciseSelect);
+  buildMultiselect("add-exercise-category-filter", CATEGORIES, populateExerciseSelect);
+  buildMultiselect("add-exercise-age-filter", AGE_GROUPS, populateExerciseSelect);
+  ["add-exercise-difficulty-filter", "add-exercise-language-filter", "add-exercise-favorites-filter"].forEach((id) => {
+    document.getElementById(id).addEventListener("change", populateExerciseSelect);
+  });
+  document.getElementById("add-exercise-reset-filters-btn").addEventListener("click", () => {
+    document.getElementById("add-exercise-difficulty-filter").value = "";
+    // El idioma NO se resetea aquí a propósito -- mismo criterio que en la
+    // Library, para no volver a mezclar los idiomas de golpe.
+    document.querySelectorAll("#add-exercise-category-filter input, #add-exercise-age-filter input").forEach((cb) => (cb.checked = false));
+    document.getElementById("add-exercise-favorites-filter").checked = false;
+    populateExerciseSelect();
+  });
 
   // -----------------------------------------------------------------------
   // Notebooks -- des listes toutes prêtes d'exercices, groupées par thème
@@ -797,13 +889,13 @@
 
   // Colonne de gauche : la bibliothèque, filtrable -- cliquer dessus
   // l'ajoute au cahier (comme double-cliquer dans l'app de bureau).
-  function buildMultiselect(containerId, options) {
+  function buildMultiselect(containerId, options, onChange) {
     const el = document.getElementById(containerId);
     el.innerHTML = "";
     options.forEach((opt) => {
       const label = document.createElement("label");
       label.innerHTML = `<input type="checkbox" value="${opt}" /> ${opt}`;
-      label.querySelector("input").addEventListener("change", renderNotebookLibraryList);
+      label.querySelector("input").addEventListener("change", onChange || renderNotebookLibraryList);
       el.appendChild(label);
     });
   }
@@ -1259,7 +1351,7 @@
     currentTrainingId = null;
     els.title.value = ""; els.date.value = new Date().toISOString().slice(0, 10); els.planned.value = "90";
     els.number.value = nextSessionNumber();
-    els.category.value = ""; els.players.value = "";
+    els.category.value = ""; els.mainObjective.value = ""; els.players.value = "";
     els.coach1.value = ""; els.coach2.value = ""; els.coach3.value = "";
     els.visibility.value = "team";
     els.language.value = "en"; currentTranslationGroupId = null;
@@ -1275,7 +1367,7 @@
     els.trainingArea.style.display = "block";
     document.getElementById("delete-training-btn").style.display = "none";
     document.getElementById("save-training-btn").style.display = "inline-block";
-    [els.title, els.date, els.number, els.category, els.planned, els.players, els.coach1, els.coach2, els.coach3, els.visibility, els.language]
+    [els.title, els.date, els.number, els.category, els.mainObjective, els.planned, els.players, els.coach1, els.coach2, els.coach3, els.visibility, els.language]
       .forEach((el) => (el.disabled = false));
   }
 
@@ -1286,6 +1378,7 @@
     els.title.value = training.title || ""; els.date.value = training.date; els.planned.value = training.planned_minutes || 90;
     els.number.value = training.number || "";
     els.category.value = training.category || "";
+    els.mainObjective.value = training.main_objective || "";
     els.players.value = training.players_count || "";
     const coaches = training.coaches || [];
     els.coach1.value = coaches[0] || ""; els.coach2.value = coaches[1] || ""; els.coach3.value = coaches[2] || "";
@@ -1320,7 +1413,7 @@
     const owned = training.organization_id === currentOrgId;
     document.getElementById("delete-training-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     document.getElementById("save-training-btn").style.display = owned ? "inline-block" : "none";
-    [els.title, els.date, els.number, els.category, els.planned, els.players, els.coach1, els.coach2, els.coach3, els.visibility, els.language]
+    [els.title, els.date, els.number, els.category, els.mainObjective, els.planned, els.players, els.coach1, els.coach2, els.coach3, els.visibility, els.language]
       .forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This session belongs to another club — you can look, but not edit or save changes.", "success");
     await loadTrainingsList();
@@ -1463,6 +1556,7 @@
       date: els.date.value, title: els.title.value.trim() || null,
       number: els.number.value ? parseInt(els.number.value, 10) : nextSessionNumber(),
       category: els.category.value || null,
+      main_objective: els.mainObjective.value || null,
       planned_minutes: parseInt(els.planned.value, 10) || null,
       players_count: els.players.value ? parseInt(els.players.value, 10) : null,
       coaches: [els.coach1.value.trim(), els.coach2.value.trim(), els.coach3.value.trim()].filter(Boolean),
@@ -2238,9 +2332,10 @@
       <strong>How to use Training builder</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
         <li><strong>Teams &amp; Seasons</strong>, at the top, is where you pick who you're planning for — then <strong>Sessions</strong> below it lists that team's sessions as a table; click a row or hit <strong>"+ New session"</strong> to open the session builder underneath it.</li>
-        <li><strong>Notebooks</strong> (further down the page) — ready-made exercise lists grouped by theme (e.g. "Defense", "U8"), not tied to a season or team. Build one once, reuse it in any session, in any team, forever. Check exercises from your library to fill one in, then <strong>Export whole notebook</strong> for a real printable booklet: a cover page, followed by the full sheet for every exercise in it — court diagrams included, same as exporting one from Create exercise or Library.</li>
-        <li>No teams showing up? Click <strong>"+ New season/team"</strong> to create one on the spot — no need to add players first. Or use <strong>★ Load example</strong> below it to try everything with a sample roster (Chicago Bulls, pick a season).</li>
-        <li><strong>Filter by notebook</strong> narrows "Add from library" down to just that notebook's exercises — leave it on "All exercises" to search everything.</li>
+        <li><strong>Notebooks</strong> (near the top of the page) — ready-made exercise lists grouped by theme (e.g. "Defense", "U8"), not tied to a season or team. Build one once, reuse it in any session, in any team, forever. Check exercises from your library to fill one in, then <strong>Export whole notebook</strong> for a real printable booklet: a cover page, followed by the full sheet for every exercise in it — court diagrams included, same as exporting one from Create exercise or Library.</li>
+        <li>No teams showing up? Click <strong>"+ New season/team"</strong> to create one on the spot — no need to add players first.</li>
+        <li><strong>Main objective</strong> is a quick one-line summary of what the session is mainly about (Warm-up, Shooting, Defense…) — same list the exercises themselves use.</li>
+        <li>Filters above <strong>"Add from library"</strong> (difficulty, language, category, age, favorites) narrow that dropdown down so you can actually find something in a big library — <strong>Filter by notebook</strong> does the same but by a whole ready-made list at once. Reset them anytime with "Reset filters".</li>
         <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, and <strong>⏸ Add pause</strong> to drop in a rest period between exercises — it counts toward the total time same as anything else.</li>
         <li>The banner above the exercise list tracks your running total against the planned length, and turns red if you go over.</li>
         <li><strong>Auto-summary</strong> fills itself in from the exercises you add (categories, material, up to 4 objectives) — edit it by hand any time.</li>
@@ -2257,12 +2352,37 @@
     window.location.href = "./login.html";
   });
 
+  // Igual que en Library (mismo problema: ejercicios con el mismo nombre en
+  // varios idiomas, creados por separado, se ven todos a la vez si el
+  // filtro empieza en "All") -- el filtro de idioma de "Add from library"
+  // arranca en el idioma de exportación del club, y a partir de ahí se
+  // recuerda lo último elegido, por navegador.
+  async function applyDefaultAddExerciseLanguageFilter() {
+    const key = `pivot_training_addex_lang_${currentOrgId || "x"}`;
+    let stored = null;
+    try { stored = localStorage.getItem(key); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
+    const sel = document.getElementById("add-exercise-language-filter");
+    if (stored !== null) { sel.value = stored; return; }
+    let def = "en";
+    try {
+      const { data } = await supabaseClient.from("organizations").select("export_language").eq("id", currentOrgId).maybeSingle();
+      if (data && data.export_language) def = data.export_language;
+    } catch (e) { /* nos quedamos con "en" si algo falla */ }
+    sel.value = def;
+  }
+  document.getElementById("add-exercise-language-filter").addEventListener("change", () => {
+    try { localStorage.setItem(`pivot_training_addex_lang_${currentOrgId || "x"}`, document.getElementById("add-exercise-language-filter").value); } catch (e) { /* no pasa nada */ }
+  });
+
   async function init() {
     const { data } = await supabaseClient.auth.getSession();
     if (!data.session) { window.location.href = "./login.html"; return; }
     pivotInitSidebarChrome();
     const orgId = await loadMyOrganization();
-    if (orgId) { await loadExerciseOptions(); await loadNotebooks(); await loadTree(); }
+    if (orgId) {
+      await applyDefaultAddExerciseLanguageFilter();
+      await loadExerciseOptions(); await loadNotebooks(); await loadTree();
+    }
   }
   init();
 </script>

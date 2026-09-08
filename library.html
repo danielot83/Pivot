@@ -463,6 +463,30 @@
   }
 
   // -----------------------------------------------------------------------
+  // Idioma por defecto del filtro (a petición de Dani: "debería de ser que
+  // no haya más de dos... debería haber solo uno" -- ejercicios con el
+  // mismo nombre creados por separado en varios idiomas se veían todos a
+  // la vez porque el filtro empezaba en "All"). Ahora, la primera vez que
+  // alguien de este club entra a la Library, el filtro arranca en el
+  // idioma de exportación del club (Settings) en vez de "All" -- y a
+  // partir de ahí se recuerda lo último que cada persona elija, por
+  // navegador. "All" se puede seguir eligiendo a mano cuando haga falta.
+  // -----------------------------------------------------------------------
+  function libraryLangStorageKey() { return `pivot_library_lang_${currentOrgId || "x"}`; }
+
+  async function applyDefaultLanguageFilter() {
+    let stored = null;
+    try { stored = localStorage.getItem(libraryLangStorageKey()); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
+    if (stored !== null) { els.languageFilter.value = stored; return; }
+    let def = "en";
+    try {
+      const { data } = await supabaseClient.from("organizations").select("export_language").eq("id", currentOrgId).maybeSingle();
+      if (data && data.export_language) def = data.export_language;
+    } catch (e) { /* nos quedamos con "en" si algo falla */ }
+    els.languageFilter.value = def;
+  }
+
+  // -----------------------------------------------------------------------
   // Charge les exercices (RLS renvoie déjà les siens + les partagés) et le
   // nombre de séances où chacun a servi (training_exercises), pour le
   // filtre "jamais utilisé" et le badge "Nx" dans la liste.
@@ -1086,10 +1110,17 @@
   });
 
   document.getElementById("reset-filters-btn").addEventListener("click", () => {
-    els.search.value = ""; els.difficultyFilter.value = ""; els.languageFilter.value = "";
+    // "Language" queda fuera del reset a propósito -- si lo borráramos a
+    // "All" cada vez, volveríamos al mismo lío de duplicados que Dani pidió
+    // arreglar. Quien quiera ver todos los idiomas a la vez lo elige a mano.
+    els.search.value = ""; els.difficultyFilter.value = "";
     els.favoritesFilter.checked = false; els.unusedFilter.checked = false;
     document.querySelectorAll("#category-filter input, #age-filter input").forEach((cb) => (cb.checked = false));
     refresh();
+  });
+
+  els.languageFilter.addEventListener("change", () => {
+    try { localStorage.setItem(libraryLangStorageKey(), els.languageFilter.value); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
   });
 
   [els.search, els.difficultyFilter, els.languageFilter, els.favoritesFilter, els.unusedFilter].forEach((el) => {
@@ -1131,7 +1162,11 @@
     if (!data.session) { window.location.href = "./login.html"; return; }
     pivotInitSidebarChrome();
     const orgId = await loadMyOrganization();
-    if (orgId) { pivotInitTopbarWidgets(); await loadExercises(); }
+    if (orgId) {
+      pivotInitTopbarWidgets();
+      await applyDefaultLanguageFilter();
+      await loadExercises();
+    }
   }
   init();
 </script>

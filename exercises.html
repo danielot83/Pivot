@@ -283,12 +283,26 @@
       <p style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); margin:0 0 10px;">Exercise data</p>
 
       <div id="tab-data">
-        <div class="side-card" style="margin-bottom:16px;">
+        <!-- Los tres puntos de partida (IA / foto / ejercicio existente) --
+             ahora son tres botones iguales, del mismo estilo naranja que el
+             resto de la app (a petición de Dani: "quiero que sean como los
+             botones típicos... exactamente iguales que los demás"). Al
+             clicar uno se abre su panel debajo (y se cierran los otros dos,
+             para no amontonar texto) y, la primera vez, su ventana
+             explicando cómo funciona -- igual que antes, solo que ahora se
+             entra desde un botón real en vez de un enlace de texto. -->
+        <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" id="ai-toggle-btn" style="flex:1; min-width:170px;">🤖 Fill in with AI</button>
+          <button type="button" class="btn btn-primary" id="photo-toggle-btn" style="flex:1; min-width:170px;">📷 Fill in from a photo</button>
+          <button type="button" class="btn btn-primary" id="start-from-toggle-btn" style="flex:1; min-width:170px;">📋 Start from existing exercise</button>
+        </div>
+
+        <div class="side-card" id="ai-card" style="display:none; margin-bottom:16px;">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-            <a href="#" id="ai-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Fill in with AI</a>
+            <h2 style="margin:0; text-transform:none; font-size:14.5px; color:var(--ink); letter-spacing:0;">Fill in with AI</h2>
             <a href="#" id="ai-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap;">❔ Step-by-step guide</a>
           </div>
-          <div id="ai-section" style="display:none; margin-top:12px;">
+          <div id="ai-section" style="margin-top:12px;">
             <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">
               Copy this template into any AI chat (ChatGPT, Claude…), describe your exercise idea on the last line, then paste its reply below. This never draws the diagram — that stays manual, in the "Court diagram" section below.
             </p>
@@ -297,7 +311,7 @@
               <button class="btn btn-secondary" id="copy-ai-template-btn">📋 Copy this template</button>
               <button class="btn btn-secondary" id="copy-last-ex-btn">📎 Copy my last exercise</button>
             </div>
-            <p class="hint" style="margin:0 0 8px;">"Copy my last exercise" gives the AI a real example of your style and the right next number — paste it in the chat before your new idea.</p>
+            <p class="hint" style="margin:0 0 8px;">"Copy my last exercise" gives the AI a real example of your style — paste it in the chat before your new idea.</p>
             <textarea id="ai-block-input" placeholder="Paste the AI's reply here…" style="width:100%; min-height:100px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit;"></textarea>
             <button class="btn btn-primary" id="fill-from-ai-btn" style="margin-top:8px;">Fill from AI reply</button>
           </div>
@@ -313,12 +327,12 @@
              "Description" para que quien lo use rellene el resto a mano
              mirándolo -- ahorra teclear, no ahorra revisar.
         -->
-        <div class="side-card" id="photo-fill-card" style="margin-bottom:16px;">
+        <div class="side-card" id="photo-fill-card" style="display:none; margin-bottom:16px;">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-            <a href="#" id="photo-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Fill in from a photo</a>
+            <h2 style="margin:0; text-transform:none; font-size:14.5px; color:var(--ink); letter-spacing:0;">Fill in from a photo</h2>
             <a href="#" id="photo-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap;">❔ What this does</a>
           </div>
-          <div id="photo-section" style="display:none; margin-top:12px;">
+          <div id="photo-section" style="margin-top:12px;">
             <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">
               Take or upload a photo of a paper exercise sheet, a whiteboard, or your own notes — this reads the text straight into "Description" below, so you don't have to type it out by hand. It only recognizes text: you still fill in Name, Category, Material, etc. yourself, using the photo as reference. Works best with a clear, well-lit, fairly legible sheet.
             </p>
@@ -337,13 +351,18 @@
           </div>
         </div>
 
-        <div class="side-card" style="margin-bottom:16px;">
-          <label for="start-from-select" style="font-size:13px; font-weight:600; color:var(--muted); display:block; margin-bottom:8px;">Or start from one of your existing exercises</label>
-          <div style="display:flex; gap:8px;">
-            <select id="start-from-select" style="flex:1;"><option value="">Pick an exercise…</option></select>
-            <button class="btn btn-secondary" id="start-from-btn">Use as starting point</button>
+        <div class="side-card" id="start-from-card" style="display:none; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <h2 style="margin:0; text-transform:none; font-size:14.5px; color:var(--ink); letter-spacing:0;">Start from an existing exercise</h2>
+            <a href="#" id="start-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap;">❔ How this works</a>
           </div>
-          <p class="hint" style="margin:8px 0 0;">Copies everything, including the diagram, into this new exercise — the original stays untouched.</p>
+          <div id="start-from-section" style="margin-top:12px;">
+            <p class="hint" style="margin:0 0 10px;">Pick one of your saved exercises — this copies everything, including the diagram, into this new exercise. The original stays untouched.</p>
+            <div style="display:flex; gap:8px;">
+              <select id="start-from-select" style="flex:1;"><option value="">Pick an exercise…</option></select>
+              <button class="btn btn-secondary" id="start-from-btn">Use as starting point</button>
+            </div>
+          </div>
         </div>
 
         <div class="field-row">
@@ -519,9 +538,8 @@
   const AI_BLOCK_TEMPLATE = [
     "You're helping a basketball coach prepare a complete exercise sheet, ready to go into their training notebook.",
     "",
-    "I'll describe an exercise idea at the very bottom. If that description is too vague to fill in every field below with real confidence (for example: no age group, no clear skill focus, no idea how many players), ask me clarifying questions FIRST, in this same conversation, before writing anything — don't guess wildly just to fill a field. Once you genuinely have enough, reply with a complete sheet, following EXACTLY this format (one label per line, no bold, no markdown, nothing before or after):",
+    "I'll describe an exercise idea at the very bottom. If that description is too vague to fill in every field below with real confidence (for example: no age group, no clear skill focus, no idea how many players), ask me clarifying questions FIRST, in this same conversation, before writing anything — don't guess wildly just to fill a field. Once you genuinely have enough, reply with a complete sheet, following EXACTLY this format (one label per line, no bold, no markdown, nothing before or after). Don't worry about assigning a number to the exercise — that's handled automatically on the app's side.",
     "",
-    "NUMBER: [an exercise number; if you don't know which one to use, put 0]",
     "NAME: [invent a short, clear name for this exercise]",
     `CATEGORY: [one or more, separated by semicolons; choose only from: ${CATEGORIES.join(", ")}]`,
     `MATERIAL: [one or more, separated by semicolons; choose only from: ${MATERIALS.join(", ")}]`,
@@ -648,7 +666,12 @@
   }
 
   function applyParsedData(data) {
-    els.number.value = data.number || nextNumber();
+    // El número de ejercicio (campo "Number") NUNCA se toca aquí -- se
+    // asigna solo, automáticamente, al entrar en la página (nextNumber(),
+    // ver más abajo) y ese es siempre el correcto. Antes una IA/foto que
+    // adivinaba mal el número podía pisar ese valor bueno; a petición de
+    // Dani ("no me ha quedado claro cómo hacer lo de los números"), ahora
+    // el número en pantalla manda siempre y no hay nada más que explicar.
     els.name.value = data.name || "";
     els.difficulty.value = String(data.difficulty || 1);
     setCheckedValues("age", data.age || []);
@@ -688,7 +711,7 @@
         <p class="hint" style="margin:0 0 14px;">This uses an AI chat you already have (ChatGPT, Claude…) — PlayPivot doesn't send anything anywhere by itself, you copy and paste between the two tabs.</p>
         <ol style="margin:0 0 16px; padding-left:20px; line-height:1.8; font-size:13.5px;">
           <li>Click <strong>"📋 Copy this template"</strong> — it's copied to your clipboard.</li>
-          <li>Also click <strong>"📎 Copy my last exercise"</strong> and paste it in the chat first, before your idea — it shows the AI your style and picks the right next number. (Skip this if it's your first exercise.)</li>
+          <li>Also click <strong>"📎 Copy my last exercise"</strong> and paste it in the chat first, before your idea — it shows the AI a real example of your style. (Skip this if it's your first exercise.)</li>
           <li>Open any AI chat in another tab, paste what you copied, and replace the last line ("The exercise is about: …") with your own idea.</li>
           <li>Send it. If your idea was too vague, the AI will ask you questions first — just answer in that same chat.</li>
           <li>Once it gives you the finished sheet, copy its whole reply.</li>
@@ -704,18 +727,28 @@
     try { localStorage.setItem(`pivot_ai_guide_seen_${currentOrgId || "x"}`, "1"); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
   }
 
-  document.getElementById("ai-toggle-link").addEventListener("click", (e) => {
-    e.preventDefault();
-    const section = document.getElementById("ai-section");
-    const open = section.style.display === "block";
-    section.style.display = open ? "none" : "block";
-    e.target.textContent = open ? "▸ Fill in with AI" : "▾ Fill in with AI";
-    if (!open) {
+  // Los tres botones de arriba (IA / foto / existente) funcionan como un
+  // acordeón: abrir uno cierra los otros dos, para que el formulario no se
+  // llene de paneles abiertos a la vez. `toggleCreatorCard` centraliza esto.
+  const CREATOR_CARD_IDS = ["ai-card", "photo-fill-card", "start-from-card"];
+  function toggleCreatorCard(cardId, onOpen) {
+    const card = document.getElementById(cardId);
+    const wasOpen = card.style.display === "block";
+    CREATOR_CARD_IDS.forEach((id) => { document.getElementById(id).style.display = "none"; });
+    if (!wasOpen) {
+      card.style.display = "block";
+      card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      if (onOpen) onOpen();
+    }
+  }
+
+  document.getElementById("ai-toggle-btn").addEventListener("click", () => {
+    toggleCreatorCard("ai-card", () => {
       document.getElementById("ai-block-template").value = AI_BLOCK_TEMPLATE;
       let seen = true;
       try { seen = localStorage.getItem(`pivot_ai_guide_seen_${currentOrgId || "x"}`) === "1"; } catch (e) { /* no pasa nada */ }
       if (!seen) openAiGuideModal();
-    }
+    });
   });
 
   document.getElementById("ai-guide-link").addEventListener("click", (e) => {
@@ -774,18 +807,13 @@
     try { localStorage.setItem(`pivot_photo_guide_seen_${currentOrgId || "x"}`, "1"); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
   }
 
-  document.getElementById("photo-toggle-link").addEventListener("click", (e) => {
-    e.preventDefault();
-    const section = document.getElementById("photo-section");
-    const open = section.style.display === "block";
-    section.style.display = open ? "none" : "block";
-    e.target.textContent = open ? "▸ Fill in from a photo" : "▾ Fill in from a photo";
-    if (!open) {
+  document.getElementById("photo-toggle-btn").addEventListener("click", () => {
+    toggleCreatorCard("photo-fill-card", () => {
       loadTesseract().catch(() => {}); // precarga en segundo plano; si falla, ya avisará el botón "Read this photo"
       let seen = true;
       try { seen = localStorage.getItem(`pivot_photo_guide_seen_${currentOrgId || "x"}`) === "1"; } catch (e) { /* no pasa nada */ }
       if (!seen) openPhotoGuideModal();
-    }
+    });
   });
 
   document.getElementById("photo-guide-link").addEventListener("click", (e) => {
@@ -854,7 +882,7 @@
     if (!last) { showMessage("Your library is still empty — nothing to copy yet.", "error"); return; }
     try {
       await navigator.clipboard.writeText(formatExerciseAsBlock(last));
-      showMessage(`Copied exercise #${last.number} ("${last.name}") — paste it in the chat before your new idea, so the AI keeps the same style and picks the right next number.`, "success");
+      showMessage(`Copied exercise #${last.number} ("${last.name}") — paste it in the chat before your new idea, so the AI keeps the same style.`, "success");
     } catch (e) { showMessage("Couldn't copy automatically.", "error"); }
   });
 
@@ -876,6 +904,39 @@
   // compris le diagramme (contrairement au bloc IA, qui ne touche jamais
   // au dessin) -- l'original reste intact, ça crée une fiche à part.
   // -----------------------------------------------------------------------
+  // Igual que con "Fill in with AI" y "Fill in from a photo": la primera vez
+  // que alguien del club abre este botón le sale una ventana corta
+  // explicando qué hace, y el enlace "❔" la vuelve a abrir cuando quieras.
+  function openStartGuideModal() {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:460px; width:100%; padding:24px 26px; max-height:85vh; overflow-y:auto;">
+        <h3 style="margin:0 0 6px; font-size:17px;">Start from an existing exercise — how it works</h3>
+        <p style="font-size:13.5px; line-height:1.7; margin:0 0 10px;">Pick any exercise you can already see in the dropdown below and click <strong>"Use as starting point"</strong>. Everything copies over — name, categories, material, description, and the court diagram — into this new exercise.</p>
+        <p style="font-size:13.5px; line-height:1.7; margin:0 0 16px;">The original exercise is never touched — this always creates a brand new one. Review and change whatever you like before saving.</p>
+        <button class="btn btn-primary" id="start-guide-close-btn" style="width:100%;">Got it</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector("#start-guide-close-btn").addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    try { localStorage.setItem(`pivot_start_guide_seen_${currentOrgId || "x"}`, "1"); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
+  }
+
+  document.getElementById("start-from-toggle-btn").addEventListener("click", () => {
+    toggleCreatorCard("start-from-card", () => {
+      let seen = true;
+      try { seen = localStorage.getItem(`pivot_start_guide_seen_${currentOrgId || "x"}`) === "1"; } catch (e) { /* no pasa nada */ }
+      if (!seen) openStartGuideModal();
+    });
+  });
+
+  document.getElementById("start-guide-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    openStartGuideModal();
+  });
+
   function populateStartFromSelect() {
     const sel = document.getElementById("start-from-select");
     const current = sel.value;
@@ -1628,10 +1689,10 @@
     box.innerHTML = `
       <strong>How to use Create exercise</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li>This page always shows a ready-to-fill exercise — a fresh number is assigned automatically the moment you land here. No need to click anything first.</li>
-        <li><strong>How to use "Fill in with AI", step by step:</strong>
+        <li>This page always shows a ready-to-fill exercise — the "Number" field at the top is assigned automatically the moment you land here, and it never changes no matter which of the 3 buttons below you use. No need to click anything first.</li>
+        <li><strong>How to use "🤖 Fill in with AI", step by step:</strong>
           <ol style="margin:6px 0 0; padding-left:18px; line-height:1.7;">
-            <li>Click "▸ Fill in with AI" to open the section.</li>
+            <li>Click the "🤖 Fill in with AI" button to open the section.</li>
             <li>Click "📋 Copy this template" — it's copied to your clipboard.</li>
             <li>Open any AI chat (ChatGPT, Claude…) in another tab, paste the template, and replace the very last line ("The exercise is about: …") with your own idea.</li>
             <li>Send it. If your idea was vague, the AI will ask you questions first — answer them in that same chat.</li>
@@ -1639,9 +1700,9 @@
             <li>Click "Fill from AI reply" — the form fills in below. Review everything, draw the diagram yourself (the AI never touches that), then Save.</li>
           </ol>
         </li>
-        <li><strong>"📎 Copy my last exercise"</strong> — before describing a new idea to the AI, paste this in the chat first. It shows the AI a real exercise you already made, so it keeps the same style and picks the next free number correctly.</li>
-        <li><strong>"▸ Fill in from a photo"</strong> — take or upload a photo of a paper sheet, whiteboard, or notes; it reads the text straight into "Description" so you don't have to type it out. This just recognizes letters, it doesn't understand the exercise — you still pick Name, Category, Material, etc. yourself, using the photo as reference. Runs entirely on your device (nothing sent anywhere), so it works even without setting anything up.</li>
-        <li><strong>Start from an existing exercise</strong> (also at the top) — pick one from the dropdown and "Use as starting point": copies everything, including the diagram, into this new exercise. The original is untouched.</li>
+        <li><strong>"📎 Copy my last exercise"</strong> — before describing a new idea to the AI, paste this in the chat first. It shows the AI a real exercise you already made, so it keeps the same style.</li>
+        <li><strong>"📷 Fill in from a photo"</strong> — take or upload a photo of a paper sheet, whiteboard, or notes; it reads the text straight into "Description" so you don't have to type it out. This just recognizes letters, it doesn't understand the exercise — you still pick Name, Category, Material, etc. yourself, using the photo as reference. Runs entirely on your device (nothing sent anywhere), so it works even without setting anything up.</li>
+        <li><strong>"📋 Start from existing exercise"</strong> (also at the top) — pick one from the dropdown and "Use as starting point": copies everything, including the diagram, into this new exercise. The original is untouched.</li>
         <li>Placing a player or defender on the diagram numbers them automatically (1, 2, 3…) — attack and defense count separately, same as Play design. Double-click one to change its label by hand.</li>
         <li>Anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.</li>
         <li><strong>Court diagram section</strong> — 5 steps (3 half-court, 1 vertical, 1 full horizontal). Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
