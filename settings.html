@@ -247,7 +247,7 @@
   <div class="msg" id="msg"></div>
 
   <div class="card" id="logo-card">
-    <h2>Club logo</h2>
+    <h2>Club logo <span style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">Admin only</span></h2>
     <p class="hint">Shown across PlayPivot wherever your club appears.</p>
 
     <div class="logo-row">
@@ -274,7 +274,7 @@
   </div>
 
   <div class="card" id="members-card" style="display:none">
-    <h2>Members</h2>
+    <h2>Members <span style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">Admin only</span></h2>
     <p class="hint">Change someone's role, block them (they keep their account but lose access to this club), or remove them for good. You can't demote, block, or remove the club's last admin. Someone asking to join for the first time shows up on the dashboard, not here.</p>
     <p id="members-scope-notice" style="display:none; font-size:12.5px; color:var(--accent-deep); background:var(--accent-tint); padding:8px 10px; border-radius:6px; margin-bottom:10px;"></p>
     <div id="members-list"></div>
@@ -298,12 +298,6 @@
     <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-material" /><label for="pdf-section-material">Material</label></div>
     <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-objectives" /><label for="pdf-section-objectives">Objectives</label></div>
     <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-difficulty" /><label for="pdf-section-difficulty">Difficulty stars</label></div>
-  </div>
-
-  <div class="card" id="legal-architecture-card" style="display:none">
-    <h2>Legal architecture <span style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">Platform admin only</span></h2>
-    <p class="hint">The full data-protection and legal-structure reference document — who's controller, who's processor, sub-processors, DPA contents, implementation plan. Internal, not what coaches/players see.</p>
-    <a class="nav-btn" href="./legal-architecture.html" style="display:inline-block; text-decoration:none; text-align:center;">Open document →</a>
   </div>
 
   <div class="card" id="validators-card" style="display:none">
@@ -392,6 +386,12 @@
     </div>
     <button class="btn btn-primary" id="request-association-btn">Request to create it</button>
     <p class="hint" style="margin-top:10px;">Already know the name of an existing association? Ask its members, then request to join it the same way — matching names request to join the same association instead of creating a new one.</p>
+  </div>
+
+  <div class="card" id="legal-architecture-card">
+    <h2>Legal architecture</h2>
+    <p class="hint">The full data-protection and legal-structure reference document — who's controller, who's processor, sub-processors, DPA contents, implementation plan. Open to everyone at your club, not just admins.</p>
+    <a class="nav-btn" href="./legal-architecture.html" style="display:inline-block; text-decoration:none; text-align:center;">Open document →</a>
   </div>
 
   <div class="card" id="delete-account-card">
@@ -498,6 +498,13 @@
     document.getElementById("associations-card").style.display = "block";
     document.getElementById("export-language-card").style.display = "block";
     document.getElementById("pdf-sections-card").style.display = "block";
+    // "Legal architecture" es el documento de protección de datos -- a
+    // petición de Dani, ya no es solo para el platform admin: cualquiera
+    // en el club puede abrirlo (por eso está aquí, no dentro del bloque
+    // "if (isPlatformController)" de abajo). "Association validators" sí
+    // se queda solo para el platform admin -- es un poder que se otorga a
+    // mano, no algo que un club deba ver u operar.
+    document.getElementById("legal-architecture-card").style.display = "block";
     applyRoleLocks();
     await loadSharingStatus();
     await loadMembers();
@@ -505,7 +512,6 @@
     await loadExportLanguage();
     await loadPdfSections();
     if (isPlatformController) {
-      document.getElementById("legal-architecture-card").style.display = "block";
       document.getElementById("validators-card").style.display = "block";
       await loadValidatorsSection();
     }

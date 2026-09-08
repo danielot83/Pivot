@@ -567,7 +567,7 @@
       showJoinPrompt();
       return null;
     }
-    const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
+    const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient, supportsAdminView: true });
     if (!chosen) {
       els.clubStatusText.textContent = "You're not an active member of any club or association yet.";
       // Un contrôleur de plateforme sans club à lui garde quand même accès
@@ -575,11 +575,11 @@
       // tant qu'il n'a pas rejoint ou créé un club.
       applyClubGate(isPlatformController);
       showJoinPrompt();
-      pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController });
+      pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supportsAdminView: true });
       return null;
     }
     applyClubGate(true);
-    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController });
+    pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supportsAdminView: true });
 
     if (chosen.is_admin_view) {
       // Vista de Admin general: nada de club concreto -- estadísticas de
