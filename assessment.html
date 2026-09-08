@@ -15,7 +15,7 @@
     --navy: #080026; --navy-hover: #191235; --sidebar-w: 244px;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; font-size: 14px; }
     @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
   @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
   h1, h2, h3, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -34,10 +34,10 @@
   .layout > div:first-child { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
   @media (max-width: 800px) { .layout > div:first-child { position: static; max-height: none; } }
 
-  h1 { font-size: 22px; margin: 8px 0 4px; }
-  p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+  h1 { font-size: 23px; margin: 8px 0 4px; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
 
-  .msg { margin-bottom: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  .msg { margin-bottom: 14px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
 
@@ -60,7 +60,7 @@
   .field label { font-size: 13px; font-weight: 600; color: var(--muted); }
   .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 14.5px; min-width: 140px; }
   .spacer { flex: 1; }
-  .btn { padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+  .btn { padding: 8px 15px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-deep); }
   .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
@@ -280,7 +280,7 @@
       <div class="sidebar-divider"></div>
       <nav class="sidebar-nav" style="padding:0;">
         <a href="./settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
-        <a href="#" id="sidebar-help-link" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
+        <a href="./help.html" id="sidebar-help-link" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
       </nav>
       <div class="sidebar-user" id="sidebar-user">
         <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
@@ -1409,13 +1409,6 @@
         <li>A <strong>player account</strong> never sees "My team" assessments in bulk, even from their own club — that would mean seeing every teammate's evaluation. The one exception: if Settings has linked their account to their roster entry, they can see their own assessment, and only their own.</li>
       </ul>`;
     box.style.display = "block";
-  });
-
-    // El "Help" del menú lateral todavía no tiene su propia sección aquí --
-  // de momento manda al Dashboard, que sí sabe abrir "Contact us" directamente.
-  document.getElementById("sidebar-help-link").addEventListener("click", (e) => {
-    e.preventDefault();
-    window.location.href = "./dashboard.html?openHelp=1";
   });
 
 els.logoutBtn.addEventListener("click", async () => {

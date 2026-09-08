@@ -15,7 +15,7 @@
     --navy: #080026; --navy-hover: #191235; --sidebar-w: 244px;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; font-size: 14px; }
     @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
   @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
   h1, h2, h3, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -50,7 +50,7 @@
   .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .sidebar-user-info { flex: 1; min-width: 0; }
   .sidebar-user-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sidebar-user-role { font-size: 12.5px; color: #848092; }
+  .sidebar-user-role { font-size: 14px; color: #848092; }
   .sidebar-logout-btn { background: none; border: none; color: #848092; cursor: pointer; padding: 5px; flex-shrink: 0; border-radius: 6px; }
   .sidebar-logout-btn:hover { color: #fff; background: #191235; }
   .sidebar-logout-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; display: block; }
@@ -209,7 +209,7 @@
   .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
   .btn-secondary:hover { border-color: var(--accent); }
 
-  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 14.5px; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 14px; margin-bottom: 20px; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
   th { background: var(--paper); font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; }
   tr:last-child td { border-bottom: none; }
@@ -278,7 +278,7 @@
       <div class="sidebar-divider"></div>
       <nav class="sidebar-nav" style="padding:0;">
         <a href="./settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
-        <a href="#" id="sidebar-help-link" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
+        <a href="./help.html" id="sidebar-help-link" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
       </nav>
       <div class="sidebar-user" id="sidebar-user">
         <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
@@ -1760,10 +1760,6 @@
 
   // El "Help" del menú lateral todavía no tiene su propia sección aquí --
   // de momento manda al Dashboard, que sí sabe abrir "Contact us" directamente.
-  document.getElementById("sidebar-help-link").addEventListener("click", (e) => {
-    e.preventDefault();
-    window.location.href = "./dashboard.html?openHelp=1";
-  });
 
   els.logoutBtn.addEventListener("click", async () => {
     await supabaseClient.auth.signOut();
