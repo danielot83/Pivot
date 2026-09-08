@@ -272,6 +272,12 @@
     <p class="sub">Same fields as the desktop app: number, age groups, categories, material, difficulty, tags, objectives, and a 5-step court diagram.
       <a href="#" id="start-new-link" style="margin-left:8px;">+ Start a new exercise</a>
     </p>
+    <!-- Nuevo, a petición de Dani: quién creó el ejercicio -- solo se muestra
+         al abrir uno ya existente (no tiene sentido en uno nuevo, todavía sin
+         guardar). Usa exercises.created_by, que ya existía en la BD (se
+         limpia al duplicar, ver copyToMyLibrary en library.html) -- aquí solo
+         hacía falta mostrarlo. -->
+    <p class="hint" id="ex-created-by" style="display:none; margin:-4px 0 12px;"></p>
     <div class="help-box" id="help-box"></div>
     <div class="msg" id="msg"></div>
 
@@ -292,9 +298,9 @@
              explicando cómo funciona -- igual que antes, solo que ahora se
              entra desde un botón real en vez de un enlace de texto. -->
         <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-primary" id="ai-toggle-btn" style="flex:1; min-width:170px;">🤖 Fill in with AI</button>
-          <button type="button" class="btn btn-primary" id="photo-toggle-btn" style="flex:1; min-width:170px;">📷 Fill in from a photo</button>
-          <button type="button" class="btn btn-primary" id="start-from-toggle-btn" style="flex:1; min-width:170px;">📋 Start from existing exercise</button>
+          <button type="button" class="btn btn-primary" id="ai-toggle-btn" style="flex:1; min-width:170px;">Fill in with AI</button>
+          <button type="button" class="btn btn-primary" id="photo-toggle-btn" style="flex:1; min-width:170px;">Fill in from a photo</button>
+          <button type="button" class="btn btn-primary" id="start-from-toggle-btn" style="flex:1; min-width:170px;">Start from existing exercise</button>
         </div>
 
         <div class="side-card" id="ai-card" style="display:none; margin-bottom:16px;">
@@ -304,7 +310,7 @@
           </div>
           <div id="ai-section" style="margin-top:12px;">
             <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">
-              Copy this template into any AI chat (ChatGPT, Claude…), describe your exercise idea on the last line, then paste its reply below. This never draws the diagram — that stays manual, in the "Court diagram" section below.
+              Copy this template into any AI chat (ChatGPT, Claude…), describe your exercise idea on the last line, then paste its reply below. <strong>This never draws the diagram — that always stays manual</strong>, in the "Court diagram" section below.
             </p>
             <textarea id="ai-block-template" readonly style="width:100%; min-height:120px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12px; font-family:inherit; color:var(--muted); margin-bottom:8px;"></textarea>
             <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
@@ -334,7 +340,7 @@
           </div>
           <div id="photo-section" style="margin-top:12px;">
             <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">
-              Take or upload a photo of a paper exercise sheet, a whiteboard, or your own notes — this reads the text straight into "Description" below, so you don't have to type it out by hand. It only recognizes text: you still fill in Name, Category, Material, etc. yourself, using the photo as reference. Works best with a clear, well-lit, fairly legible sheet.
+              Take or upload a photo of a paper exercise sheet, a whiteboard, or your own notes — this reads the text and dumps it, as one block, straight into "Description" below (it can't tell what order things should go in, or which lines are objectives vs. description). You still fill in Name, Category, Material, etc. by hand, and it never touches the court diagram — draw that yourself, same as always. Works best with a clear, well-lit, fairly legible sheet.
             </p>
             <div class="field" style="max-width:200px; margin-bottom:10px;">
               <label for="photo-lang-select">Text is mostly in</label>
@@ -709,6 +715,7 @@
       <div style="background:var(--card); border-radius:12px; max-width:460px; width:100%; padding:24px 26px; max-height:85vh; overflow-y:auto;">
         <h3 style="margin:0 0 6px; font-size:17px;">Fill in with AI — step by step</h3>
         <p class="hint" style="margin:0 0 14px;">This uses an AI chat you already have (ChatGPT, Claude…) — PlayPivot doesn't send anything anywhere by itself, you copy and paste between the two tabs.</p>
+        <p style="font-size:13.5px; line-height:1.7; margin:0 0 14px;"><strong>It never draws the court diagram</strong> — only the text fields (Name, Category, Objectives, Description…). You draw the diagram yourself, by hand, in the "Court diagram" section below, every time.</p>
         <ol style="margin:0 0 16px; padding-left:20px; line-height:1.8; font-size:13.5px;">
           <li>Click <strong>"📋 Copy this template"</strong> — it's copied to your clipboard.</li>
           <li>Also click <strong>"📎 Copy my last exercise"</strong> and paste it in the chat first, before your idea — it shows the AI a real example of your style. (Skip this if it's your first exercise.)</li>
@@ -795,7 +802,7 @@
         <h3 style="margin:0 0 6px; font-size:17px;">Fill in from a photo — what it actually does</h3>
         <p class="hint" style="margin:0 0 14px;">This is NOT AI — it's plain text recognition (OCR), running on your own device. No account, no setup, no internet service reading your exercises.</p>
         <p style="font-size:13.5px; line-height:1.7; margin:0 0 10px;"><strong>What it does:</strong> reads the letters it can see in the photo and drops that text into "Description" — saves you typing it out by hand.</p>
-        <p style="font-size:13.5px; line-height:1.7; margin:0 0 14px;"><strong>What it doesn't do:</strong> it doesn't understand what an exercise is. It won't pick the right Category, Material, Age group or Difficulty for you, and it won't separate "objectives" from "description" — those you still fill in yourself, using the photo and the recognized text as reference.</p>
+        <p style="font-size:13.5px; line-height:1.7; margin:0 0 14px;"><strong>What it doesn't do:</strong> it doesn't understand what an exercise is. It can't tell what order things should go in, so everything lands in "Description" as one unsorted block, exactly as it read it off the photo — it won't separate "objectives" from "description", won't pick Category, Material, Age group or Difficulty for you, and it never touches the court diagram. All of that you still do by hand, using the photo and the recognized text as reference.</p>
         <p style="font-size:13.5px; line-height:1.7; margin:0 0 16px;"><strong>Tips for a better read:</strong> good light, the sheet held flat and filling the frame, and fairly neat handwriting (or printed text) all make a real difference. Very messy handwriting may come out garbled — that's the technology's limit, not a bug.</p>
         <p class="hint" style="margin:0 0 16px;">You can reopen this anytime with "❔ What this does", next to "Fill in from a photo".</p>
         <button class="btn btn-primary" id="photo-guide-close-btn" style="width:100%;">Got it</button>
@@ -1160,6 +1167,8 @@
     return currentOrgId;
   }
 
+  let creatorNames = {}; // user_id -> full_name, para "Created by" (ver openExercise)
+
   async function loadExercises() {
     // Las 2 consultas no dependen una de otra -- se lanzan a la vez
     // (Promise.all) en vez de una detrás de otra.
@@ -1173,6 +1182,16 @@
 
     myFavoriteIds = new Set((favRows || []).map((r) => r.exercise_id));
     if (currentExId) els.favorite.checked = myFavoriteIds.has(currentExId);
+
+    // "Created by" -- consulta aparte (no un join embebido de PostgREST)
+    // porque no hay garantía de que exercises.created_by tenga una relación
+    // de clave foránea declarada hacia profiles; esto funciona siempre.
+    const creatorIds = Array.from(new Set(allExercises.map((e) => e.created_by).filter(Boolean)));
+    if (creatorIds.length > 0) {
+      const { data: creators } = await supabaseClient.from("profiles").select("id, full_name").in("id", creatorIds);
+      creatorNames = {};
+      (creators || []).forEach((p) => { creatorNames[p.id] = p.full_name; });
+    }
   }
 
   function resetForm() {
@@ -1209,6 +1228,7 @@
     [els.number, els.name, els.difficulty, els.favorite, els.tags, els.objectives, els.description, els.variants, els.language, els.visibility]
       .forEach((el) => (el.disabled = false));
     resetPdfPreview();
+    document.getElementById("ex-created-by").style.display = "none";
   }
 
   function openExercise(id) {
@@ -1223,6 +1243,10 @@
     els.description.value = e.description || ""; els.variants.value = e.variants || "";
     els.visibility.value = e.visibility || "team";
     els.language.value = e.language || "en";
+    const createdByEl = document.getElementById("ex-created-by");
+    const creatorName = e.created_by ? creatorNames[e.created_by] : null;
+    if (creatorName) { createdByEl.textContent = `Created by ${creatorName}`; createdByEl.style.display = "block"; }
+    else { createdByEl.style.display = "none"; }
     setCheckedValues("age", e.age); setCheckedValues("categories", e.categories); setCheckedValues("material", e.material);
     diagram = e.diagram || {};
     currentStep = "court_1";
@@ -1690,19 +1714,20 @@
       <strong>How to use Create exercise</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
         <li>This page always shows a ready-to-fill exercise — the "Number" field at the top is assigned automatically the moment you land here, and it never changes no matter which of the 3 buttons below you use. No need to click anything first.</li>
-        <li><strong>How to use "🤖 Fill in with AI", step by step:</strong>
+        <li><strong>How to use "Fill in with AI", step by step:</strong>
           <ol style="margin:6px 0 0; padding-left:18px; line-height:1.7;">
-            <li>Click the "🤖 Fill in with AI" button to open the section.</li>
+            <li>Click the "Fill in with AI" button to open the section.</li>
             <li>Click "📋 Copy this template" — it's copied to your clipboard.</li>
             <li>Open any AI chat (ChatGPT, Claude…) in another tab, paste the template, and replace the very last line ("The exercise is about: …") with your own idea.</li>
             <li>Send it. If your idea was vague, the AI will ask you questions first — answer them in that same chat.</li>
             <li>Once the AI gives you the final sheet, copy its whole reply and paste it into the box on this page.</li>
-            <li>Click "Fill from AI reply" — the form fills in below. Review everything, draw the diagram yourself (the AI never touches that), then Save.</li>
+            <li>Click "Fill from AI reply" — the form fills in below. Review everything, <strong>draw the diagram yourself</strong> (the AI never touches that), then Save.</li>
           </ol>
         </li>
         <li><strong>"📎 Copy my last exercise"</strong> — before describing a new idea to the AI, paste this in the chat first. It shows the AI a real exercise you already made, so it keeps the same style.</li>
-        <li><strong>"📷 Fill in from a photo"</strong> — take or upload a photo of a paper sheet, whiteboard, or notes; it reads the text straight into "Description" so you don't have to type it out. This just recognizes letters, it doesn't understand the exercise — you still pick Name, Category, Material, etc. yourself, using the photo as reference. Runs entirely on your device (nothing sent anywhere), so it works even without setting anything up.</li>
-        <li><strong>"📋 Start from existing exercise"</strong> (also at the top) — pick one from the dropdown and "Use as starting point": copies everything, including the diagram, into this new exercise. The original is untouched.</li>
+        <li><strong>"Fill in from a photo"</strong> — take or upload a photo of a paper sheet, whiteboard, or notes; it reads the text and drops it all into "Description" as one block, in whatever order it read it (it doesn't know how to reorganize it). This just recognizes letters, it doesn't understand the exercise — you still pick Name, Category, Material, etc. yourself, and <strong>draw the diagram by hand</strong>, using the photo as reference. Runs entirely on your device (nothing sent anywhere), so it works even without setting anything up.</li>
+        <li><strong>"Start from existing exercise"</strong> (also at the top) — pick one from the dropdown and "Use as starting point": copies everything, including the diagram, into this new exercise. The original is untouched.</li>
+        <li>Every one of the 3 buttons above shows a short explainer the first time anyone at your club clicks it — reopen any of them anytime with the "❔" link next to it.</li>
         <li>Placing a player or defender on the diagram numbers them automatically (1, 2, 3…) — attack and defense count separately, same as Play design. Double-click one to change its label by hand.</li>
         <li>Anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.</li>
         <li><strong>Court diagram section</strong> — 5 steps (3 half-court, 1 vertical, 1 full horizontal). Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
