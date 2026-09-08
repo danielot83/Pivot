@@ -393,6 +393,14 @@
       <div class="match-detail-col">
         <div class="team-bar-card">
           <p class="tsc-step-label">General info</p>
+          <!-- Nuevo, a petición de Dani: sitio para anotar algo como "Final",
+               "Semifinal", "Cuartos"... (un torneo) o cualquier otra nota
+               corta sobre el partido. Texto libre, no un desplegable -- cada
+               torneo llama a sus fases de forma distinta. -->
+          <div class="field" style="max-width:280px; margin-bottom:12px;">
+            <label for="match-comments">Comments</label>
+            <input id="match-comments" type="text" placeholder="e.g. Final, Semifinal, Friendly…" />
+          </div>
           <div class="toolbar">
             <div class="field"><label for="match-date">Date</label><input id="match-date" type="date" /></div>
             <div class="field"><label for="match-opponent">Opponent</label><input id="match-opponent" type="text" /></div>
@@ -406,7 +414,13 @@
             <div class="field"><label for="match-coach">Coach</label><input id="match-coach" type="text" style="width:150px;" /></div>
             <div class="field"><label for="match-team-score">Score (us)</label><input id="match-team-score" type="number" style="width:70px;" /></div>
             <div class="field"><label for="match-opponent-score">Score (them)</label><input id="match-opponent-score" type="number" style="width:70px;" /></div>
-            <div class="field"><label for="match-visibility">Who can see it?</label>
+            <!-- Oculto a petición de Dani: "creo que debería estar en Settings,
+                 solo" -- de momento se queda escondido con su valor "team" de
+                 siempre (mismo comportamiento de antes, nada cambia para nadie
+                 que ya tuviera partidos guardados). Si Dani quiere de verdad un
+                 valor por defecto configurable por club en Settings, es un
+                 paso aparte, todavía no pedido en firme. -->
+            <div class="field" style="display:none;"><label for="match-visibility">Who can see it?</label>
               <select id="match-visibility">
                 <option value="private">🔒 Only me</option>
                 <option value="team">👥 My team</option>
@@ -429,14 +443,14 @@
               </select>
             </div>
           </div>
-          <div class="toolbar" style="margin-top:8px;">
-            <button class="btn btn-secondary" id="import-stats-btn">Import stats from Excel</button>
-            <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
-          </div>
+          <!-- "Import stats from Excel" en la misma línea que los demás botones,
+               a petición de Dani (antes tenía su propia fila aparte). -->
           <div class="toolbar" style="margin-top:16px;">
             <button class="btn btn-primary" id="save-match-btn">Save match details</button>
             <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
             <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
+            <button class="btn btn-secondary" id="import-stats-btn">Import stats from Excel</button>
+            <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
             <div class="spacer"></div>
             <button class="btn btn-secondary" id="delete-match-btn" style="display:none; color:#991b1b;">Delete this match</button>
           </div>
@@ -516,6 +530,19 @@
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   function escapeHtml(str) { return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
+  // La BD guarda la fecha en formato ISO (YYYY-MM-DD) -- correcto para
+  // guardar/ordenar, pero confuso de leer tal cual en una lista ("los
+  // numeritos no están en el formato correcto", a petición de Dani). El
+  // campo <input type="date"> no se toca (el navegador ya lo muestra bien
+  // solo) -- esto es solo para las listas de solo lectura: DD.MM.YYYY.
+  function formatDateDisplay(iso) {
+    if (!iso) return "";
+    const parts = String(iso).split("-");
+    if (parts.length !== 3) return iso;
+    const [y, m, d] = parts;
+    return `${d}.${m}.${y}`;
+  }
+
   const els = {
     orgName: document.getElementById("org-name-big"),
     orgLogo: document.getElementById("org-logo-big"),
@@ -529,6 +556,7 @@
     matchDate: document.getElementById("match-date"),
     matchOpponent: document.getElementById("match-opponent"),
     matchLocation: document.getElementById("match-location"),
+    matchComments: document.getElementById("match-comments"),
     matchHomeAway: document.getElementById("match-home-away"),
     matchNumber: document.getElementById("match-number"),
     matchReferee: document.getElementById("match-referee"),
@@ -1050,7 +1078,7 @@
 
   async function loadMatchesList() {
     const { data, error } = await supabaseClient
-      .from("matches").select("id, date, opponent, location, team_score, opponent_score, visibility, organization_id, season, team, team_category, team_gender")
+      .from("matches").select("id, date, opponent, location, comments, team_score, opponent_score, visibility, organization_id, season, team, team_category, team_gender")
       .order("date", { ascending: false });
     if (error) { console.error(error); return; }
     const mine = (data || []).filter((m) => m.organization_id === currentOrgId && m.season === currentSeason && m.team === currentTeam && (m.team_category || "") === (currentTeamCategory || "") && (m.team_gender || "") === (currentTeamGender || ""));
@@ -1069,8 +1097,8 @@
       row.dataset.matchId = m.id;
       const score = (m.team_score != null && m.opponent_score != null) ? `${m.team_score} – ${m.opponent_score}` : "—";
       row.innerHTML = `
-        <td>${m.date}</td>
-        <td>${m.opponent ? "vs " + escapeHtml(m.opponent) : "No opponent set"}${isShared ? ' <span class="hint" style="font-size:11px;">· shared by another club</span>' : ""}</td>
+        <td>${formatDateDisplay(m.date)}</td>
+        <td>${m.opponent ? "vs " + escapeHtml(m.opponent) : "No opponent set"}${m.comments ? ` <span class="hint" style="font-size:11px;">· ${escapeHtml(m.comments)}</span>` : ""}${isShared ? ' <span class="hint" style="font-size:11px;">· shared by another club</span>' : ""}</td>
         <td>${m.location ? "📍 " + escapeHtml(m.location) : '<span class="hint">—</span>'}</td>
         <td>${matchResultBadge(m)}</td>
         <td class="match-score-cell">${score}</td>
@@ -1119,6 +1147,7 @@
     els.matchDate.value = new Date().toISOString().slice(0, 10);
     els.matchOpponent.value = "";
     els.matchLocation.value = "";
+    els.matchComments.value = "";
     els.matchHomeAway.value = "home";
     els.matchNumber.value = "";
     els.matchReferee.value = "";
@@ -1138,7 +1167,7 @@
     els.matchArea.scrollIntoView({ behavior: "smooth", block: "nearest" });
     document.getElementById("save-match-btn").style.display = "inline-block";
     document.getElementById("delete-match-btn").style.display = "none";
-    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchNumber, els.matchReferee, els.matchCoach, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
+    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchComments, els.matchHomeAway, els.matchNumber, els.matchReferee, els.matchCoach, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
       .forEach((el) => (el.disabled = false));
   }
 
@@ -1150,6 +1179,7 @@
     els.matchDate.value = match.date;
     els.matchOpponent.value = match.opponent || "";
     els.matchLocation.value = match.location || "";
+    els.matchComments.value = match.comments || "";
     els.matchHomeAway.value = match.home_away || "home";
     els.matchNumber.value = match.match_number ?? "";
     els.matchReferee.value = match.referee || "";
@@ -1183,7 +1213,7 @@
     document.getElementById("save-match-btn").style.display = owned ? "inline-block" : "none";
     document.getElementById("delete-match-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     document.getElementById("add-opponent-row-btn").style.display = owned ? "inline-block" : "none";
-    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchHomeAway, els.matchNumber, els.matchReferee, els.matchCoach, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
+    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchComments, els.matchHomeAway, els.matchNumber, els.matchReferee, els.matchCoach, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
       .forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This match belongs to another club — you can look, but not edit or save changes.", "success");
     await loadMatchesList();
@@ -1364,7 +1394,7 @@
           <h3 style="margin:0 0 4px; font-size:17px;">Which match is this for?</h3>
           <p style="margin:0 0 12px; font-size:14px; font-weight:600; color:var(--accent-deep);">${itemCount} player row${itemCount === 1 ? "" : "s"} found in that file — matched by name against ${currentTeam}'s roster.</p>
           <select id="match-target-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px;">
-            ${matches.map((m) => `<option value="${m.id}">${m.date}${m.opponent ? " — vs " + escapeHtml(m.opponent) : ""}</option>`).join("")}
+            ${matches.map((m) => `<option value="${m.id}">${formatDateDisplay(m.date)}${m.opponent ? " — vs " + escapeHtml(m.opponent) : ""}</option>`).join("")}
           </select>
           <div style="display:flex; gap:8px; justify-content:flex-end;">
             <button id="match-target-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
@@ -1519,7 +1549,7 @@
     const payload = {
       organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null, team_gender: currentTeamGender || null,
       date: els.matchDate.value, opponent: els.matchOpponent.value.trim() || null,
-      location: els.matchLocation.value.trim() || null, home_away: els.matchHomeAway.value,
+      location: els.matchLocation.value.trim() || null, comments: els.matchComments.value.trim() || null, home_away: els.matchHomeAway.value,
       match_number: els.matchNumber.value ? parseInt(els.matchNumber.value, 10) : null,
       referee: els.matchReferee.value.trim() || null,
       coach: els.matchCoach.value.trim() || null,
@@ -1648,7 +1678,7 @@
     y += 16;
     doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(...muted);
     const opponentLabel = els.matchOpponent.value ? `vs ${els.matchOpponent.value}` : "vs ?";
-    const dateLabel = els.matchDate.value || "date TBD";
+    const dateLabel = els.matchDate.value ? formatDateDisplay(els.matchDate.value) : "date TBD";
     doc.text(`${blank ? "Match sheet (blank)" : "Match day"} — ${currentTeam} ${opponentLabel} (${dateLabel})`, marginX, y);
     y += 8;
     doc.setDrawColor(...accent); doc.setLineWidth(1);
@@ -1718,13 +1748,12 @@
       </ol>
       <p style="margin:10px 0 4px; font-weight:600;">5. Match details</p>
       <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
-        <li><strong>General info</strong> — date, opponent, location, home/away, match number, referee, coach, score, who can see it, language. Fill in what you have, "Save match details" when ready.</li>
+        <li><strong>General info</strong> — date, opponent, location, home/away, match number, referee, coach, score. Use <strong>Comments</strong> for a short note like "Final", "Semifinal", or "Friendly" — handy for tournaments; it also shows next to the match in the list above. Fill in what you have, "Save match details" when ready.</li>
         <li><strong>Call-up &amp; stats</strong> — tick <strong>"Called up"</strong> for who's on the roster for this match, and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
         <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole team.</li>
-        <li><strong>"Import stats from Excel"</strong> reads a file (name, minutes/points/rebounds/assists/fouls, and your own custom stat columns — recognized automatically by name), matches names against this team's roster, then asks which match to save it to.</li>
+        <li><strong>"Import stats from Excel"</strong>, next to "Save match details", reads a file (name, minutes/points/rebounds/assists/fouls, and your own custom stat columns — recognized automatically by name), matches names against this team's roster, then asks which match to save it to.</li>
         <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
         <li><strong>"Print blank sheet"</strong> — an empty box score with your columns, ready to fill in by hand during the game.</li>
-        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association, or 🌐 every club on PlayPivot. Match reports contain real player stats, so think before sharing beyond your team.</li>
       </ol>`;
     box.style.display = "block";
   });

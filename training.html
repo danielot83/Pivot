@@ -620,6 +620,18 @@
   const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
   function escapeHtml(str) { return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
+  // Mismo arreglo que en Match day (misma ronda, misma queja de fondo): la
+  // BD guarda la fecha en ISO (YYYY-MM-DD), pero en una lista de solo
+  // lectura se lee mejor como DD.MM.YYYY. El <input type="date"> de arriba
+  // no se toca -- esto es solo para la tabla de sesiones.
+  function formatDateDisplay(iso) {
+    if (!iso) return "";
+    const parts = String(iso).split("-");
+    if (parts.length !== 3) return iso;
+    const [y, m, d] = parts;
+    return `${d}.${m}.${y}`;
+  }
+
   const els = {
     orgName: document.getElementById("org-name-big"),
     orgLogo: document.getElementById("org-logo-big"),
@@ -1319,7 +1331,7 @@
       row.className = t.id === currentTrainingId ? "row-selected" : "";
       row.dataset.trainingId = t.id;
       row.innerHTML = `
-        <td>${VISIBILITY_ICONS[t.visibility || "team"] || ""} ${t.date}</td>
+        <td>${VISIBILITY_ICONS[t.visibility || "team"] || ""} ${formatDateDisplay(t.date)}</td>
         <td>${t.title ? escapeHtml(t.title) : "—"}${isShared ? ' <span class="hint" style="font-size:11px;">· shared by another club</span>' : ""}</td>
         <td>${t.number || "—"}</td>
       `;
@@ -1657,7 +1669,7 @@
 
     const fieldY = 92, fieldLineY = 116;
     const fields = [
-      ["Date", sess.date || ""],
+      ["Date", sess.date ? formatDateDisplay(sess.date) : ""],
       ["Session #", sess.number || ""],
       ["Category", sess.category || ""],
       ["Duration", sess.planned_minutes ? `${sess.planned_minutes} min` : ""],
