@@ -85,6 +85,10 @@
   .list-row .stars { color: var(--accent); font-size: 11px; white-space: nowrap; }
   .list-row .usage { font-size: 10.5px; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 1px 8px; white-space: nowrap; }
   .lang-badge-slot { flex: 0 0 auto; display: flex; gap: 3px; }
+  .bulk-bar { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px; }
+  .bulk-bar #bulk-count { font-weight: 600; }
+  .list-row .row-select { flex: 0 0 auto; width: 16px; height: 16px; margin-right: 2px; }
+  .list-row .row-select-spacer { flex: 0 0 auto; width: 18px; }
   .lang-pill-single { font-size: 10px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 2px 7px; }
   .lang-cycle-btn { font-size: 10px; font-weight: 700; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 2px 7px; cursor: pointer; }
   .lang-cycle-btn.active { color: #fff; background: var(--accent); border-color: var(--accent); }
@@ -323,6 +327,16 @@
     <div class="toolbar">
       <a class="btn btn-primary" href="./exercises.html" style="text-decoration:none;">+ New exercise</a>
       <button class="btn btn-secondary" id="random-btn">🎲 Pick at random</button>
+      <button class="btn btn-secondary" id="select-mode-btn">Select multiple…</button>
+    </div>
+    <!-- Barra de borrado en lote -- pensada para "quiero dejar solo los que
+         he hecho yo": filtras (p.ej. Language = English), "Select all
+         visible" y "Delete selected". Solo aparecen casillas en los
+         ejercicios que ya podrías borrar uno a uno (tu club, tu rol). -->
+    <div class="bulk-bar" id="bulk-bar" style="display:none;">
+      <label class="checkbox-field" style="margin:0;"><input type="checkbox" id="select-all-visible" /><span id="bulk-count">0 selected</span></label>
+      <button class="btn btn-secondary" id="bulk-delete-btn" style="color:#991b1b;" disabled>Delete selected</button>
+      <button class="btn btn-secondary" id="bulk-cancel-btn">Cancel</button>
     </div>
     <div class="list-card" id="list-card"></div>
     <div class="empty-state" id="list-empty" style="display:none">No exercise matches the current filters.</div>
@@ -395,6 +409,8 @@
   let usageCounts = {}; // exercise_id -> nombre de séances où il apparaît
   let myFavoriteIds = new Set(); // ids favoritos DE ESTE usuario (exercise_favorites), no la vieja columna compartida
   let selectedId = null;
+  let bulkSelectMode = false; // "Select multiple…" activado
+  let bulkSelected = new Set(); // ids marcados para borrar en lote
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
 
@@ -620,6 +636,7 @@
     displayList.forEach(({ shown: e, groupInFiltered }) => {
       const row = document.createElement("div");
       row.className = "list-row" + (e.id === selectedId ? " active" : "");
+      const deletable = e.organization_id === currentOrgId && canDelete();
       const used = usageCounts[e.id] || 0;
       const usedTxt = used === 0 ? "never used" : `${used}×`;
       const langCode = (e.language || "en").toUpperCase();
@@ -640,6 +657,7 @@
       const ageText = (e.age || []).join(", ");
       const objText = (e.objectives || []).slice(0, 2).join(" · ");
       row.innerHTML = `
+        ${bulkSelectMode ? (deletable ? `<input type="checkbox" class="row-select" data-id="${e.id}"${bulkSelected.has(e.id) ? " checked" : ""} />` : `<span class="row-select-spacer"></span>`) : ""}
         <div>
           <div class="name">${myFavoriteIds.has(e.id) ? "★ " : ""}${(e.number && e.organization_id === currentOrgId) ? e.number + ". " : ""}${escapeHtml(e.name)}</div>
           <div class="meta">${catIcons ? `<span class="category-icon">${catIcons}</span>` : ""}${escapeHtml((e.categories || []).join(", "))}${ageText ? ` · ${escapeHtml(ageText)}` : ""}</div>
@@ -652,17 +670,93 @@
         </div>
       `;
       row.querySelector(".lang-badge-slot").innerHTML = langBadge;
-      row.addEventListener("click", () => selectExercise(e.id));
-      row.querySelectorAll(".lang-cycle-btn").forEach((btn) => {
-        btn.addEventListener("click", (ev) => {
-          ev.stopPropagation();
-          selectExercise(btn.dataset.id);
+      if (bulkSelectMode) {
+        // En modo selección, clicar la fila marca/desmarca en vez de abrir
+        // el detalle -- salvo si no es tuya (no hay casilla, solo el hueco).
+        row.addEventListener("click", (ev) => {
+          if (ev.target.classList.contains("row-select")) return; // el propio checkbox ya lo gestiona su listener
+          if (!deletable) return;
+          toggleBulkSelected(e.id);
         });
-      });
+        const cb = row.querySelector(".row-select");
+        if (cb) cb.addEventListener("click", (ev) => { ev.stopPropagation(); toggleBulkSelected(e.id); });
+      } else {
+        row.addEventListener("click", () => selectExercise(e.id));
+        row.querySelectorAll(".lang-cycle-btn").forEach((btn) => {
+          btn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            selectExercise(btn.dataset.id);
+          });
+        });
+      }
       els.listCard.appendChild(row);
     });
+    updateBulkBar();
     return filtered;
   }
+
+  // -----------------------------------------------------------------------
+  // Borrado en lote -- "Select multiple…". Solo se pueden marcar ejercicios
+  // que ya se podrían borrar uno a uno (tu club, tu rol de admin/coach);
+  // el resto se ve con un hueco en vez de casilla, para que no parezca que
+  // faltan por cargar. La selección persiste al cambiar de filtro (para
+  // poder filtrar por idioma, marcar, cambiar de filtro y marcar más antes
+  // de borrar todo junto), pero se limpia al salir del modo selección.
+  // -----------------------------------------------------------------------
+  function toggleBulkSelected(id) {
+    if (bulkSelected.has(id)) bulkSelected.delete(id); else bulkSelected.add(id);
+    refresh();
+  }
+
+  function updateBulkBar() {
+    const bar = document.getElementById("bulk-bar");
+    const selectBtn = document.getElementById("select-mode-btn");
+    if (!bar) return;
+    bar.style.display = bulkSelectMode ? "flex" : "none";
+    selectBtn.textContent = bulkSelectMode ? "Exit select mode" : "Select multiple…";
+    document.getElementById("bulk-count").textContent = `${bulkSelected.size} selected`;
+    document.getElementById("bulk-delete-btn").disabled = bulkSelected.size === 0;
+    const visibleDeletableIds = Array.from(document.querySelectorAll(".row-select")).map((cb) => cb.dataset.id);
+    const allVisibleChecked = visibleDeletableIds.length > 0 && visibleDeletableIds.every((id) => bulkSelected.has(id));
+    const selectAllCb = document.getElementById("select-all-visible");
+    if (selectAllCb) selectAllCb.checked = allVisibleChecked;
+  }
+
+  document.getElementById("select-mode-btn").addEventListener("click", () => {
+    bulkSelectMode = !bulkSelectMode;
+    if (!bulkSelectMode) bulkSelected.clear();
+    refresh();
+  });
+
+  document.getElementById("bulk-cancel-btn").addEventListener("click", () => {
+    bulkSelectMode = false;
+    bulkSelected.clear();
+    refresh();
+  });
+
+  document.getElementById("select-all-visible").addEventListener("change", (ev) => {
+    const visibleDeletableIds = Array.from(document.querySelectorAll(".row-select")).map((cb) => cb.dataset.id);
+    if (ev.target.checked) visibleDeletableIds.forEach((id) => bulkSelected.add(id));
+    else visibleDeletableIds.forEach((id) => bulkSelected.delete(id));
+    refresh();
+  });
+
+  document.getElementById("bulk-delete-btn").addEventListener("click", async () => {
+    const ids = Array.from(bulkSelected);
+    if (ids.length === 0) return;
+    if (!confirm(`Delete ${ids.length} exercise${ids.length === 1 ? "" : "s"}? This can't be undone.`)) return;
+    const btn = document.getElementById("bulk-delete-btn");
+    btn.disabled = true; btn.textContent = "Deleting…";
+    const { error } = await supabaseClient.from("exercises").delete().in("id", ids);
+    btn.textContent = "Delete selected";
+    if (error) { showMessage(error.message, "error"); btn.disabled = bulkSelected.size === 0; return; }
+    bulkSelected.clear();
+    bulkSelectMode = false;
+    selectedId = null;
+    await loadExercises();
+    renderDetail(null);
+    showMessage(`Deleted ${ids.length} exercise${ids.length === 1 ? "" : "s"}.`, "success");
+  });
 
   // -----------------------------------------------------------------------
   // Un ejercicio compartido puede venir de OTRO club -- su nombre,
@@ -1182,6 +1276,13 @@
     } else {
       document.getElementById("help-box-inline").remove();
     }
+  });
+
+  // El "Help" del menú lateral todavía no tiene su propia sección aquí --
+  // de momento manda al Dashboard, que sí sabe abrir "Contact us" directamente.
+  document.getElementById("sidebar-help-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    window.location.href = "./dashboard.html?openHelp=1";
   });
 
   els.logoutBtn.addEventListener("click", async () => {

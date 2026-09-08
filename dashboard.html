@@ -2256,7 +2256,17 @@
     els.msg.style.display = "block";
    }
   }
-  init();
+  init().then(() => {
+    // El link "Help" del menú lateral, en las demás páginas (Exercise
+    // creator, Library, Match day...), todavía no tiene su propia sección
+    // de ayuda -- de momento manda aquí con ?openHelp=1 y esto abre
+    // directamente "Contact us", para que el link haga algo útil mientras
+    // se construye esa sección más adelante.
+    if (new URLSearchParams(location.search).get("openHelp") === "1") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      showComposeToSupport();
+    }
+  });
 </script>
 
 </body>

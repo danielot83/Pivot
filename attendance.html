@@ -869,7 +869,14 @@
     box.style.display = "block";
   });
 
-  document.getElementById("logout-btn").addEventListener("click", async () => {
+    // El "Help" del menú lateral todavía no tiene su propia sección aquí --
+  // de momento manda al Dashboard, que sí sabe abrir "Contact us" directamente.
+  document.getElementById("sidebar-help-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    window.location.href = "./dashboard.html?openHelp=1";
+  });
+
+document.getElementById("logout-btn").addEventListener("click", async () => {
     await supabaseClient.auth.signOut();
     window.location.href = "./login.html";
   });
