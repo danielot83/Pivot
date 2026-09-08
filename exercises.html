@@ -31,6 +31,15 @@
 
   h1 { font-size: 23px; margin: 0 0 4px; display:flex; align-items:center; justify-content:space-between; }
   p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+  /* Faltaba esta regla -- ".hint" se usaba 12 veces en esta página (los
+     textos explicativos de "Fill in with AI"/"Fill in from a photo"/
+     "Start from existing exercise", entre otros) pero nunca tuvo un tamaño
+     de letra propio, así que cada uno caía en el tamaño por defecto del
+     navegador (~16px) salvo que alguien le pusiera un font-size a mano --
+     de ahí que unos textos se vieran más grandes que otros sin motivo. A
+     petición de Dani ("no tienen el mismo formato"). Mismo valor que usan
+     match.html/roster.html/attendance.html/play_design.html para ".hint". */
+  .hint { font-size: 14px; color: var(--muted); }
   .msg { margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
@@ -269,8 +278,8 @@
       Create exercise
       <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
     </h1>
-    <p class="sub">Same fields as the desktop app: number, age groups, categories, material, difficulty, tags, objectives, and a 5-step court diagram.
-      <a href="#" id="start-new-link" style="margin-left:8px;">+ Start a new exercise</a>
+    <p class="sub">
+      <a href="#" id="start-new-link">+ Start a new exercise</a>
     </p>
     <!-- Nuevo, a petición de Dani: quién creó el ejercicio -- solo se muestra
          al abrir uno ya existente (no tiene sentido en uno nuevo, todavía sin
@@ -1317,6 +1326,12 @@
         payload.version = (existing && existing.version ? existing.version : 1) + 1;
         ({ error } = await supabaseClient.from("exercises").update(payload).eq("id", currentExId));
       } else {
+        // "Created by" (a petición de Dani, sección "¿dónde se ve?") --
+        // faltaba esto: el insert nunca guardaba quién lo creó, así que el
+        // campo nunca tenía nada que mostrar. Solo se pone al CREAR, nunca
+        // al editar -- así el autor original no cambia si otra persona del
+        // club edita el ejercicio después.
+        payload.created_by = currentUserId;
         const { data, error: insErr } = await supabaseClient.from("exercises").insert(payload).select("id, translation_group_id").single();
         error = insErr;
         if (!error) { currentExId = data.id; currentTranslationGroupId = data.translation_group_id; }

@@ -36,6 +36,13 @@
 
   h1 { font-size: 22px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
   p.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+  /* Mismo arreglo que en exercises.html (misma ronda): ".hint" se usaba
+     aquí también sin tener nunca un tamaño de letra propio -- la mayoría
+     de sitios ya le ponían uno a mano, pero no todos (p.ej. el contador
+     "(N of M)" de "Add from library"), así que quedaban inconsistentes
+     entre sí. Esto es solo una base -- donde ya había un font-size puesto
+     a mano, ese sigue mandando (más específico que la clase). */
+  .hint { font-size: 14px; color: var(--muted); }
   .msg { margin-bottom: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 600; display: none; border-left: 4px solid transparent; }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }

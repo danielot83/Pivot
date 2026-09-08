@@ -571,16 +571,38 @@
     // "Hello" (même exercice, deux langues) apparaissaient comme deux
     // lignes séparées avec le même numéro. Maintenant, une seule ligne,
     // avec un petit bouton pour choisir quelle langue elle affiche.
+    //
+    // Además (a petición de Dani: "a veces hay dos veces en inglés, eso no
+    // puede ser") -- dos ejercicios creados por SEPARADO en tu propio club,
+    // con el mismo nombre y el mismo idioma, sin translation_group_id que
+    // los conecte, ahora también se agrupan igual que una traducción real
+    // (mismo mecanismo, misma fila, botones para alternar entre las
+    // copias). Deliberadamente NO se hace esto entre clubes distintos --
+    // dos clubes con un ejercicio del mismo nombre es pura coincidencia,
+    // fusionarlos ahí sí sería un error.
     const seenGroups = new Set();
+    const seenDupKeys = new Set();
     const displayList = [];
     filtered.forEach((e) => {
       const gid = e.translation_group_id;
-      if (!gid) { displayList.push({ shown: e, groupInFiltered: [e] }); return; }
-      if (seenGroups.has(gid)) return;
-      seenGroups.add(gid);
-      const groupInFiltered = filtered.filter((f) => f.translation_group_id === gid);
-      const shown = groupInFiltered.find((g) => g.id === selectedId) || groupInFiltered.find((g) => g.language === "en") || groupInFiltered[0];
-      displayList.push({ shown, groupInFiltered });
+      if (gid) {
+        if (seenGroups.has(gid)) return;
+        seenGroups.add(gid);
+        const groupInFiltered = filtered.filter((f) => f.translation_group_id === gid);
+        const shown = groupInFiltered.find((g) => g.id === selectedId) || groupInFiltered.find((g) => g.language === "en") || groupInFiltered[0];
+        displayList.push({ shown, groupInFiltered });
+        return;
+      }
+      const dupKey = `${e.organization_id}|${(e.name || "").trim().toLowerCase()}|${e.language || "en"}`;
+      const dupGroup = filtered.filter((f) => !f.translation_group_id && f.organization_id === e.organization_id && (f.name || "").trim().toLowerCase() === (e.name || "").trim().toLowerCase() && (f.language || "en") === (e.language || "en"));
+      if (dupGroup.length > 1) {
+        if (seenDupKeys.has(dupKey)) return;
+        seenDupKeys.add(dupKey);
+        const shown = dupGroup.find((g) => g.id === selectedId) || dupGroup[0];
+        displayList.push({ shown, groupInFiltered: dupGroup });
+        return;
+      }
+      displayList.push({ shown: e, groupInFiltered: [e] });
     });
 
     // Orden por defecto: alfabético, con TUS propios favoritos primero
@@ -601,8 +623,18 @@
       const used = usageCounts[e.id] || 0;
       const usedTxt = used === 0 ? "never used" : `${used}×`;
       const langCode = (e.language || "en").toUpperCase();
+      // Si dos del grupo comparten idioma (el caso nuevo de "duplicados sin
+      // conectar", ver refresh() arriba) el código de idioma solo no basta
+      // para diferenciar los botones -- se numeran (EN 1 / EN 2) solo en
+      // ese caso; una traducción real (idiomas distintos) se ve igual que
+      // siempre.
       const langBadge = groupInFiltered.length > 1
-        ? groupInFiltered.map((g) => `<button class="lang-cycle-btn${g.id === e.id ? " active" : ""}" data-id="${g.id}">${(g.language || "en").toUpperCase()}</button>`).join("")
+        ? groupInFiltered.map((g) => {
+            const gLang = (g.language || "en").toUpperCase();
+            const sameLang = groupInFiltered.filter((x) => (x.language || "en").toUpperCase() === gLang);
+            const label = sameLang.length > 1 ? `${gLang} ${sameLang.indexOf(g) + 1}` : gLang;
+            return `<button class="lang-cycle-btn${g.id === e.id ? " active" : ""}" data-id="${g.id}">${label}</button>`;
+          }).join("")
         : `<span class="lang-pill-single">${langCode}</span>`;
       const catIcons = (e.categories || []).map((c) => CATEGORY_ICONS[c] || "").filter(Boolean).join(" ");
       const ageText = (e.age || []).join(", ");
