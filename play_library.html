@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/x-icon" href="./favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PlayPivot | Play Library</title>
+<meta name="description" content="Browse every play saved across your club — your own, your teammates', and shared by other clubs — filtered by team, playbook, language, and who made it." />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #ec6718; --accent-deep: #b85012; --accent-tint: #fdefe7;
+    --navy: #080026; --navy-hover: #191235; --sidebar-w: 244px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; font-size: 14px; }
+  @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+  h1, h2, h3, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  a { color: inherit; }
+
+  .layout { display: flex; flex-direction: column; gap: 20px; max-width: 1080px; margin: 0 auto; padding: 24px; }
+  .filters-row { display: flex; flex-wrap: wrap; gap: 16px 22px; align-items: flex-end; }
+  .filters-row .field { margin-bottom: 0; }
+  .filters-row .reset-btn { width: auto; padding: 8px 16px; align-self: center; }
+
+  h1 { font-size: 23px; margin: 0 0 4px; display:flex; align-items:center; justify-content:space-between; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+  .msg { margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
+  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 14px; color: var(--ink); margin-bottom: 12px; }
+
+  .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .field label, .field-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 14.5px; width: 100%; }
+  .reset-btn { width: 100%; padding: 7px; border-radius: 6px; border: 1px solid var(--line); background: none; font-size: 12.5px; cursor: pointer; color: var(--ink); }
+  .reset-btn:hover { border-color: var(--accent); }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
+  .nav-btn:hover { border-color: var(--accent); }
+
+  .list-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .list-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--line); }
+  .list-row:last-child { border-bottom: none; }
+  .list-row:hover { background: var(--paper); }
+  .list-row.active { background: var(--accent-tint); }
+  .list-row .name { font-weight: 600; }
+  .list-row .meta { font-size: 11.5px; color: var(--muted); }
+  .lang-pill-single { font-size: 10px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 2px 7px; }
+  .vis-pill { font-size: 11px; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 2px 8px; white-space: nowrap; }
+  .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }
+
+  .detail-overlay { position: fixed; inset: 0; background: rgba(20,20,22,0.55); display: none; align-items: center; justify-content: center; z-index: 999; padding: 16px; }
+  .detail-overlay.open { display: flex; }
+  .detail-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; max-width: 480px; width: 100%; max-height: 88vh; overflow-y: auto; position: relative; }
+  .detail-close-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--muted); font-size: 16px; cursor: pointer; line-height: 1; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+  .detail-card h3 { font-size: 16px; margin: 0 0 4px; }
+  .detail-card .meta-row { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .detail-card .section { margin-bottom: 12px; }
+  .detail-card .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .preview-wrap { text-align: center; margin-bottom: 14px; }
+  .preview-wrap canvas { border: 1px solid var(--line); border-radius: 8px; display: inline-block; }
+
+  /* ---------------------------------------------------------------------
+     App shell: sidebar (fixed on desktop/tablet, off-canvas on mobile)
+     + main content column. Same shell as dashboard.html/roster.html.
+     --------------------------------------------------------------------- */
+  .app-shell { display: flex; min-height: 100vh; align-items: stretch; }
+
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0; background: var(--navy); color: #fff;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; z-index: 100;
+  }
+  .sidebar-header { padding: 22px 20px 18px; display: flex; align-items: center; justify-content: space-between; background: transparent; }
+  .sidebar-logo-img { height: 24px; width: auto; display: block; }
+  .sidebar-close-btn { display: none; background: none; border: none; color: #b5b2be; font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; }
+
+  .sidebar-nav { display: block; padding: 4px 12px; background: transparent; }
+  .sidebar-link {
+    display: block; padding: 9px 12px; border-radius: 8px; background: transparent;
+    color: #dad9de; text-decoration: none; font-size: 15px; font-weight: 500;
+    white-space: nowrap; margin-bottom: 2px;
+  }
+  .sidebar-link svg { width: 17px; height: 17px; vertical-align: -4px; margin-right: 10px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .sidebar-link:hover { background: var(--navy-hover); color: #fff; }
+  .sidebar-link.active { background: var(--accent); color: #fff; }
+  .sidebar-divider { height: 1px; background: #211a3c; margin: 10px 20px; }
+
+  .sidebar-footer { margin-top: auto; padding: 8px 12px 16px; background: transparent; }
+  .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 10px 10px; margin-top: 6px; border-radius: 10px; background: #140d31; }
+  .sidebar-user-avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14.5px;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-user-info { flex: 1; min-width: 0; }
+  .sidebar-user-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-role { font-size: 14px; color: #848092; }
+  .sidebar-logout-btn { background: none; border: none; color: #848092; cursor: pointer; padding: 5px; flex-shrink: 0; border-radius: 6px; }
+  .sidebar-logout-btn:hover { color: #fff; background: #191235; }
+  .sidebar-logout-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; display: block; }
+
+  .mobile-topbar { display: none; }
+  .sidebar-overlay { display: none; }
+
+  @media (max-width: 767px) {
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: 0 0 40px rgba(0,0,0,0.3); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-close-btn { display: block; }
+    .mobile-topbar {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--card);
+      border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 40;
+    }
+    .mobile-topbar img { height: 22px; }
+    .hamburger-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink); padding: 4px; line-height: 1; }
+    .sidebar-overlay {
+      display: block; position: fixed; inset: 0; background: rgba(8,0,38,0.5); z-index: 90;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+  }
+
+  .main-content { flex: 1; min-width: 0; }
+
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 28px 32px 4px; flex-wrap: wrap; max-width: 1080px; margin: 0 auto; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .icon-btn {
+    width: 58px; height: 58px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); position: relative;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .icon-badge {
+    position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 10px;
+    font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
+    justify-content: center; padding: 0 3px;
+  }
+</style>
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//playpivot.app/analytics/matomo/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '1']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+</head>
+<body>
+
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">☰</button>
+  <img src="./playpivot-logo.png" alt="PlayPivot" />
+</div>
+
+<div class="app-shell">
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo-negativo.png" alt="PlayPivot" class="sidebar-logo-img" /></a>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close menu">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div id="sidebar-admin-badge" style="display:none; font-size:13.5px; font-weight:700; letter-spacing:0.05em; color:var(--accent); padding:0 12px 6px;">⚡ PLATFORM ADMIN</div>
+
+      <div style="padding:8px 12px 12px;">
+        <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
+      </div>
+      <a href="./dashboard.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+      <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
+      <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
+      <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
+      <a href="./exercises.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg>Exercise creator</a>
+      <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
+      <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
+      <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
+      <a href="./play_library.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21V7"/><path d="M4 5c2-1 5-1 8 2 3-3 6-3 8-2v13c-2-1-5-1-8 2-3-3-6-3-8-2Z"/></svg>Play library</a>
+      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-divider"></div>
+      <nav class="sidebar-nav" style="padding:0;">
+        <a href="./settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
+        <a href="./help.html" id="sidebar-help-link" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
+      </nav>
+      <div class="sidebar-user" id="sidebar-user">
+        <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">—</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">—</div>
+        </div>
+        <button class="sidebar-logout-btn" id="logout-btn" title="Log out">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<div class="topbar" style="align-items:center;">
+  <div></div>
+  <div class="topbar-right">
+    <div id="pending-requests-widget" style="position:relative; display:none;">
+      <button id="pending-requests-btn" class="icon-btn" aria-label="Pending requests">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
+        <span class="icon-badge" id="pending-requests-count" style="display:none;"></span>
+      </button>
+      <div id="pending-requests-panel" style="display:none; position:absolute; top:44px; right:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
+    </div>
+    <div id="messages-widget" style="position:relative;">
+      <button id="messages-btn" class="icon-btn" aria-label="Messages">
+        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+        <span class="icon-badge" id="messages-count" style="display:none;"></span>
+      </button>
+      <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
+    </div>
+    <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
+    <div id="org-name-big" style="display:none;"></div>
+  </div>
+</div>
+
+<div class="layout">
+  <h1>
+    Play library
+    <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+  </h1>
+  <p class="sub" style="margin-bottom:14px;">Every play across your club — plus anything shared by other clubs — in one searchable, filterable list.</p>
+
+  <div class="side-card">
+    <h2>Search &amp; filters</h2>
+    <div class="filters-row">
+      <div class="field" style="flex:1 1 200px; min-width:200px;"><label for="search-input">Search</label><input id="search-input" type="text" placeholder="Play name, playbook…" /></div>
+      <div class="field" style="flex:0 0 170px;"><label for="team-filter">Team</label><select id="team-filter"><option value="">All</option></select></div>
+      <div class="field" style="flex:0 0 170px;"><label for="playbook-filter">Playbook</label><select id="playbook-filter"><option value="">All</option></select></div>
+      <div class="field" style="flex:0 0 150px;"><label for="language-filter">Language</label><select id="language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
+      <div class="field" style="flex:0 0 170px;"><label for="source-filter">Source</label><select id="source-filter"><option value="">All</option><option value="mine">👤 Created by me</option><option value="team">👥 My team</option><option value="community">🌐 Other clubs</option></select></div>
+      <button class="reset-btn" id="reset-filters-btn">Reset filters</button>
+    </div>
+  </div>
+
+  <div>
+    <p class="sub" id="result-count">Loading…</p>
+    <div class="msg" id="msg"></div>
+    <div class="toolbar">
+      <a class="btn btn-primary" href="./play_design.html" style="text-decoration:none;">+ New play</a>
+      <button class="btn btn-secondary" id="random-btn">🎲 Pick at random</button>
+    </div>
+    <div class="list-card" id="list-card"></div>
+    <div class="empty-state" id="list-empty" style="display:none">No play matches the current filters.</div>
+  </div>
+</div>
+
+<div class="detail-overlay" id="detail-overlay">
+  <div style="position:relative; max-width:480px; width:100%;">
+    <button class="detail-close-btn" id="detail-close-btn" style="position:absolute; top:8px; right:8px; z-index:1;">✕</button>
+    <div class="detail-card" id="detail-card">
+      <p class="sub" style="margin:0;">Pick a play from the list to see its details here.</p>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:32px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:14px; flex-wrap:wrap; max-width:1080px; margin-left:auto; margin-right:auto;">
+  <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right?</span>
+  <button class="nav-btn" id="contact-support-btn" title="Send a message straight to the PlayPivot admin">💬 Contact us</button>
+</div>
+
+<footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; font-size:14.5px; color:var(--muted); max-width:1080px; margin-left:auto; margin-right:auto;">
+  <span>© 2026 PlayPivot. All rights reserved.</span>
+  <a href="./privacy.html" style="color:var(--muted); text-decoration:none;">Privacy Policy</a>
+  <a href="./privacy.html#use" style="color:var(--muted); text-decoration:none;">Terms of Use</a>
+</footer>
+</main>
+</div><!-- /app-shell -->
+
+<script src="court-diagram.js?v=4"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="org-switcher.js"></script>
+<script src="sidebar-widgets.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
+  const VISIBILITY_LABELS = { private: "🔒 Only me", team: "👥 My team", association: "🤝 Club association", community: "🌐 PlayPivot Community" };
+  const LANGUAGE_NAMES = { en: "English", fr: "Français", es: "Español" };
+
+  const els = {
+    orgName: document.getElementById("org-name-big"),
+    orgLogo: document.getElementById("org-logo-big"),
+    logoutBtn: document.getElementById("logout-btn"),
+    msg: document.getElementById("msg"),
+    search: document.getElementById("search-input"),
+    teamFilter: document.getElementById("team-filter"),
+    playbookFilter: document.getElementById("playbook-filter"),
+    languageFilter: document.getElementById("language-filter"),
+    sourceFilter: document.getElementById("source-filter"),
+    resultCount: document.getElementById("result-count"),
+    listCard: document.getElementById("list-card"),
+    listEmpty: document.getElementById("list-empty"),
+    detailCard: document.getElementById("detail-card"),
+  };
+
+  let currentOrgId = null;
+  let currentUserId = null;
+  let myRole = null;
+  let isPlatformController = false;
+  const canDelete = () => myRole === "admin" || myRole === "coach";
+  let allPlays = [];
+  let selectedId = null;
+
+  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
+
+  // -----------------------------------------------------------------------
+  // Un ejercicio compartido (o aquí, un play) puede venir de OTRO club --
+  // su nombre, playbook, etc. es texto que alguien más escribió. Toda
+  // cadena que venga de una fila de la base de datos pasa por aquí antes
+  // de entrar en innerHTML, para que no se pueda colar código ajeno.
+  // -----------------------------------------------------------------------
+  function escapeHtml(str) {
+    return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  async function loadMyOrganization() {
+    const { data: userData } = await supabaseClient.auth.getUser();
+    currentUserId = userData.user.id;
+    const { data: profRow } = await supabaseClient.from("profiles").select("full_name, is_platform_controller").eq("id", userData.user.id).maybeSingle();
+    isPlatformController = !!(profRow && profRow.is_platform_controller);
+    pivotUpdateSidebarUser((profRow && profRow.full_name) || userData.user.email, isPlatformController ? "Platform admin" : null);
+    const { data, error } = await supabaseClient
+      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active");
+    if ((error || !data || data.length === 0) && !isPlatformController) {
+      showMessage("You're not an active member of any club yet.", "error");
+      return null;
+    }
+    const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
+    if (!chosen) { showMessage("You're not an active member of any club yet.", "error"); await pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supabaseClient }); return null; }
+    await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
+    currentOrgId = chosen.organization_id;
+    myRole = chosen.role;
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Team admin" : "Coach");
+    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
+    return currentOrgId;
+  }
+
+  // -----------------------------------------------------------------------
+  // RLS ya devuelve solo lo que puedes ver (tus plays + los compartidos
+  // contigo), igual que en exercises/library.html -- por eso no hace falta
+  // filtrar aquí por organization_id.
+  // -----------------------------------------------------------------------
+  async function loadPlays() {
+    const { data, error } = await supabaseClient.from("plays").select("*").order("name");
+    if (error) { console.error("loadPlays error:", error); return; }
+    allPlays = data || [];
+    buildDynamicFilterOptions();
+    refresh();
+  }
+
+  // -----------------------------------------------------------------------
+  // "Team" y "Playbook" no son una lista fija (como Category en Exercise
+  // library) -- team es lo que sea que exista en Roster, y playbook es
+  // texto libre que cada club escribe a su manera. Así que, en vez de una
+  // lista fija, se reconstruyen a partir de lo que hay realmente cargado
+  // cada vez, conservando la opción elegida si sigue existiendo.
+  // -----------------------------------------------------------------------
+  function buildDynamicFilterOptions() {
+    const prevTeam = els.teamFilter.value;
+    const prevPlaybook = els.playbookFilter.value;
+
+    const teams = Array.from(new Set(allPlays.map((p) => p.team).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    const hasNoTeam = allPlays.some((p) => !p.team);
+    els.teamFilter.innerHTML = '<option value="">All</option>' +
+      teams.map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("") +
+      (hasNoTeam ? '<option value="__none__">(No team)</option>' : "");
+    if (Array.from(els.teamFilter.options).some((o) => o.value === prevTeam)) els.teamFilter.value = prevTeam;
+
+    const playbooks = Array.from(new Set(allPlays.map((p) => p.category).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    const hasNoPlaybook = allPlays.some((p) => !p.category);
+    els.playbookFilter.innerHTML = '<option value="">All</option>' +
+      playbooks.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("") +
+      (hasNoPlaybook ? '<option value="__none__">(Uncategorized)</option>' : "");
+    if (Array.from(els.playbookFilter.options).some((o) => o.value === prevPlaybook)) els.playbookFilter.value = prevPlaybook;
+  }
+
+  function refresh() {
+    const text = els.search.value.toLowerCase().trim();
+    const team = els.teamFilter.value;
+    const playbook = els.playbookFilter.value;
+    const lang = els.languageFilter.value;
+    const source = els.sourceFilter.value;
+
+    const filtered = allPlays.filter((p) => {
+      if (text) {
+        const hay = [p.name, p.team, p.category].join(" ").toLowerCase();
+        if (!hay.includes(text)) return false;
+      }
+      if (team === "__none__" && p.team) return false;
+      if (team && team !== "__none__" && p.team !== team) return false;
+      if (playbook === "__none__" && p.category) return false;
+      if (playbook && playbook !== "__none__" && p.category !== playbook) return false;
+      if (lang && (p.language || "en") !== lang) return false;
+      // "Source" -- igual que en Exercise library (ronda 8): de dónde viene
+      // el play. Nota: "Created by me" solo funciona bien para plays
+      // creados a partir de que se subiera esta ronda -- created_by no se
+      // guardaba antes (ver step69_plays_created_by.sql), así que un play
+      // antiguo tuyo cae en "My team" en vez de "Created by me".
+      if (source === "mine" && p.created_by !== currentUserId) return false;
+      if (source === "team" && (p.organization_id !== currentOrgId || p.created_by === currentUserId)) return false;
+      if (source === "community" && p.organization_id === currentOrgId) return false;
+      return true;
+    });
+
+    els.resultCount.textContent = `${filtered.length} play${filtered.length === 1 ? "" : "s"} found`;
+    els.listEmpty.style.display = filtered.length === 0 ? "block" : "none";
+    els.listCard.innerHTML = "";
+
+    filtered.forEach((p) => {
+      const row = document.createElement("div");
+      row.className = "list-row" + (p.id === selectedId ? " active" : "");
+      const langCode = (p.language || "en").toUpperCase();
+      row.innerHTML = `
+        <div>
+          <div class="name">${VISIBILITY_ICONS[p.visibility || "team"] || ""} ${escapeHtml(p.name)}</div>
+          <div class="meta">${escapeHtml(p.team || "No team")}${p.category ? " · " + escapeHtml(p.category) : ""}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span class="vis-pill">${langCode}</span>
+        </div>
+      `;
+      row.addEventListener("click", () => selectPlay(p.id));
+      els.listCard.appendChild(row);
+    });
+
+    return filtered;
+  }
+
+  function selectPlay(id) {
+    selectedId = id;
+    refresh();
+    const p = allPlays.find((x) => x.id === id);
+    renderDetail(p);
+    document.getElementById("detail-overlay").classList.add("open");
+  }
+
+  function closeDetail() {
+    document.getElementById("detail-overlay").classList.remove("open");
+  }
+  document.getElementById("detail-close-btn").addEventListener("click", closeDetail);
+  document.getElementById("detail-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "detail-overlay") closeDetail();
+  });
+
+  function renderDetail(p) {
+    if (!p) { els.detailCard.innerHTML = '<p class="sub" style="margin:0;">Pick a play from the list.</p>'; return; }
+    const owned = p.organization_id === currentOrgId;
+    const langName = LANGUAGE_NAMES[p.language || "en"] || p.language;
+    const visLabel = VISIBILITY_LABELS[p.visibility || "team"] || p.visibility;
+    els.detailCard.innerHTML = `
+      <h3>${escapeHtml(p.name)}</h3>
+      <div class="meta-row">${escapeHtml(p.team || "No team")}${p.category ? " · " + escapeHtml(p.category) : ""} · ${langName} · ${visLabel}${!owned ? " · shared by another club" : ""}</div>
+      <div class="preview-wrap" id="preview-wrap"></div>
+      <div class="toolbar" style="margin-top:14px;">
+        <a class="btn btn-primary" href="./play_design.html?openPlay=${p.id}" style="text-decoration:none;">Open in Play design →</a>
+        ${(owned && canDelete()) ? '<button class="btn btn-secondary" id="delete-btn" style="color:#991b1b;">Delete</button>' : ""}
+      </div>
+    `;
+    renderPreviewThumb(p);
+    if (owned && canDelete()) {
+      document.getElementById("delete-btn").addEventListener("click", () => deletePlay(p));
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Miniatura estática del paso 1 del play, con el mismo motor de dibujo
+  // (court-diagram.js) y la misma receta exacta que usa play_design.html en
+  // su propio render() -- drawDiagramElement() para las acciones (flechas,
+  // pantallas...) y drawPointElement() para los puntos (jugadores, balón...).
+  // -----------------------------------------------------------------------
+  function renderPreviewThumb(p) {
+    const wrap = document.getElementById("preview-wrap");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    const steps = (p.diagram && Array.isArray(p.diagram.steps)) ? p.diagram.steps : [];
+    const step = steps[0];
+    if (!step) { wrap.innerHTML = '<p style="color:var(--muted); font-size:12.5px; margin:0;">Nothing drawn yet.</p>'; return; }
+    const canvas = document.createElement("canvas");
+    wrap.appendChild(canvas);
+    const courtType = step.courtType || "half";
+    const [origW, origH] = CANVAS_SIZES[courtType];
+    const maxW = 260;
+    const scale = Math.min(1, maxW / origW);
+    const cssW = origW * scale, cssH = origH * scale;
+    const ctx = setupHiDPICanvas(canvas, cssW, cssH);
+    const toPx = (x, y) => [x * cssW, y * cssH];
+    drawCourtBackground(ctx, canvas, courtType, cssW, cssH);
+    (step.actions || []).forEach((a) => drawDiagramElement(ctx, toPx, canvas, a));
+    (step.points || []).forEach((pt) => drawPointElement(ctx, toPx, pt));
+  }
+
+  async function deletePlay(p) {
+    if (!confirm(`Delete "${p.name}"?`)) return;
+    const { error } = await supabaseClient.from("plays").delete().eq("id", p.id);
+    if (error) { showMessage(error.message, "error"); return; }
+    selectedId = null;
+    await loadPlays();
+    closeDetail();
+    showMessage("Play deleted.", "success");
+  }
+
+  document.getElementById("random-btn").addEventListener("click", () => {
+    const filtered = refresh();
+    if (filtered.length === 0) { showMessage("No play matches the current filters.", "error"); return; }
+    const pick = filtered[Math.floor(Math.random() * filtered.length)];
+    selectPlay(pick.id);
+  });
+
+  document.getElementById("reset-filters-btn").addEventListener("click", () => {
+    els.search.value = ""; els.teamFilter.value = ""; els.playbookFilter.value = "";
+    els.languageFilter.value = ""; els.sourceFilter.value = "";
+    refresh();
+  });
+
+  [els.search, els.teamFilter, els.playbookFilter, els.languageFilter, els.sourceFilter].forEach((el) => {
+    el.addEventListener("input", refresh);
+    el.addEventListener("change", refresh);
+  });
+
+  document.getElementById("help-btn").addEventListener("click", () => {
+    if (!document.getElementById("help-box-inline")) {
+      const inline = document.createElement("div");
+      inline.id = "help-box-inline";
+      inline.className = "help-box";
+      inline.style.display = "block";
+      inline.innerHTML = `
+        <strong>How to use Play library</strong>
+        <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+          <li>Every play you can see — your own club's, across every team, plus anything shared by other clubs — shows up here in one list. Search &amp; filters sit in one row at the top; click any play to see its details in a popup.</li>
+          <li><strong>Team / Playbook</strong> — only show the teams/playbooks that actually have plays right now; they update as plays are added.</li>
+          <li><strong>Source</strong> — 👤 plays you made yourself, 👥 your teammates' plays, 🌐 plays shared by other clubs.</li>
+          <li><strong>🎲 Pick at random</strong> — picks one play among whatever the current filters show.</li>
+          <li><strong>Open in Play design →</strong> — opens that exact play in the editor, ready to look at, animate, or (if it's yours) edit and save.</li>
+          <li>Plays from other clubs (🌐) can be opened and looked at, but not edited or deleted — only their owner can.</li>
+        </ul>`;
+      document.querySelector(".sub").insertAdjacentElement("afterend", inline);
+    } else {
+      document.getElementById("help-box-inline").remove();
+    }
+  });
+
+  els.logoutBtn.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    pivotInitSidebarChrome();
+    const orgId = await loadMyOrganization();
+    if (orgId) {
+      pivotInitTopbarWidgets();
+      await loadPlays();
+    }
+  }
+  init();
+</script>
+
+</body>
+</html>
