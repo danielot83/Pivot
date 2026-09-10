@@ -30,7 +30,13 @@
   /* -------- una sola columna: filtros arriba, librería debajo (antes
      eran 2 columnas lado a lado) -------- */
   .layout { display: flex; flex-direction: column; gap: 20px; max-width: 1080px; margin: 0 auto; padding: 24px; }
-  .filters-row { display: flex; flex-wrap: wrap; gap: 16px 22px; align-items: flex-end; }
+  /* Antes flex-wrap: el número de campos por fila dependía del ancho
+     exacto de cada uno (Search más ancho, Category/Age más estrechos), así
+     que el resultado era asimétrico según el viewport (p.ej. 5 arriba y 3
+     abajo). Con grid de 4 columnas fijas, los 8 campos (Search, Difficulty,
+     Language, Source, Category, Age, checkboxes, Reset) caen siempre en 2
+     filas de 4, del mismo ancho. */
+  .filters-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 22px; align-items: end; }
   .filters-row .field { margin-bottom: 0; }
   .filters-row .multiselect { margin-bottom: 0; }
   .filters-row .checkbox-group { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
@@ -57,7 +63,14 @@
      desplegable cerrado por defecto (como "Columns ▾"), para ocupar menos
      alto en la fila de filtros. */
   .filter-dropdown { position: relative; }
+  /* Se veía en negrita (heredado de .btn, font-weight:600) mientras que
+     Difficulty/Language/Source son <select> normales -- se iguala el peso
+     y el fondo para que Category/Age no destaquen más que el resto. El
+     selector va con "button." delante para ganarle en especificidad a
+     ".btn" (que se define más abajo en la hoja de estilos y si no, gana
+     por venir después con la misma especificidad). */
   .filter-dropdown-btn { width: 100%; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  button.filter-dropdown-btn { font-weight: 400; background: var(--card); filter: none; padding: 7px 9px; }
   .multiselect {
     display: none; position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 5; width: 220px;
     max-height: 220px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 10px;
@@ -174,6 +187,7 @@
       opacity: 0; pointer-events: none; transition: opacity 0.2s;
     }
     .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+    .filters-row { grid-template-columns: repeat(2, 1fr); }
   }
 
   .main-content { flex: 1; min-width: 0; }
@@ -297,18 +311,18 @@
   <div class="side-card">
     <h2>Search &amp; filters</h2>
     <div class="filters-row">
-      <div class="field" style="flex:1 1 220px; min-width:220px;"><label for="search-input">Search</label><input id="search-input" type="text" placeholder="Name, tag, description…" /></div>
-      <div class="field" style="flex:0 0 150px;"><label for="difficulty-filter">Difficulty</label><select id="difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
-      <div class="field" style="flex:0 0 170px;"><label for="language-filter">Language</label><select id="language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
-      <div class="field" style="flex:0 0 170px;"><label for="source-filter">Source</label><select id="source-filter"><option value="">All</option><option value="mine">👤 Created by me</option><option value="team">👥 My team</option><option value="community">🌐 Other clubs</option></select></div>
-      <div class="field" style="flex:0 0 150px;">
+      <div class="field"><label for="search-input">Search</label><input id="search-input" type="text" placeholder="Name, tag, description…" /></div>
+      <div class="field"><label for="difficulty-filter">Difficulty</label><select id="difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
+      <div class="field"><label for="language-filter">Language</label><select id="language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
+      <div class="field"><label for="source-filter">Source</label><select id="source-filter"><option value="">All</option><option value="mine">👤 Created by me</option><option value="team">👥 My team</option><option value="community">🌐 Other clubs</option></select></div>
+      <div class="field">
         <label class="field-label">Category</label>
         <div class="filter-dropdown">
           <button type="button" class="btn btn-secondary filter-dropdown-btn" id="category-filter-btn">All ▾</button>
           <div class="multiselect" id="category-filter"></div>
         </div>
       </div>
-      <div class="field" style="flex:0 0 150px;">
+      <div class="field">
         <label class="field-label">Age</label>
         <div class="filter-dropdown">
           <button type="button" class="btn btn-secondary filter-dropdown-btn" id="age-filter-btn">All ▾</button>
@@ -340,6 +354,7 @@
       <label class="checkbox-field" style="margin:0;"><input type="checkbox" id="select-all-visible" /><span id="bulk-count">0 selected</span></label>
       <button class="btn btn-secondary" id="bulk-delete-btn" style="color:#991b1b;" disabled>Delete selected</button>
       <button class="btn btn-secondary" id="bulk-cancel-btn">Cancel</button>
+      <span style="font-size:12px; color:var(--muted);">Only your own club's exercises show a checkbox</span>
     </div>
     <div class="list-card" id="list-card"></div>
     <div class="empty-state" id="list-empty" style="display:none">No exercise matches the current filters.</div>
@@ -415,6 +430,7 @@
   let selectedId = null;
   let bulkSelectMode = false; // "Select multiple…" activado
   let bulkSelected = new Set(); // ids marcados para borrar en lote
+  let creatorNames = {}; // user_id -> full_name, para mostrar "by <nombre>" en cada fila (a petición de Dani, no solo como filtro Source)
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
 
@@ -526,6 +542,16 @@
     if (error) { console.error(error); return; }
     allExercises = data || [];
     buildTranslationGroups();
+
+    // "Who made it" en cada fila (antes solo existía como filtro Source) --
+    // misma consulta aparte que en exercises.html (no hay relación de
+    // clave foránea garantizada de exercises.created_by hacia profiles).
+    const creatorIds = Array.from(new Set(allExercises.map((e) => e.created_by).filter(Boolean)));
+    creatorNames = {};
+    if (creatorIds.length) {
+      const { data: creators } = await supabaseClient.from("profiles").select("id, full_name").in("id", creatorIds);
+      (creators || []).forEach((p) => { creatorNames[p.id] = p.full_name; });
+    }
 
     usageCounts = {};
     (usageRows || []).forEach((r) => { if (r.exercise_id) usageCounts[r.exercise_id] = (usageCounts[r.exercise_id] || 0) + 1; });
@@ -671,12 +697,14 @@
       const catIcons = (e.categories || []).map((c) => CATEGORY_ICONS[c] || "").filter(Boolean).join(" ");
       const ageText = (e.age || []).join(", ");
       const objText = (e.objectives || []).slice(0, 2).join(" · ");
+      const creatorName = e.created_by ? creatorNames[e.created_by] : null;
       row.innerHTML = `
-        ${bulkSelectMode ? (deletable ? `<input type="checkbox" class="row-select" data-id="${e.id}"${bulkSelected.has(e.id) ? " checked" : ""} />` : `<span class="row-select-spacer"></span>`) : ""}
+        ${bulkSelectMode ? (deletable ? `<input type="checkbox" class="row-select" data-id="${e.id}"${bulkSelected.has(e.id) ? " checked" : ""} />` : `<span class="row-select-spacer" title="Only exercises created by your own club can be selected/deleted here"></span>`) : ""}
         <div>
           <div class="name">${myFavoriteIds.has(e.id) ? "★ " : ""}${(e.number && e.organization_id === currentOrgId) ? e.number + ". " : ""}${escapeHtml(e.name)}</div>
           <div class="meta">${catIcons ? `<span class="category-icon">${catIcons}</span>` : ""}${escapeHtml((e.categories || []).join(", "))}${ageText ? ` · ${escapeHtml(ageText)}` : ""}</div>
           ${objText ? `<div class="meta" style="color:var(--muted); font-size:11.5px; margin-top:2px;">${escapeHtml(objText)}</div>` : ""}
+          ${creatorName ? `<div class="meta" style="color:var(--muted); font-size:11px; margin-top:2px;">by ${escapeHtml(creatorName)}</div>` : ""}
         </div>
         <div class="lang-badge-slot"></div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">

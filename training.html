@@ -422,7 +422,9 @@
 
   <div id="notebook-editor" style="display:none;">
     <a href="#" id="notebook-back-link" class="back-link">&larr; Back</a>
-    <div class="toolbar" style="margin-top:8px;">
+    <h2 id="notebook-editor-title" style="margin:10px 0 12px;">New notebook</h2>
+    <p class="section-label" style="margin:0 0 8px;">Notebook details</p>
+    <div class="toolbar" style="margin-top:0;">
       <div class="field" style="flex:1;"><label for="notebook-name">Notebook name</label><input id="notebook-name" type="text" placeholder="e.g. Defense, U8, Warm-ups" /></div>
       <div class="field"><label for="notebook-visibility">Who can see it?</label>
         <select id="notebook-visibility">
@@ -436,9 +438,14 @@
     <p class="section-label">Exercises in this notebook</p>
     <p class="hint" style="margin:0 0 8px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">Your library — click to add</p>
     <input id="notebook-exercise-search" type="text" placeholder="Name, tag, description…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; margin-bottom:8px;" />
+    <!-- Mismo set de filtros que Library/Exercise creator (Search, Difficulty,
+         Language, Source, Category, Age, Favorites, Never used) -- antes
+         faltaba "Source" aquí, a petición de Dani: "exactamente los mismos
+         filtros que hay en el creador". -->
     <div class="toolbar" style="margin-bottom:8px; align-items:flex-start;">
       <div class="field"><label for="notebook-difficulty-filter" style="font-size:11.5px;">Difficulty</label><select id="notebook-difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
       <div class="field"><label for="notebook-language-filter" style="font-size:11.5px;">Language</label><select id="notebook-language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
+      <div class="field"><label for="notebook-source-filter" style="font-size:11.5px;">Source</label><select id="notebook-source-filter"><option value="">All</option><option value="mine">👤 Created by me</option><option value="team">👥 My team</option><option value="community">🌐 Other clubs</option></select></div>
       <div class="field" style="flex:1; min-width:180px;">
         <label class="field-label" style="font-size:13px; font-weight:600; color:var(--muted); display:block;">Category</label>
         <div class="multiselect" id="notebook-category-filter" style="max-height:76px;"></div>
@@ -455,7 +462,8 @@
     </div>
     <div id="notebook-library-list" style="max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px; margin-bottom:20px;"></div>
 
-    <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">In this notebook</p>
+    <p class="section-label" style="margin-top:0;">In this notebook</p>
+    <p class="hint" style="margin:0 0 6px; font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase;">Order and remove exercises here</p>
     <div id="notebook-contents-list" style="max-height:340px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:4px;"></div>
     <div class="toolbar" style="margin-top:16px;">
       <button class="btn btn-primary" id="save-notebook-btn">Save notebook</button>
@@ -699,6 +707,7 @@
   const AGE_GROUPS = ["U6","U7","U8","U9","U10","U11","U12","U13","U14","U15","U16","U17","U18","U19","U20","Seniors","All ages"];
 
   let currentOrgId = null;
+  let currentUserId = null;
   let myRole = null;
   let isPlatformController = false;
   const canDelete = () => myRole === "admin" || myRole === "coach";
@@ -759,6 +768,7 @@
 
   async function loadMyOrganization() {
     const { data: userData } = await supabaseClient.auth.getUser();
+    currentUserId = userData.user.id;
     const { data: profRow } = await supabaseClient.from("profiles").select("full_name, is_platform_controller").eq("id", userData.user.id).maybeSingle();
     isPlatformController = !!(profRow && profRow.is_platform_controller);
     pivotUpdateSidebarUser((profRow && profRow.full_name) || userData.user.email, isPlatformController ? "Platform admin" : null);
@@ -782,7 +792,7 @@
   }
 
   async function loadExerciseOptions() {
-    const { data } = await supabaseClient.from("exercises").select("id, name, categories, material, objectives, difficulty, language, favorite, age").order("name");
+    const { data } = await supabaseClient.from("exercises").select("id, name, categories, material, objectives, difficulty, language, favorite, age, created_by, organization_id").order("name");
     allExercises = data || [];
     const { data: usageRows } = await supabaseClient.from("training_exercises").select("exercise_id");
     usageCounts = {};
@@ -888,6 +898,7 @@
   function newNotebook() {
     currentNotebookId = null;
     notebookContents = []; notebookOwned = true;
+    document.getElementById("notebook-editor-title").textContent = "New notebook";
     document.getElementById("notebook-name").value = "";
     document.getElementById("notebook-visibility").value = "team";
     resetNotebookFilters();
@@ -906,6 +917,7 @@
     if (!n) return;
     currentNotebookId = id;
     notebookContents = [...(notebookExerciseIds[id] || [])];
+    document.getElementById("notebook-editor-title").textContent = (n.organization_id === currentOrgId ? "Edit notebook: " : "View notebook: ") + n.name;
     document.getElementById("notebook-name").value = n.name;
     document.getElementById("notebook-visibility").value = n.visibility || "team";
     resetNotebookFilters();
@@ -944,6 +956,7 @@
     const search = (document.getElementById("notebook-exercise-search").value || "").toLowerCase().trim();
     const diff = document.getElementById("notebook-difficulty-filter").value;
     const lang = document.getElementById("notebook-language-filter").value;
+    const source = document.getElementById("notebook-source-filter").value;
     const cats = checkedValues("notebook-category-filter");
     const ages = checkedValues("notebook-age-filter");
     const favOnly = document.getElementById("notebook-favorites-filter").checked;
@@ -955,6 +968,9 @@
       .filter((e) => !search || e.name.toLowerCase().includes(search))
       .filter((e) => !diff || String(e.difficulty) === diff)
       .filter((e) => !lang || (e.language || "en") === lang)
+      .filter((e) => !source || source !== "mine" || e.created_by === currentUserId)
+      .filter((e) => !source || source !== "team" || (e.organization_id === currentOrgId && e.created_by !== currentUserId))
+      .filter((e) => !source || source !== "community" || e.organization_id !== currentOrgId)
       .filter((e) => cats.length === 0 || cats.every((c) => (e.categories || []).includes(c)))
       .filter((e) => ages.length === 0 || ages.every((a) => (e.age || []).includes(a)))
       .filter((e) => !favOnly || e.favorite)
@@ -1019,12 +1035,14 @@
   document.getElementById("notebook-exercise-search").addEventListener("input", renderNotebookLibraryList);
   document.getElementById("notebook-difficulty-filter").addEventListener("change", renderNotebookLibraryList);
   document.getElementById("notebook-language-filter").addEventListener("change", renderNotebookLibraryList);
+  document.getElementById("notebook-source-filter").addEventListener("change", renderNotebookLibraryList);
   document.getElementById("notebook-favorites-filter").addEventListener("change", renderNotebookLibraryList);
   document.getElementById("notebook-unused-filter").addEventListener("change", renderNotebookLibraryList);
   function resetNotebookFilters() {
     document.getElementById("notebook-exercise-search").value = "";
     document.getElementById("notebook-difficulty-filter").value = "";
     document.getElementById("notebook-language-filter").value = "";
+    document.getElementById("notebook-source-filter").value = "";
     document.getElementById("notebook-favorites-filter").checked = false;
     document.getElementById("notebook-unused-filter").checked = false;
     document.querySelectorAll("#notebook-category-filter input, #notebook-age-filter input").forEach((cb) => (cb.checked = false));

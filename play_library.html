@@ -332,6 +332,7 @@
   const canDelete = () => myRole === "admin" || myRole === "coach";
   let allPlays = [];
   let selectedId = null;
+  let creatorNames = {}; // user_id -> full_name, para mostrar "by <nombre>" en cada fila (mismo patrón que library.html)
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
 
@@ -379,6 +380,17 @@
     const { data, error } = await supabaseClient.from("plays").select("*").order("name");
     if (error) { console.error("loadPlays error:", error); return; }
     allPlays = data || [];
+
+    // "Who made it" en cada fila -- mismo patrón que exercises.html /
+    // library.html: consulta aparte a profiles (no hay relación de clave
+    // foránea garantizada de plays.created_by hacia profiles).
+    const creatorIds = Array.from(new Set(allPlays.map((p) => p.created_by).filter(Boolean)));
+    creatorNames = {};
+    if (creatorIds.length) {
+      const { data: creators } = await supabaseClient.from("profiles").select("id, full_name").in("id", creatorIds);
+      (creators || []).forEach((p) => { creatorNames[p.id] = p.full_name; });
+    }
+
     buildDynamicFilterOptions();
     refresh();
   }
@@ -445,10 +457,12 @@
       const row = document.createElement("div");
       row.className = "list-row" + (p.id === selectedId ? " active" : "");
       const langCode = (p.language || "en").toUpperCase();
+      const creatorName = p.created_by ? creatorNames[p.created_by] : null;
       row.innerHTML = `
         <div>
           <div class="name">${VISIBILITY_ICONS[p.visibility || "team"] || ""} ${escapeHtml(p.name)}</div>
           <div class="meta">${escapeHtml(p.team || "No team")}${p.category ? " · " + escapeHtml(p.category) : ""}</div>
+          ${creatorName ? `<div class="meta" style="font-size:11px; margin-top:1px;">by ${escapeHtml(creatorName)}</div>` : ""}
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
           <span class="vis-pill">${langCode}</span>
