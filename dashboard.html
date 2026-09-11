@@ -197,12 +197,13 @@
      --------------------------------------------------------------------- */
   .cal-day-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 4px 2px 6px; }
   .cal-day-num { line-height: 1; }
-  .cal-day-marks { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 7px; flex-wrap: nowrap; }
-  .cal-mark { width: 6px; height: 6px; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
-  .cal-mark-match { border-radius: 50%; }
-  .cal-mark-training { border-radius: 1.5px; }
-  .cal-mark-event { border-radius: 1px; transform: rotate(45deg); }
-  .cal-day-overflow { font-size: 9px; font-weight: 700; color: inherit; opacity: 0.75; margin-left: 1px; }
+  /* Antes puntos/formas de 6px (redondo=partido, cuadrado=entreno, rombo=
+     evento) -- demasiado pequeños y poco claros a simple vista. Ahora son
+     iconos de verdad (balón/reloj/chincheta) a 15px, cada uno del color de
+     su equipo (igual que antes). */
+  .cal-day-marks { display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 15px; flex-wrap: nowrap; }
+  .cal-mark { flex-shrink: 0; display: block; }
+  .cal-day-overflow { font-size: 10px; font-weight: 700; color: inherit; opacity: 0.75; margin-left: 1px; }
   .cal-toolbar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
   .cal-team-filter { padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13.5px; color: var(--ink); background: var(--card); max-width: 220px; }
   .cal-legend { display: flex; gap: 14px 20px; margin-top: 12px; font-size: 13px; color: var(--muted); flex-wrap: wrap; align-items: flex-start; }
@@ -210,7 +211,7 @@
   .cal-legend-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
   .cal-legend-items { display: flex; gap: 12px; flex-wrap: wrap; }
   .cal-legend-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-  .cal-legend-swatch { width: 9px; height: 9px; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
+  .cal-legend-swatch { flex-shrink: 0; display: block; }
 </style>
 <!-- Matomo -->
 <script>
@@ -1618,6 +1619,37 @@
     return found ? found.color : TEAM_COLOR_OTHER;
   }
 
+  // -----------------------------------------------------------------------
+  // Iconos del calendario -- antes eran formas abstractas (círculo/cuadrado/
+  // rombo) de 6-9px para distinguir Match/Training/Event, y el color venía
+  // del equipo. A petición de Dani ("simbolos mas grandes... claro para lo
+  // que representa, balon, entrenamiento reloj y evento chicheta"), ahora
+  // son de verdad un balón, un reloj y una chincheta -- el color del equipo
+  // se mantiene (relleno del icono), la forma ya no hace falta para
+  // distinguir el tipo porque el propio dibujo lo dice.
+  // -----------------------------------------------------------------------
+  function calMarkIcon(type, color, size) {
+    const s = size || 15;
+    const stroke = "rgba(0,0,0,0.18)";
+    if (type === "match") {
+      return `<svg class="cal-mark" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="${color}" stroke="${stroke}" stroke-width="0.8"/>
+        <path d="M12 2v20M2 12h20M8 3c-4 3-4 15 0 18M16 3c4 3 4 15 0 18" stroke="rgba(255,255,255,0.85)" stroke-width="1.1" fill="none"/>
+      </svg>`;
+    }
+    if (type === "training") {
+      return `<svg class="cal-mark" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="${color}" stroke="${stroke}" stroke-width="0.8"/>
+        <path d="M12 6.5v5.5l3.6 2.2" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>`;
+    }
+    // event -> chincheta (map pin)
+    return `<svg class="cal-mark" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">
+      <path d="M12 2C7.8 2 4.3 5.4 4.3 9.5 4.3 15 12 22 12 22s7.7-7 7.7-12.5C19.7 5.4 16.2 2 12 2Z" fill="${color}" stroke="${stroke}" stroke-width="0.8"/>
+      <circle cx="12" cy="9.5" r="2.7" fill="#fff"/>
+    </svg>`;
+  }
+
   function populateCalendarTeamFilter() {
     const sel = document.getElementById("cal-team-filter");
     if (!sel) return;
@@ -1639,17 +1671,22 @@
     // de "Other teams" -- no se lista además con su propio nombre, para
     // no repetir el mismo punto gris dos veces en la leyenda.
     const teamsToShow = calendarTeamFilter ? orgTeamRoster.filter((t) => t.key === calendarTeamFilter) : orgTeamRoster.slice(0, TEAM_PALETTE.length);
-    const teamItems = teamsToShow.map((t) => `<span class="cal-legend-item"><span class="cal-legend-swatch" style="background:${t.color}; border-radius:50%;"></span>${escapeHtml(t.label)}</span>`).join("");
+    const teamSwatch = (color) => `<span class="cal-legend-swatch" style="width:13px; height:13px; border-radius:50%; background:${color}; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12);"></span>`;
+    const teamItems = teamsToShow.map((t) => `<span class="cal-legend-item">${teamSwatch(t.color)}${escapeHtml(t.label)}</span>`).join("");
     const hasOverflow = !calendarTeamFilter && orgTeamRoster.length > TEAM_PALETTE.length;
-    const overflowItem = hasOverflow ? `<span class="cal-legend-item"><span class="cal-legend-swatch" style="background:${TEAM_COLOR_OTHER}; border-radius:50%;"></span>Other teams</span>` : "";
-    const wholeClubItem = `<span class="cal-legend-item"><span class="cal-legend-swatch" style="background:${TEAM_COLOR_NONE}; border-radius:50%;"></span>Whole club</span>`;
+    const overflowItem = hasOverflow ? `<span class="cal-legend-item">${teamSwatch(TEAM_COLOR_OTHER)}Other teams</span>` : "";
+    const wholeClubItem = `<span class="cal-legend-item">${teamSwatch(TEAM_COLOR_NONE)}Whole club</span>`;
+    // El grupo "Type" usa gris neutro (var(--muted), resuelto a un hex fijo
+    // porque va dentro de un SVG) -- el color de verdad (equipo) ya se ve en
+    // el grupo de abajo; aquí solo importa que el dibujo se reconozca.
+    const TYPE_ICON_COLOR = "#8a8a90";
     el.innerHTML = `
       <div class="cal-legend-group">
         <span class="cal-legend-group-title">Type</span>
         <div class="cal-legend-items">
-          <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:var(--muted); border-radius:50%;"></span>Match</span>
-          <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:var(--muted); border-radius:1.5px;"></span>Training</span>
-          <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:var(--muted); border-radius:1px; transform:rotate(45deg);"></span>Event</span>
+          <span class="cal-legend-item">${calMarkIcon("match", TYPE_ICON_COLOR, 15)}Match</span>
+          <span class="cal-legend-item">${calMarkIcon("training", TYPE_ICON_COLOR, 15)}Training</span>
+          <span class="cal-legend-item">${calMarkIcon("event", TYPE_ICON_COLOR, 15)}Event</span>
         </div>
       </div>
       <div class="cal-legend-group">
@@ -1718,13 +1755,13 @@
     const ev = calendarEventsByDay[dateStr];
     if (!ev) return { html: "", count: 0 };
     const items = [];
-    ev.matches.forEach((m) => { if (calendarItemPassesFilter(m)) items.push({ shapeClass: "cal-mark-match", color: teamColorFor(m.team, m.team_category, m.team_gender) }); });
-    ev.trainings.forEach((t) => { if (calendarItemPassesFilter(t)) items.push({ shapeClass: "cal-mark-training", color: teamColorFor(t.team, t.team_category, t.team_gender) }); });
-    ev.events.forEach((e) => { if (calendarItemPassesFilter(e)) items.push({ shapeClass: "cal-mark-event", color: teamColorFor(e.team, e.team_category, e.team_gender) }); });
+    ev.matches.forEach((m) => { if (calendarItemPassesFilter(m)) items.push({ type: "match", color: teamColorFor(m.team, m.team_category, m.team_gender) }); });
+    ev.trainings.forEach((t) => { if (calendarItemPassesFilter(t)) items.push({ type: "training", color: teamColorFor(t.team, t.team_category, t.team_gender) }); });
+    ev.events.forEach((e) => { if (calendarItemPassesFilter(e)) items.push({ type: "event", color: teamColorFor(e.team, e.team_category, e.team_gender) }); });
     if (items.length === 0) return { html: "", count: 0 };
     const shown = items.slice(0, CAL_MAX_MARKS);
     const overflow = items.length - shown.length;
-    let html = shown.map((it) => `<span class="cal-mark ${it.shapeClass}" style="background:${it.color};"></span>`).join("");
+    let html = shown.map((it) => calMarkIcon(it.type, it.color)).join("");
     if (overflow > 0) html += `<span class="cal-day-overflow">+${overflow}</span>`;
     return { html, count: items.length };
   }
