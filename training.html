@@ -83,6 +83,24 @@
   .item-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 8px; border-radius: 6px; font-size: 12.5px; cursor: pointer; }
   .item-row:hover { background: var(--paper); }
   .item-row.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+
+  /* "Add from library" -- tabla de ejercicios filtrable en vez del viejo
+     desplegable "Pick an exercise…" (a petición de Dani: "casi habría que
+     hacer como si fuera la librería"). Mismas clases/aspecto que la lista
+     de Library, para que se sienta como el mismo componente. */
+  .list-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .list-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--line); }
+  .list-row:last-child { border-bottom: none; }
+  .list-row:hover { background: var(--paper); }
+  .list-row .name { font-weight: 600; }
+  .list-row .meta { font-size: 11.5px; color: var(--muted); }
+  .list-row .stars { color: var(--accent); font-size: 11px; white-space: nowrap; }
+  .list-row .usage { font-size: 10.5px; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 1px 8px; white-space: nowrap; }
+  .list-row .add-plus { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-tint); color: var(--accent-deep); font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .list-row:hover .add-plus { background: var(--accent); color: #fff; }
+  .category-icon { font-size: 15px; margin-right: 4px; filter: grayscale(1) contrast(0.9) brightness(0.75); opacity: 0.75; }
+  .lang-badge-slot { flex: 0 0 auto; display: flex; gap: 3px; }
+  .lang-pill-single { font-size: 10px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 2px 7px; }
   .new-btn { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; font-weight: 600; }
 
   .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 14px; }
@@ -571,14 +589,17 @@
           <button class="reset-btn" id="add-exercise-reset-filters-btn">Reset filters</button>
         </div>
       </div>
-      <div class="toolbar">
-        <div class="field" style="flex:1; min-width:220px;">
-          <label for="add-exercise-select">Add from library <span id="add-exercise-count" class="hint" style="font-weight:400; text-transform:none;"></span></label>
-          <select id="add-exercise-select"><option value="">Pick an exercise…</option></select>
-        </div>
-        <button class="btn btn-secondary" id="add-exercise-btn">+ Add</button>
+      <div class="toolbar" style="align-items:center; margin-bottom:6px;">
+        <p class="section-label" style="margin:0; flex:1;">Add from library <span id="add-exercise-count" class="hint" style="font-weight:400; text-transform:none;"></span></p>
         <button class="btn btn-secondary" id="add-pause-btn" title="Add a rest/break between exercises">⏸ Add pause</button>
       </div>
+      <!-- A petición de Dani: en vez de un desplegable con solo el nombre
+           ("es difícil, aunque tengas los filtros, no sé exactamente lo que
+           es"), una tabla como la de Library -- se ve categoría, edad,
+           dificultad e idioma de cada ejercicio, y un clic en la fila lo
+           añade directamente a la sesión. -->
+      <div class="list-card" id="add-exercise-list-card" style="max-height:260px; overflow-y:auto; margin-bottom:14px;"></div>
+      <div class="empty-state" id="add-exercise-list-empty" style="display:none; margin-bottom:14px;">No exercises match these filters.</div>
       <table>
         <thead><tr><th></th><th>#</th><th>Exercise</th><th>Minutes</th><th></th><th></th></tr></thead>
         <tbody id="session-exercises-body"></tbody>
@@ -660,7 +681,7 @@
     const parts = String(iso).split("-");
     if (parts.length !== 3) return iso;
     const [y, m, d] = parts;
-    return `${d}.${m}.${y}`;
+    return `${d}/${m}/${y}`;
   }
 
   const els = {
@@ -688,7 +709,8 @@
     language: document.getElementById("tr-language"),
     durationBanner: document.getElementById("duration-banner"),
     notebookFilter: document.getElementById("notebook-filter"),
-    addExerciseSelect: document.getElementById("add-exercise-select"),
+    addExerciseListCard: document.getElementById("add-exercise-list-card"),
+    addExerciseListEmpty: document.getElementById("add-exercise-list-empty"),
     sessionBody: document.getElementById("session-exercises-body"),
     sessionEmpty: document.getElementById("session-empty"),
     catSummary: document.getElementById("tr-cat-summary"),
@@ -738,7 +760,10 @@
   // ejercicios, para no tener dos vocabularios distintos en la misma app.
   CATEGORIES.forEach((c) => {
     const opt = document.createElement("option");
-    opt.value = c; opt.textContent = (CATEGORY_ICONS[c] ? CATEGORY_ICONS[c] + " " : "") + c;
+    // A petición de Dani: sin el emoji de color delante -- solo el nombre
+    // (los <option> de un <select> nativo no se pueden recolorear con CSS,
+    // así que la única forma de que "no sea en colores" es no ponerlo).
+    opt.value = c; opt.textContent = c;
     els.mainObjective.appendChild(opt);
   });
 
@@ -816,8 +841,6 @@
     const cats = addExerciseFilterCheckedValues("add-exercise-category-filter");
     const ages = addExerciseFilterCheckedValues("add-exercise-age-filter");
     const favOnly = document.getElementById("add-exercise-favorites-filter").checked;
-    const current = els.addExerciseSelect.value;
-    els.addExerciseSelect.innerHTML = '<option value="">Pick an exercise…</option>';
     const shown = allExercises
       .filter((e) => !allowedIds || allowedIds.has(e.id))
       .filter((e) => !diff || String(e.difficulty) === diff)
@@ -825,12 +848,31 @@
       .filter((e) => cats.length === 0 || cats.every((c) => (e.categories || []).includes(c)))
       .filter((e) => ages.length === 0 || ages.every((a) => (e.age || []).includes(a)))
       .filter((e) => !favOnly || e.favorite);
+
+    els.addExerciseListCard.innerHTML = "";
+    els.addExerciseListEmpty.style.display = shown.length === 0 ? "block" : "none";
     shown.forEach((e) => {
-      const opt = document.createElement("option");
-      opt.value = e.id; opt.textContent = e.name;
-      els.addExerciseSelect.appendChild(opt);
+      const row = document.createElement("div");
+      row.className = "list-row";
+      const catIcons = (e.categories || []).map((c) => CATEGORY_ICONS[c] || "").filter(Boolean).join(" ");
+      const ageText = (e.age || []).join(", ");
+      const langCode = (e.language || "en").toUpperCase();
+      const used = usageCounts[e.id] || 0;
+      row.innerHTML = `
+        <div style="min-width:0;">
+          <div class="name">${escapeHtml(e.name)}</div>
+          <div class="meta">${catIcons ? `<span class="category-icon">${catIcons}</span>` : ""}${escapeHtml((e.categories || []).join(", "))}${ageText ? ` · ${escapeHtml(ageText)}` : ""}</div>
+        </div>
+        <div class="lang-badge-slot"><span class="lang-pill-single">${langCode}</span></div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+          <span class="stars">${"★".repeat(e.difficulty || 1)}${"☆".repeat(3 - (e.difficulty || 1))}</span>
+          <span class="usage">${used === 0 ? "never used" : `${used}×`}</span>
+        </div>
+        <span class="add-plus" title="Add to this session">+</span>
+      `;
+      row.addEventListener("click", () => addExerciseToSession(e.id));
+      els.addExerciseListCard.appendChild(row);
     });
-    els.addExerciseSelect.value = shown.some((e) => e.id === current) ? current : "";
     const countLabel = document.getElementById("add-exercise-count");
     if (countLabel) countLabel.textContent = allExercises.length ? `(${shown.length} of ${allExercises.length})` : "";
   }
@@ -1593,14 +1635,15 @@
   }
   els.planned.addEventListener("input", updateDurationBanner);
 
-  document.getElementById("add-exercise-btn").addEventListener("click", () => {
-    const id = els.addExerciseSelect.value;
-    if (!id) return;
+  // A petición de Dani: clic en la fila de la tabla "Add from library" en
+  // vez de elegir en un desplegable y pulsar un botón "+ Add" aparte.
+  function addExerciseToSession(id) {
     const ex = allExercises.find((e) => e.id === id);
+    if (!ex) return;
     sessionExercises.push({ exercise_id: id, name: ex.name, duration_minutes: 10, key_points: [], session_variants: "" });
-    els.addExerciseSelect.value = "";
     renderSessionTable(); updateDurationBanner(); computeAutoSummary();
-  });
+    showMessage(`Added "${ex.name}" to the session.`, "success");
+  }
 
   async function saveTraining() {
     if (!currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
@@ -1669,11 +1712,33 @@
       const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`);
       if (!resp.ok) return null;
       const blob = await resp.blob();
-      return await new Promise((resolve) => {
+      const rawDataUrl = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
         reader.onerror = () => resolve(null);
         reader.readAsDataURL(blob);
+      });
+      if (!rawDataUrl) return null;
+      // El archivo se llama "logo.png" pero Settings lo sube en formato
+      // WEBP de verdad (más ligero) -- el <img> del navegador no tiene
+      // problema porque mira el Content-Type real, no la extensión, pero
+      // jsPDF no sabe leer WEBP y el logo salía como una mancha negra en
+      // el PDF. Aquí se deja que el propio navegador decodifique la
+      // imagen (sí entiende WEBP) y se vuelve a codificar como PNG de
+      // verdad antes de dársela a jsPDF.
+      return await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch (e2) { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = rawDataUrl;
       });
     } catch (e) { return null; }
   }
@@ -2439,6 +2504,15 @@
     if (orgId) {
       await applyDefaultAddExerciseLanguageFilter();
       await loadExerciseOptions(); await loadNotebooks(); await loadTree();
+      // A petición de Dani: al entrar ya con un equipo recordado (restaurado
+      // dentro de loadTree() desde localStorage), la tabla de "Sessions" se
+      // quedaba vacía hasta volver a elegir el equipo a mano -- porque este
+      // camino (carga inicial de la página) nunca llamaba a
+      // loadTeamPlayers()/loadTrainingsList(), a diferencia de
+      // selectSeasonTeam() (que sí lo hace cuando se cambia de equipo a
+      // mano). Con el equipo ya fijado por loadTree(), aquí se completa lo
+      // que faltaba para que las sesiones aparezcan sin tener que reentrar.
+      if (currentTeam) { await loadTeamPlayers(); await loadTrainingsList(); }
     }
   }
   init();

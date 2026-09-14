@@ -1438,11 +1438,33 @@
       const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`);
       if (!resp.ok) return null;
       const blob = await resp.blob();
-      return await new Promise((resolve) => {
+      const rawDataUrl = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
         reader.onerror = () => resolve(null);
         reader.readAsDataURL(blob);
+      });
+      if (!rawDataUrl) return null;
+      // El archivo se llama "logo.png" pero Settings lo sube en formato
+      // WEBP de verdad (más ligero) -- el <img> del navegador no tiene
+      // problema porque mira el Content-Type real, no la extensión, pero
+      // jsPDF no sabe leer WEBP y el logo salía como una mancha negra en
+      // el PDF. Aquí se deja que el propio navegador decodifique la
+      // imagen (sí entiende WEBP) y se vuelve a codificar como PNG de
+      // verdad antes de dársela a jsPDF.
+      return await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch (e2) { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = rawDataUrl;
       });
     } catch (e) { return null; }
   }

@@ -355,6 +355,17 @@
       <button class="btn btn-secondary" id="bulk-delete-btn" style="color:#991b1b;" disabled>Delete selected</button>
       <button class="btn btn-secondary" id="bulk-cancel-btn">Cancel</button>
       <span style="font-size:12px; color:var(--muted);">Only your own club's exercises show a checkbox</span>
+      <!-- Diagnóstico visible a petición de Dani (esto ya se reportó en las
+           rondas 6/8/10 y siempre resultó ser org-switcher.js sin subir a
+           producción, o cacheado) -- ahora, en vez de tener que adivinarlo
+           otra vez, esta línea dice EN PANTALLA con qué rol/club está
+           trabajando la página ahora mismo. "role: —" o "(sin club)"
+           significa casi seguro que el org-switcher.js de este envío
+           todavía no está en el servidor / el navegador tiene uno viejo en
+           caché -- si en cambio dice el rol y club correctos y aun así no
+           hay casillas, es que los ejercicios que se están probando de
+           verdad no son del propio club. -->
+      <span id="bulk-role-diag" style="font-size:11px; color:var(--muted); border-left:1px solid var(--line); padding-left:10px;"></span>
     </div>
     <div class="list-card" id="list-card"></div>
     <div class="empty-state" id="list-empty" style="display:none">No exercise matches the current filters.</div>
@@ -759,6 +770,8 @@
     selectBtn.textContent = bulkSelectMode ? "Exit select mode" : "Select multiple…";
     document.getElementById("bulk-count").textContent = `${bulkSelected.size} selected`;
     document.getElementById("bulk-delete-btn").disabled = bulkSelected.size === 0;
+    const diagEl = document.getElementById("bulk-role-diag");
+    if (diagEl) diagEl.textContent = `role: ${myRole || "— (old org-switcher.js cached?)"} · club: ${(els.orgName && els.orgName.textContent) || "—"}`;
     const visibleDeletableIds = Array.from(document.querySelectorAll(".row-select")).map((cb) => cb.dataset.id);
     const allVisibleChecked = visibleDeletableIds.length > 0 && visibleDeletableIds.every((id) => bulkSelected.has(id));
     const selectAllCb = document.getElementById("select-all-visible");
@@ -914,11 +927,33 @@
       const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`);
       if (!resp.ok) return null;
       const blob = await resp.blob();
-      return await new Promise((resolve) => {
+      const rawDataUrl = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
         reader.onerror = () => resolve(null);
         reader.readAsDataURL(blob);
+      });
+      if (!rawDataUrl) return null;
+      // El archivo se llama "logo.png" pero Settings lo sube en formato
+      // WEBP de verdad (más ligero) -- el <img> del navegador no tiene
+      // problema porque mira el Content-Type real, no la extensión, pero
+      // jsPDF no sabe leer WEBP y el logo salía como una mancha negra en
+      // el PDF. Aquí se deja que el propio navegador decodifique la
+      // imagen (sí entiende WEBP) y se vuelve a codificar como PNG de
+      // verdad antes de dársela a jsPDF.
+      return await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch (e2) { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = rawDataUrl;
       });
     } catch (err) { return null; }
   }
