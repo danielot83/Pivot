@@ -1414,7 +1414,7 @@
       row.className = t.id === currentTrainingId ? "row-selected" : "";
       row.dataset.trainingId = t.id;
       row.innerHTML = `
-        <td>${VISIBILITY_ICONS[t.visibility || "team"] || ""} ${formatDateDisplay(t.date)}</td>
+        <td>${formatDateDisplay(t.date)}</td>
         <td>${t.title ? escapeHtml(t.title) : "—"}${isShared ? ' <span class="hint" style="font-size:11px;">· shared by another club</span>' : ""}</td>
         <td>${t.number || "—"}</td>
       `;
@@ -1555,6 +1555,18 @@
           <td><button data-action="edit" data-idx="${i}">${expandedRowIdx === i ? "Close" : "Edit"}</button></td>
           <td><button data-action="remove" data-idx="${i}">Remove</button></td>
         `;
+        // A petición de Dani: clic en cualquier parte de la fila (el
+        // nombre, el número...) abre/cierra el mismo panel que el botón
+        // "Edit", no solo el botón. Se ignoran los clics que ya tienen su
+        // propio manejador (los botones ↑/↓/Edit/Remove y el campo de
+        // minutos) para no aplicar el toggle dos veces seguidas (abre y
+        // se vuelve a cerrar en el mismo clic).
+        tr.style.cursor = "pointer";
+        tr.addEventListener("click", (ev) => {
+          if (ev.target.closest("button") || ev.target.closest("input")) return;
+          expandedRowIdx = expandedRowIdx === i ? null : i;
+          renderSessionTable();
+        });
       }
       tr.querySelector("input").addEventListener("change", (e) => {
         sessionExercises[i].duration_minutes = parseInt(e.target.value, 10) || 0;
