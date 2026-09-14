@@ -592,6 +592,11 @@
       <div class="toolbar" style="align-items:center; margin-bottom:6px;">
         <p class="section-label" style="margin:0; flex:1;">Add from library <span id="add-exercise-count" class="hint" style="font-weight:400; text-transform:none;"></span></p>
         <button class="btn btn-secondary" id="add-pause-btn" title="Add a rest/break between exercises">⏸ Add pause</button>
+        <!-- A petición de Dani: "meter partido 5c5 3c3" -- un bloque de
+             partido/scrimmage en el plan de la sesión, igual de simple que
+             la pausa (mismo hueco de tiempo, sin enlazar con Match day),
+             con el formato (5v5/3v3) elegible en la propia fila. -->
+        <button class="btn btn-secondary" id="add-match-btn" title="Add a scrimmage/match segment">🏀 Add match</button>
       </div>
       <!-- A petición de Dani: en vez de un desplegable con solo el nombre
            ("es difícil, aunque tengas los filtros, no sé exactamente lo que
@@ -1489,11 +1494,11 @@
     document.getElementById("feedback-toggle-link").textContent = hasFeedback ? "▾ Post-session feedback (fill in after it happened)" : "▸ Post-session feedback (fill in after it happened)";
 
     const { data: exRows } = await supabaseClient
-      .from("training_exercises").select("id, exercise_id, order_index, duration_minutes, key_points, session_variants, is_pause, exercises(name)")
+      .from("training_exercises").select("id, exercise_id, order_index, duration_minutes, key_points, session_variants, is_pause, is_match, match_format, exercises(name)")
       .eq("training_id", id).order("order_index");
     sessionExercises = (exRows || []).map((r) => ({
-      id: r.id, exercise_id: r.exercise_id, is_pause: !!r.is_pause,
-      name: r.is_pause ? "Pause" : ((r.exercises && r.exercises.name) || "(deleted exercise)"),
+      id: r.id, exercise_id: r.exercise_id, is_pause: !!r.is_pause, is_match: !!r.is_match, match_format: r.match_format || "5v5",
+      name: r.is_pause ? "Pause" : r.is_match ? "Match" : ((r.exercises && r.exercises.name) || "(deleted exercise)"),
       duration_minutes: r.duration_minutes, key_points: r.key_points || [], session_variants: r.session_variants || "",
     }));
 
@@ -1534,6 +1539,7 @@
     sessionExercises.forEach((se, i) => {
       const tr = document.createElement("tr");
       const isPause = !!se.is_pause;
+      const isMatch = !!se.is_match;
       const moveButtons = `
         <button data-action="up" data-idx="${i}" title="Move up" ${i === 0 ? "disabled" : ""} style="border:none; background:none; cursor:pointer; color:var(--muted);">↑</button>
         <button data-action="down" data-idx="${i}" title="Move down" ${i === sessionExercises.length - 1 ? "disabled" : ""} style="border:none; background:none; cursor:pointer; color:var(--muted);">↓</button>
@@ -1543,6 +1549,24 @@
         tr.innerHTML = `
           <td>${moveButtons}</td>
           <td>${i + 1}</td><td>⏸ <em>Pause</em></td>
+          <td><input type="number" value="${se.duration_minutes}" data-idx="${i}"></td>
+          <td></td>
+          <td><button data-action="remove" data-idx="${i}">Remove</button></td>
+        `;
+      } else if (isMatch) {
+        // A petición de Dani: bloque de partido/scrimmage, formato (5v5/3v3)
+        // elegible directamente en la fila -- igual de simple que la pausa,
+        // sin panel de edición aparte.
+        tr.style.background = "var(--paper)";
+        tr.innerHTML = `
+          <td>${moveButtons}</td>
+          <td>${i + 1}</td>
+          <td>🏀 <em>Match</em>
+            <select class="match-format-select" data-idx="${i}" style="margin-left:6px; font-size:12.5px; padding:2px 4px; border:1px solid var(--line); border-radius:4px;">
+              <option value="5v5" ${se.match_format === "3v3" ? "" : "selected"}>5v5</option>
+              <option value="3v3" ${se.match_format === "3v3" ? "selected" : ""}>3v3</option>
+            </select>
+          </td>
           <td><input type="number" value="${se.duration_minutes}" data-idx="${i}"></td>
           <td></td>
           <td><button data-action="remove" data-idx="${i}">Remove</button></td>
@@ -1572,6 +1596,10 @@
         sessionExercises[i].duration_minutes = parseInt(e.target.value, 10) || 0;
         updateDurationBanner();
       });
+      const formatSelect = tr.querySelector(".match-format-select");
+      if (formatSelect) formatSelect.addEventListener("change", (e) => {
+        sessionExercises[i].match_format = e.target.value;
+      });
       const editBtn = tr.querySelector('[data-action="edit"]');
       if (editBtn) editBtn.addEventListener("click", () => {
         expandedRowIdx = expandedRowIdx === i ? null : i;
@@ -1598,7 +1626,7 @@
       });
       els.sessionBody.appendChild(tr);
 
-      if (!isPause && expandedRowIdx === i) {
+      if (!isPause && !isMatch && expandedRowIdx === i) {
         const detailTr = document.createElement("tr");
         const detailTd = document.createElement("td");
         detailTd.colSpan = 6;
@@ -1625,6 +1653,11 @@
 
   document.getElementById("add-pause-btn").addEventListener("click", () => {
     sessionExercises.push({ is_pause: true, name: "Pause", duration_minutes: 5 });
+    renderSessionTable(); updateDurationBanner();
+  });
+
+  document.getElementById("add-match-btn").addEventListener("click", () => {
+    sessionExercises.push({ is_match: true, name: "Match", match_format: "5v5", duration_minutes: 10 });
     renderSessionTable(); updateDurationBanner();
   });
 
@@ -1690,8 +1723,9 @@
       await supabaseClient.from("training_exercises").delete().eq("training_id", trainingId);
       if (sessionExercises.length > 0) {
         const rows = sessionExercises.map((se, i) => ({
-          training_id: trainingId, exercise_id: se.is_pause ? null : se.exercise_id, order_index: i, duration_minutes: se.duration_minutes,
+          training_id: trainingId, exercise_id: (se.is_pause || se.is_match) ? null : se.exercise_id, order_index: i, duration_minutes: se.duration_minutes,
           key_points: se.key_points || [], session_variants: se.session_variants || null, is_pause: !!se.is_pause,
+          is_match: !!se.is_match, match_format: se.is_match ? (se.match_format || "5v5") : null,
         }));
         const { error } = await supabaseClient.from("training_exercises").insert(rows);
         if (error) throw error;
@@ -1918,7 +1952,7 @@
         doc.text(String(se.duration_minutes || ""), colX.time + colTime / 2, midY, { align: "center" });
         doc.text(String(i + 1), colX.num + colNum / 2, midY, { align: "center" });
         doc.setFont("helvetica", "bold");
-        const nameLines = doc.splitTextToSize(se.is_pause ? "⏸ Pause" : se.name, colName - 8);
+        const nameLines = doc.splitTextToSize(se.is_pause ? "⏸ Pause" : se.is_match ? `🏀 Match ${se.match_format || "5v5"}` : se.name, colName - 8);
         const nameStartY = ty + rowH / 2 - ((Math.min(nameLines.length, 3) - 1) * 10) / 2 + 3;
         doc.text(nameLines.slice(0, 3), colX.name + 4, nameStartY);
         doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
@@ -2066,11 +2100,11 @@
       const { data: training } = await supabaseClient.from("trainings").select("*").eq("id", t.id).single();
       if (!training) continue;
       const { data: exRows } = await supabaseClient
-        .from("training_exercises").select("exercise_id, order_index, duration_minutes, key_points, session_variants, is_pause, exercises(name)")
+        .from("training_exercises").select("exercise_id, order_index, duration_minutes, key_points, session_variants, is_pause, is_match, match_format, exercises(name)")
         .eq("training_id", t.id).order("order_index");
       const exercises = (exRows || []).map((r) => ({
-        exercise_id: r.exercise_id, is_pause: !!r.is_pause,
-        name: r.is_pause ? "Pause" : ((r.exercises && r.exercises.name) || "(deleted exercise)"),
+        exercise_id: r.exercise_id, is_pause: !!r.is_pause, is_match: !!r.is_match, match_format: r.match_format || "5v5",
+        name: r.is_pause ? "Pause" : r.is_match ? "Match" : ((r.exercises && r.exercises.name) || "(deleted exercise)"),
         duration_minutes: r.duration_minutes, key_points: r.key_points || [], session_variants: r.session_variants || "",
       }));
       const { data: attRows } = await supabaseClient.from("training_attendance").select("player_id, present").eq("training_id", t.id);
@@ -2466,7 +2500,7 @@
         <li>No teams showing up? Click <strong>"+ New season/team"</strong> to create one on the spot — no need to add players first.</li>
         <li><strong>Main objective</strong> is a quick one-line summary of what the session is mainly about (Warm-up, Shooting, Defense…) — same list the exercises themselves use.</li>
         <li>Filters above <strong>"Add from library"</strong> (difficulty, language, category, age, favorites) narrow that dropdown down so you can actually find something in a big library — <strong>Filter by notebook</strong> does the same but by a whole ready-made list at once. Reset them anytime with "Reset filters".</li>
-        <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, and <strong>⏸ Add pause</strong> to drop in a rest period between exercises — it counts toward the total time same as anything else.</li>
+        <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, <strong>⏸ Add pause</strong> to drop in a rest period between exercises, and <strong>🏀 Add match</strong> to drop in a scrimmage (choose 5v5 or 3v3 right in the row) — both count toward the total time same as anything else.</li>
         <li>The banner above the exercise list tracks your running total against the planned length, and turns red if you go over.</li>
         <li><strong>Auto-summary</strong> fills itself in from the exercises you add (categories, material, up to 4 objectives) — edit it by hand any time.</li>
         <li><strong>Attendance</strong> is pulled from the team's roster — untick anyone who wasn't there.</li>
