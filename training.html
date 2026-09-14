@@ -752,7 +752,15 @@
   let sessionRating = 0;
   let expandedRowIdx = null; // quelle ligne du plan a son éditeur time/points/variants ouvert
 
-  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  // A petición de Dani: añadir un ejercicio desde "Add from library" no
+  // debería saltar arriba del todo a enseñar el mensaje -- ya se ve al
+  // momento en la propia tabla "Exercises in this session", justo debajo.
+  // El resto de mensajes (guardar, errores...) se siguen desplazando a la
+  // vista como siempre; solo este caso concreto pasa `{ scroll: false }`.
+  function showMessage(text, type, opts) {
+    els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type;
+    if (!opts || opts.scroll !== false) els.msg.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   SESSION_CATEGORIES.forEach((c) => {
     const opt = document.createElement("option");
@@ -1687,7 +1695,7 @@
     if (!ex) return;
     sessionExercises.push({ exercise_id: id, name: ex.name, duration_minutes: 10, key_points: [], session_variants: "" });
     renderSessionTable(); updateDurationBanner(); computeAutoSummary();
-    showMessage(`Added "${ex.name}" to the session.`, "success");
+    showMessage(`Added "${ex.name}" to the session.`, "success", { scroll: false });
   }
 
   async function saveTraining() {
