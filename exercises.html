@@ -380,7 +380,7 @@
         </div>
 
         <div class="field-row">
-          <div class="field"><label for="ex-number">Number</label><input id="ex-number" type="number" style="width:80px;" /></div>
+          <div class="field"><label for="ex-number">Number <span id="ex-number-hint" class="hint" style="font-weight:400; text-transform:none;"></span></label><input id="ex-number" type="number" style="width:80px;" /></div>
           <div class="field" style="flex:2;"><label for="ex-name">Name</label><input id="ex-name" type="text" placeholder="e.g. 3-man weave" /></div>
           <div class="field">
             <label for="ex-difficulty">Difficulty</label>
@@ -510,6 +510,7 @@
     msg: document.getElementById("msg"),
     editorArea: document.getElementById("editor-area"),
     number: document.getElementById("ex-number"),
+    numberHint: document.getElementById("ex-number-hint"),
     name: document.getElementById("ex-name"),
     difficulty: document.getElementById("ex-difficulty"),
     favorite: document.getElementById("ex-favorite"),
@@ -1200,6 +1201,7 @@
       creatorNames = {};
       (creators || []).forEach((p) => { creatorNames[p.id] = p.full_name; });
     }
+    updateNumberHint();
   }
 
   function resetForm() {
@@ -1218,6 +1220,20 @@
     return allExercises
       .filter((e) => e.organization_id === currentOrgId)
       .reduce((max, e) => Math.max(max, e.number || 0), 0) + 1;
+  }
+
+  // A petición de Dani: "no tiene demasiado sentido el número si no
+  // sabemos dónde está el conteo" -- un texto junto a "Number" con cuántos
+  // ejercicios tiene ya el club, para que el número asignado tenga
+  // contexto. Mismo filtro que nextNumber() (solo el club actual, no los
+  // ejercicios compartidos de otros clubes) para que la cifra y el número
+  // asignado cuadren entre sí.
+  function updateNumberHint() {
+    if (!els.numberHint) return;
+    const count = allExercises.filter((e) => e.organization_id === currentOrgId).length;
+    els.numberHint.textContent = count === 0
+      ? "— your library is empty so far"
+      : `— ${count} exercise${count === 1 ? "" : "s"} already in your library`;
   }
 
   function resetPdfPreview() {
@@ -1748,7 +1764,7 @@
     box.innerHTML = `
       <strong>How to use Create exercise</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li>This page always shows a ready-to-fill exercise — the "Number" field at the top is assigned automatically the moment you land here, and it never changes no matter which of the 3 buttons below you use. No need to click anything first.</li>
+        <li>This page always shows a ready-to-fill exercise — the "Number" field at the top is assigned automatically the moment you land here, and it never changes no matter which of the 3 buttons below you use. No need to click anything first. The small text next to "Number" shows how many exercises your club already has, so the number has some context — it only counts your own club's exercises, not ones shared by other clubs.</li>
         <li><strong>How to use "Fill in with AI", step by step:</strong>
           <ol style="margin:6px 0 0; padding-left:18px; line-height:1.7;">
             <li>Click the "Fill in with AI" button to open the section.</li>
