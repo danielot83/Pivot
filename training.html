@@ -596,7 +596,7 @@
              partido/scrimmage en el plan de la sesión, igual de simple que
              la pausa (mismo hueco de tiempo, sin enlazar con Match day),
              con el formato (5v5/3v3) elegible en la propia fila. -->
-        <button class="btn btn-secondary" id="add-match-btn" title="Add a scrimmage/match segment">🏀 Add match</button>
+        <button class="btn btn-secondary" id="add-match-btn" title="Add a scrimmage/match segment">Add match</button>
       </div>
       <!-- A petición de Dani: en vez de un desplegable con solo el nombre
            ("es difícil, aunque tengas los filtros, no sé exactamente lo que
@@ -1569,7 +1569,7 @@
         tr.innerHTML = `
           <td>${moveButtons}</td>
           <td>${i + 1}</td>
-          <td>🏀 <em>Match</em>
+          <td><em>Match</em>
             <select class="match-format-select" data-idx="${i}" style="margin-left:6px; font-size:12.5px; padding:2px 4px; border:1px solid var(--line); border-radius:4px;">
               <option value="5v5" ${se.match_format === "3v3" ? "" : "selected"}>5v5</option>
               <option value="3v3" ${se.match_format === "3v3" ? "selected" : ""}>3v3</option>
@@ -1960,7 +1960,7 @@
         doc.text(String(se.duration_minutes || ""), colX.time + colTime / 2, midY, { align: "center" });
         doc.text(String(i + 1), colX.num + colNum / 2, midY, { align: "center" });
         doc.setFont("helvetica", "bold");
-        const nameLines = doc.splitTextToSize(se.is_pause ? "⏸ Pause" : se.is_match ? `🏀 Match ${se.match_format || "5v5"}` : se.name, colName - 8);
+        const nameLines = doc.splitTextToSize(se.is_pause ? "⏸ Pause" : se.is_match ? `Match ${se.match_format || "5v5"}` : se.name, colName - 8);
         const nameStartY = ty + rowH / 2 - ((Math.min(nameLines.length, 3) - 1) * 10) / 2 + 3;
         doc.text(nameLines.slice(0, 3), colX.name + 4, nameStartY);
         doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
@@ -2508,7 +2508,7 @@
         <li>No teams showing up? Click <strong>"+ New season/team"</strong> to create one on the spot — no need to add players first.</li>
         <li><strong>Main objective</strong> is a quick one-line summary of what the session is mainly about (Warm-up, Shooting, Defense…) — same list the exercises themselves use.</li>
         <li>Filters above <strong>"Add from library"</strong> (difficulty, language, category, age, favorites) narrow that dropdown down so you can actually find something in a big library — <strong>Filter by notebook</strong> does the same but by a whole ready-made list at once. Reset them anytime with "Reset filters".</li>
-        <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, <strong>⏸ Add pause</strong> to drop in a rest period between exercises, and <strong>🏀 Add match</strong> to drop in a scrimmage (choose 5v5 or 3v3 right in the row) — both count toward the total time same as anything else.</li>
+        <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, <strong>⏸ Add pause</strong> to drop in a rest period between exercises, and <strong>Add match</strong> to drop in a scrimmage (choose 5v5 or 3v3 right in the row) — both count toward the total time same as anything else.</li>
         <li>The banner above the exercise list tracks your running total against the planned length, and turns red if you go over.</li>
         <li><strong>Auto-summary</strong> fills itself in from the exercises you add (categories, material, up to 4 objectives) — edit it by hand any time.</li>
         <li><strong>Attendance</strong> is pulled from the team's roster — untick anyone who wasn't there.</li>
