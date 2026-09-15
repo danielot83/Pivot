@@ -614,6 +614,16 @@
   let currentTeamCategory = "";
   let currentTeamGender = "";
   let logoRequestToken = 0; // se incrementa cada vez que se pide un logo -- para descartar respuestas viejas que llegan tarde
+
+  // A petición de Dani: dos equipos del mismo club pueden llamarse igual
+  // (p.ej. "DEL basket Saint Sulpice" en U8 y en U10) -- los nombres de los
+  // PDF exportados usaban solo el nombre del equipo y podían pisarse entre
+  // sí (sobre todo "blank match sheet", que no lleva ni rival ni fecha).
+  // Esta función arma un nombre que incluye también categoría y género
+  // cuando existen.
+  function teamFileLabel() {
+    return [currentTeam, currentTeamCategory, currentTeamGender].filter(Boolean).join(" ");
+  }
   let currentMatchId = null;
   let currentMatchOwned = true; // false para un partido compartido de otro club (solo lectura)
   let currentTranslationGroupId = null;
@@ -1785,13 +1795,13 @@
   async function exportToPdf() {
     if (!currentMatchId) { showMessage("Save the match first.", "error"); return; }
     const doc = await buildMatchPdfDoc(false);
-    doc.save(`${currentTeam}_vs_${els.matchOpponent.value || "match"}_${els.matchDate.value}.pdf`);
+    doc.save(`${teamFileLabel()}_vs_${els.matchOpponent.value || "match"}_${els.matchDate.value}.pdf`);
   }
 
   async function exportBlankPdf() {
     if (!currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
     const doc = await buildMatchPdfDoc(true);
-    doc.save(`${currentTeam}_blank_match_sheet.pdf`);
+    doc.save(`${teamFileLabel()}_blank_match_sheet.pdf`);
   }
 
   document.getElementById("new-match-btn").addEventListener("click", newMatch);
