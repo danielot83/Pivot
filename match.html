@@ -223,6 +223,11 @@
   .present-no { background: #fef2f2; color: #991b1b; }
   .present-other { background: #fef9c3; color: #854d0e; }
   .present-unknown { background: var(--line); color: var(--muted); }
+  /* Leyenda de "Call-up & stats", a petición de Dani. */
+  .callup-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin: 8px 0 6px; padding: 8px 10px; background: var(--bg-soft, #f8fafc); border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; color: var(--muted); }
+  .callup-legend span { display: inline-flex; align-items: center; white-space: nowrap; }
+  .callup-select-all-btn { margin-left: 6px; padding: 1px 8px; font-size: 10.5px; font-weight: 600; text-transform: none; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--accent-deep); cursor: pointer; }
+  .callup-select-all-btn:hover { background: var(--accent-tint); }
 </style>
 <!-- Matomo -->
 <script>
@@ -447,17 +452,6 @@
               </select>
             </div>
           </div>
-          <!-- "Import stats from Excel" en la misma línea que los demás botones,
-               a petición de Dani (antes tenía su propia fila aparte). -->
-          <div class="toolbar" style="margin-top:16px;">
-            <button class="btn btn-primary" id="save-match-btn">Save match details</button>
-            <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
-            <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
-            <button class="btn btn-secondary" id="import-stats-btn">Import stats from Excel</button>
-            <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
-            <div class="spacer"></div>
-            <button class="btn btn-secondary" id="delete-match-btn" style="display:none; color:#991b1b;">Delete this match</button>
-          </div>
         </div>
 
         <!-- Tabla de convocatoria/minutos/puntos por jugador -- ahora visible (a petición de
@@ -471,7 +465,20 @@
               <div class="columns-panel" id="callup-columns-panel"></div>
             </div>
           </div>
-          <p class="sub" style="margin-top:-6px;">"Called up" is yours to tick. Click "Present" to cycle through — Present → Absent → Excused → Late → — same options as Attendance, and it's the same record: mark it here or there, it shows up in both. Click any stat cell to edit. "Columns ▾" shows/hides and reorders columns (just for you), and — for admins/coaches — adds or removes your club's own custom stats (steals, turnovers, +/-…). Save the match once before marking presence.</p>
+          <p class="sub" style="margin-top:-6px;">Click any stat cell to edit. "Columns ▾" shows/hides and reorders columns (just for you), and — for admins/coaches — adds or removes your club's own custom stats (steals, turnovers, +/-…).</p>
+          <!-- Leyenda, a petición de Dani ("para ver que son las cosas") --
+               explica de un vistazo lo que significan las casillas/el botón
+               Present de la tabla, sin tener que leer el párrafo de arriba. -->
+          <div class="callup-legend">
+            <span><input type="checkbox" checked tabindex="-1" style="margin-right:4px; vertical-align:middle; pointer-events:none;"> Called up</span>
+            <span><button type="button" class="present-badge present-yes" tabindex="-1" style="border:none; margin-right:4px; vertical-align:middle; pointer-events:none;">P</button>Present</span>
+            <span><button type="button" class="present-badge present-no" tabindex="-1" style="border:none; margin-right:4px; vertical-align:middle; pointer-events:none;">A</button>Absent</span>
+            <span><button type="button" class="present-badge present-other" tabindex="-1" style="border:none; margin-right:4px; vertical-align:middle; pointer-events:none;">E</button>Excused</span>
+            <span><button type="button" class="present-badge present-other" tabindex="-1" style="border:none; margin-right:4px; vertical-align:middle; pointer-events:none;">L</button>Late</span>
+            <span><button type="button" class="present-badge present-unknown" tabindex="-1" style="border:none; margin-right:4px; vertical-align:middle; pointer-events:none;">—</button>Not marked yet</span>
+            <span><input type="checkbox" tabindex="-1" style="margin-right:4px; vertical-align:middle; pointer-events:none;"> Starter</span>
+          </div>
+          <p class="hint" style="margin:2px 0 10px;">"Called up" is yours to tick — the button above the column selects/clears everyone at once. Click "Present" to cycle through it, same options as Attendance — it's the same record, mark it here or there and it shows up in both. Present only becomes clickable once the match has been saved at least once.</p>
           <table>
             <thead><tr id="callup-head"></tr></thead>
             <tbody id="callup-body"></tbody>
@@ -484,6 +491,21 @@
           <tbody id="opponent-stats-body"></tbody>
         </table>
         <button class="btn btn-secondary" id="add-opponent-row-btn" style="margin-top:-12px; margin-bottom:20px;">+ Add opponent player</button>
+
+        <!-- Save/export/delete -- a petición de Dani, movido aquí abajo del
+             todo (antes vivía arriba de la tabla de convocatoria): así se
+             rellena todo -- info general, convocatoria, stats, rival -- y se
+             guarda una sola vez al final, sin tener que subir de nuevo hasta
+             arriba. Mismo criterio que ya usa Training builder. -->
+        <div class="toolbar" style="margin-top:16px;">
+          <button class="btn btn-primary" id="save-match-btn">Save match details</button>
+          <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
+          <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
+          <button class="btn btn-secondary" id="import-stats-btn">Import stats from Excel</button>
+          <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
+          <div class="spacer"></div>
+          <button class="btn btn-secondary" id="delete-match-btn" style="display:none; color:#991b1b;">Delete this match</button>
+        </div>
       </div>
     </div>
 
@@ -928,7 +950,16 @@
   }
 
   function renderTableHeads() {
-    els.callupHead.innerHTML = orderedVisibleCallupColumns().map((c) => `<th>${escapeHtml(c.label)}</th>`).join("");
+    // A petición de Dani: botón "all" junto a la cabecera "Called up" para
+    // marcar/desmarcar a todo el equipo de una vez, en vez de fila a fila.
+    els.callupHead.innerHTML = orderedVisibleCallupColumns().map((c) => {
+      if (c.key === "called_up") {
+        return `<th>${escapeHtml(c.label)} <button type="button" id="callup-select-all-btn" class="callup-select-all-btn" title="Select or clear everyone">all</button></th>`;
+      }
+      return `<th>${escapeHtml(c.label)}</th>`;
+    }).join("");
+    const selAllBtn = document.getElementById("callup-select-all-btn");
+    if (selAllBtn) selAllBtn.addEventListener("click", toggleAllCalledUp);
     els.summaryHead.innerHTML = `
       <th>#</th><th>Player</th><th>GP</th><th>Pts/g</th><th>Reb/g</th><th>Ast/g</th><th>Fouls/g</th>
       ${matchFields.map((f) => `<th>${escapeHtml(f.label)}/g</th>`).join("")}
@@ -1258,6 +1289,18 @@
         if (col.custom) return `<td class="editable" data-player="${p.id}" data-custom="${escapeHtml(col.fieldKey)}">${(s.custom_stats && s.custom_stats[col.fieldKey]) ?? 0}</td>`;
         return "<td></td>";
     }
+  }
+
+  // A petición de Dani: un botón para marcar/desmarcar "Called up" para
+  // todo el equipo a la vez, en vez de una a una. Si no está todo el mundo
+  // marcado, el primer clic marca a todos; si ya lo está, el clic
+  // siguiente los desmarca a todos (mismo criterio que un "select all"
+  // normal).
+  function toggleAllCalledUp() {
+    const allChecked = teamPlayers.every((p) => statsByPlayer[p.id] && statsByPlayer[p.id].called_up);
+    const next = !allChecked;
+    teamPlayers.forEach((p) => { if (statsByPlayer[p.id]) statsByPlayer[p.id].called_up = next; });
+    renderCallupTable();
   }
 
   function renderCallupTable() {
@@ -1777,12 +1820,11 @@
       </ol>
       <p style="margin:10px 0 4px; font-weight:600;">5. Match details</p>
       <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
-        <li><strong>General info</strong> — date, opponent, location, home/away, match number, referee, up to 3 coaches, score. Use <strong>Comments</strong> for a short note like "Final", "Semifinal", or "Friendly" — handy for tournaments; it also shows next to the match in the list above. Fill in what you have, "Save match details" when ready.</li>
-        <li><strong>Call-up &amp; stats</strong> — tick <strong>"Called up"</strong> for who's on the roster for this match, and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once ("Save match details" first) — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
+        <li><strong>General info</strong> — date, opponent, location, home/away, match number, referee, up to 3 coaches, score. Use <strong>Comments</strong> for a short note like "Final", "Semifinal", or "Friendly" — handy for tournaments; it also shows next to the match in the list above.</li>
+        <li><strong>Call-up &amp; stats</strong> — a small legend above the table explains each column at a glance. Tick <strong>"Called up"</strong> for who's on the roster for this match (the "all" button next to that column heading selects or clears everyone in one click), and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
         <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole team.</li>
-        <li><strong>"Import stats from Excel"</strong>, next to "Save match details", reads a file (name, minutes/points/rebounds/assists/fouls, and your own custom stat columns — recognized automatically by name), matches names against this team's roster, then asks which match to save it to.</li>
         <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
-        <li><strong>"Print blank sheet"</strong> — an empty box score with your columns, ready to fill in by hand during the game.</li>
+        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, minutes/points/rebounds/assists/fouls, and your own custom stat columns — recognized automatically by name), matches names against this team's roster, then asks which match to save it to. <strong>"Print blank sheet"</strong> gives you an empty box score with your columns, ready to fill in by hand during the game.</li>
       </ol>`;
     box.style.display = "block";
   });
