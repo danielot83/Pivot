@@ -500,6 +500,27 @@
     }
   };
 
+  // A petición de Dani (Nico, coach nuevo, no podía pedir acceso a un
+  // club desde Settings): org-switcher.js manda aquí con
+  // ?openClubAction=create|join cuando alguien elige "+ Create a new
+  // club"/"+ Join a club" desde el desplegable de CUALQUIER otra página
+  // -- ahí esas dos opciones no podían hacer nada de verdad (las
+  // funciones de arriba solo existen en este fichero). Esto termina la
+  // misma acción, con el mismo prompt() de siempre, nada más cargar el
+  // Dashboard.
+  function checkOpenClubActionParam() {
+    const action = new URLSearchParams(window.location.search).get("openClubAction");
+    if (!action) return;
+    history.replaceState(null, "", window.location.pathname);
+    if (action === "create") {
+      const name = prompt("Name of your new club:");
+      if (name && name.trim()) window.pivotCreateClub_(name.trim());
+    } else if (action === "join") {
+      const name = prompt("Name of the club you want to join:");
+      if (name && name.trim()) window.pivotJoinClub_(name.trim());
+    }
+  }
+
   function applyClubGate(hasAccess) {
     document.getElementById("app-gated-content").style.display = hasAccess ? "flow-root" : "none";
     document.getElementById("no-club-gate").style.display = hasAccess ? "none" : "block";
@@ -2270,6 +2291,7 @@
     setInterval(sendHeartbeat, 60000);
 
     renderModulesGrid("modules-grid", linkForModule);
+    checkOpenClubActionParam();
     // Terminer une création/demande de club en attente AVANT de vérifier
     // si on appartient déjà à un club -- sinon on vérifie trop tôt et ça
     // affiche à tort "pas encore membre" alors que le club vient d'être créé.

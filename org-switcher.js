@@ -127,16 +127,35 @@ function pivotRenderOrgSwitcher(containerId, memberships, activeOrgId, options) 
   }
 
   el.onchange = () => {
+    // BUG arreglado (2026-09-15, a raíz de que a Nico -- coach nuevo -- no
+    // le funcionaba pedir acceso a un club desde Settings): window.
+    // pivotCreateClub_ / window.pivotJoinClub_ solo existen dentro de
+    // dashboard.html -- en CUALQUIER otra página (Settings, Training
+    // builder, Roster...), elegir "+ Create a new club"/"+ Join a club"
+    // en este mismo desplegable no hacía absolutamente nada: el prompt()
+    // pedía el nombre igual, pero al no existir la función, el `&&` cortaba
+    // en silencio -- sin ningún error ni aviso, como si no hubiera pasado
+    // nada. Ahora, si no estamos en el Dashboard (esas funciones no
+    // existen todavía), se manda ahí con un parámetro en la URL que
+    // termina la misma acción nada más cargar -- en vez de perder el clic.
     if (el.value === "__create__") {
       el.value = activeOrgId || "";
-      const name = prompt("Name of your new club:");
-      if (name && name.trim() && window.pivotCreateClub_) window.pivotCreateClub_(name.trim());
+      if (window.pivotCreateClub_) {
+        const name = prompt("Name of your new club:");
+        if (name && name.trim()) window.pivotCreateClub_(name.trim());
+      } else {
+        window.location.href = "./dashboard.html?openClubAction=create";
+      }
       return;
     }
     if (el.value === "__join__") {
       el.value = activeOrgId || "";
-      const name = prompt("Name of the club you want to join:");
-      if (name && name.trim() && window.pivotJoinClub_) window.pivotJoinClub_(name.trim());
+      if (window.pivotJoinClub_) {
+        const name = prompt("Name of the club you want to join:");
+        if (name && name.trim()) window.pivotJoinClub_(name.trim());
+      } else {
+        window.location.href = "./dashboard.html?openClubAction=join";
+      }
       return;
     }
     pivotSetStoredOrgId(el.value);
