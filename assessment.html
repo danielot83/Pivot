@@ -29,11 +29,6 @@
   .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
   .back-link:hover { color: var(--ink); }
 
-  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; max-width: 900px; margin: 0 auto; padding: 24px; align-items: start; }
-  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
-  .layout > div:first-child { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
-  @media (max-width: 800px) { .layout > div:first-child { position: static; max-height: none; } }
-
   h1 { font-size: 23px; margin: 8px 0 4px; }
   p.sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
 
@@ -225,6 +220,26 @@
   .tree-folder-leaf-action:hover { background: rgba(0,0,0,0.06); }
   .team-pill-del { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; color: var(--muted); font-size: 11px; background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0; }
   .team-pill-del:hover { background: rgba(0,0,0,0.08); color: #991b1b; }
+
+  /* ---------------------------------------------------------------------
+     Seguimiento (tracking): un criterio libre (con su unidad) por el que
+     el entrenador va añadiendo mediciones fechadas -- gráfica de línea
+     mínima (sparkline, sin librería) + tabla, una tarjeta por criterio.
+     --------------------------------------------------------------------- */
+  .tracking-group { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  .tracking-group-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tracking-group-head strong { font-size: 14.5px; }
+  .tracking-unit { font-size: 12px; color: var(--muted); margin-left: 6px; }
+  .tracking-group-right { display: flex; align-items: center; gap: 10px; }
+  .tracking-sparkline { display: block; }
+  .tracking-last { font-size: 13.5px; font-weight: 700; color: var(--accent-deep); white-space: nowrap; }
+  .tracking-delta { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .tracking-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .tracking-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .tracking-table td { padding: 5px 6px; border-bottom: 1px solid var(--line); }
+  .tracking-table tr:last-child td { border-bottom: none; }
+  .tracking-del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 4px; }
+  .tracking-del-btn:hover { background: rgba(0,0,0,0.06); color: #991b1b; }
 </style>
 <!-- Matomo -->
 <script>
@@ -306,38 +321,97 @@
   </div>
 </div>
 
-<div class="layout">
-  <div>
-    <div class="side-card">
-      <h2>Criteria</h2>
-      <label class="toggle-row">
-        <input type="checkbox" id="advanced-toggle" />
-        <span>Show advanced criteria too (18 more, tactical/IQ-focused)</span>
-      </label>
-      <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); line-height:1.7;">
-        <strong style="color:var(--ink); font-size:12px;">What each score means</strong><br>
-        <strong>1</strong> — Needs a lot of work<br>
-        <strong>2</strong> — Below what's expected<br>
-        <strong>3</strong> — Meets expectations<br>
-        <strong>4</strong> — Above what's expected<br>
-        <strong>5</strong> — Excellent for this level
+<div class="wrap" style="max-width:1080px; margin:0 auto; padding:0 32px;">
+
+  <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+  <h1 style="display:flex; align-items:center; justify-content:space-between;">
+    Player assessment
+    <button id="help-btn" title="What's this module for?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+  </h1>
+  <div class="help-box" id="help-box"></div>
+  <p class="sub" id="current-selection">Pick a season/team above.</p>
+
+  <div class="msg" id="msg"></div>
+
+  <!-- Módulo 1: Teams & Seasons -- subido aquí arriba (antes vivía al final de la
+       página) a petición de Dani: "teams and seasons arriba como siempre", igual
+       que en Roster/Attendance/Match day/Training builder. -->
+  <div class="team-bar-card">
+    <div class="tsc-header">
+      <div class="tsc-header-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+      <div>
+        <p class="tsc-header-title">Teams &amp; Seasons</p>
+        <p class="tsc-header-sub">Manage your teams and seasons.</p>
+      </div>
+      <div style="flex:1;"></div>
+      <button class="tree-new" id="new-team-btn" style="margin-bottom:0;">+ New season/team</button>
+    </div>
+
+    <div class="tsc-cols">
+      <div>
+        <p class="tsc-step-label">1. Select team</p>
+        <div id="team-gender-category-select" style="position:relative;"></div>
+      </div>
+      <div>
+        <p class="tsc-step-label">2. Select season</p>
+        <div id="season-picker"></div>
       </div>
     </div>
-    <div class="side-card" id="example-data-card"></div>
+
+    <div style="margin-top:24px;" id="tsc-step3-wrap">
+    <p class="tsc-step-label">3. Team info</p>
+    <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
+      <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
+      <div style="flex:1; min-width:0;">
+        <div class="tsc-selected-name" id="tsc-selected-name"></div>
+        <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
+        <div class="tsc-chips" id="tsc-chips">
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 5 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3 3 0 0 0-2.2-2.9"/><path d="M14.5 4.9a3.2 3.2 0 0 1 0 6.2"/></svg></span><div><strong id="tsc-chip-players">0</strong><span>Players</span></div></div>
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.3 4 4.8"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.3-4 4.8"/></svg></span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg></span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
+      </div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit</button>
+        <button class="team-pill-del" id="tsc-delete-btn" title="Delete this team/season"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
+      </div>
+    </div>
+    </div>
   </div>
 
-  <div>
-    <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
-    <h1 style="display:flex; align-items:center; justify-content:space-between;">
-      Player assessment
-      <button id="help-btn" title="What's this module for?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
-    </h1>
-    <div class="help-box" id="help-box"></div>
-    <p class="sub" id="current-selection">Pick a season/team on the left, or load the example.</p>
+  <!-- Criteria: antes vivía en una columna izquierda fija, aparte -- subida aquí
+       arriba, primera tarjeta después de Teams & Seasons, a petición de Dani
+       ("la parte de criteria arriba"). Mismo contenido, solo cambia el envoltorio
+       (de .side-card, pensado para una columna estrecha, a .team-bar-card, igual
+       que el resto de tarjetas de la página ahora que todo es una sola columna). -->
+  <div class="team-bar-card">
+    <h2>Criteria</h2>
+    <label class="toggle-row">
+      <input type="checkbox" id="advanced-toggle" />
+      <span>Show advanced criteria too (18 more, tactical/IQ-focused)</span>
+    </label>
+    <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); line-height:1.7;">
+      <strong style="color:var(--ink); font-size:12px;">What each score means</strong><br>
+      <strong>1</strong> — Needs a lot of work<br>
+      <strong>2</strong> — Below what's expected<br>
+      <strong>3</strong> — Meets expectations<br>
+      <strong>4</strong> — Above what's expected<br>
+      <strong>5</strong> — Excellent for this level
+    </div>
+  </div>
 
-    <div class="msg" id="msg"></div>
+  <!-- Datos de ejemplo quitados de en medio a petición de Dani ("quitar example
+       data") -- mismo patrón que training.html: el contenedor se deja en el DOM
+       (oculto) para no tocar renderExampleDataCard(), reactivar es quitar este
+       display:none. -->
+  <div class="team-bar-card" id="example-data-card" style="display:none"></div>
 
-    <div class="toolbar">
+  <!-- Módulo: elegir jugador -- antes era una barra de herramientas suelta,
+       ahora en su propia tarjeta para que la página se vea homogénea con el
+       resto (siempre tarjetas .team-bar-card apiladas). -->
+  <div class="team-bar-card">
+    <h2>Player</h2>
+    <div class="toolbar" style="margin-bottom:0;">
       <div class="field">
         <label for="player-select">Player</label>
         <select id="player-select"><option value="">Pick a season/team first</option></select>
@@ -345,6 +419,7 @@
       <div class="spacer"></div>
       <button class="btn btn-primary" id="new-btn">+ New assessment</button>
     </div>
+  </div>
 
     <div id="form-area" style="display:none">
       <div class="toolbar">
@@ -418,52 +493,58 @@
     <div class="history-card" id="history-card">
       <div class="empty-state" id="history-empty">Pick a player above to see their assessment history.</div>
     </div>
-  </div>
-</div>
 
-<div class="wrap" style="max-width:1080px; margin:0 auto; padding:0 32px;">
-  <div class="team-bar-card">
-    <div class="tsc-header">
-      <div class="tsc-header-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-      <div>
-        <p class="tsc-header-title">Teams &amp; Seasons</p>
-        <p class="tsc-header-sub">Manage your teams and seasons.</p>
+  <!-- Seguimiento: a petición de Dani -- distinto del sistema de evaluación de
+       arriba (36 criterios fijos, nota 1-5, una foto puntual). Aquí el
+       entrenador define SU PROPIO criterio libre (nombre + unidad -- "no una
+       nota, un valor que hay que decidir antes: tiempo, canastas, nota, peso,
+       distancia etc."), y va añadiendo mediciones fechadas para ver la
+       evolución. Cada criterio+unidad se agrupa en su propia tarjeta, con una
+       tabla y una gráfica de línea mínima (sparkline, SVG a mano, sin
+       librería) -- no se etiqueta como "mejora"/"empeora" porque no hay forma
+       de saber en código si subir es bueno (canastas) o malo (tiempo de
+       sprint): solo se muestra el valor y el cambio respecto a la medición
+       anterior, el entrenador es quien lo interpreta. -->
+    <div class="team-bar-card" id="tracking-card" style="margin-top:20px;">
+      <h2 style="margin:0 0 4px;">Seguimiento</h2>
+      <p class="hint" style="font-size:12.5px; color:var(--muted); margin:0 0 14px;">
+        Define un criterio propio con su unidad (p.ej. "Sprint 20m" en segundos, "Tiros libres seguidos" en canastas, "Peso" en kg) y ve añadiendo mediciones con fecha para ver si mejora o empeora con el tiempo.
+      </p>
+      <div id="tracking-empty" class="empty-state">Pick a player above to see or add their tracking.</div>
+      <div id="tracking-groups"></div>
+      <button class="btn btn-secondary" id="add-tracking-btn" style="display:none;">+ Add measurement</button>
+
+      <div id="tracking-form" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
+        <div class="toolbar">
+          <div class="field" style="flex:1; min-width:200px;">
+            <label for="tracking-criterion">Criterion</label>
+            <input id="tracking-criterion" type="text" list="tracking-criterion-list" placeholder="e.g. Sprint 20m, Free throws, Weight" />
+            <datalist id="tracking-criterion-list"></datalist>
+          </div>
+          <div class="field">
+            <label for="tracking-unit">Unit</label>
+            <input id="tracking-unit" type="text" placeholder="e.g. sec, kg, made shots" style="min-width:130px;" />
+          </div>
+          <div class="field">
+            <label for="tracking-date">Date</label>
+            <input id="tracking-date" type="date" />
+          </div>
+          <div class="field">
+            <label for="tracking-result">Result</label>
+            <input id="tracking-result" type="number" step="any" style="min-width:100px;" />
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label for="tracking-evaluation">Notes (optional)</label>
+          <textarea id="tracking-evaluation" style="width:100%; min-height:44px; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea>
+        </div>
+        <div class="toolbar" style="margin-bottom:0;">
+          <button class="btn btn-primary" id="save-tracking-btn">Save measurement</button>
+          <button class="btn btn-secondary" id="cancel-tracking-btn">Cancel</button>
+        </div>
       </div>
-      <div style="flex:1;"></div>
-      <button class="tree-new" id="new-team-btn" style="margin-bottom:0;">+ New season/team</button>
     </div>
 
-    <div class="tsc-cols">
-      <div>
-        <p class="tsc-step-label">1. Select team</p>
-        <div id="team-gender-category-select" style="position:relative;"></div>
-      </div>
-      <div>
-        <p class="tsc-step-label">2. Select season</p>
-        <div id="season-picker"></div>
-      </div>
-    </div>
-
-    <div style="margin-top:24px;" id="tsc-step3-wrap">
-    <p class="tsc-step-label">3. Team info</p>
-    <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
-      <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
-      <div style="flex:1; min-width:0;">
-        <div class="tsc-selected-name" id="tsc-selected-name"></div>
-        <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
-        <div class="tsc-chips" id="tsc-chips">
-        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 5 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3 3 0 0 0-2.2-2.9"/><path d="M14.5 4.9a3.2 3.2 0 0 1 0 6.2"/></svg></span><div><strong id="tsc-chip-players">0</strong><span>Players</span></div></div>
-        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.3 4 4.8"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.3-4 4.8"/></svg></span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
-        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg></span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
-      </div>
-      </div>
-      <div style="display:flex; gap:6px;">
-        <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit</button>
-        <button class="team-pill-del" id="tsc-delete-btn" title="Delete this team/season"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
-      </div>
-    </div>
-    </div>
-  </div>
 </div>
 
 <footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; font-size:14.5px; color:var(--muted); max-width:1080px; margin-left:auto; margin-right:auto;">
@@ -627,6 +708,7 @@
   let logoRequestToken = 0;
   let teamPlayers = [];
   let currentRatings = emptyRatings();
+  let trackingEntries = [];
   let editingId = null;
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
@@ -817,7 +899,7 @@
     if (season === currentSeason && team === currentTeam && (category || "") === (currentTeamCategory || "")) {
       currentSeason = null; currentTeam = null; currentTeamCategory = ""; currentTeamGender = "";
       els.formArea.style.display = "none";
-      els.currentSelection.textContent = "Pick a season/team on the left, or load the example.";
+      els.currentSelection.textContent = "Pick a season/team above.";
       els.playerSelect.innerHTML = '<option value="">Pick a season/team first</option>';
     }
     showMessage(`"${team}"${category ? " (" + category + ")" : ""} (${season}) removed.`, "success");
@@ -891,6 +973,7 @@
       els.playerSelect.appendChild(opt);
     });
     loadHistory();
+    loadTracking();
   }
 
   // ---------------------------------------------------------------------
@@ -937,7 +1020,7 @@
     if (error) { showMessage(error.message, "error"); return; }
     if (currentSeason === ex.season && currentTeam === ex.team) {
       currentSeason = null; currentTeam = null; currentTeamCategory = ""; currentTeamGender = "";
-      els.currentSelection.textContent = "Pick a season/team on the left, or load the example.";
+      els.currentSelection.textContent = "Pick a season/team above.";
       els.playerSelect.innerHTML = '<option value="">Pick a season/team first</option>';
     }
     showMessage(`${ex.team} removed.`, "success");
@@ -1336,6 +1419,178 @@
   }
 
   // -----------------------------------------------------------------------
+  // Seguimiento (tracking) -- nuevo a petición de Dani: distinto de la
+  // evaluación de arriba (criterios fijos, nota 1-5). Aquí el criterio lo
+  // define el propio entrenador (texto libre) junto con su unidad ("no una
+  // nota, un valor que hay que decidir antes: tiempo, canastas, nota, peso,
+  // distancia etc."), y cada fecha nueva añade una medición (resultado
+  // numérico + nota opcional) a ese mismo criterio -- así se ve la evolución.
+  // Tabla nueva: player_tracking_entries (ver database/step74_player_tracking.sql).
+  // -----------------------------------------------------------------------
+  async function loadTracking() {
+    const playerId = els.playerSelect.value;
+    const groupsEl = document.getElementById("tracking-groups");
+    const emptyEl = document.getElementById("tracking-empty");
+    const addBtn = document.getElementById("add-tracking-btn");
+    groupsEl.innerHTML = "";
+    document.getElementById("tracking-form").style.display = "none";
+    if (!playerId) {
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "Pick a player above to see or add their tracking.";
+      addBtn.style.display = "none";
+      trackingEntries = [];
+      return;
+    }
+    addBtn.style.display = "inline-block";
+    const { data, error } = await supabaseClient
+      .from("player_tracking_entries")
+      .select("id, criterion, unit, date, result, evaluation")
+      .eq("player_id", playerId)
+      .order("date");
+    if (error) {
+      // La tabla puede no existir todavía si Dani no ha corrido step74 -- se
+      // avisa igual que en otras rondas, sin romper el resto de la página.
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "Couldn't load tracking — run database/step74_player_tracking.sql in Supabase first if you haven't yet.";
+      trackingEntries = [];
+      return;
+    }
+    trackingEntries = data || [];
+    renderTrackingGroups();
+  }
+
+  function buildSparkline(values) {
+    if (values.length < 2) return "";
+    const w = 100, h = 30, pad = 3;
+    const min = Math.min(...values), max = Math.max(...values);
+    const range = max - min || 1;
+    const pts = values.map((v, i) => {
+      const x = pad + (i * (w - pad * 2)) / (values.length - 1);
+      const y = h - pad - ((v - min) / range) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const lastXY = pts[pts.length - 1].split(",");
+    return `<svg class="tracking-sparkline" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">
+      <polyline points="${pts.join(" ")}" fill="none" stroke="var(--accent-deep)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="${lastXY[0]}" cy="${lastXY[1]}" r="2.6" fill="var(--accent)" />
+    </svg>`;
+  }
+
+  function renderTrackingGroups() {
+    const groupsEl = document.getElementById("tracking-groups");
+    const emptyEl = document.getElementById("tracking-empty");
+    groupsEl.innerHTML = "";
+    if (trackingEntries.length === 0) {
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "No measurements tracked yet for this player.";
+      return;
+    }
+    emptyEl.style.display = "none";
+    const groups = {};
+    const order = [];
+    trackingEntries.forEach((e) => {
+      const key = `${e.criterion}__${e.unit || ""}`;
+      if (!groups[key]) { groups[key] = { criterion: e.criterion, unit: e.unit, entries: [] }; order.push(key); }
+      groups[key].entries.push(e);
+    });
+    order.forEach((key) => {
+      const g = groups[key];
+      g.entries.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+      const last = g.entries[g.entries.length - 1];
+      const prev = g.entries.length > 1 ? g.entries[g.entries.length - 2] : null;
+      const delta = prev !== null ? last.result - prev.result : null;
+      const deltaRounded = delta === null ? null : Math.round(delta * 100) / 100;
+      const deltaStr = deltaRounded === null ? "" : (deltaRounded > 0 ? "+" : "") + deltaRounded;
+      const card = document.createElement("div");
+      card.className = "tracking-group";
+      const rowsHtml = g.entries.slice().reverse().map((e) => `
+            <tr>
+              <td>${escapeHtml(e.date)}</td>
+              <td>${e.result}${g.unit ? " " + escapeHtml(g.unit) : ""}</td>
+              <td>${e.evaluation ? escapeHtml(e.evaluation) : ""}</td>
+              <td><button type="button" class="tracking-del-btn" data-id="${e.id}" title="Delete this measurement">✕</button></td>
+            </tr>`).join("");
+      card.innerHTML = `
+        <div class="tracking-group-head">
+          <div><strong>${escapeHtml(g.criterion)}</strong>${g.unit ? `<span class="tracking-unit">${escapeHtml(g.unit)}</span>` : ""}</div>
+          <div class="tracking-group-right">
+            ${buildSparkline(g.entries.map((e) => e.result))}
+            <span class="tracking-last">${last.result}${g.unit ? " " + escapeHtml(g.unit) : ""}</span>
+            ${delta !== null ? `<span class="tracking-delta">${deltaStr} vs previous</span>` : ""}
+          </div>
+        </div>
+        <table class="tracking-table">
+          <thead><tr><th>Date</th><th>Result</th><th>Notes</th><th></th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>`;
+      groupsEl.appendChild(card);
+    });
+    groupsEl.querySelectorAll(".tracking-del-btn").forEach((btn) => {
+      btn.addEventListener("click", () => deleteTrackingEntry(btn.dataset.id));
+    });
+  }
+
+  function updateTrackingCriterionList() {
+    const list = document.getElementById("tracking-criterion-list");
+    const names = Array.from(new Set(trackingEntries.map((e) => e.criterion)));
+    list.innerHTML = names.map((n) => `<option value="${escapeHtml(n)}"></option>`).join("");
+  }
+
+  document.getElementById("add-tracking-btn").addEventListener("click", () => {
+    if (!els.playerSelect.value) { showMessage("Pick a player first.", "error"); return; }
+    document.getElementById("tracking-criterion").value = "";
+    document.getElementById("tracking-unit").value = "";
+    document.getElementById("tracking-date").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("tracking-result").value = "";
+    document.getElementById("tracking-evaluation").value = "";
+    updateTrackingCriterionList();
+    document.getElementById("tracking-form").style.display = "block";
+  });
+  document.getElementById("cancel-tracking-btn").addEventListener("click", () => {
+    document.getElementById("tracking-form").style.display = "none";
+  });
+  document.getElementById("tracking-criterion").addEventListener("input", () => {
+    const name = document.getElementById("tracking-criterion").value.trim();
+    const unitField = document.getElementById("tracking-unit");
+    if (unitField.value.trim()) return;
+    const match = trackingEntries.find((e) => e.criterion === name);
+    if (match) unitField.value = match.unit || "";
+  });
+  document.getElementById("save-tracking-btn").addEventListener("click", async () => {
+    const playerId = els.playerSelect.value;
+    if (!playerId) { showMessage("Pick a player first.", "error"); return; }
+    const criterion = document.getElementById("tracking-criterion").value.trim();
+    const unit = document.getElementById("tracking-unit").value.trim();
+    const date = document.getElementById("tracking-date").value;
+    const resultRaw = document.getElementById("tracking-result").value;
+    const evaluation = document.getElementById("tracking-evaluation").value.trim();
+    if (!criterion) { showMessage("Name the criterion you're tracking.", "error"); return; }
+    if (!date) { showMessage("Pick a date.", "error"); return; }
+    if (resultRaw === "") { showMessage("Enter a result.", "error"); return; }
+    const result = parseFloat(resultRaw);
+    if (Number.isNaN(result)) { showMessage("Result must be a number.", "error"); return; }
+    try {
+      const { error } = await supabaseClient.from("player_tracking_entries").insert({
+        organization_id: currentOrgId, player_id: playerId,
+        criterion, unit: unit || null, date, result, evaluation: evaluation || null,
+      });
+      if (error) throw error;
+      document.getElementById("tracking-form").style.display = "none";
+      await loadTracking();
+      showMessage("Measurement saved.", "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't save that measurement.", "error");
+    }
+  });
+
+  async function deleteTrackingEntry(id) {
+    if (!confirm("Delete this measurement?")) return;
+    const { error } = await supabaseClient.from("player_tracking_entries").delete().eq("id", id);
+    if (error) { showMessage(error.message, "error"); return; }
+    await loadTracking();
+  }
+
+  // -----------------------------------------------------------------------
   // Aide IA : on ne peut pas appeler une IA directement depuis cette page,
   // donc le principe est copier/coller -- même logique que le bloc IA de
   // suivi.py côté application de bureau (prompt prêt, puis un bloc de
@@ -1412,7 +1667,7 @@
   document.getElementById("pdf-btn").addEventListener("click", generatePdf);
   document.getElementById("excel-btn").addEventListener("click", exportHistoryToExcel);
   els.deleteBtn.addEventListener("click", deleteAssessment);
-  els.playerSelect.addEventListener("change", () => { els.formArea.style.display = "none"; loadHistory(); });
+  els.playerSelect.addEventListener("change", () => { els.formArea.style.display = "none"; loadHistory(); loadTracking(); });
 
   document.getElementById("help-btn").addEventListener("click", () => {
     const box = document.getElementById("help-box");
@@ -1420,14 +1675,14 @@
     box.innerHTML = `
       <strong>How to use Player assessment</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li><strong>Pick a season/team</strong> on the left, then a player at the top — the list updates to match.</li>
-        <li><strong>Show advanced criteria</strong> (left, below the tree) reveals 18 more tactical/IQ-focused criteria on top of the 18 basic ones — leave it off for a quicker, simpler evaluation.</li>
+        <li><strong>Pick a season/team</strong> above, then a player — the list updates to match.</li>
+        <li><strong>Show advanced criteria</strong> (Criteria card) reveals 18 more tactical/IQ-focused criteria on top of the 18 basic ones — leave it off for a quicker, simpler evaluation.</li>
         <li><strong>Heights</strong> (player, father, mother) are optional, used to get a feel for likely adult height.</li>
         <li><strong>Fill in with AI</strong> — copy a ready-made prompt into any AI chat, describe the player, paste its reply back in, and it fills the scores in for you to review.</li>
         <li><strong>Click "+ New assessment"</strong>, fill in what you can (blank stays blank, it's not forced to a random score), Save.</li>
         <li>Sector averages update live as you fill each one in, both on screen and in the exported PDF.</li>
         <li><strong>Past assessments</strong> below are clickable — opens that one back up to review or edit.</li>
-        <li><strong>Example data</strong> (left) — three real Bulls seasons and the 2008 Celtics, with sample evaluations already filled in.</li>
+        <li><strong>Seguimiento</strong>, below Past assessments — a different kind of tracking: define your own criterion with its unit (e.g. "Sprint 20m" in seconds, "Free throws in a row" in made shots, "Weight" in kg) and add dated measurements over time. Each criterion gets its own mini chart and table — this is for things that don't fit the 1-5 scoring above.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). An assessment is a real player's evaluation, so think before sharing beyond your team.</li>
         <li>A <strong>player account</strong> never sees "My team" assessments in bulk, even from their own club — that would mean seeing every teammate's evaluation. The one exception: if Settings has linked their account to their roster entry, they can see their own assessment, and only their own.</li>
       </ul>`;
