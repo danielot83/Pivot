@@ -1571,10 +1571,17 @@
       .from("exercises").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
     els.statExercises.textContent = exerciseCount ?? 0;
 
-    // "Notebooks" = les dossiers (category) utilisés dans les jugadas --
-    // pas les jugadas elles-mêmes, ça c'est "Play designs" juste après.
-    const { data: playRows } = await supabaseClient.from("plays").select("category").eq("organization_id", currentOrgId);
-    els.statNotebooks.textContent = playRows ? new Set(playRows.filter((r) => r.category).map((r) => r.category)).size : 0;
+    // A petición de Dani (2026-09-15): esto contaba "Playbooks" de Play
+    // design (los dosieres/category de las jugadas) bajo la etiqueta
+    // "Notebooks" -- una confusión que viene de antes de la ronda 9,
+    // cuando ese mismo campo se llamaba "Notebooks" en Play design y se
+    // renombró a "Playbook" (ver esa ronda) sin arreglar esta tarjeta.
+    // El Notebook DE VERDAD (el de Training builder, tabla "notebooks")
+    // nunca se contaba aquí -- por eso mostraba 0 aunque Dani ya tuviera
+    // uno creado. Ahora cuenta los notebooks reales del club.
+    const { count: notebookCount } = await supabaseClient
+      .from("notebooks").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
+    els.statNotebooks.textContent = notebookCount ?? 0;
 
     const { count: playCount } = await supabaseClient
       .from("plays").select("id", { count: "exact", head: true }).eq("organization_id", currentOrgId);
@@ -2258,7 +2265,7 @@
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
         <li>This is your home screen — your club, your role, and quick stats about what's in PlayPivot so far. If you're not in any club yet, you can request to join one or create your own club from the club selector in the sidebar.</li>
         <li><strong>Sidebar (left)</strong> — every module, always one click away. Below "Dashboard" is your club selector: switch between clubs you belong to, create a new one, or ask to join another. Settings, Help, and Privacy live at the bottom, along with your name and role.</li>
-        <li><strong>Your stats at a glance</strong> — Teams, Players, Assessments, Exercises, Notebooks (folders in your play notebook), Play designs, Matches, Wins, Losses. All counted from your own club only. Example data (any Bulls season, the Celtics) is never counted here, even if it's still loaded on Roster/Assessment/Training.</li>
+        <li><strong>Your stats at a glance</strong> — Teams, Players, Assessments, Exercises, Notebooks (from Training builder), Play designs, Matches, Wins, Losses. All counted from your own club only. Example data (any Bulls season, the Celtics) is never counted here, even if it's still loaded on Roster/Assessment/Training.</li>
         <li><strong>Calendar</strong> — matches (orange), trainings (navy), and events (green) for your club. Click any day to see what's on it, or to add a match, training, or event right there — it'll show up in its own module automatically.</li>
         <li><strong>Recent activity</strong> — the last few things added to your club: exercises, plays, matches, trainings, events, assessments.</li>
         <li>✉️ (top right) is your <strong>messages</strong> inbox — direct messages between you and a teammate, or you and a PlayPivot admin/validator. A number badge means unread messages.</li>

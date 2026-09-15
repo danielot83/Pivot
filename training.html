@@ -103,6 +103,17 @@
   .lang-pill-single { font-size: 10px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 2px 7px; }
   .new-btn { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; font-weight: 600; }
 
+  /* A petición de Dani: la tabla "Attendance" de aquí ya no lleva su
+     propia casilla de sí/no -- usa el mismo botón P/A/E/L, que lee y
+     escribe la misma tabla "attendance" compartida con Match day y con
+     el propio módulo Attendance (mismas clases CSS, copiadas tal cual de
+     match.html, para que se vea y se comporte exactamente igual). */
+  .present-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+  .present-yes { background: #dcfce7; color: #166534; }
+  .present-no { background: #fef2f2; color: #991b1b; }
+  .present-other { background: #fef9c3; color: #854d0e; }
+  .present-unknown { background: var(--line); color: var(--muted); }
+
   .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 14px; }
   .field { display: flex; flex-direction: column; gap: 4px; }
   .field label { font-size: 13px; font-weight: 600; color: var(--muted); }
@@ -741,11 +752,14 @@
   let currentSeason = null, currentTeam = null, currentTeamCategory = "", currentTeamGender = "";
   let logoRequestToken = 0;
   let currentTrainingId = null;
+  let currentTrainingOwned = true; // false para una sesión compartida de otro club (solo lectura)
   let currentTranslationGroupId = null;
   let teamPlayers = [];
   let allExercises = [];
   let sessionExercises = []; // { exercise_id, name, duration_minutes, key_points, session_variants }
-  let attendance = {}; // player_id -> boolean
+  // player_id -> { id, status } | undefined -- misma tabla "attendance" que Match day y Attendance
+  // (antes era player_id -> boolean, tabla aparte "training_attendance"; ver ronda 18).
+  let attendance = {};
   let allNotebooks = [];
   let usageCounts = {};
   let currentNotebookId = null;
@@ -1457,6 +1471,7 @@
   function newTraining() {
     if (!currentTeam) { showMessage("Pick a season/team above first.", "error"); return; }
     currentTrainingId = null;
+    currentTrainingOwned = true;
     els.title.value = ""; els.date.value = new Date().toISOString().slice(0, 10); els.planned.value = "90";
     els.number.value = nextSessionNumber();
     els.category.value = ""; els.mainObjective.value = ""; els.players.value = "";
@@ -1469,7 +1484,10 @@
     document.getElementById("feedback-section").style.display = "none";
     document.getElementById("feedback-toggle-link").textContent = "▸ Post-session feedback (fill in after it happened)";
     sessionExercises = [];
-    attendance = {}; teamPlayers.forEach((p) => (attendance[p.id] = true));
+    // A petición de Dani: una sesión nueva empieza con la asistencia vacía
+    // (sin marcar), igual que Match day y que el propio módulo Attendance --
+    // antes se marcaba "presente" a todo el equipo por defecto.
+    attendance = {};
     renderSessionTable(); renderAttendanceTable(); updateDurationBanner();
     document.getElementById("notebook-editor").style.display = "none";
     els.trainingArea.style.display = "block";
@@ -1483,6 +1501,7 @@
     const { data: training, error } = await supabaseClient.from("trainings").select("*").eq("id", id).single();
     if (error) { showMessage(error.message, "error"); return; }
     currentTrainingId = id;
+    currentTrainingOwned = training.organization_id === currentOrgId;
     els.title.value = training.title || ""; els.date.value = training.date; els.planned.value = training.planned_minutes || 90;
     els.number.value = training.number || "";
     els.category.value = training.category || "";
@@ -1510,15 +1529,17 @@
       duration_minutes: r.duration_minutes, key_points: r.key_points || [], session_variants: r.session_variants || "",
     }));
 
-    const { data: attRows } = await supabaseClient.from("training_attendance").select("player_id, present").eq("training_id", id);
-    attendance = {}; teamPlayers.forEach((p) => (attendance[p.id] = true));
-    (attRows || []).forEach((r) => (attendance[r.player_id] = r.present));
+    // Misma tabla "attendance" que usa Match day y el módulo Attendance --
+    // sin relleno por defecto (una sesión sin marcar se queda sin marcar).
+    const { data: attRows } = await supabaseClient.from("attendance").select("id, player_id, status").eq("training_id", id);
+    attendance = {};
+    (attRows || []).forEach((r) => (attendance[r.player_id] = { id: r.id, status: r.status }));
 
     expandedRowIdx = null;
     renderSessionTable(); renderAttendanceTable(); updateDurationBanner();
     document.getElementById("notebook-editor").style.display = "none";
     els.trainingArea.style.display = "block";
-    const owned = training.organization_id === currentOrgId;
+    const owned = currentTrainingOwned;
     document.getElementById("delete-training-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     document.getElementById("save-training-btn").style.display = owned ? "inline-block" : "none";
     [els.title, els.date, els.number, els.category, els.mainObjective, els.planned, els.players, els.coach1, els.coach2, els.coach3, els.visibility, els.language]
@@ -1669,14 +1690,87 @@
     renderSessionTable(); updateDurationBanner();
   });
 
+  const ATTENDANCE_BADGE = {
+    present: { label: "P", cls: "present-yes" },
+    absent: { label: "A", cls: "present-no" },
+    excused: { label: "E", cls: "present-other" },
+    late: { label: "L", cls: "present-other" },
+  };
+
+  // Mismo ciclo que Match day y Attendance: sin marcar -> present -> absent -> excused -> late -> sin marcar.
+  const PRESENT_STATUS_CYCLE = [null, "present", "absent", "excused", "late"];
+
   function renderAttendanceTable() {
     els.attendanceBody.innerHTML = "";
+    const canEdit = currentTrainingId && currentTrainingOwned;
     teamPlayers.forEach((p) => {
+      const rec = attendance[p.id];
+      const badge = rec && rec.status ? ATTENDANCE_BADGE[rec.status] : null;
+      const cls = badge ? badge.cls : "present-unknown";
+      const label = badge ? badge.label : "—";
+      const title = canEdit ? "Click to cycle: — → Present → Absent → Excused → Late → — (same as Attendance)" : "Save the session first to mark attendance";
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td><input type="checkbox" ${attendance[p.id] ? "checked" : ""} data-player="${p.id}"></td><td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>`;
-      tr.querySelector("input").addEventListener("change", (e) => (attendance[p.id] = e.target.checked));
+      tr.innerHTML = `<td><button type="button" class="present-badge ${cls}" style="border:none;${canEdit ? " cursor:pointer;" : ""}" data-player="${p.id}" data-record-id="${rec ? rec.id : ""}" data-status="${(rec && rec.status) || ""}" ${canEdit ? "" : "disabled"} title="${title}">${label}</button></td><td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>`;
       els.attendanceBody.appendChild(tr);
     });
+    els.attendanceBody.querySelectorAll("button.present-badge").forEach((btn) => {
+      btn.addEventListener("click", () => cycleAttendanceStatus(btn));
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // A petición de Dani (ronda 18): marcar asistencia aquí escribe
+  // directamente en la misma tabla "attendance" que usa Match day y el
+  // propio módulo Attendance -- mismo ciclo de estados, mismo patrón de
+  // "buscar antes de insertar" (el índice único es parcial, upsert no lo
+  // entiende bien). Se guarda al momento, clic a clic -- ya no depende de
+  // pulsar "Save session".
+  // -----------------------------------------------------------------------
+  async function cycleAttendanceStatus(btn) {
+    if (!currentTrainingId) return;
+    const playerId = btn.dataset.player;
+    const currentStatus = btn.dataset.status || null;
+    const nextIndex = (PRESENT_STATUS_CYCLE.indexOf(currentStatus) + 1) % PRESENT_STATUS_CYCLE.length;
+    const nextStatus = PRESENT_STATUS_CYCLE[nextIndex];
+    btn.disabled = true;
+    try {
+      if (nextStatus === null) {
+        if (btn.dataset.recordId) {
+          const { error } = await supabaseClient.from("attendance").delete().eq("id", btn.dataset.recordId);
+          if (error) throw error;
+        }
+        btn.dataset.recordId = "";
+        attendance[playerId] = null;
+      } else {
+        let recordId = btn.dataset.recordId || null;
+        if (recordId) {
+          const { error } = await supabaseClient.from("attendance").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", recordId);
+          if (error) throw error;
+        } else {
+          const { data: existing } = await supabaseClient.from("attendance").select("id").eq("training_id", currentTrainingId).eq("player_id", playerId).maybeSingle();
+          if (existing) {
+            const { error } = await supabaseClient.from("attendance").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", existing.id);
+            if (error) throw error;
+            recordId = existing.id;
+          } else {
+            const payload = { organization_id: currentOrgId, player_id: playerId, status: nextStatus, created_by: currentUserId, training_id: currentTrainingId };
+            const { data, error } = await supabaseClient.from("attendance").insert(payload).select("id").single();
+            if (error) throw error;
+            recordId = data.id;
+          }
+        }
+        btn.dataset.recordId = recordId;
+        attendance[playerId] = { id: recordId, status: nextStatus };
+      }
+      btn.dataset.status = nextStatus || "";
+      const cls = nextStatus ? ATTENDANCE_BADGE[nextStatus].cls : "present-unknown";
+      btn.className = "present-badge " + cls;
+      btn.textContent = nextStatus ? ATTENDANCE_BADGE[nextStatus].label : "—";
+    } catch (err) {
+      showMessage(err.message || "Couldn't update attendance.", "error");
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   function updateDurationBanner() {
@@ -1726,6 +1820,7 @@
         const { data, error } = await supabaseClient.from("trainings").insert(payload).select("id, translation_group_id").single();
         if (error) throw error;
         trainingId = data.id; currentTrainingId = trainingId; currentTranslationGroupId = data.translation_group_id;
+        renderAttendanceTable(); // ya se puede marcar asistencia -- antes tenía que reabrirse la sesión para eso
       }
 
       await supabaseClient.from("training_exercises").delete().eq("training_id", trainingId);
@@ -1739,12 +1834,8 @@
         if (error) throw error;
       }
 
-      await supabaseClient.from("training_attendance").delete().eq("training_id", trainingId);
-      const attRows = teamPlayers.map((p) => ({ training_id: trainingId, player_id: p.id, present: !!attendance[p.id] }));
-      if (attRows.length > 0) {
-        const { error } = await supabaseClient.from("training_attendance").insert(attRows);
-        if (error) throw error;
-      }
+      // La asistencia ya no se guarda aquí -- cada clic en la casilla P/A/E/L
+      // escribe al momento en la tabla "attendance" (ver cycleAttendanceStatus).
 
       showMessage("Session saved.", "success");
       await loadTrainingsList();
@@ -2040,6 +2131,15 @@
     doc.setTextColor(DARK);
   }
 
+  // El PDF (drawSessionPage) sigue esperando un mapa sencillo player_id ->
+  // boolean, como antes -- aquí se convierte desde el nuevo formato
+  // player_id -> {id, status} de la tabla "attendance" compartida.
+  function presentBoolMap(attMap) {
+    const out = {};
+    Object.keys(attMap || {}).forEach((pid) => { out[pid] = attMap[pid] && attMap[pid].status === "present"; });
+    return out;
+  }
+
   async function exportToPdf() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: [595, 842] });
@@ -2052,7 +2152,7 @@
       categories_summary: els.catSummary.value.split("\n").map((s) => s.trim()).filter(Boolean),
       material_summary: els.matSummary.value.split("\n").map((s) => s.trim()).filter(Boolean),
       objectives_summary: els.objSummary.value.split("\n").map((s) => s.trim()).filter(Boolean),
-      exercises: sessionExercises, teamPlayersList: teamPlayers, attendance,
+      exercises: sessionExercises, teamPlayersList: teamPlayers, attendance: presentBoolMap(attendance),
       rating: sessionRating, comments: els.comments.value, next_training_notes: els.nextNotes.value,
     };
     drawSessionPage(doc, sess, logoDataUrl, clubName);
@@ -2115,10 +2215,9 @@
         name: r.is_pause ? "Pause" : r.is_match ? "Match" : ((r.exercises && r.exercises.name) || "(deleted exercise)"),
         duration_minutes: r.duration_minutes, key_points: r.key_points || [], session_variants: r.session_variants || "",
       }));
-      const { data: attRows } = await supabaseClient.from("training_attendance").select("player_id, present").eq("training_id", t.id);
+      const { data: attRows } = await supabaseClient.from("attendance").select("player_id, status").eq("training_id", t.id);
       const sessAttendance = {};
-      teamPlayers.forEach((p) => (sessAttendance[p.id] = true));
-      (attRows || []).forEach((r) => (sessAttendance[r.player_id] = r.present));
+      (attRows || []).forEach((r) => (sessAttendance[r.player_id] = r.status === "present"));
 
       doc.addPage();
       drawSessionPage(doc, {
@@ -2511,7 +2610,7 @@
         <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, <strong>⏸ Add pause</strong> to drop in a rest period between exercises, and <strong>Add match</strong> to drop in a scrimmage (choose 5v5 or 3v3 right in the row) — both count toward the total time same as anything else.</li>
         <li>The banner above the exercise list tracks your running total against the planned length, and turns red if you go over.</li>
         <li><strong>Auto-summary</strong> fills itself in from the exercises you add (categories, material, up to 4 objectives) — edit it by hand any time.</li>
-        <li><strong>Attendance</strong> is pulled from the team's roster — untick anyone who wasn't there.</li>
+        <li><strong>Attendance</strong> starts blank for every session — click a player's badge to cycle Present → Absent → Excused → Late → blank. It's saved instantly (once the session itself has been saved once) and shared live with Match day and the Attendance page — mark it in any of the three and it shows the same everywhere.</li>
         <li><strong>Post-session feedback</strong> is deliberately separate from everything above — the rest is what you planned, this is what actually happened: a rating, comments, and ideas for next time. Fill it in after the session, whenever you're ready.</li>
         <li><strong>Export to PDF</strong> makes a session sheet in the same style as the exercise sheets: attendance on the left, the plan in the middle, the summary and feedback on the right. <strong>Export whole book</strong> (under Sessions) does the same for every session of the selected team/season at once, with a cover page.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). The icon next to each session in the list shows its current circle.</li>
