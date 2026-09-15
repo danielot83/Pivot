@@ -412,7 +412,10 @@
             </div>
             <div class="field"><label for="match-number">Match #</label><input id="match-number" type="number" style="width:70px;" /></div>
             <div class="field"><label for="match-referee">Referee</label><input id="match-referee" type="text" style="width:150px;" /></div>
-            <div class="field"><label for="match-coach">Coach</label><input id="match-coach" type="text" style="width:150px;" /></div>
+            <!-- A petición de Dani: varios coaches, igual que ya tiene Training builder. -->
+            <div class="field"><label for="match-coach1">Coach 1</label><input id="match-coach1" type="text" style="width:130px;" /></div>
+            <div class="field"><label for="match-coach2">Coach 2</label><input id="match-coach2" type="text" style="width:130px;" /></div>
+            <div class="field"><label for="match-coach3">Coach 3</label><input id="match-coach3" type="text" style="width:130px;" /></div>
             <div class="field"><label for="match-team-score">Score (us)</label><input id="match-team-score" type="number" style="width:70px;" /></div>
             <div class="field"><label for="match-opponent-score">Score (them)</label><input id="match-opponent-score" type="number" style="width:70px;" /></div>
             <!-- Oculto a petición de Dani: "creo que debería estar en Settings,
@@ -561,7 +564,9 @@
     matchHomeAway: document.getElementById("match-home-away"),
     matchNumber: document.getElementById("match-number"),
     matchReferee: document.getElementById("match-referee"),
-    matchCoach: document.getElementById("match-coach"),
+    matchCoach1: document.getElementById("match-coach1"),
+    matchCoach2: document.getElementById("match-coach2"),
+    matchCoach3: document.getElementById("match-coach3"),
     matchTeamScore: document.getElementById("match-team-score"),
     matchOpponentScore: document.getElementById("match-opponent-score"),
     matchVisibility: document.getElementById("match-visibility"),
@@ -1152,7 +1157,7 @@
     els.matchHomeAway.value = "home";
     els.matchNumber.value = "";
     els.matchReferee.value = "";
-    els.matchCoach.value = "";
+    els.matchCoach1.value = ""; els.matchCoach2.value = ""; els.matchCoach3.value = "";
     els.matchTeamScore.value = "";
     els.matchOpponentScore.value = "";
     els.matchVisibility.value = "team";
@@ -1168,7 +1173,7 @@
     els.matchArea.scrollIntoView({ behavior: "smooth", block: "nearest" });
     document.getElementById("save-match-btn").style.display = "inline-block";
     document.getElementById("delete-match-btn").style.display = "none";
-    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchComments, els.matchHomeAway, els.matchNumber, els.matchReferee, els.matchCoach, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
+    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchComments, els.matchHomeAway, els.matchNumber, els.matchReferee, els.matchCoach1, els.matchCoach2, els.matchCoach3, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
       .forEach((el) => (el.disabled = false));
   }
 
@@ -1184,7 +1189,8 @@
     els.matchHomeAway.value = match.home_away || "home";
     els.matchNumber.value = match.match_number ?? "";
     els.matchReferee.value = match.referee || "";
-    els.matchCoach.value = match.coach || "";
+    const coaches = match.coaches || (match.coach ? [match.coach] : []);
+    els.matchCoach1.value = coaches[0] || ""; els.matchCoach2.value = coaches[1] || ""; els.matchCoach3.value = coaches[2] || "";
     els.matchTeamScore.value = match.team_score ?? "";
     els.matchOpponentScore.value = match.opponent_score ?? "";
     els.matchVisibility.value = match.visibility || "team";
@@ -1214,7 +1220,7 @@
     document.getElementById("save-match-btn").style.display = owned ? "inline-block" : "none";
     document.getElementById("delete-match-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     document.getElementById("add-opponent-row-btn").style.display = owned ? "inline-block" : "none";
-    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchComments, els.matchHomeAway, els.matchNumber, els.matchReferee, els.matchCoach, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
+    [els.matchDate, els.matchOpponent, els.matchLocation, els.matchComments, els.matchHomeAway, els.matchNumber, els.matchReferee, els.matchCoach1, els.matchCoach2, els.matchCoach3, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
       .forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This match belongs to another club — you can look, but not edit or save changes.", "success");
     await loadMatchesList();
@@ -1553,7 +1559,7 @@
       location: els.matchLocation.value.trim() || null, comments: els.matchComments.value.trim() || null, home_away: els.matchHomeAway.value,
       match_number: els.matchNumber.value ? parseInt(els.matchNumber.value, 10) : null,
       referee: els.matchReferee.value.trim() || null,
-      coach: els.matchCoach.value.trim() || null,
+      coaches: [els.matchCoach1.value.trim(), els.matchCoach2.value.trim(), els.matchCoach3.value.trim()].filter(Boolean),
       team_score: els.matchTeamScore.value ? parseInt(els.matchTeamScore.value, 10) : null,
       opponent_score: els.matchOpponentScore.value ? parseInt(els.matchOpponentScore.value, 10) : null,
       visibility: els.matchVisibility.value,
@@ -1771,8 +1777,8 @@
       </ol>
       <p style="margin:10px 0 4px; font-weight:600;">5. Match details</p>
       <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
-        <li><strong>General info</strong> — date, opponent, location, home/away, match number, referee, coach, score. Use <strong>Comments</strong> for a short note like "Final", "Semifinal", or "Friendly" — handy for tournaments; it also shows next to the match in the list above. Fill in what you have, "Save match details" when ready.</li>
-        <li><strong>Call-up &amp; stats</strong> — tick <strong>"Called up"</strong> for who's on the roster for this match, and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
+        <li><strong>General info</strong> — date, opponent, location, home/away, match number, referee, up to 3 coaches, score. Use <strong>Comments</strong> for a short note like "Final", "Semifinal", or "Friendly" — handy for tournaments; it also shows next to the match in the list above. Fill in what you have, "Save match details" when ready.</li>
+        <li><strong>Call-up &amp; stats</strong> — tick <strong>"Called up"</strong> for who's on the roster for this match, and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once ("Save match details" first) — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
         <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole team.</li>
         <li><strong>"Import stats from Excel"</strong>, next to "Save match details", reads a file (name, minutes/points/rebounds/assists/fouls, and your own custom stat columns — recognized automatically by name), matches names against this team's roster, then asks which match to save it to.</li>
         <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
