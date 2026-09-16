@@ -1499,7 +1499,12 @@
       const orgId = orgSelect.value;
       const errorEl = overlay.querySelector("#join-org-error");
       if (!orgId) { errorEl.textContent = "Pick a club first."; errorEl.style.display = "block"; return; }
-      const row = { organization_id: orgId, role: "coach", status: "pending", join_message: overlay.querySelector("#join-org-message").value.trim() || null };
+      // Fix (Dani, 2026-09-16): faltaba user_id -- la policy de INSERT
+      // (step55) exige user_id = auth.uid(), así que sin esto Postgres
+      // rechazaba SIEMPRE la fila con "new row violates row-level
+      // security policy" y la solicitud nunca llegaba a crearse (por
+      // eso el admin no veía nada que aprobar).
+      const row = { organization_id: orgId, user_id: currentUserId, role: "coach", status: "pending", join_message: overlay.querySelector("#join-org-message").value.trim() || null };
       if (teamSelect.value === "__new__") {
         const name = teamNewBox.querySelector("#join-org-team-new-name").value.trim();
         if (!name) { errorEl.textContent = "Team name can't be empty."; errorEl.style.display = "block"; return; }
@@ -1549,7 +1554,11 @@
       // resueltos -- si se pidió uno nuevo, además llegan
       // teamCategory/teamGender e teamIsNew=true, guardados aparte para
       // que el admin decida al aprobar (ver step78_join_team_picker.sql).
-      const row = { organization_id: action.orgId, role: "coach", status: "pending" };
+      // Fix (Dani, 2026-09-16): mismo fallo que en openJoinClubModal() --
+      // faltaba user_id, la policy de INSERT (step55) lo exige y sin él
+      // la fila nunca se creaba (error RLS, visible al usuario que pedía
+      // unirse, e invisible para el admin porque no había fila que ver).
+      const row = { organization_id: action.orgId, user_id: currentUserId, role: "coach", status: "pending" };
       if (action.teamName) { row.team_season = action.teamSeason; row.team_name = action.teamName; }
       if (action.teamIsNew) {
         row.requested_team_category = action.teamCategory || null;
