@@ -1485,12 +1485,14 @@
     const version = localStorage.getItem("pivot_pending_terms_accept");
     if (!version) return;
     localStorage.removeItem("pivot_pending_terms_accept");
-    const now = new Date().toISOString();
     try {
-      // le vrai registre (une ligne par acceptation, jamais écrasée)
-      await supabaseClient.from("terms_acceptances").insert({ user_id: userId, terms_version: version, accepted_at: now });
-      // + une case rapide à lire sur le profil, pour l'affichage (section 1 du document reste la source de vérité)
-      await supabaseClient.from("profiles").update({ terms_accepted_at: now }).eq("id", userId);
+      // Seguridad (Stefano, 2026-09-16, LOW-9): esto vivía como dos
+      // escrituras directas del cliente (terms_acceptances + profiles),
+      // con el propio cliente decidiendo accepted_at -- cualquiera podía
+      // fechar hacia atrás su propia aceptación. Ahora una única función
+      // RPC hace las dos escrituras y es el SERVIDOR el que pone la
+      // fecha (database/step76_terms_acceptance_rpc.sql).
+      await supabaseClient.rpc("record_terms_acceptance", { p_version: version });
     } catch (e) { /* pas grave si ça rate -- pas bloquant pour le reste */ }
   }
 

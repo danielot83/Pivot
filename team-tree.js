@@ -135,7 +135,7 @@ function renderTeamTreeBar(containerId, rows, activeSeason, activeTeam, onSelect
         const pill = document.createElement("button");
         pill.type = "button";
         pill.className = "team-pill" + (isActive ? " active" : "");
-        pill.innerHTML = `<strong>${team}</strong>${cat ? ` · ${cat}` : ""} · ${season}`;
+        pill.innerHTML = `<strong>${escapeHtml(team)}</strong>${cat ? ` · ${escapeHtml(cat)}` : ""} · ${escapeHtml(season)}`;
         pill.addEventListener("click", () => onSelect(season, team, cat));
 
         if (onDelete) {
@@ -451,7 +451,7 @@ function promptImportTarget(rows, defaults, itemCount) {
 
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team</label>
         <select id="import-team-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:6px; font-size:14px;">
-          ${teamNames.map((t) => `<option value="${t}" ${t === defaults.team ? "selected" : ""}>${t}</option>`).join("")}
+          ${teamNames.map((t) => `<option value="${escapeHtml(t)}" ${t === defaults.team ? "selected" : ""}>${escapeHtml(t)}</option>`).join("")}
           <option value="__new__" ${teamNames.length === 0 || teamNames.indexOf(defaults.team) === -1 ? "selected" : ""}>+ New team…</option>
         </select>
         <input id="import-team-new" type="text" placeholder="Team name (e.g. DEL)" value="${teamNames.indexOf(defaults.team) === -1 ? (defaults.team || "").replace(/"/g, "&quot;") : ""}" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box; display:${teamNames.indexOf(defaults.team) === -1 ? "block" : "none"};" />
@@ -484,7 +484,7 @@ function promptImportTarget(rows, defaults, itemCount) {
     function refreshCategories() {
       const team = teamSelect.value === "__new__" ? null : teamSelect.value;
       const cats = team && byTeam[team] ? Object.keys(byTeam[team]) : [""];
-      categorySelect.innerHTML = cats.sort().map((c) => `<option value="${c}" ${c === (defaults.team_category || "") ? "selected" : ""}>${c || "No category"}</option>`).join("")
+      categorySelect.innerHTML = cats.sort().map((c) => `<option value="${escapeHtml(c)}" ${c === (defaults.team_category || "") ? "selected" : ""}>${escapeHtml(c || "No category")}</option>`).join("")
         + '<option value="__typed__">+ Type a category…</option>';
     }
     refreshCategories();
