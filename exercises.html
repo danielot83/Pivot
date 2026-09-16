@@ -454,13 +454,13 @@
             </select>
           </div>
           <button class="btn btn-secondary" id="undo-btn">↩ Undo</button>
-          <button class="btn btn-secondary" id="copy-step-btn">Copy to next step ➡</button>
-          <button class="btn btn-secondary" id="clear-btn">Clear this step</button>
+          <button class="btn btn-secondary" id="copy-step-btn">Copy to next diagram ➡</button>
+          <button class="btn btn-secondary" id="clear-btn">Clear this diagram</button>
         </div>
         <div class="court-card">
           <canvas id="court-canvas" width="300" height="300"></canvas>
         </div>
-        <p class="hint-text">Double-click a player/defender to label them. Del/Backspace clears the selection. "Copy to next step" is for drawing a sequence: draw step 1, copy it, then move a couple of things for step 2.</p>
+        <p class="hint-text">Double-click a player/defender to label them. Del/Backspace clears the selection. "Copy to next diagram" is for drawing a sequence: draw diagram 1, copy it, then move a couple of things for diagram 2.</p>
       </div>
 
       <div class="toolbar" style="margin-top:16px;">
@@ -1788,10 +1788,10 @@
         <li>Every one of the 3 buttons above shows a short explainer the first time anyone at your club clicks it — reopen any of them anytime with the "❔" link next to it.</li>
         <li>Placing a player or defender on the diagram numbers them automatically (1, 2, 3…) — attack and defense count separately, same as Play design. Double-click one to change its label by hand.</li>
         <li>Anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.</li>
-        <li><strong>Court diagram section</strong> — 5 steps (3 half-court, 1 vertical, 1 full horizontal). Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
+        <li><strong>Court diagram section</strong> — 5 diagrams (3 half-court, 1 vertical, 1 full horizontal), each independent — they're not steps you have to fill in order. Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
         <li><strong>Color</strong> picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).</li>
-        <li><strong>Copy to next step</strong> duplicates everything into the next step, so you can draw a sequence step by step without starting from scratch each time.</li>
-        <li><strong>Export PDF</strong> downloads the exercise sheet straight away: your club's logo and name, number, name, only the categories/material you actually picked, objectives, difficulty stars, description, variants, and all 5 diagram steps — same one-page sheet as the desktop app.</li>
+        <li><strong>Copy to next diagram</strong> duplicates everything into the next diagram — handy when you ARE drawing a sequence: draw diagram 1, copy it forward, then just move a couple of things for diagram 2, instead of starting from scratch each time.</li>
+        <li><strong>Export PDF</strong> downloads the exercise sheet straight away: your club's logo and name, number, name, only the categories/material you actually picked, objectives, difficulty stars, description, variants, and all 5 diagrams — same one-page sheet as the desktop app.</li>
         <li><strong>Numbering</strong> — the next free number in your own club is filled in automatically; nobody has to track it by hand. <strong>Language</strong> — this page always edits one language at a time; to add a translation of an exercise, use "Duplicate as translation" in the Library, which creates a linked copy in another language.</li>
         <li>Editing an existing exercise bumps its version number (v1 at creation) — visible in the Library, handy for tracking which ones changed recently.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them).</li>

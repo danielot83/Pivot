@@ -6,7 +6,12 @@
 // =============================================================================
 
 const COURT_IDS = ["court_1", "court_2", "court_3", "court_4", "court_5"];
-const COURT_LABELS = ["Step 1", "Step 2", "Step 3", "Step 4 (vertical)", "Step 5 (full court)"];
+// Nico (coach), vía Dani, 2026-09-16: "Step 1/2/3" confundía -- cada uno
+// es un DIAGRAMA de cancha independiente (no un paso obligatorio de una
+// secuencia), así que "Step" sonaba a que había que rellenarlos en orden.
+// Renombrado a "Diagram N" -- distinto a los "Step N" de play_design.html
+// (esos sí son pasos de una jugada, un concepto distinto, no tocado).
+const COURT_LABELS = ["Diagram 1", "Diagram 2", "Diagram 3", "Diagram 4 (vertical)", "Diagram 5 (full court)"];
 const COURT_TYPES = { court_1: "half", court_2: "half", court_3: "half", court_4: "vertical", court_5: "full" };
 const CANVAS_SIZES = { half: [300, 280], vertical: [220, 380], full: [420, 240] };
 

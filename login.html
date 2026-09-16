@@ -265,14 +265,23 @@
         <div id="join-club-field" style="display:none">
           <label for="join_org">Which one?</label>
           <select id="join_org"></select>
-          <label for="join_role">Your role there</label>
-          <select id="join_role">
-            <option value="coach">Coach</option>
-            <option value="assistant">Assistant coach</option>
-            <option value="player">Player</option>
-            <option value="viewer">Viewer (read-only)</option>
+
+          <label for="join_team">Which team? (optional)</label>
+          <select id="join_team">
+            <option value="">Whole club — no specific team</option>
           </select>
-          <p class="hint">The admin will need to approve your request before you get access.</p>
+          <div id="join-team-new-fields" style="display:none; margin-top:8px; padding:12px 14px; background:var(--paper); border:1px solid var(--line); border-radius:8px;">
+            <label for="join_team_new_name">Team name</label>
+            <input id="join_team_new_name" type="text" placeholder="e.g. DEL, Chicago Bulls" />
+            <label for="join_team_new_category">Category</label>
+            <select id="join_team_new_category"></select>
+            <label for="join_team_new_gender">Gender</label>
+            <select id="join_team_new_gender"></select>
+            <label for="join_team_new_season">Season</label>
+            <select id="join_team_new_season"></select>
+          </div>
+
+          <p class="hint">You'll join as a coach — the club's admin can change your role once they approve you. They'll need to approve your request (and confirm the team, if it's new) before you get access.</p>
         </div>
       </div>
 
@@ -314,6 +323,12 @@
      install for this first test. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="terms-version.js"></script>
+<!-- Reutiliza TEAM_CATEGORY_OPTIONS/TEAM_GENDER_OPTIONS/guessSeasonOptions()
+     de team-tree.js para el desplegable de "+ Request a new team" de
+     abajo, en vez de duplicar esas listas -- team-tree.js no hace nada
+     por sí solo al cargarse (solo define funciones), seguro de incluir
+     aquí aunque el resto del fichero no se use en esta página. -->
+<script src="team-tree.js"></script>
 <script>
   // -----------------------------------------------------------------------
   // Connection to YOUR real Supabase project (project ref: eeucbnhqsnfitzwzghtg)
@@ -335,7 +350,12 @@
     joinClubField: document.getElementById("join-club-field"),
     clubName: document.getElementById("club_name"),
     joinOrg: document.getElementById("join_org"),
-    joinRole: document.getElementById("join_role"),
+    joinTeam: document.getElementById("join_team"),
+    joinTeamNewFields: document.getElementById("join-team-new-fields"),
+    joinTeamNewName: document.getElementById("join_team_new_name"),
+    joinTeamNewCategory: document.getElementById("join_team_new_category"),
+    joinTeamNewGender: document.getElementById("join_team_new_gender"),
+    joinTeamNewSeason: document.getElementById("join_team_new_season"),
     email: document.getElementById("email"),
     password: document.getElementById("password"),
     submitBtn: document.getElementById("submit-btn"),
@@ -415,10 +435,52 @@
         opt.textContent = org.name;
         els.joinOrg.appendChild(opt);
       });
+      loadTeamsForJoinOrg(els.joinOrg.value);
     } catch (err) {
       els.joinOrg.innerHTML = "<option value=''>Couldn't load the list</option>";
     }
   }
+
+  // -----------------------------------------------------------------------
+  // Nico (coach nuevo), vía Dani, 2026-09-16: además del club, poder
+  // elegir el EQUIPO concreto dentro de ese club (p.ej. "Dell" tiene U8 y
+  // U10) -- o, si el equipo todavía no existe, pedir que se cree, sujeto
+  // a aprobación del admin del club (ver database/step78_join_team_picker.sql,
+  // que además deja ver esta lista de equipos ANTES de tener cuenta).
+  // -----------------------------------------------------------------------
+  let joinTeamOptions = [];
+
+  els.joinTeamNewCategory.innerHTML = TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}">${c || "No category"}</option>`).join("");
+  els.joinTeamNewGender.innerHTML = TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}">${g}</option>`).join("");
+  (function fillJoinSeasons() {
+    const { seasons, current } = guessSeasonOptions();
+    els.joinTeamNewSeason.innerHTML = seasons.map((s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("");
+  })();
+
+  async function loadTeamsForJoinOrg(orgId) {
+    els.joinTeam.innerHTML = '<option value="">Loading…</option>';
+    els.joinTeamNewFields.style.display = "none";
+    if (!orgId) { els.joinTeam.innerHTML = '<option value="">Whole club — no specific team</option>'; return; }
+    const { data, error } = await supabaseClient
+      .from("teams")
+      .select("season, team, team_category, team_gender")
+      .eq("organization_id", orgId)
+      .order("team");
+    joinTeamOptions = error ? [] : (data || []);
+    const teamLabel = (t) => {
+      const bits = [t.team_category, t.team_gender].filter(Boolean).join(" · ");
+      return (bits ? `${t.team} — ${bits}` : t.team) + ` (${t.season})`;
+    };
+    els.joinTeam.innerHTML =
+      '<option value="">Whole club — no specific team</option>' +
+      joinTeamOptions.map((t, i) => `<option value="${i}">${escapeHtml(teamLabel(t))}</option>`).join("") +
+      '<option value="__new__">+ My team isn\'t listed — request a new one</option>';
+  }
+
+  els.joinOrg.addEventListener("change", () => loadTeamsForJoinOrg(els.joinOrg.value));
+  els.joinTeam.addEventListener("change", () => {
+    els.joinTeamNewFields.style.display = els.joinTeam.value === "__new__" ? "block" : "none";
+  });
 
   els.toggleLink.addEventListener("click", () => setMode(mode === "login" ? "signup" : "login"));
 
@@ -481,7 +543,20 @@
     if (mode2 === "join") {
       const orgId = els.joinOrg.value;
       if (!orgId) return null;
-      return { type: "join", orgId, role: els.joinRole.value };
+      const action = { type: "join", orgId };
+      if (els.joinTeam.value === "__new__") {
+        const name = els.joinTeamNewName.value.trim();
+        if (!name) { els.joinTeamNewName.focus(); return null; }
+        action.teamIsNew = true;
+        action.teamName = name;
+        action.teamCategory = els.joinTeamNewCategory.value;
+        action.teamGender = els.joinTeamNewGender.value;
+        action.teamSeason = els.joinTeamNewSeason.value;
+      } else if (els.joinTeam.value !== "") {
+        const t = joinTeamOptions[parseInt(els.joinTeam.value, 10)];
+        if (t) { action.teamName = t.team; action.teamSeason = t.season; }
+      }
+      return action;
     }
     const clubName = els.clubName.value.trim();
     if (!clubName) return null;

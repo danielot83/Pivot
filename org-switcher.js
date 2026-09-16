@@ -142,8 +142,8 @@ function pivotRenderOrgSwitcher(containerId, memberships, activeOrgId, options) 
   el.onchange = () => {
     // BUG arreglado (2026-09-15, a raíz de que a Nico -- coach nuevo -- no
     // le funcionaba pedir acceso a un club desde Settings): window.
-    // pivotCreateClub_ / window.pivotJoinClub_ solo existen dentro de
-    // dashboard.html -- en CUALQUIER otra página (Settings, Training
+    // pivotCreateClub_ / window.pivotOpenJoinClubModal_ solo existen dentro
+    // de dashboard.html -- en CUALQUIER otra página (Settings, Training
     // builder, Roster...), elegir "+ Create a new club"/"+ Join a club"
     // en este mismo desplegable no hacía absolutamente nada: el prompt()
     // pedía el nombre igual, pero al no existir la función, el `&&` cortaba
@@ -163,9 +163,16 @@ function pivotRenderOrgSwitcher(containerId, memberships, activeOrgId, options) 
     }
     if (el.value === "__join__") {
       el.value = activeOrgId || "";
-      if (window.pivotJoinClub_) {
-        const name = prompt("Name of the club you want to join:");
-        if (name && name.trim()) window.pivotJoinClub_(name.trim());
+      // Nico (coach), vía Dani, 2026-09-16: el prompt() de "nombre exacto
+      // del club" (y luego el equipo) se sustituyó por un modal con
+      // desplegables (dashboard.html: openJoinClubModal / team-tree.js).
+      // Ese modal solo existe en dashboard.html -- aquí, si ya estamos en
+      // esa página, lo abrimos directamente; si no (exercises.html,
+      // library.html, play_library.html no cargan team-tree.js), mandamos
+      // a dashboard.html con el mismo parámetro de siempre, que ahora abre
+      // el modal en vez del prompt().
+      if (window.pivotOpenJoinClubModal_) {
+        window.pivotOpenJoinClubModal_();
       } else {
         window.location.href = "./dashboard.html?openClubAction=join";
       }

@@ -289,6 +289,15 @@
     <div id="members-list"></div>
   </div>
 
+  <div class="card" id="org-chart-card" style="display:none">
+    <details id="org-chart-details">
+      <summary style="cursor:pointer; font-size:17px; font-weight:700; color:var(--ink);">Team org chart</summary>
+      <p class="hint" style="margin:10px 0;">Who directs your team, and their role. Visible to everyone in the club — to change something here, use Members above.</p>
+      <p id="org-chart-scope-notice" style="display:none; font-size:12.5px; color:var(--accent-deep); background:var(--accent-tint); padding:8px 10px; border-radius:6px; margin-bottom:10px;"></p>
+      <div id="org-chart-list"></div>
+    </details>
+  </div>
+
   <div class="card" id="export-language-card" style="display:none">
     <h2>Export language</h2>
     <p class="hint">The language your club's PDFs (roster sheets, assessments, plays, match reports...) are generated in.</p>
@@ -505,6 +514,7 @@
     document.getElementById("members-card").style.display = "block";
     document.querySelectorAll(".sharing-bulk-card").forEach((card) => (card.style.display = "block"));
     document.getElementById("associations-card").style.display = "block";
+    document.getElementById("org-chart-card").style.display = "block";
     document.getElementById("export-language-card").style.display = "block";
     document.getElementById("pdf-sections-card").style.display = "block";
     // "Legal architecture" es el documento de protección de datos -- a
@@ -518,6 +528,7 @@
     await loadSharingStatus();
     await loadMembers();
     await loadAssociations();
+    initOrgChart();
     await loadExportLanguage();
     await loadPdfSections();
     if (isPlatformController) {
@@ -825,6 +836,63 @@
       row.appendChild(actions);
       list.appendChild(row);
     });
+  }
+
+  // -----------------------------------------------------------------------
+  // Organigrama del equipo (Nico, coach, vía Dani, 2026-09-16): quién
+  // dirige el equipo y con qué rol -- de solo lectura (para cambiar algo,
+  // se usa "Members" arriba, que sí puede editar), visible para
+  // CUALQUIERA del club (no solo el admin), y colapsado por defecto
+  // (<details>) para no generar ruido visual -- justo lo que pidió Dani
+  // ("tengo miedo de que no se vea muy bien... debería de ser como un
+  // botoncito"). Solo se consulta la BD la primera vez que alguien lo
+  // despliega, no en cada carga de la página -- no tiene sentido pagar
+  // esa consulta para algo que la mayoría de las veces se queda cerrado.
+  // -----------------------------------------------------------------------
+  let orgChartLoaded = false;
+  function initOrgChart() {
+    const details = document.getElementById("org-chart-details");
+    details.open = false;
+    orgChartLoaded = false;
+    details.addEventListener("toggle", () => {
+      if (details.open && !orgChartLoaded) { orgChartLoaded = true; loadOrgChart(); }
+    });
+  }
+
+  async function loadOrgChart() {
+    const list = document.getElementById("org-chart-list");
+    list.innerHTML = '<p class="hint" style="margin:0;">Loading…</p>';
+    const scopeNotice = document.getElementById("org-chart-scope-notice");
+    if (scopeNotice) {
+      scopeNotice.textContent = myTeamSeason
+        ? `Showing ${myTeamName} — ${myTeamSeason}'s own staff, plus anyone who directs the whole club.`
+        : "";
+      scopeNotice.style.display = myTeamSeason ? "block" : "none";
+    }
+    const { data, error } = await supabaseClient
+      .from("memberships")
+      .select("role, team_season, team_name, profiles(full_name)")
+      .eq("organization_id", currentOrgId)
+      .eq("status", "active");
+    if (error) { console.error("loadOrgChart error:", error); list.innerHTML = '<p class="hint" style="margin:0;">Couldn\'t load this right now.</p>'; return; }
+    // Si YO estoy acotado a un equipo (myTeamSeason), muestro solo la
+    // gente de ESE equipo más quien dirige el club entero (team_season
+    // vacío -- esas personas dirigen también mi equipo, aunque no
+    // aparezcan acotadas a él). Si yo veo todo el club, se ve todo el
+    // mundo sin filtrar.
+    const rows = (data || []).filter((m) =>
+      !myTeamSeason || !m.team_season || (m.team_season === myTeamSeason && m.team_name === myTeamName)
+    );
+    if (rows.length === 0) { list.innerHTML = '<p class="hint" style="margin:0;">Nobody to show yet.</p>'; return; }
+    const byName = (a, b) => ((a.profiles && a.profiles.full_name) || "").localeCompare((b.profiles && b.profiles.full_name) || "");
+    const admins = rows.filter((m) => m.role === "admin").sort(byName);
+    const coaches = rows.filter((m) => m.role !== "admin").sort(byName);
+    const rowHtml = (m, label) => `
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line);">
+        <span>${escapeHtml((m.profiles && m.profiles.full_name) || "Someone")}</span>
+        <span style="font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase;">${label}${m.team_season ? "" : " · whole club"}</span>
+      </div>`;
+    list.innerHTML = admins.map((m) => rowHtml(m, "Admin")).join("") + coaches.map((m) => rowHtml(m, "Coach")).join("");
   }
 
   async function linkPlayer(membershipId, playerId) {

@@ -494,18 +494,12 @@
     }
   };
 
-  window.pivotJoinClub_ = async function (clubName) {
-    try {
-      const { data: org, error: findErr } = await supabaseClient.from("organizations").select("id, name").ilike("name", clubName).eq("is_active", true).maybeSingle();
-      if (findErr) throw findErr;
-      if (!org) { showMessage(`No club found named "${clubName}".`, "error"); return; }
-      const { error } = await supabaseClient.from("memberships").insert({ organization_id: org.id, user_id: currentUserId, role: "coach", status: "pending" });
-      if (error) throw error;
-      showMessage(`Request sent to join "${org.name}" — waiting for their admin to approve.`, "success");
-    } catch (err) {
-      showMessage(err.message || "Couldn't send that request.", "error");
-    }
-  };
+  // Nico (coach), vía Dani, 2026-09-16: el viejo pivotJoinClub_ (unirse
+  // escribiendo el nombre EXACTO del club, en un prompt()) se sustituyó
+  // por el modal con desplegables openJoinClubModal() (ver más abajo,
+  // junto a performClubAction) -- ese modal ya elige club Y equipo, y
+  // permite pedir un equipo nuevo. Se quita esta función porque ya no la
+  // llama nadie (ver checkOpenClubActionParam abajo y org-switcher.js).
 
   // A petición de Dani (Nico, coach nuevo, no podía pedir acceso a un
   // club desde Settings): org-switcher.js manda aquí con
@@ -513,8 +507,8 @@
   // club"/"+ Join a club" desde el desplegable de CUALQUIER otra página
   // -- ahí esas dos opciones no podían hacer nada de verdad (las
   // funciones de arriba solo existen en este fichero). Esto termina la
-  // misma acción, con el mismo prompt() de siempre, nada más cargar el
-  // Dashboard.
+  // misma acción nada más cargar el Dashboard -- "join" abre el modal de
+  // club+equipo en vez del viejo prompt() de nombre exacto.
   function checkOpenClubActionParam() {
     const action = new URLSearchParams(window.location.search).get("openClubAction");
     if (!action) return;
@@ -523,8 +517,7 @@
       const name = prompt("Name of your new club:");
       if (name && name.trim()) window.pivotCreateClub_(name.trim());
     } else if (action === "join") {
-      const name = prompt("Name of the club you want to join:");
-      if (name && name.trim()) window.pivotJoinClub_(name.trim());
+      openJoinClubModal();
     }
   }
 
@@ -1400,56 +1393,130 @@
     openBtn.textContent = "Request to join a club or association";
     wrap.appendChild(openBtn);
 
-    openBtn.addEventListener("click", () => openJoinForm(wrap, openBtn), { once: true });
+    openBtn.addEventListener("click", () => openJoinClubModal(), { once: true });
     document.getElementById("no-club-gate").appendChild(wrap);
   }
 
-  async function openJoinForm(wrap, openBtn) {
-    openBtn.style.display = "none";
+  // -----------------------------------------------------------------------
+  // Pedir unirse a un club — ventana emergente (mismo estilo que
+  // promptNewTeam() de team-tree.js), no una caja empotrada: así sirve
+  // tanto desde "You need a club" (no-club-gate, arriba) como desde "+
+  // Join a club" en el desplegable de cualquier página (org-switcher.js
+  // llama a window.pivotOpenJoinClubModal_, ver más abajo) — antes esto
+  // último era un prompt() pidiendo el nombre EXACTO del club escrito a
+  // mano (Nico, coach nuevo, vía Dani, 2026-09-16: "si no lo escribes
+  // exactamente igual te dice que el equipo no existe").
+  //
+  // Añadido en la misma ronda, a petición de Dani: además del club, un
+  // desplegable para elegir el EQUIPO concreto dentro de ese club (p.ej.
+  // "Dell" tiene U8 y U10) — o pedir que se cree uno nuevo, si no está en
+  // la lista, sujeto a que el admin del club lo apruebe al aceptar la
+  // solicitud (ver database/step78_join_team_picker.sql).
+  // -----------------------------------------------------------------------
+  let joinModalTeamOptions = [];
 
-    const box = document.createElement("div");
-    box.className = "pending-card";
-    box.style.padding = "16px 20px";
-    box.style.marginTop = "8px";
-    box.innerHTML = `
-      <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which club or association?</label>
-      <select id="join-org-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;"><option>Loading…</option></select>
-      <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px;">As what?</label>
-      <select id="join-org-role" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;">
-        <option value="coach">Coach</option>
-      </select>
-      <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px;">Message to the admin (optional)</label>
-      <textarea id="join-org-message" rows="2" placeholder="e.g. Hi, I'm the new U16 coach…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-family:inherit; font-size:14.5px;"></textarea>
-      <button class="nav-btn" id="join-org-btn" style="width:100%;">Send request</button>
+  function openJoinClubModal() {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:480px; width:100%; padding:24px 26px; max-height:90vh; overflow-y:auto;">
+        <h3 style="margin:0 0 4px; font-size:17px;">Request to join a club</h3>
+        <p style="margin:0 0 16px; font-size:12.5px; color:var(--muted);">Pick your club, and your team within it if you know it — the club's admin approves before you get access.</p>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which club or association?</label>
+        <select id="join-org-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:12px; font-size:14px;"><option>Loading…</option></select>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which team? (optional)</label>
+        <select id="join-org-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-size:14px;"><option value="">Whole club — no specific team</option></select>
+        <div id="join-org-team-new" style="display:none; margin-bottom:8px; padding:12px 14px; background:var(--paper); border:1px solid var(--line); border-radius:8px;">
+          <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
+          <input id="join-org-team-new-name" type="text" placeholder="e.g. DEL, Chicago Bulls" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-size:13.5px; box-sizing:border-box;" />
+          <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category</label>
+          <select id="join-org-team-new-category" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-size:13.5px;"></select>
+          <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
+          <select id="join-org-team-new-gender" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-size:13.5px;"></select>
+          <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Season</label>
+          <select id="join-org-team-new-season" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13.5px;"></select>
+        </div>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px;">Message to the admin (optional)</label>
+        <textarea id="join-org-message" rows="2" placeholder="e.g. Hi, I'm the new U16 coach…" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:4px; font-family:inherit; font-size:14.5px; box-sizing:border-box;"></textarea>
+        <p id="join-org-error" style="display:none; margin:8px 0 0; font-size:12.5px; color:#991b1b;"></p>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+          <button id="join-org-cancel-btn" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
+          <button id="join-org-btn" class="nav-btn" style="padding:9px 16px;">Send request</button>
+        </div>
+      </div>
     `;
-    wrap.appendChild(box);
+    document.body.appendChild(overlay);
 
-    const select = box.querySelector("#join-org-select");
-    const { data: orgs, error } = await supabaseClient.from("organizations").select("id, name").eq("is_active", true).order("name");
-    if (error) console.error("showJoinPrompt error:", error);
-    select.innerHTML = "";
-    (orgs || []).forEach((org) => {
-      const opt = document.createElement("option");
-      opt.value = org.id;
-      opt.textContent = org.name;
-      select.appendChild(opt);
+    const close = () => overlay.remove();
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector("#join-org-cancel-btn").addEventListener("click", close);
+
+    const orgSelect = overlay.querySelector("#join-org-select");
+    const teamSelect = overlay.querySelector("#join-org-team");
+    const teamNewBox = overlay.querySelector("#join-org-team-new");
+    const teamNewCategory = overlay.querySelector("#join-org-team-new-category");
+    const teamNewGender = overlay.querySelector("#join-org-team-new-gender");
+    const teamNewSeason = overlay.querySelector("#join-org-team-new-season");
+    teamNewCategory.innerHTML = TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}">${c || "No category"}</option>`).join("");
+    teamNewGender.innerHTML = TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}">${g}</option>`).join("");
+    const { seasons, current } = guessSeasonOptions();
+    teamNewSeason.innerHTML = seasons.map((s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("");
+
+    async function loadTeamsForOrg(orgId) {
+      teamSelect.innerHTML = '<option value="">Whole club — no specific team</option>';
+      teamNewBox.style.display = "none";
+      if (!orgId) return;
+      const { data, error } = await supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", orgId).order("team");
+      joinModalTeamOptions = error ? [] : (data || []);
+      const label = (t) => {
+        const bits = [t.team_category, t.team_gender].filter(Boolean).join(" · ");
+        return (bits ? `${t.team} — ${bits}` : t.team) + ` (${t.season})`;
+      };
+      teamSelect.innerHTML =
+        '<option value="">Whole club — no specific team</option>' +
+        joinModalTeamOptions.map((t, i) => `<option value="${i}">${escapeHtml(label(t))}</option>`).join("") +
+        '<option value="__new__">+ My team isn\'t listed — request a new one</option>';
+    }
+
+    orgSelect.innerHTML = "<option>Loading…</option>";
+    supabaseClient.from("organizations").select("id, name").eq("is_active", true).order("name").then(({ data: orgs, error }) => {
+      if (error) console.error("openJoinClubModal error:", error);
+      orgSelect.innerHTML = (orgs || []).map((o) => `<option value="${o.id}">${escapeHtml(o.name)}</option>`).join("");
+      loadTeamsForOrg(orgSelect.value);
     });
 
-    box.querySelector("#join-org-btn").addEventListener("click", async () => {
-      const orgId = select.value;
-      if (!orgId) return;
-      const message = box.querySelector("#join-org-message").value.trim() || null;
-      const role = box.querySelector("#join-org-role").value;
+    orgSelect.addEventListener("change", () => loadTeamsForOrg(orgSelect.value));
+    teamSelect.addEventListener("change", () => { teamNewBox.style.display = teamSelect.value === "__new__" ? "block" : "none"; });
+
+    overlay.querySelector("#join-org-btn").addEventListener("click", async () => {
+      const orgId = orgSelect.value;
+      const errorEl = overlay.querySelector("#join-org-error");
+      if (!orgId) { errorEl.textContent = "Pick a club first."; errorEl.style.display = "block"; return; }
+      const row = { organization_id: orgId, role: "coach", status: "pending", join_message: overlay.querySelector("#join-org-message").value.trim() || null };
+      if (teamSelect.value === "__new__") {
+        const name = teamNewBox.querySelector("#join-org-team-new-name").value.trim();
+        if (!name) { errorEl.textContent = "Team name can't be empty."; errorEl.style.display = "block"; return; }
+        row.team_name = name;
+        row.team_season = teamNewSeason.value;
+        row.requested_team_category = teamNewCategory.value || null;
+        row.requested_team_gender = teamNewGender.value || null;
+        row.requested_team_is_new = true;
+      } else if (teamSelect.value !== "") {
+        const t = joinModalTeamOptions[parseInt(teamSelect.value, 10)];
+        if (t) { row.team_name = t.team; row.team_season = t.season; }
+      }
       try {
-        const { error } = await supabaseClient.from("memberships").insert({ organization_id: orgId, role, status: "pending", join_message: message });
+        const { error } = await supabaseClient.from("memberships").insert(row);
         if (error) throw error;
         showMessage("Request sent — the admin needs to approve it.", "success");
-        wrap.remove();
+        close();
       } catch (err) {
-        showMessage(err.message || "Couldn't send the request.", "error");
+        errorEl.textContent = err.message || "Couldn't send the request.";
+        errorEl.style.display = "block";
       }
     });
   }
+  window.pivotOpenJoinClubModal_ = openJoinClubModal;
 
   // -----------------------------------------------------------------------
   // Terminer une création/demande de club restée en attente (voir login.html)
@@ -1460,9 +1527,25 @@
       if (error) throw error;
       return `Club "${action.clubName}" created — you're its admin.`;
     } else {
-      const { error } = await supabaseClient
-        .from("memberships")
-        .insert({ organization_id: action.orgId, role: action.role, status: "pending" });
+      // Seguridad (Stefano, 2026-09-16): el role que llegaba aquí venía
+      // de un desplegable en login.html que ya no existe -- de todas
+      // formas la policy de INSERT solo permite role='coach' para una
+      // solicitud propia (step55), así que se fija aquí también, sin
+      // depender de lo que mande el formulario.
+      //
+      // Equipo (Nico, vía Dani, 2026-09-16): si en login.html se eligió
+      // un equipo ya existente, action.teamName/teamSeason ya vienen
+      // resueltos -- si se pidió uno nuevo, además llegan
+      // teamCategory/teamGender e teamIsNew=true, guardados aparte para
+      // que el admin decida al aprobar (ver step78_join_team_picker.sql).
+      const row = { organization_id: action.orgId, role: "coach", status: "pending" };
+      if (action.teamName) { row.team_season = action.teamSeason; row.team_name = action.teamName; }
+      if (action.teamIsNew) {
+        row.requested_team_category = action.teamCategory || null;
+        row.requested_team_gender = action.teamGender || null;
+        row.requested_team_is_new = true;
+      }
+      const { error } = await supabaseClient.from("memberships").insert(row);
       if (error) throw error;
       return "Your request to join has been sent — the admin needs to approve it.";
     }
