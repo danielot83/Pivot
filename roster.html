@@ -6,6 +6,13 @@
 <link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https://eeucbnhqsnfitzwzghtg.supabase.co;
+  connect-src 'self' https://eeucbnhqsnfitzwzghtg.supabase.co https://cdn.jsdelivr.net;
+  object-src 'none'; base-uri 'none'; form-action 'none'" />
 <title>PlayPivot | Basketball Team Roster Management</title>
 <meta name="description" content="Manage your basketball team roster, player information, staff and seasons from one simple coaching platform." />
 <style>

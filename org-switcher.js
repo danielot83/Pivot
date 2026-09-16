@@ -21,6 +21,19 @@
 const PIVOT_ACTIVE_ORG_KEY = "pivot_active_org_id";
 const PIVOT_ADMIN_VIEW_VALUE = "__admin__";
 
+// Defensa en profundidad (revisión de seguridad de Stefano, 2026-09-16,
+// HIGH-2 "related, lower risk"): el nombre del club es texto libre que
+// cualquier admin de club puede poner (Settings), y este fichero lo mete
+// sin escapar en innerHTML. Hoy no es explotable porque el navegador, en
+// modo "dentro de un <select>", descarta casi cualquier etiqueta inyectada
+// -- pero si algún día este HTML se saca de dentro de un <select>, se
+// vuelve explotable en el acto. Escapado ya, por si acaso.
+function pivotEscapeHtml(str) {
+  return String(str == null ? "" : str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
 function pivotGetStoredOrgId() {
   try { return localStorage.getItem(PIVOT_ACTIVE_ORG_KEY); } catch (e) { return null; }
 }
@@ -114,7 +127,7 @@ function pivotRenderOrgSwitcher(containerId, memberships, activeOrgId, options) 
   const list = memberships || [];
   el.style.display = "block";
   const optionsHtml = list
-    .map((m) => `<option value="${m.organization_id}" ${m.organization_id === activeOrgId ? "selected" : ""}>${(m.organizations && m.organizations.name) || "?"}</option>`)
+    .map((m) => `<option value="${m.organization_id}" ${m.organization_id === activeOrgId ? "selected" : ""}>${pivotEscapeHtml((m.organizations && m.organizations.name) || "?")}</option>`)
     .join("");
 
   const extras = `<option value="__create__">+ Create a new club</option><option value="__join__">+ Join a club</option>`;
