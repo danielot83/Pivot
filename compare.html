@@ -582,11 +582,21 @@
       : { data: [] };
     (exRows || []).forEach((r) => { totalMinutes += r.duration_minutes || 0; });
 
+    // Auditoría de seguridad, ronda 28 (2026-09-16): esto leía de
+    // "training_attendance", una tabla que dejó de escribirse desde la
+    // ronda 18 (15/09) -- Training builder, Match day y Attendance
+    // comparten desde entonces una sola tabla, "attendance" (status:
+    // present/absent/excused/late, en vez de un booleano present/no).
+    // Sin este cambio, esta cifra salía congelada o vacía para cualquier
+    // entreno marcado después del 15/09. "late" no cuenta como presente
+    // a propósito -- llegó tarde, no estuvo toda la sesión; si prefieres
+    // que sí cuente, es una línea de cambiar (r.status === "present" ||
+    // r.status === "late").
     let presentCount = 0, totalAttRows = 0;
     const { data: attRows } = trainingIds.length
-      ? await supabaseClient.from("training_attendance").select("training_id, present").in("training_id", trainingIds)
+      ? await supabaseClient.from("attendance").select("training_id, status").in("training_id", trainingIds)
       : { data: [] };
-    (attRows || []).forEach((r) => { totalAttRows++; if (r.present) presentCount++; });
+    (attRows || []).forEach((r) => { totalAttRows++; if (r.status === "present") presentCount++; });
     const attendanceRate = totalAttRows > 0 ? Math.round((presentCount / totalAttRows) * 100) : null;
 
     renderTeamOverviewGrid({
@@ -831,14 +841,22 @@
   }
 
   async function loadAttendance() {
+    // Auditoría de seguridad, ronda 28 (2026-09-16): mismo arreglo que
+    // loadTeamOverview() más arriba -- "training_attendance" ya no se
+    // escribe desde la ronda 18, ahora es "attendance" (status, no un
+    // booleano). El "!inner" en trainings sigue haciendo su trabajo de
+    // siempre: como solo las filas de un entreno tienen training_id
+    // relleno (las de partido/evento lo llevan a null), ese join interno
+    // ya descarta solo él las filas que no son de Training builder, sin
+    // necesidad de un filtro aparte.
     for (const id of selectedIds) {
       if (attendanceCache[id]) continue;
-      const { data, error } = await supabaseClient.from("training_attendance")
-        .select("present, trainings!inner(season, team)")
+      const { data, error } = await supabaseClient.from("attendance")
+        .select("status, trainings!inner(season, team)")
         .eq("player_id", id).eq("trainings.season", currentSeason).eq("trainings.team", currentTeam);
       if (error) { attendanceCache[id] = null; continue; }
       const rows = data || [];
-      const present = rows.filter((r) => r.present).length;
+      const present = rows.filter((r) => r.status === "present").length;
       attendanceCache[id] = { sessions: rows.length, present };
     }
   }
