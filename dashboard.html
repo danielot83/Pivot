@@ -341,8 +341,9 @@
   <div class="msg" id="msg"></div>
 
   <div id="no-club-gate" style="display:none; text-align:center; max-width:440px; margin:48px auto; padding:32px 28px; background:var(--card); border:1px solid var(--line); border-radius:14px;">
-    <h2 style="margin:0 0 8px;">You need a club to use PlayPivot</h2>
-    <p style="color:var(--muted); font-size:14px; margin:0 0 4px;">PlayPivot is built around coaching a real team — create your own club, or ask to join one you already coach for, to unlock the Dashboard and every tool.</p>
+    <h2 id="no-club-gate-title" style="margin:0 0 8px;">You need a club to use PlayPivot</h2>
+    <p id="no-club-gate-text" style="color:var(--muted); font-size:14px; margin:0 0 4px;">PlayPivot is built around coaching a real team — create your own club, or ask to join one you already coach for, to unlock the Dashboard and every tool.</p>
+    <div id="no-club-gate-extra"></div>
   </div>
 
   <div id="app-gated-content" style="display:none;">
@@ -388,6 +389,15 @@
   <div class="panel-card" style="margin:8px 0;">
     <h2>Recent activity</h2>
     <div id="recent-activity-content"><p class="activity-empty">Loading…</p></div>
+  </div>
+
+  <div class="panel-card" style="margin:8px 0;">
+    <details id="dash-org-chart-details">
+      <summary style="cursor:pointer; font-size:17px; font-weight:700; color:var(--ink);">Team org chart</summary>
+      <p class="hint" style="margin:10px 0; color:var(--muted); font-size:13.5px;">Who directs your team, and their role. To change something here, use Settings → Members.</p>
+      <p id="dash-org-chart-scope-notice" style="display:none; font-size:12.5px; color:var(--accent-deep); background:var(--accent-tint); padding:8px 10px; border-radius:6px; margin-bottom:10px;"></p>
+      <div id="dash-org-chart-list"></div>
+    </details>
   </div>
   </div><!-- /dashboard-row-2 -->
   </div><!-- /normal-view-only -->
@@ -475,6 +485,8 @@
 
   let currentOrgId = null;
   let currentUserId = null;
+  let myTeamSeason = null;
+  let myTeamName = null;
   let isPlatformController = false;
   let canValidateAssociations = false;
 
@@ -587,7 +599,7 @@
     if ((error || !data || data.length === 0) && !isPlatformController) {
       els.clubStatusText.textContent = "You're not an active member of any club or association yet.";
       applyClubGate(false);
-      showJoinPrompt();
+      await renderNoClubGate();
       return null;
     }
     const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient, supportsAdminView: true });
@@ -597,7 +609,7 @@
       // (il gère toute la plateforme) -- tout le monde d'autre reste bloqué
       // tant qu'il n'a pas rejoint ou créé un club.
       applyClubGate(isPlatformController);
-      showJoinPrompt();
+      await renderNoClubGate();
       pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supportsAdminView: true });
       return null;
     }
@@ -635,6 +647,13 @@
     els.clubStatusText.textContent = orgName ? `${orgName} — ${roleLabel}${chosen.browsing_as_platform_admin ? " (browsing as platform admin)" : ""}` : "";
     loadOrgLogo(currentOrgId, orgName);
     loadPendingRequestsWidget();
+    // Dani, 2026-09-16: "una cosa en dashboard que deberia de aparecer es
+    // el organigrama de tu equipo" -- misma tarjeta plegada por defecto
+    // que ya existía en Settings, también aquí para que no haga falta
+    // salir del Dashboard para ver quién dirige el equipo/club.
+    myTeamSeason = chosen.team_season || null;
+    myTeamName = chosen.team_name || null;
+    initDashOrgChart();
     return currentOrgId;
    } catch (err) {
     console.error("loadMyOrganization error:", err);
@@ -1093,6 +1112,57 @@
     }
   }
 
+  // -----------------------------------------------------------------------
+  // Organigrama del equipo, también en el Dashboard (Dani, 2026-09-16:
+  // "una cosa en dashboard que deberia de aparecer es el organigrama de
+  // tu equipo") -- misma consulta y mismo criterio que la tarjeta ya
+  // existente en Settings (de solo lectura, colapsada por defecto, carga
+  // solo la primera vez que se abre). Se deja duplicada a propósito en
+  // vez de compartir código entre las dos páginas -- son dos ficheros
+  // independientes sin un módulo común para esto todavía.
+  // -----------------------------------------------------------------------
+  let dashOrgChartLoaded = false;
+  function initDashOrgChart() {
+    const details = document.getElementById("dash-org-chart-details");
+    if (!details) return;
+    details.open = false;
+    dashOrgChartLoaded = false;
+    details.addEventListener("toggle", () => {
+      if (details.open && !dashOrgChartLoaded) { dashOrgChartLoaded = true; loadDashOrgChart(); }
+    });
+  }
+
+  async function loadDashOrgChart() {
+    const list = document.getElementById("dash-org-chart-list");
+    list.innerHTML = '<p style="margin:0; color:var(--muted); font-size:13.5px;">Loading…</p>';
+    const scopeNotice = document.getElementById("dash-org-chart-scope-notice");
+    if (scopeNotice) {
+      scopeNotice.textContent = myTeamSeason
+        ? `Showing ${myTeamName} — ${myTeamSeason}'s own staff, plus anyone who directs the whole club.`
+        : "";
+      scopeNotice.style.display = myTeamSeason ? "block" : "none";
+    }
+    const { data, error } = await supabaseClient
+      .from("memberships")
+      .select("role, team_season, team_name, profiles(full_name)")
+      .eq("organization_id", currentOrgId)
+      .eq("status", "active");
+    if (error) { console.error("loadDashOrgChart error:", error); list.innerHTML = '<p style="margin:0; color:var(--muted); font-size:13.5px;">Couldn\'t load this right now.</p>'; return; }
+    const rows = (data || []).filter((m) =>
+      !myTeamSeason || !m.team_season || (m.team_season === myTeamSeason && m.team_name === myTeamName)
+    );
+    if (rows.length === 0) { list.innerHTML = '<p style="margin:0; color:var(--muted); font-size:13.5px;">Nobody to show yet.</p>'; return; }
+    const byName = (a, b) => ((a.profiles && a.profiles.full_name) || "").localeCompare((b.profiles && b.profiles.full_name) || "");
+    const admins = rows.filter((m) => m.role === "admin").sort(byName);
+    const coaches = rows.filter((m) => m.role !== "admin").sort(byName);
+    const rowHtml = (m, label) => `
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line);">
+        <span>${escapeHtml((m.profiles && m.profiles.full_name) || "Someone")}</span>
+        <span style="font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase;">${label}${m.team_season ? "" : " · whole club"}</span>
+      </div>`;
+    list.innerHTML = admins.map((m) => rowHtml(m, "Admin")).join("") + coaches.map((m) => rowHtml(m, "Coach")).join("");
+  }
+
   async function decideAssociationRequest(associationId, organizationId, decision) {
     const { data: userData } = await supabaseClient.auth.getUser();
     const userId = userData && userData.user && userData.user.id;
@@ -1394,7 +1464,63 @@
     wrap.appendChild(openBtn);
 
     openBtn.addEventListener("click", () => openJoinClubModal(), { once: true });
-    document.getElementById("no-club-gate").appendChild(wrap);
+    document.getElementById("no-club-gate-extra").appendChild(wrap);
+  }
+
+  // -----------------------------------------------------------------------
+  // Dani, 2026-09-16, viendo la pantalla "You need a club" con una cuenta
+  // que YA había pedido unirse: "aqui deberia de decir que estas
+  // esperando a que el entrenador administrador (y el nombre) te valide"
+  // -- hasta ahora esta pantalla no distinguía "nunca pediste nada" de
+  // "estás esperando aprobación", entre otras cosas porque (ver
+  // database/step80_pending_request_visibility.sql) ni siquiera se podía
+  // leer la propia fila pendiente. Con ese SQL instalado, aquí se
+  // comprueba si hay una solicitud pendiente y, si la hay, se cambia el
+  // mensaje de la tarjeta para nombrar el club y a quién se está
+  // esperando -- en vez de volver a ofrecer el botón de "pedir unirse"
+  // (ya se pidió, pedirlo otra vez no serviría de nada).
+  // -----------------------------------------------------------------------
+  async function checkPendingRequest() {
+    const { data, error } = await supabaseClient
+      .from("memberships")
+      .select("organization_id, created_at, organizations(name)")
+      .eq("user_id", currentUserId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) { console.error("checkPendingRequest error:", error); return null; }
+    return data || null;
+  }
+
+  async function renderNoClubGate() {
+    const titleEl = document.getElementById("no-club-gate-title");
+    const textEl = document.getElementById("no-club-gate-text");
+    const extraEl = document.getElementById("no-club-gate-extra");
+    extraEl.innerHTML = "";
+
+    const pending = await checkPendingRequest();
+    if (!pending) {
+      titleEl.textContent = "You need a club to use PlayPivot";
+      textEl.textContent = "PlayPivot is built around coaching a real team — create your own club, or ask to join one you already coach for, to unlock the Dashboard and every tool.";
+      showJoinPrompt();
+      return;
+    }
+
+    const orgName = (pending.organizations && pending.organizations.name) || "that club";
+    const { data: admins, error: adminsErr } = await supabaseClient
+      .from("memberships")
+      .select("profiles(full_name)")
+      .eq("organization_id", pending.organization_id)
+      .eq("role", "admin")
+      .eq("status", "active");
+    if (adminsErr) console.error("renderNoClubGate (admins) error:", adminsErr);
+    const adminNames = (admins || []).map((a) => a.profiles && a.profiles.full_name).filter(Boolean);
+    const waitingFor = adminNames.length ? adminNames.join(" or ") : "the club's admin";
+
+    titleEl.textContent = "Waiting for approval";
+    textEl.textContent = `Your request to join ${orgName} is waiting for ${waitingFor} to approve it — you'll get access to the Dashboard as soon as they do.`;
+    els.clubStatusText.textContent = `Waiting for approval to join ${orgName}`;
   }
 
   // -----------------------------------------------------------------------
