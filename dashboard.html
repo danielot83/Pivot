@@ -1424,8 +1424,8 @@
         <p style="margin:0 0 16px; font-size:12.5px; color:var(--muted);">Pick your club, and your team within it if you know it — the club's admin approves before you get access.</p>
         <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which club or association?</label>
         <select id="join-org-select" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:12px; font-size:14px;"><option>Loading…</option></select>
-        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which team? (optional)</label>
-        <select id="join-org-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-size:14px;"><option value="">Whole club — no specific team</option></select>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px;">Which team?</label>
+        <select id="join-org-team" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-size:14px;"><option value="" disabled selected>Choose your team…</option></select>
         <div id="join-org-team-new" style="display:none; margin-bottom:8px; padding:12px 14px; background:var(--paper); border:1px solid var(--line); border-radius:8px;">
           <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
           <input id="join-org-team-new-name" type="text" placeholder="e.g. DEL, Chicago Bulls" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; font-size:13.5px; box-sizing:border-box;" />
@@ -1462,8 +1462,15 @@
     const { seasons, current } = guessSeasonOptions();
     teamNewSeason.innerHTML = seasons.map((s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("");
 
+    // Dani, 2026-09-16: "no es justamente el rol del administrador"
+    // decidir quién ve el club entero -- se quita "Whole club" de este
+    // desplegable (quien pide unirse ya no puede autoconcederse ese
+    // alcance) y se exige elegir un equipo concreto o pedir uno nuevo.
+    // Settings → Members ya deja a un admin poner a alguien a "Whole
+    // club" después, con pleno conocimiento de causa -- ese control no
+    // se toca, solo se quita del formulario de auto-solicitud.
     async function loadTeamsForOrg(orgId) {
-      teamSelect.innerHTML = '<option value="">Whole club — no specific team</option>';
+      teamSelect.innerHTML = '<option value="" disabled selected>Choose your team…</option>';
       teamNewBox.style.display = "none";
       if (!orgId) return;
       const { data, error } = await supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", orgId).order("team");
@@ -1473,7 +1480,7 @@
         return (bits ? `${t.team} — ${bits}` : t.team) + ` (${t.season})`;
       };
       teamSelect.innerHTML =
-        '<option value="">Whole club — no specific team</option>' +
+        '<option value="" disabled selected>Choose your team…</option>' +
         joinModalTeamOptions.map((t, i) => `<option value="${i}">${escapeHtml(label(t))}</option>`).join("") +
         '<option value="__new__">+ My team isn\'t listed — request a new one</option>';
     }
@@ -1504,6 +1511,10 @@
       } else if (teamSelect.value !== "") {
         const t = joinModalTeamOptions[parseInt(teamSelect.value, 10)];
         if (t) { row.team_name = t.team; row.team_season = t.season; }
+      } else {
+        errorEl.textContent = "Pick your team, or request a new one.";
+        errorEl.style.display = "block";
+        return;
       }
       try {
         const { error } = await supabaseClient.from("memberships").insert(row);
@@ -1590,7 +1601,7 @@
 
     const { data: requests } = await supabaseClient
       .from("memberships")
-      .select("id, role, organization_id, user_id, join_message, organizations(name), profiles(full_name)")
+      .select("id, role, organization_id, user_id, join_message, team_season, team_name, requested_team_is_new, requested_team_category, requested_team_gender, organizations(name), profiles(full_name)")
       .eq("status", "pending")
       .in("organization_id", myOrgIds);
     if (!requests || requests.length === 0) return;
@@ -1606,6 +1617,24 @@
       const detail = document.createElement("span");
       detail.textContent = `wants to join ${(req.organizations && req.organizations.name) || "your club"} as ${req.role}`;
       info.appendChild(name); info.appendChild(detail);
+
+      // Dani, 2026-09-16: antes "Approve" no dejaba ver qué equipo se
+      // había pedido -- se aprobaba a ciegas lo que fuera que la persona
+      // hubiera elegido, incluido "todo el club" (ver el mismo cambio en
+      // openJoinClubModal). Ahora nadie puede pedir "todo el club" para
+      // sí mismo, pero esto también ayuda con solicitudes de antes de
+      // este arreglo, o con las que piden un equipo nuevo.
+      const teamLine = document.createElement("div");
+      teamLine.style.cssText = "font-size:13px; color:var(--muted); margin-top:2px;";
+      if (req.requested_team_is_new) {
+        const bits = [req.requested_team_category, req.requested_team_gender].filter(Boolean).join(" · ");
+        teamLine.textContent = `Team: "${req.team_name}"${bits ? ` (${bits})` : ""} — new team, needs creating`;
+      } else if (req.team_name) {
+        teamLine.textContent = `Team: ${req.team_name} (${req.team_season || "?"})`;
+      } else {
+        teamLine.textContent = "Team: whole club (no specific team requested)";
+      }
+      info.appendChild(teamLine);
       if (req.join_message) {
         const msg = document.createElement("div");
         msg.style.cssText = "font-size:14px; color:var(--muted); font-style:italic; margin-top:4px;";

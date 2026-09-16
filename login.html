@@ -266,9 +266,9 @@
           <label for="join_org">Which one?</label>
           <select id="join_org"></select>
 
-          <label for="join_team">Which team? (optional)</label>
+          <label for="join_team">Which team?</label>
           <select id="join_team">
-            <option value="">Whole club — no specific team</option>
+            <option value="" disabled selected>Choose your team…</option>
           </select>
           <div id="join-team-new-fields" style="display:none; margin-top:8px; padding:12px 14px; background:var(--paper); border:1px solid var(--line); border-radius:8px;">
             <label for="join_team_new_name">Team name</label>
@@ -460,7 +460,7 @@
   async function loadTeamsForJoinOrg(orgId) {
     els.joinTeam.innerHTML = '<option value="">Loading…</option>';
     els.joinTeamNewFields.style.display = "none";
-    if (!orgId) { els.joinTeam.innerHTML = '<option value="">Whole club — no specific team</option>'; return; }
+    if (!orgId) { els.joinTeam.innerHTML = '<option value="" disabled selected>Choose your team…</option>'; return; }
     const { data, error } = await supabaseClient
       .from("teams")
       .select("season, team, team_category, team_gender")
@@ -471,8 +471,13 @@
       const bits = [t.team_category, t.team_gender].filter(Boolean).join(" · ");
       return (bits ? `${t.team} — ${bits}` : t.team) + ` (${t.season})`;
     };
+    // Dani, 2026-09-16: "Whole club" ya no es una opción que quien pide
+    // unirse pueda elegir para sí mismo -- ver el mismo comentario en
+    // dashboard.html (openJoinClubModal) para el porqué. El admin sigue
+    // pudiendo poner a alguien a "Whole club" después, desde Settings →
+    // Members, con pleno conocimiento de causa.
     els.joinTeam.innerHTML =
-      '<option value="">Whole club — no specific team</option>' +
+      '<option value="" disabled selected>Choose your team…</option>' +
       joinTeamOptions.map((t, i) => `<option value="${i}">${escapeHtml(teamLabel(t))}</option>`).join("") +
       '<option value="__new__">+ My team isn\'t listed — request a new one</option>';
   }
@@ -544,6 +549,13 @@
       const orgId = els.joinOrg.value;
       if (!orgId) return null;
       const action = { type: "join", orgId };
+      // Dani, 2026-09-16: "no es justamente el rol del administrador"
+      // decidir quién ve el club entero -- se quita "Whole club" de este
+      // desplegable (quien pide unirse ya no puede autoconcederse ese
+      // alcance sin que nadie lo revise) y se exige elegir un equipo
+      // concreto, o pedir uno nuevo. Si el admin quiere que alguien vea
+      // el club entero, lo decide él mismo después, en Settings →
+      // Members -- ese control ya existía, no hace falta nada nuevo ahí.
       if (els.joinTeam.value === "__new__") {
         const name = els.joinTeamNewName.value.trim();
         if (!name) { els.joinTeamNewName.focus(); return null; }
@@ -555,6 +567,9 @@
       } else if (els.joinTeam.value !== "") {
         const t = joinTeamOptions[parseInt(els.joinTeam.value, 10)];
         if (t) { action.teamName = t.team; action.teamSeason = t.season; }
+      } else {
+        els.joinTeam.focus();
+        return null;
       }
       return action;
     }
