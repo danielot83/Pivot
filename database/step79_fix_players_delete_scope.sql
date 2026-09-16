@@ -1,0 +1,58 @@
+-- =============================================================================
+-- PlayPivot -- step79_fix_players_delete_scope
+-- =============================================================================
+-- Auditoría de seguridad, ronda 28 (2026-09-16): re-test de los 12
+-- hallazgos de Stefano sobre el repo completo -- MEDIUM-5 (alcance de un
+-- coach a datos de otros equipos del mismo club) se había dado por
+-- cerrado en la ronda 26 para "players", pero el borrado (DELETE) se
+-- quedó sin cerrar de verdad. Esto lo arregla.
+--
+-- Qué pasó: step77_medium_low_hardening.sql intentó quitar la política
+-- vieja de borrado de "players" con:
+--
+--   drop policy if exists "coaches remove players from their club" on public.players;
+--
+-- Ese es el nombre ORIGINAL (pivot_cloud_step4_players.sql) -- pero esa
+-- política concreta se borró ya en step22_five_roles.sql y se volvió a
+-- crear más adelante, en step56_platform_admin_can_delete_team_data.sql,
+-- con OTRO nombre: "coaches delete their club's players", usando
+-- can_edit_content(organization_id) -- es decir, cualquier admin o coach
+-- de TODO el club, sin mirar el equipo. Ese es el nombre que está vivo
+-- de verdad hoy.
+--
+-- Como el "drop" de step77 buscaba un nombre que ya no existía, no borró
+-- nada -- así que desde entonces conviven DOS políticas de DELETE en
+-- "players": la nueva de step77 (limitada al equipo del coach) y esta
+-- vieja de step56 (todo el club). Postgres combina varias políticas
+-- permisivas para la misma operación con OR, así que gana la más
+-- permisiva -- un coach fijado a un equipo concreto seguía pudiendo
+-- borrar jugadores de OTRO equipo del mismo club, exactamente el hueco
+-- que MEDIUM-5 pretendía cerrar. INSERT y UPDATE en "players" sí se
+-- cerraron bien en su momento (sus nombres nunca se habían renombrado)
+-- -- esto solo afecta a borrar.
+--
+-- Arreglo: quitar la política de step56 por su nombre REAL y dejar solo
+-- la de step77 (can_edit_content_for_team, ya definida ahí -- no hace
+-- falta redefinirla aquí).
+--
+-- Seguro de correr más de una vez.
+-- =============================================================================
+
+drop policy if exists "coaches delete their club's players" on public.players;
+
+-- (La política "coaches remove their team's players", de step77, ya
+-- existe y ya está bien -- no hace falta tocarla, solo faltaba quitar
+-- esta otra de en medio.)
+
+-- =============================================================================
+-- VERIFICAR DESPUÉS DE CORRER ESTO -- debería devolver EXACTAMENTE una
+-- fila (la política nueva, limitada al equipo):
+--
+--   select polname, pg_get_expr(polqual, polrelid) as using_clause
+--   from pg_policy
+--   where polrelid = 'public.players'::regclass and polcmd = 'd';
+--
+-- Si sale más de una fila, o una que mencione "can_edit_content(" a
+-- secas (sin "_for_team"), avisa -- significaría que todavía queda algo
+-- club-wide sin quitar.
+-- =============================================================================
