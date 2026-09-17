@@ -1410,7 +1410,7 @@
       team: editingPlayTeam || null,
       category: els.playCategory.value.trim() || null,
       visibility: els.playVisibility.value,
-      visible_to_players: false,
+      // Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): visible_to_players era un campo muerto, siempre false, nunca leído en ningún sitio -- se deja de escribir.
       language: els.playLanguage.value,
       name, court_type: "multi-step",
       diagram: { steps },

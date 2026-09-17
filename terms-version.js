@@ -5,4 +5,5 @@
 // (no por una errata) -- eso es lo que activa que a alguien que ya
 // había aceptado una versión anterior se le pida aceptar de nuevo.
 // =============================================================================
-const TERMS_VERSION = "2026-08-15";
+// Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): privacy.html cambió de verdad (se quitó el párrafo sobre la cuenta "player"), no un typo -- se sube la versión.
+const TERMS_VERSION = "2026-09-17";

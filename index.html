@@ -567,17 +567,21 @@
 
   <!-- Dani 2026-09-17: pirámide dibujada a mano en SVG (pedido del hermano de
        Dani) + layout en dos columnas -- dibujo a la izquierda, roles a la
-       derecha. Los 3 niveles del dibujo son deliberadamente cortos (Admin /
-       Coaches / Players); el detalle completo de cada rol sigue en el texto
-       de al lado. -->
+       derecha. Los niveles del dibujo son deliberadamente cortos (Admin /
+       Coaches); el detalle completo de cada rol sigue en el texto de al lado.
+       Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la
+       base de datos desde step55): pirámide reducida de 3 a 2 niveles --
+       ya no existe un rol "Players" que dibujar. Un solo divisor en y=140
+       (50% de la altura entre el ápice y=8 y la base y=272), con los x de
+       sus extremos recalculados por la misma interpolación lineal
+       ápice→esquina que usaban los divisores originales, para que siga
+       apoyado exactamente sobre los bordes del triángulo. -->
   <div class="wrap org-split">
     <svg class="org-pyramid" viewBox="0 0 300 280" aria-hidden="true">
       <path class="tri-outline" d="M150 8 L286 272 L14 272 Z"/>
-      <line class="tier-line" x1="104.7" y1="96" x2="195.3" y2="96"/>
-      <line class="tier-line" x1="59.3" y1="184" x2="240.7" y2="184"/>
-      <text class="tier-label" x="150" y="52">Admin</text>
-      <text class="tier-label" x="150" y="146">Coaches</text>
-      <text class="tier-label" x="150" y="234">Players</text>
+      <line class="tier-line" x1="82" y1="140" x2="218" y2="140"/>
+      <text class="tier-label" x="150" y="80">Admin</text>
+      <text class="tier-label" x="150" y="212">Coaches</text>
     </svg>
 
     <div class="org-tiers">
@@ -606,20 +610,7 @@
           <p>Build training sessions, run match day, and track assessments — for their own team.</p>
         </div>
       </div>
-      <div class="org-tier reveal">
-        <div class="org-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-            <circle cx="9" cy="8.2" r="3"/>
-            <path d="M3.6 20c.4-3.3 2.7-5.4 5.4-5.4s5 2.1 5.4 5.4"/>
-            <circle cx="17.3" cy="9.4" r="2.3"/>
-            <path d="M15.3 20c.3-2.2 1.7-3.9 3.4-4.5"/>
-          </svg>
-        </div>
-        <div>
-          <h3>Player &amp; viewer</h3>
-          <p>See their team's plans, stats and progress. Viewers are read-only — nothing to edit.</p>
-        </div>
-      </div>
+      <!-- Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): se elimina la tarjeta "Player & viewer", ese rol ya no existe. -->
     </div>
   </div>
 

@@ -728,8 +728,6 @@
     }
   });
 
-  let orgPlayersForLinking = [];
-
   async function loadMembers() {
     const list = document.getElementById("members-list");
     list.innerHTML = "";
@@ -742,7 +740,8 @@
     }
     const { data, error } = await supabaseClient
       .from("memberships")
-      .select("id, role, status, user_id, linked_player_id, team_season, team_name, profiles(full_name)")
+      // Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): linked_player_id ya no se lee, era solo para el "linked player" del rol player.
+      .select("id, role, status, user_id, team_season, team_name, profiles(full_name)")
       .eq("organization_id", currentOrgId)
       .in("status", ["active", "blocked"])
       .order("status");
@@ -763,7 +762,6 @@
 
     const { data: playersData } = await supabaseClient
       .from("players").select("id, first_name, last_name, season, team").eq("organization_id", currentOrgId).order("last_name");
-    orgPlayersForLinking = playersData || [];
 
     // Mêmes saison+équipe que dans le roster, pour "scoper" une adhésion
     // à UNE équipe précise au lieu de tout le club -- fusion players +
@@ -790,24 +788,17 @@
       const actions = document.createElement("div");
       actions.className = "member-actions";
       const roleSelect = document.createElement("select");
-      ["admin", "coach", "assistant", "player", "viewer"].forEach((r) => {
+      // Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): solo quedan admin y coach, la BD ya no acepta los otros tres.
+      ["admin", "coach"].forEach((r) => {
         const opt = document.createElement("option");
         opt.value = r; opt.textContent = r;
         if (r === m.role) opt.selected = true;
         roleSelect.appendChild(opt);
       });
       roleSelect.disabled = m.status === "blocked";
-      roleSelect.addEventListener("change", () => { changeRole(m.id, roleSelect.value, row); linkedSelect.style.display = roleSelect.value === "player" ? "inline-block" : "none"; });
+      roleSelect.addEventListener("change", () => { changeRole(m.id, roleSelect.value, row); });
 
-      // Uniquement pour un rôle "player" : quelle fiche du roster est
-      // la sienne -- pour qu'il puisse voir sa propre évaluation, par
-      // exemple. Jamais visible/modifiable par lui-même, seulement ici.
-      const linkedSelect = document.createElement("select");
-      linkedSelect.style.display = m.role === "player" ? "inline-block" : "none";
-      linkedSelect.innerHTML = '<option value="">Not linked to a roster player</option>' +
-        orgPlayersForLinking.map((p) => `<option value="${p.id}" ${p.id === m.linked_player_id ? "selected" : ""}>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)} — ${escapeHtml(p.team)} ${escapeHtml(p.season)}</option>`).join("");
-      linkedSelect.disabled = m.status === "blocked";
-      linkedSelect.addEventListener("change", () => linkPlayer(m.id, linkedSelect.value || null));
+      // Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): el dropdown "linked player" (linkedSelect/linkPlayer/orgPlayersForLinking) solo existía para el rol "player", que ya no puede asignarse -- feature entera eliminada.
 
       // Acotar esta membresía a UN equipo concreto (ej. "DEL U8"), no
       // todo el club -- opcional. En blanco = ve todo el club, como
@@ -841,7 +832,6 @@
       removeBtn.addEventListener("click", () => removeMember(m.id, row));
 
       actions.appendChild(roleSelect);
-      actions.appendChild(linkedSelect);
       actions.appendChild(scopeSelect);
       actions.appendChild(statusBtn);
       actions.appendChild(removeBtn);
@@ -920,17 +910,6 @@
   // `.select()` a las cuatro escrituras de esta pantalla y se trata "0
   // filas devueltas, sin error" como el fallo silencioso que es.
   const SCOPE_BLOCKED_MSG = "That didn't go through — this member is scoped to a different team than you manage, so the change was blocked.";
-
-  async function linkPlayer(membershipId, playerId) {
-    try {
-      const { data, error } = await supabaseClient.from("memberships").update({ linked_player_id: playerId }).eq("id", membershipId).select("id");
-      if (error) throw error;
-      if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
-      showMessage(playerId ? "Linked to that roster player." : "Unlinked.", "success");
-    } catch (err) {
-      showMessage(err.message || "Couldn't link that player.", "error");
-    }
-  }
 
   async function setTeamScope(membershipId, season, team) {
     try {
@@ -1096,7 +1075,7 @@
     box.innerHTML = `
       <strong>How to use Settings</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
-        <li>Everyone can see this page, whatever their role — but only your club's <strong>admin</strong> (or a PlayPivot platform admin) can actually change anything here. If you're a coach, assistant, or viewer, everything below is visible but locked, with a note explaining why.</li>
+        <li>Everyone can see this page, whatever their role — but only your club's <strong>admin</strong> (or a PlayPivot platform admin) can actually change anything here. If you're a coach, everything below is visible but locked, with a note explaining why.</li>
         <li><strong>Club logo</strong> — pick an image, it's automatically resized and converted; instructions for the best result are right below the upload button.</li>
         <li><strong>Members</strong> — change anyone's role with the dropdown, <strong>block</strong> someone to cut their access without deleting their history (they can be reactivated any time), or <strong>remove</strong> them for good. You can never demote, block, or remove the club's last admin — the app blocks it on purpose. Someone requesting to join for the first time shows up on your dashboard, not here.</li>
         <li><strong>Exercise sharing</strong> — the two buttons here set ALL your exercises to either "PlayPivot Community" (everyone) or "My team" at once. To choose more precisely, set the sharing circle exercise by exercise in the Exercise creator: <strong>Only me</strong> (private, even from your own teammates), <strong>My team</strong> (your whole club), <strong>My club association</strong> (a small group of clubes who agreed to share, needs the platform controller's approval), or <strong>PlayPivot Community</strong> (every club on PlayPivot, view only for them). The same 4 choices exist in Plays, Match day, Training builder, and Player assessment — see the sections below to set them in bulk, or per item inside each module.</li>
@@ -1104,8 +1083,8 @@
         <li><strong>Club association</strong> — propose a new group of clubes, or join an existing one by typing its exact name. Nothing is shared until the platform controller approves it — you'll see the request's status here, and a 🔔 on your dashboard shows you (or the controller) what's pending.</li>
         <li><strong>Export language</strong> — the language new PDFs (roster sheets, assessments, plays, match reports...) are generated in for your club. Changing it doesn't touch PDFs you already downloaded.</li>
         <li><strong>Exercise PDF — what to include</strong> — turn off any section (age, categories, material, objectives, difficulty) you don't want printed on an exercise sheet.</li>
-        <li><strong>The 6 roles</strong>: Platform admin (Daniel, or anyone he adds) — can do anything, in any club. Team admin — full control, but only inside their own club, including this Settings page. Coach and Assistant both create/edit content; the only difference is Assistant can't delete anything. Player — a real account for a player: sees only what a coach has explicitly chosen to share with them (like a play marked "Show to players"), never a club's private content just for being a member. Viewer can only look, nothing more.</li>
-        <li><strong>Linking a player account to the roster</strong> — once someone's role is set to Player, a new dropdown appears next to it: pick which roster entry (Roster) is actually them. This is what lets them see things tied to their own name, like their own assessment — nobody else's, and never automatic just from being on the team.</li>
+        <!-- Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): solo quedan 2 roles reales + el flag aparte de platform admin; se borran las descripciones de Assistant/Player/Viewer y el párrafo de "linked player account", esa feature ya no existe. -->
+        <li><strong>The roles</strong>: Platform admin (Daniel, or anyone he adds) — can do anything, in any club. Team admin — full control, but only inside their own club, including this Settings page. Coach — creates and edits content within their own club/team.</li>
       </ul>`;
     box.style.display = "block";
   });
