@@ -62,17 +62,26 @@ const PIVOT_MODULES = [
  *   (par défaut : module.html?m=xxx, la fiche publique -- le futur tableau de
  *   bord passera sa propre fonction pour pointer directement vers l'outil,
  *   ex. roster.html au lieu de module.html?m=roster)
+ * @param {{asLink?: boolean}} [opts] - Dani 2026-09-17 (landing v2, pedido
+ *   del hermano de Dani): index.html ya no debe enlazar a otra página por
+ *   módulo (module.html), solo mostrar el resumen ahí mismo. Con
+ *   `{asLink: false}` cada tarjeta se pinta como <div> en vez de <a> (sin
+ *   href, sin flecha) -- no cambia nada para las llamadas existentes
+ *   (module.html, dashboard.html), que no pasan este tercer argumento.
  */
-function renderModulesGrid(containerId, linkFor) {
+function renderModulesGrid(containerId, linkFor, opts) {
   linkFor = linkFor || ((m) => `module.html?m=${m.key}`);
+  opts = opts || {};
+  const asLink = opts.asLink !== false;
   const container = document.getElementById(containerId);
   if (!container) return;
 
+  const tag = asLink ? "a" : "div";
   container.innerHTML = PIVOT_MODULES.map((m) => `
-    <a class="module-card" href="${linkFor(m)}">
+    <${tag} class="module-card"${asLink ? ` href="${linkFor(m)}"` : ""}>
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">${m.icon}</svg>
-      <h3>${m.title}${m.soon ? ' <span class="badge-soon">Coming soon</span>' : ""} <span class="chevron">→</span></h3>
+      <h3>${m.title}${m.soon ? ' <span class="badge-soon">Coming soon</span>' : ""}${asLink ? ' <span class="chevron">→</span>' : ""}</h3>
       <p class="blurb">${m.blurb}</p>
-    </a>
+    </${tag}>
   `).join("");
 }
