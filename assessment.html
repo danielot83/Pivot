@@ -435,7 +435,7 @@
         <div class="field"><label for="assess-visibility">Who can see it?</label>
           <select id="assess-visibility">
             <option value="private">🔒 Only me</option>
-            <option value="team">👥 My team</option>
+            <option value="team">👥 Whole club</option>
             <option value="association">🤝 My club association</option>
           </select>
           <p class="hint" style="margin:2px 0 0; font-size:11.5px;">No "PlayPivot Community" option here on purpose — an evaluation is always about a real player.</p>
@@ -942,7 +942,7 @@
     await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
     myRole = chosen.role;
-    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Team admin" : "Coach");
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
     els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -1738,8 +1738,8 @@
         <li>Sector averages update live as you fill each one in, both on screen and in the exported PDF.</li>
         <li><strong>Past assessments</strong> below are clickable — opens that one back up to review or edit.</li>
         <li><strong>Seguimiento</strong>, below Past assessments — a different kind of tracking: define your own criterion with its unit (e.g. "Sprint 20m" in seconds, "Free throws in a row" in made shots, "Weight" in kg) and add dated measurements over time. Each criterion gets its own mini chart and table — this is for things that don't fit the 1-5 scoring above.</li>
-        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). An assessment is a real player's evaluation, so think before sharing beyond your team.</li>
-        <li>A <strong>player account</strong> never sees "My team" assessments in bulk, even from their own club — that would mean seeing every teammate's evaluation. The one exception: if Settings has linked their account to their roster entry, they can see their own assessment, and only their own.</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole club, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). An assessment is a real player's evaluation, so think before sharing beyond your club.</li>
+        <li>A <strong>player account</strong> never sees "Whole club" assessments in bulk, even from their own club — that would mean seeing every other player's evaluation.</li>
       </ul>`;
     box.style.display = "block";
   });

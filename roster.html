@@ -978,7 +978,7 @@
     await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
     myRole = chosen.role;
-    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Team admin" : "Coach");
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
     els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };

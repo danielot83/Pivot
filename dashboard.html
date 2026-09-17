@@ -270,10 +270,10 @@
     <h2>Welcome to PlayPivot 👋</h2>
     <p>One thing worth knowing before you dive in: almost everything you create — exercises, plays, sessions, matches, assessments — has its own <strong>"Who can see it?"</strong> setting. Nothing is shared further than you choose.</p>
     <div class="onboard-circle-row"><span class="emoji">🔒</span><span><strong>Only me</strong> — private, not even your own teammates see it.</span></div>
-    <div class="onboard-circle-row"><span class="emoji">👥</span><span><strong>My team</strong> — everyone active in your club (this is the default).</span></div>
+    <div class="onboard-circle-row"><span class="emoji">👥</span><span><strong>Whole club</strong> — everyone active in your club (this is the default).</span></div>
     <div class="onboard-circle-row"><span class="emoji">🤝</span><span><strong>My club association</strong> — a small group of clubs who agreed to share, needs approval.</span></div>
     <div class="onboard-circle-row"><span class="emoji">🌐</span><span><strong>PlayPivot Community</strong> — every club on PlayPivot can see it (view only).</span></div>
-    <p>If you're a club admin, <strong>Settings</strong> also lets you set all of a type at once (e.g. every exercise), and manage who's in your club and their role (Team admin or Coach).</p>
+    <p>If you're a club admin, <strong>Settings</strong> also lets you set all of a type at once (e.g. every exercise), and manage who's in your club and their role (Club admin or Coach).</p>
     <p style="font-size:14px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; margin-top:14px;"><strong>Worth knowing too:</strong> only add data about players you actually coach, and you're responsible for having the right to hold it (a guardian's consent, especially for a minor — see <a href="./privacy.html" target="_blank" style="color:var(--accent-deep);">Privacy &amp; Terms</a>). Don't republish someone else's shared content outside PlayPivot as your own.</p>
     <button class="btn btn-primary" id="onboard-close-btn">Got it, let's go</button>
   </div>
@@ -689,10 +689,10 @@
     currentOrgId = chosen.organization_id;
     // El rol que se muestra es el TUYO en ESTE club concreto -- aunque
     // también seas platform admin, si tienes una membresía real aquí
-    // (como "DEL", donde eres admin de verdad) se ve "Team admin", no
+    // (como "DEL", donde eres admin de verdad) se ve "Club admin", no
     // "Platform admin" -- eso solo aparece cuando estás fisgoneando un
     // club del que no eres miembro (browsing_as_platform_admin).
-    const roleLabel = chosen.role === "admin" ? "Team admin" : "Coach";
+    const roleLabel = chosen.role === "admin" ? "Club admin" : "Coach";
     updateSidebarUser(null, roleLabel);
     const orgName = (chosen.organizations && chosen.organizations.name) || "";
     els.orgNameBig.textContent = orgName;
@@ -807,7 +807,7 @@
             <button class="tree-example" data-manage-org-id="${r.org.id}" style="color:var(--ink); font-weight:600; cursor:pointer; white-space:nowrap;">Manage</button>
             <button class="tree-example" data-msg-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:var(--ink); font-weight:600; cursor:pointer; white-space:nowrap;">✉ Message admin</button>
             <button class="tree-example" data-delete-data-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="display:inline-flex; align-items:center; gap:5px; color:#b91c1c; font-weight:600; cursor:pointer; white-space:nowrap;"><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg>Delete data…</button>
-            <button class="tree-example" data-deactivate-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer; white-space:nowrap;">Remove whole team</button>
+            <button class="tree-example" data-deactivate-org-id="${r.org.id}" data-org-name="${escapeHtml(r.org.name)}" style="color:#991b1b; font-weight:600; cursor:pointer; white-space:nowrap;">Remove whole club</button>
             <button class="tree-example" data-enter-org-id="${r.org.id}" style="color:var(--accent-deep); font-weight:600; cursor:pointer; white-space:nowrap;">See club →</button>
           </div>
         </td>
@@ -875,7 +875,7 @@
   }
 
   // -----------------------------------------------------------------------
-  // Popup de borrado selectivo -- a diferencia de "Remove whole team" (que
+  // Popup de borrado selectivo -- a diferencia de "Remove whole club" (que
   // solo desactiva TODO el club), esto permite elegir un equipo/temporada
   // concreto dentro de un club y decidir, categoría por categoría, qué
   // borrar de verdad. exercises y notebooks NO aparecen aquí a propósito:
@@ -2533,7 +2533,11 @@
   async function loadPlatformStats() {
     if (!isPlatformController) return;
 
-    const { count: orgCount } = await supabaseClient.from("organizations").select("id", { count: "exact", head: true });
+    // 2026-09-17: contaba TODOS los clubes, incluidos los desactivados con
+    // "Remove whole club" (is_active=false) -- por eso el número aquí no
+    // cuadraba con la tabla de abajo (loadAdminClubsTable), que sí filtra
+    // is_active=true. Mismo filtro aquí para que ambos cuenten lo mismo.
+    const { count: orgCount } = await supabaseClient.from("organizations").select("id", { count: "exact", head: true }).eq("is_active", true);
     document.getElementById("pstat-orgs").textContent = orgCount ?? 0;
 
     // Même exclusion des données d'exemple (Bulls/Celtics) qu'au niveau

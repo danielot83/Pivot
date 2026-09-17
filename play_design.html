@@ -401,7 +401,7 @@
       <div class="field"><label for="play-visibility">Who can see it?</label>
         <select id="play-visibility">
           <option value="private">🔒 Only me</option>
-          <option value="team">👥 My team</option>
+          <option value="team">👥 Whole club</option>
           <option value="association">🤝 My club association</option>
           <option value="community">🌐 PlayPivot Community</option>
         </select>
@@ -1024,7 +1024,7 @@
     await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
     myRole = chosen.role;
-    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Team admin" : "Coach");
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
     els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -1715,7 +1715,7 @@
         <li><strong>Speed</strong> — slows down or speeds up "Animate whole sequence"; the same speed also gets baked into the downloaded GIF.</li>
         <li><strong>Download animation (GIF)</strong> — renders the whole sequence as a GIF file you can send or embed anywhere, not just play it here.</li>
         <li><strong>Undo</strong> removes the last action, or the last point if there are no actions left. <strong>Clear this step</strong> wipes everything on the current step only.</li>
-        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). The icon next to each play in the list shows its current circle.</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole club, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). The icon next to each play in the list shows its current circle.</li>
       </ul>`;
     box.style.display = "block";
   });

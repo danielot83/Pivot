@@ -491,7 +491,7 @@
         <div class="field"><label for="tr-visibility">Who can see it?</label>
           <select id="tr-visibility">
             <option value="private">🔒 Only me</option>
-            <option value="team">👥 My team</option>
+            <option value="team">👥 Whole club</option>
             <option value="association">🤝 My club association</option>
           </select>
         </div>
@@ -791,7 +791,7 @@
     await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
     myRole = chosen.role;
-    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Team admin" : "Coach");
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
     els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -2069,7 +2069,7 @@
         <li><strong>Attendance</strong> starts blank for every session — click a player's badge to cycle Present → Absent → Excused → Late → blank. It's saved instantly (once the session itself has been saved once) and shared live with Match day and the Attendance page — mark it in any of the three and it shows the same everywhere.</li>
         <li><strong>Post-session feedback</strong> is deliberately separate from everything above — the rest is what you planned, this is what actually happened: a rating, comments, and ideas for next time. Fill it in after the session, whenever you're ready.</li>
         <li><strong>Export to PDF</strong> makes a session sheet in the same style as the exercise sheets: attendance on the left, the plan in the middle, the summary and feedback on the right. <strong>Export whole book</strong> (under Sessions) does the same for every session of the selected team/season at once, with a cover page.</li>
-        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). The icon next to each session in the list shows its current circle.</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole club, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). The icon next to each session in the list shows its current circle.</li>
       </ul>`;
     box.style.display = "block";
   });

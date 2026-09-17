@@ -439,7 +439,7 @@
             <div class="field" style="display:none;"><label for="match-visibility">Who can see it?</label>
               <select id="match-visibility">
                 <option value="private">🔒 Only me</option>
-                <option value="team">👥 My team</option>
+                <option value="team">👥 Whole club</option>
                 <option value="association">🤝 My club association</option>
               </select>
               <p class="hint" style="margin:2px 0 0; font-size:12px;">No "PlayPivot Community" option here on purpose — player stats always name real players.</p>
@@ -830,7 +830,7 @@
     await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
     myRole = chosen.role;
-    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Team admin" : "Coach");
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
     els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -1884,7 +1884,7 @@
       <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
         <li><strong>General info</strong> — date, opponent, location, home/away, match number, referee, up to 3 coaches, score. Use <strong>Comments</strong> for a short note like "Final", "Semifinal", or "Friendly" — handy for tournaments; it also shows next to the match in the list above.</li>
         <li><strong>Call-up &amp; stats</strong> — a small legend above the table explains each column at a glance. Tick <strong>"Called up"</strong> for who's on the roster for this match (the "all" button next to that column heading selects or clears everyone in one click), and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
-        <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole team.</li>
+        <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole club.</li>
         <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
         <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, minutes/points/rebounds/assists/fouls, and your own custom stat columns — recognized automatically by name), matches names against this team's roster, then asks which match to save it to. <strong>"Print blank sheet"</strong> gives you an empty box score with your columns, ready to fill in by hand during the game.</li>
       </ol>`;

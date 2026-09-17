@@ -264,7 +264,7 @@
       <div class="field" style="flex:0 0 170px;"><label for="team-filter">Team</label><select id="team-filter"><option value="">All</option></select></div>
       <div class="field" style="flex:0 0 170px;"><label for="playbook-filter">Playbook</label><select id="playbook-filter"><option value="">All</option></select></div>
       <div class="field" style="flex:0 0 150px;"><label for="language-filter">Language</label><select id="language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
-      <div class="field" style="flex:0 0 170px;"><label for="source-filter">Source</label><select id="source-filter"><option value="">All</option><option value="mine">👤 Created by me</option><option value="team">👥 My team</option><option value="community">🌐 Other clubs</option></select></div>
+      <div class="field" style="flex:0 0 170px;"><label for="source-filter">Source</label><select id="source-filter"><option value="">All</option><option value="mine">👤 Created by me</option><option value="team">👥 Whole club</option><option value="community">🌐 Other clubs</option></select></div>
       <button class="reset-btn" id="reset-filters-btn">Reset filters</button>
     </div>
   </div>
@@ -313,7 +313,7 @@
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
-  const VISIBILITY_LABELS = { private: "🔒 Only me", team: "👥 My team", association: "🤝 Club association", community: "🌐 PlayPivot Community" };
+  const VISIBILITY_LABELS = { private: "🔒 Only me", team: "👥 Whole club", association: "🤝 Club association", community: "🌐 PlayPivot Community" };
   const LANGUAGE_NAMES = { en: "English", fr: "Français", es: "Español" };
 
   const els = {
@@ -370,7 +370,7 @@
     await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
     myRole = chosen.role;
-    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Team admin" : "Coach");
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
     els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -449,7 +449,7 @@
       // el play. Nota: "Created by me" solo funciona bien para plays
       // creados a partir de que se subiera esta ronda -- created_by no se
       // guardaba antes (ver step69_plays_created_by.sql), así que un play
-      // antiguo tuyo cae en "My team" en vez de "Created by me".
+      // antiguo tuyo cae en "Whole club" en vez de "Created by me".
       if (source === "mine" && p.created_by !== currentUserId) return false;
       if (source === "team" && (p.organization_id !== currentOrgId || p.created_by === currentUserId)) return false;
       if (source === "community" && p.organization_id === currentOrgId) return false;
@@ -584,7 +584,7 @@
         <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
           <li>Every play you can see — your own club's, across every team, plus anything shared by other clubs — shows up here in one list. Search &amp; filters sit in one row at the top; click any play to see its details in a popup.</li>
           <li><strong>Team / Playbook</strong> — only show the teams/playbooks that actually have plays right now; they update as plays are added.</li>
-          <li><strong>Source</strong> — 👤 plays you made yourself, 👥 your teammates' plays, 🌐 plays shared by other clubs.</li>
+          <li><strong>Source</strong> — 👤 plays you made yourself, 👥 plays from others in your club, 🌐 plays shared by other clubs.</li>
           <li><strong>🎲 Pick at random</strong> — picks one play among whatever the current filters show.</li>
           <li><strong>Open in Play design →</strong> — opens that exact play in the editor, ready to look at, animate, or (if it's yours) edit and save.</li>
           <li>Plays from other clubs (🌐) can be opened and looked at, but not edited or deleted — only their owner can.</li>

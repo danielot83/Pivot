@@ -349,7 +349,7 @@
       <div class="field"><label for="search-input">Search</label><input id="search-input" type="text" placeholder="Name, tag, description…" /></div>
       <div class="field"><label for="difficulty-filter">Difficulty</label><select id="difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
       <div class="field"><label for="language-filter">Language</label><select id="language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
-      <div class="field"><label for="source-filter">Source</label><select id="source-filter"><option value="">All</option><option value="mine">👤 Created by me</option><option value="team">👥 My team</option><option value="community">🌐 Other clubs</option></select></div>
+      <div class="field"><label for="source-filter">Source</label><select id="source-filter"><option value="">All</option><option value="mine">👤 Created by me</option><option value="team">👥 Whole club</option><option value="community">🌐 Other clubs</option></select></div>
       <div class="field">
         <label class="field-label">Category</label>
         <div class="filter-dropdown">
@@ -421,7 +421,7 @@
     <div class="field"><label for="notebook-visibility">Who can see it?</label>
       <select id="notebook-visibility">
         <option value="private">🔒 Only me</option>
-        <option value="team">👥 My team</option>
+        <option value="team">👥 Whole club</option>
         <option value="association">🤝 My club association</option>
         <option value="community">🌐 PlayPivot Community</option>
       </select>
@@ -438,7 +438,7 @@
       <div class="field" style="grid-column: span 2;"><label for="notebook-exercise-search">Search</label><input id="notebook-exercise-search" type="text" placeholder="Name, tag, description…" /></div>
       <div class="field"><label for="notebook-difficulty-filter">Difficulty</label><select id="notebook-difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select></div>
       <div class="field"><label for="notebook-language-filter">Language</label><select id="notebook-language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select></div>
-      <div class="field"><label for="notebook-source-filter">Source</label><select id="notebook-source-filter"><option value="">All</option><option value="mine">👤 Created by me</option><option value="team">👥 My team</option><option value="community">🌐 Other clubs</option></select></div>
+      <div class="field"><label for="notebook-source-filter">Source</label><select id="notebook-source-filter"><option value="">All</option><option value="mine">👤 Created by me</option><option value="team">👥 Whole club</option><option value="community">🌐 Other clubs</option></select></div>
       <div class="field">
         <label class="field-label">Category</label>
         <div class="filter-dropdown">
@@ -853,7 +853,7 @@
     await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
     myRole = chosen.role;
-    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Team admin" : "Coach");
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
     els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -974,7 +974,7 @@
       // excluyentes entre sí (cada ejercicio tiene exactamente un origen).
       // Nota: "Created by me" solo funciona bien para ejercicios creados a
       // partir del 8/9/2026 (ronda 4) -- created_by no se guardaba antes,
-      // así que un ejercicio antiguo tuyo cae en "My team" en vez de "Created
+      // así que un ejercicio antiguo tuyo cae en "Whole club" en vez de "Created
       // by me" porque no hay forma de saber quién lo hizo.
       if (source === "mine" && e.created_by !== currentUserId) return false;
       if (source === "team" && (e.organization_id !== currentOrgId || e.created_by === currentUserId)) return false;
@@ -1196,7 +1196,7 @@
 
   const LANGUAGE_NAMES = { en: "English", fr: "Français", es: "Español" };
 
-  const VISIBILITY_LABELS = { private: "🔒 Only me", team: "👥 My team", association: "🤝 Club association", community: "🌐 PlayPivot Community" };
+  const VISIBILITY_LABELS = { private: "🔒 Only me", team: "👥 Whole club", association: "🤝 Club association", community: "🌐 PlayPivot Community" };
 
   function renderDetail(e) {
     if (!e) { els.detailCard.innerHTML = '<p class="sub" style="margin:0;">Pick an exercise from the list.</p>'; return; }

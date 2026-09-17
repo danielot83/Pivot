@@ -329,7 +329,7 @@
 
     const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
     await pivotRenderOrgSwitcher("org-switcher", data, chosen ? chosen.organization_id : null, { isPlatformController, supabaseClient });
-    if (chosen && !isPlatformController) pivotUpdateSidebarUser(null, chosen.role === "admin" ? "Team admin" : "Coach");
+    if (chosen && !isPlatformController) pivotUpdateSidebarUser(null, chosen.role === "admin" ? "Club admin" : "Coach");
   }
 
   document.getElementById("logout-btn").addEventListener("click", async () => {

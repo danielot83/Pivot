@@ -334,7 +334,7 @@
     <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
     <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
-      <option value="team">👥 My team</option>
+      <option value="team">👥 Whole club</option>
       <option value="association">🤝 My club association</option>
       <option value="community">🌐 PlayPivot Community</option>
     </select>
@@ -347,7 +347,7 @@
     <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
     <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
-      <option value="team">👥 My team</option>
+      <option value="team">👥 Whole club</option>
       <option value="association">🤝 My club association</option>
       <option value="community">🌐 PlayPivot Community</option>
     </select>
@@ -360,7 +360,7 @@
     <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
     <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
-      <option value="team">👥 My team</option>
+      <option value="team">👥 Whole club</option>
       <option value="association">🤝 My club association</option>
     </select>
     <button class="btn btn-primary apply-bulk-btn">Set all matches to this</button>
@@ -372,7 +372,7 @@
     <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
     <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
-      <option value="team">👥 My team</option>
+      <option value="team">👥 Whole club</option>
       <option value="association">🤝 My club association</option>
     </select>
     <button class="btn btn-primary apply-bulk-btn">Set all sessions to this</button>
@@ -384,7 +384,7 @@
     <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
     <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
-      <option value="team">👥 My team</option>
+      <option value="team">👥 Whole club</option>
       <option value="association">🤝 My club association</option>
     </select>
     <button class="btn btn-primary apply-bulk-btn">Set all assessments to this</button>
@@ -486,7 +486,7 @@
     await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
     myRole = chosen.role || "admin";
-    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Team admin" : "Coach");
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
     myTeamSeason = chosen.team_season || null;
     myTeamName = chosen.team_name || null;
     els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
@@ -644,7 +644,7 @@
   // Partage en masse de tous les exercices du club -- pratique plutôt que
   // de cocher "share" un par un dans le créateur d'exercices.
   // -----------------------------------------------------------------------
-  const VISIBILITY_LABELS = { private: "Only me", team: "My team", association: "Club association", community: "PlayPivot Community" };
+  const VISIBILITY_LABELS = { private: "Only me", team: "Whole club", association: "Club association", community: "PlayPivot Community" };
 
   async function loadSharingStatus() {
     for (const card of document.querySelectorAll(".sharing-bulk-card")) {
@@ -1078,13 +1078,13 @@
         <li>Everyone can see this page, whatever their role — but only your club's <strong>admin</strong> (or a PlayPivot platform admin) can actually change anything here. If you're a coach, everything below is visible but locked, with a note explaining why.</li>
         <li><strong>Club logo</strong> — pick an image, it's automatically resized and converted; instructions for the best result are right below the upload button.</li>
         <li><strong>Members</strong> — change anyone's role with the dropdown, <strong>block</strong> someone to cut their access without deleting their history (they can be reactivated any time), or <strong>remove</strong> them for good. You can never demote, block, or remove the club's last admin — the app blocks it on purpose. Someone requesting to join for the first time shows up on your dashboard, not here.</li>
-        <li><strong>Exercise sharing</strong> — the two buttons here set ALL your exercises to either "PlayPivot Community" (everyone) or "My team" at once. To choose more precisely, set the sharing circle exercise by exercise in the Exercise creator: <strong>Only me</strong> (private, even from your own teammates), <strong>My team</strong> (your whole club), <strong>My club association</strong> (a small group of clubes who agreed to share, needs the platform controller's approval), or <strong>PlayPivot Community</strong> (every club on PlayPivot, view only for them). The same 4 choices exist in Plays, Match day, Training builder, and Player assessment — see the sections below to set them in bulk, or per item inside each module.</li>
+        <li><strong>Exercise sharing</strong> — the two buttons here set ALL your exercises to either "PlayPivot Community" (everyone) or "Whole club" at once. To choose more precisely, set the sharing circle exercise by exercise in the Exercise creator: <strong>Only me</strong> (private, even from your own teammates), <strong>Whole club</strong> (everyone active in your club), <strong>My club association</strong> (a small group of clubes who agreed to share, needs the platform controller's approval), or <strong>PlayPivot Community</strong> (every club on PlayPivot, view only for them). The same 4 choices exist in Plays, Match day, Training builder, and Player assessment — see the sections below to set them in bulk, or per item inside each module.</li>
         <li><strong>Plays / Matches / Trainings / Assessments sharing</strong> — same 4 circles, same idea: set them all at once here, or pick one item at a time inside each module.</li>
         <li><strong>Club association</strong> — propose a new group of clubes, or join an existing one by typing its exact name. Nothing is shared until the platform controller approves it — you'll see the request's status here, and a 🔔 on your dashboard shows you (or the controller) what's pending.</li>
         <li><strong>Export language</strong> — the language new PDFs (roster sheets, assessments, plays, match reports...) are generated in for your club. Changing it doesn't touch PDFs you already downloaded.</li>
         <li><strong>Exercise PDF — what to include</strong> — turn off any section (age, categories, material, objectives, difficulty) you don't want printed on an exercise sheet.</li>
         <!-- Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): solo quedan 2 roles reales + el flag aparte de platform admin; se borran las descripciones de Assistant/Player/Viewer y el párrafo de "linked player account", esa feature ya no existe. -->
-        <li><strong>The roles</strong>: Platform admin (Daniel, or anyone he adds) — can do anything, in any club. Team admin — full control, but only inside their own club, including this Settings page. Coach — creates and edits content within their own club/team.</li>
+        <li><strong>The roles</strong>: Platform admin (Daniel, or anyone he adds) — can do anything, in any club. Club admin — full control, but only inside their own club, including this Settings page. Coach — creates and edits content within their own club/team.</li>
       </ul>`;
     box.style.display = "block";
   });

@@ -429,7 +429,7 @@
           <label for="ex-visibility">Who can see this exercise?</label>
           <select id="ex-visibility">
             <option value="private">🔒 Only me</option>
-            <option value="team">👥 My team — everyone in my club</option>
+            <option value="team">👥 Whole club</option>
             <option value="association">🤝 My club association — clubs in my approved group</option>
             <option value="community">🌐 PlayPivot Community — every club on PlayPivot (view only for them)</option>
           </select>
@@ -1272,7 +1272,7 @@
     await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
     currentOrgId = chosen.organization_id;
     myRole = chosen.role;
-    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Team admin" : "Coach");
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
     els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
     els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
     els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
@@ -1901,7 +1901,7 @@
         <li><strong>Export PDF</strong> downloads the exercise sheet straight away: your club's logo and name, number, name, only the categories/material you actually picked, objectives, difficulty stars, description, variants, and all 5 diagrams — same one-page sheet as the desktop app.</li>
         <li><strong>Numbering</strong> — the next free number in your own club is filled in automatically; nobody has to track it by hand. <strong>Language</strong> — this page always edits one language at a time; to add a translation of an exercise, use "Duplicate as translation" in the Library, which creates a linked copy in another language.</li>
         <li>Editing an existing exercise bumps its version number (v1 at creation) — visible in the Library, handy for tracking which ones changed recently.</li>
-        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole team, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them).</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole club, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them).</li>
       </ul>`;
     box.style.display = "block";
   });
