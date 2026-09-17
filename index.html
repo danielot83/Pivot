@@ -277,47 +277,23 @@
   }
   .org-head p { font-size: 15px; line-height: 1.7; color: var(--muted); margin-top: 14px; }
 
-  /* Dani 2026-09-17: layout en dos columnas pedido por el hermano de Dani --
-     la pirámide a la izquierda, la lista de roles a la derecha. La pirámide
-     ya deja claro el orden jerárquico, así que se quitó la línea vertical
-     que antes conectaba los roles entre sí (quedaba redundante al lado del
-     dibujo). */
-  .org-split {
+  /* Dani 2026-09-17 (2ª vuelta): a Dani no le convenció el triángulo con
+     solo 2 niveles ("muy poca cosa para un dibujo") -- se quita el SVG del
+     todo y se sustituye por 3 tarjetas de texto que explican la estructura
+     real de la app: Club, Team, y Club association (un club puede unirse a
+     otros para compartir contenido -- ver settings.html, "My club
+     association"). Sin diagrama, solo texto + icono, igual que el resto de
+     tarjetas de la página. */
+  .org-cards {
     display: grid;
-    grid-template-columns: 260px 1fr;
-    align-items: center;
-    gap: 52px;
-    max-width: 980px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 34px;
+    max-width: 900px;
     margin: 44px auto 0;
     padding: 0 32px;
+    text-align: center;
   }
-  .org-pyramid { width: 100%; height: auto; }
-  .org-pyramid .tri-outline {
-    fill: none;
-    stroke: var(--accent-deep);
-    stroke-width: 1.8;
-    stroke-linejoin: round;
-  }
-  .org-pyramid .tier-line { stroke: var(--accent-deep); stroke-width: 1.8; }
-  .org-pyramid .tier-label {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 15px;
-    fill: var(--ink);
-    text-anchor: middle;
-  }
-
-  .org-tiers {
-    position: relative;
-  }
-  .org-tier {
-    position: relative;
-    display: grid;
-    grid-template-columns: 44px 1fr;
-    column-gap: 18px;
-    padding-bottom: 26px;
-  }
-  .org-tier:last-child { padding-bottom: 0; }
+  .org-tier { position: relative; }
   .org-icon {
     width: 44px;
     height: 44px;
@@ -327,11 +303,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    z-index: 1;
+    margin: 0 auto 16px;
   }
   .org-icon svg { width: 22px; height: 22px; stroke-linecap: round; stroke-linejoin: round; }
-  .org-tier h3 { font-size: 15.5px; font-weight: 700; margin-bottom: 4px; padding-top: 8px; }
+  .org-tier h3 { font-size: 15.5px; font-weight: 700; margin-bottom: 6px; }
   .org-tier p { font-size: 13.5px; line-height: 1.6; color: var(--muted); }
 
   .org-note {
@@ -466,8 +441,7 @@
     .step-num { margin-bottom: 0; }
     .step h3, .step p { grid-column: 2; text-align: left; }
     .step h3 { margin-top: 6px; }
-    .org-split { grid-template-columns: 1fr; gap: 26px; }
-    .org-pyramid { max-width: 210px; margin: 0 auto; }
+    .org-cards { grid-template-columns: 1fr; gap: 28px; max-width: 340px; }
     .modules { padding: 62px 0 72px; }
   }
   @media (max-width: 560px) {
@@ -554,63 +528,59 @@
   </div>
 
   <!-- ---------------------- How it's organized -------------------------- -->
+  <!-- Dani 2026-09-17 (3ª vuelta): quitado el diagrama de pirámide por
+       completo (a Dani no le convencía con solo 2 niveles) -- esta sección
+       ya no explica roles, explica la estructura real de la app en 3
+       tarjetas de texto: Club, Team, y Club association. "Club association"
+       es un concepto real (database/step18_club_associations.sql): un
+       grupo de clubes (p.ej. una liga) que se ponen de acuerdo para
+       compartir contenido entre ellos, sujeto a aprobación del controlador
+       de la plataforma -- no es una jerarquía de propiedad (no "contiene"
+       clubes ni equipos, cada club sigue siendo dueño de los suyos). Mismo
+       texto que ya usa settings.html para no inventar terminología nueva. -->
   <div class="wrap org-head">
     <span class="eyebrow eyebrow-deep">How it's organized</span>
-    <h2>Every club is its own pyramid.</h2>
+    <h2>Clubs, teams, and the leagues between them.</h2>
     <p>
       PlayPivot isn't one shared space — it's built around clubs. Sign up and you
       either create a club and become its admin, or ask to join one that already
-      exists. Nothing crosses between clubs: what one club's coaches see, another
-      club's never does.
+      exists. Nothing crosses between clubs by default: what one club's coaches
+      see, another club's never does.
     </p>
   </div>
 
-  <!-- Dani 2026-09-17: pirámide dibujada a mano en SVG (pedido del hermano de
-       Dani) + layout en dos columnas -- dibujo a la izquierda, roles a la
-       derecha. Los niveles del dibujo son deliberadamente cortos (Admin /
-       Coaches); el detalle completo de cada rol sigue en el texto de al lado.
-       Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la
-       base de datos desde step55): pirámide reducida de 3 a 2 niveles --
-       ya no existe un rol "Players" que dibujar. Un solo divisor en y=140
-       (50% de la altura entre el ápice y=8 y la base y=272), con los x de
-       sus extremos recalculados por la misma interpolación lineal
-       ápice→esquina que usaban los divisores originales, para que siga
-       apoyado exactamente sobre los bordes del triángulo. -->
-  <div class="wrap org-split">
-    <svg class="org-pyramid" viewBox="0 0 300 280" aria-hidden="true">
-      <path class="tri-outline" d="M150 8 L286 272 L14 272 Z"/>
-      <line class="tier-line" x1="82" y1="140" x2="218" y2="140"/>
-      <text class="tier-label" x="150" y="80">Admin</text>
-      <text class="tier-label" x="150" y="212">Coaches</text>
-    </svg>
-
-    <div class="org-tiers">
-      <div class="org-tier reveal">
-        <div class="org-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-            <path d="M12 3l7 3.2v5.3c0 4.6-3 8.6-7 9.9-4-1.3-7-5.3-7-9.9V6.2L12 3z"/>
-            <path d="M8.7 12.2l2.3 2.3 4.3-4.6"/>
-          </svg>
-        </div>
-        <div>
-          <h3>Admin</h3>
-          <p>Creates the club, approves every request to join it, and can see every team inside it.</p>
-        </div>
+  <div class="wrap org-cards">
+    <div class="org-tier reveal">
+      <div class="org-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M12 3l7 3.2v5.3c0 4.6-3 8.6-7 9.9-4-1.3-7-5.3-7-9.9V6.2L12 3z"/>
+        </svg>
       </div>
-      <div class="org-tier reveal">
-        <div class="org-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-            <circle cx="9" cy="15" r="4.2"/>
-            <path d="M9.5 11V7.6a2.6 2.6 0 012.6-2.6h3.4a2 2 0 012 2v.6a2 2 0 01-2 2h-2.4"/>
-            <path d="M13.5 9.6h3"/>
-          </svg>
-        </div>
-        <div>
-          <h3>Coach &amp; assistant coach</h3>
-          <p>Build training sessions, run match day, and track assessments — for their own team.</p>
-        </div>
+      <h3>Club</h3>
+      <p>The core of PlayPivot. Create one and you're its admin — invite coaches, and everyone works from the same shared library, rosters and stats.</p>
+    </div>
+    <div class="org-tier reveal">
+      <div class="org-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="9" cy="8.2" r="3"/>
+          <path d="M3.6 20c.4-3.3 2.7-5.4 5.4-5.4s5 2.1 5.4 5.4"/>
+          <circle cx="17.3" cy="9.4" r="2.3"/>
+          <path d="M15.3 20c.3-2.2 1.7-3.9 3.4-4.5"/>
+        </svg>
       </div>
-      <!-- Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): se elimina la tarjeta "Player & viewer", ese rol ya no existe. -->
+      <h3>Team</h3>
+      <p>A club can have more than one — different age groups, genders, seasons. Training, matches and stats all stay scoped to the right team.</p>
+    </div>
+    <div class="org-tier reveal">
+      <div class="org-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="7" cy="8" r="3.4"/>
+          <circle cx="17" cy="16" r="3.4"/>
+          <path d="M9.8 10.2l4.4 3.6"/>
+        </svg>
+      </div>
+      <h3>Club association</h3>
+      <p>Clubs can team up — like a league — to share content with each other. Needs approval; nothing is shared automatically.</p>
     </div>
   </div>
 
