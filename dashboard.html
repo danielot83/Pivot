@@ -105,6 +105,33 @@
     font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
     justify-content: center; padding: 0 3px;
   }
+  /* Dani 2026-09-17 (ronda30-feature): la campanita de solicitudes pendientes
+     compartía el mismo .icon-badge naranja que el sobre de mensajes -- no
+     destacaba frente al resto de la topbar. Se añade un anillo pulsante en
+     el propio color de acento (var(--accent), sin hardcodear) alrededor del
+     botón mientras haya al menos una solicitud pendiente, para que un admin
+     la note sin tener que fijarse en el numerito. */
+  .icon-btn-pending { border-color: var(--accent); }
+  .icon-btn-pending::after {
+    content: ""; position: absolute; inset: -4px; border-radius: 16px; border: 2px solid var(--accent);
+    animation: pivot-pending-pulse 1.8s ease-out infinite; pointer-events: none;
+  }
+  @keyframes pivot-pending-pulse {
+    0% { transform: scale(1); opacity: .7; }
+    70% { transform: scale(1.35); opacity: 0; }
+    100% { transform: scale(1.35); opacity: 0; }
+  }
+  /* Toast no bloqueante para "nueva solicitud pendiente" -- mismo look que
+     .msg (borde izquierdo de color + fondo suave) pero flotante y con
+     cierre propio, ya que .msg vive arriba del todo de la página y aquí
+     queremos algo que no dependa de hacer scroll para verlo. */
+  .pivot-toast {
+    position: fixed; top: 20px; right: 20px; z-index: 300; max-width: 320px;
+    background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.15); padding: 12px 14px;
+    display: flex; align-items: flex-start; gap: 10px; font-size: 14.5px; color: var(--ink);
+  }
+  .pivot-toast-close { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 17px; line-height: 1; padding: 0; margin-left: auto; }
   /* ------------------------------------------------------------------- */
 
   .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
@@ -336,6 +363,8 @@
     </div>
   </div>
 
+  <div id="pending-request-toast" class="pivot-toast" style="display:none;" role="status"></div>
+
   <div class="wrap">
 
   <div class="msg" id="msg"></div>
@@ -468,6 +497,7 @@
     assocBtn: document.getElementById("pending-requests-btn"),
     assocCount: document.getElementById("pending-requests-count"),
     assocPanel: document.getElementById("pending-requests-panel"),
+    pendingToast: document.getElementById("pending-request-toast"),
     msgWidget: document.getElementById("messages-widget"),
     msgBtn: document.getElementById("messages-btn"),
     msgCount: document.getElementById("messages-count"),
@@ -487,6 +517,28 @@
   let currentUserId = null;
   let myTeamSeason = null;
   let myTeamName = null;
+
+  // Dani 2026-09-17 (ronda30-feature): en memoria, no localStorage -- solo
+  // necesitamos "ya se lo mostré a este admin en esta carga de página", y
+  // loadPendingRequestsWidget() ya se vuelve a llamar tras cada Approve/
+  // Reject (línea ~1181), así que no hace falta persistirlo entre sesiones.
+  // Se guarda "association_id:organization_id" porque una solicitud de
+  // asociación no tiene un id propio en la fila (club_association_members
+  // es una tabla de unión sin id propio expuesto aquí).
+  const seenPendingRequestKeys = new Set();
+  let pendingRequestToastTimer = null;
+
+  function showPendingRequestToast(count) {
+    if (!els.pendingToast) return;
+    els.pendingToast.innerHTML = `
+      <span>${count > 1 ? `You have ${count} new requests to review.` : "You have a new request to review."}</span>
+      <button type="button" class="pivot-toast-close" aria-label="Dismiss">&times;</button>
+    `;
+    els.pendingToast.style.display = "flex";
+    els.pendingToast.querySelector(".pivot-toast-close").addEventListener("click", () => { els.pendingToast.style.display = "none"; });
+    clearTimeout(pendingRequestToastTimer);
+    pendingRequestToastTimer = setTimeout(() => { els.pendingToast.style.display = "none"; }, 8000);
+  }
   let isPlatformController = false;
   let canValidateAssociations = false;
 
@@ -1078,10 +1130,18 @@
         .eq("status", "pending");
       if (error) { console.error("loadPendingRequestsWidget error:", error); return; }
       const rows = data || [];
-      if (rows.length === 0) { els.assocWidget.style.display = "none"; return; }
+      if (rows.length === 0) { els.assocWidget.style.display = "none"; els.assocBtn.classList.remove("icon-btn-pending"); return; }
       els.assocWidget.style.display = "inline-block";
       els.assocCount.textContent = rows.length;
       els.assocCount.style.display = "flex";
+      // Dani 2026-09-17 (ronda30-feature): más allá del numerito, el propio
+      // botón se marca "icon-btn-pending" (anillo pulsante en var(--accent))
+      // mientras haya algo pendiente, y se avisa con un toast si hay
+      // solicitudes que este admin todavía no vio en esta carga de página.
+      els.assocBtn.classList.add("icon-btn-pending");
+      const newRows = rows.filter((r) => !seenPendingRequestKeys.has(`${r.association_id}:${r.organization_id}`));
+      if (newRows.length > 0) showPendingRequestToast(newRows.length);
+      rows.forEach((r) => seenPendingRequestKeys.add(`${r.association_id}:${r.organization_id}`));
       els.assocPanel.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Pending association requests</div>` + rows.map((r) => `
         <div style="padding:8px 0; border-bottom:1px solid var(--line);">
           <div><strong>${escapeHtml((r.organizations && r.organizations.name) || "—")}</strong> wants to join <strong>${escapeHtml((r.club_associations && r.club_associations.name) || "—")}</strong></div>
@@ -1247,7 +1307,7 @@
   async function renderThread(otherId) {
     const { data, error } = await supabaseClient
       .from("messages")
-      .select("id, sender_id, recipient_id, body, created_at, read_at, sender:sender_id(full_name)")
+      .select("id, sender_id, recipient_id, body, created_at, read_at, sender:sender_id(full_name), recipient:recipient_id(full_name)")
       .or(`and(sender_id.eq.${currentUserId},recipient_id.eq.${otherId}),and(sender_id.eq.${otherId},recipient_id.eq.${currentUserId})`)
       .order("created_at", { ascending: true });
     if (error) { console.error("renderThread error:", error); return; }
@@ -1258,7 +1318,18 @@
       await supabaseClient.from("messages").update({ read_at: new Date().toISOString() }).in("id", unreadIds);
     }
 
-    const otherName = (data && data[0] && (data[0].sender_id === otherId ? data[0].sender.full_name : null)) || "Conversation";
+    // Dani, test funcional ronda 30 (hallazgo BAJO, duplicado en
+    // sidebar-widgets.js): esto solo miraba el PRIMER mensaje del hilo,
+    // y solo sacaba el nombre si ese primer mensaje lo había mandado la
+    // OTRA persona -- si el hilo lo empezaste tú, caía siempre en
+    // "Conversation", aunque la otra persona ya hubiera respondido
+    // después. Mismo truco que ya usa loadMessagesWidget() más arriba
+    // para la lista de conversaciones: cada fila trae tanto el nombre
+    // de quien envía como el de quien recibe, así que cualquier mensaje
+    // del hilo (el primero o no) alcanza para saber el nombre de la
+    // otra persona -- sin depender de quién escribió primero.
+    const firstMsg = data && data[0];
+    const otherName = (firstMsg && (firstMsg.sender_id === currentUserId ? firstMsg.recipient : firstMsg.sender)?.full_name) || "Conversation";
     els.msgPanel.innerHTML = `
       <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
       <div style="font-weight:600; margin-bottom:8px;">${escapeHtml(otherName)}</div>
@@ -1541,6 +1612,25 @@
   // -----------------------------------------------------------------------
   let joinModalTeamOptions = [];
 
+  // -----------------------------------------------------------------------
+  // Dani, 2026-09-17, mandó una captura: al pedir un equipo nuevo dentro de
+  // un club donde ya se tiene otra adhesión, el formulario mostraba el
+  // texto crudo de Postgres ("duplicate key value violates unique
+  // constraint..."). La causa de fondo (la constraint no dejaba tener más
+  // de una fila por club, aunque fuera de equipos distintos) se arregló en
+  // database/step81_team_scoped_join_request_uniqueness.sql -- con eso
+  // instalado, este error de verdad SOLO puede pasar si se pide el MISMO
+  // equipo (o el mismo club sin equipo) que ya se tiene o ya se pidió, así
+  // que aquí se traduce a un mensaje que se entiende en vez de reenviar el
+  // texto de la base de datos tal cual.
+  // -----------------------------------------------------------------------
+  function friendlyJoinRequestError(err, fallback) {
+    if (err && err.code === "23505") {
+      return "You already have a membership or a pending request for that team in this club — check with the club's admin, or pick a different team.";
+    }
+    return (err && err.message) || fallback || "Couldn't send the request.";
+  }
+
   function openJoinClubModal() {
     const overlay = document.createElement("div");
     overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
@@ -1653,7 +1743,7 @@
         showMessage("Request sent — the admin needs to approve it.", "success");
         close();
       } catch (err) {
-        errorEl.textContent = err.message || "Couldn't send the request.";
+        errorEl.textContent = friendlyJoinRequestError(err);
         errorEl.style.display = "block";
       }
     });
@@ -1705,7 +1795,7 @@
       showMessage(await performClubAction(JSON.parse(saved)), "success");
       return true;
     } catch (err) {
-      showMessage(err.message || "Couldn't finish setting up your club.", "error");
+      showMessage(friendlyJoinRequestError(err, "Couldn't finish setting up your club."), "error");
       return false;
     }
   }
@@ -1796,6 +1886,10 @@
       const { error } = await supabaseClient.from("memberships").update({ status: newStatus }).eq("id", id);
       if (error) throw error;
       rowEl.remove();
+      // Dani 2026-09-17 (ronda30-feature): aprobar aquí debe verse reflejado
+      // en "Recent activity" sin recargar la página -- ver el comentario
+      // junto a la consulta a "memberships" en loadRecentActivity().
+      if (newStatus === "active") loadRecentActivity();
     } catch (err) {
       alert(err.message || "Couldn't update that request.");
     }
@@ -2057,7 +2151,15 @@
     const month = firstDay.getMonth();
     const startWeekday = firstDay.getDay(); // 0 = dimanche
     const daysInMonth = lastDay.getDate();
-    const todayStr = new Date().toISOString().slice(0, 10);
+    // Dani, test funcional ronda 30 (hallazgo MEDIO nº11): toISOString()
+    // siempre da la fecha en UTC, pero `dateStr` de cada celda (más
+    // abajo) se arma con year/month/getDate() -- fecha LOCAL. Para
+    // cualquiera fuera de UTC+0, hay una franja horaria todos los días
+    // (más ancha cuanto más lejos de UTC) en la que ninguna celda -- o
+    // la equivocada -- queda marcada como "hoy". Se arma con el mismo
+    // método que `dateStr`, así las dos comparan lo mismo.
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
     let html = '<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; font-size:12px; color:var(--muted); text-align:center; margin-bottom:6px; font-weight:600;">';
     ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach((d) => { html += `<div>${d}</div>`; });
@@ -2307,6 +2409,10 @@
     training: '<g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g>',
     assessment: '<g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g>',
     event: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+    // Dani 2026-09-17 (ronda30-feature): "New coach joined" en Recent
+    // activity -- ver el comentario junto a la consulta a "memberships"
+    // en loadRecentActivity() más abajo para el porqué y las limitaciones.
+    coach: '<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
   };
 
   // Un color por tipo en "Recent activity" -- antes todos los iconos
@@ -2322,6 +2428,7 @@
     exercise: { bg: "#d7f5f0", fg: "#0f766e" },
     play: { bg: "#dbeafe", fg: "#1d4ed8" },
     assessment: { bg: "#ede9fe", fg: "#6d28d9" },
+    coach: { bg: "#fef3c7", fg: "#b45309" },
   };
 
   function timeAgo(iso) {
@@ -2339,16 +2446,39 @@
   async function loadRecentActivity() {
     if (!currentOrgId) return;
     const container = document.getElementById("recent-activity-content");
-    const [{ data: ex }, { data: pl }, { data: ma }, { data: tr }, { data: as_ }, evRes] = await Promise.all([
+    const [{ data: ex }, { data: pl }, { data: ma }, { data: tr }, { data: as_ }, evRes, coRes] = await Promise.all([
       supabaseClient.from("exercises").select("id, name, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
       supabaseClient.from("plays").select("id, name, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
       supabaseClient.from("matches").select("id, opponent, team, location, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
       supabaseClient.from("trainings").select("id, title, team, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
       supabaseClient.from("player_assessments").select("id, created_at, players(first_name, last_name)").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3),
       supabaseClient.from("events").select("id, title, date, created_at").eq("organization_id", currentOrgId).order("created_at", { ascending: false }).limit(3).then((r) => r, () => ({ data: [] })),
+      // Dani 2026-09-17 (ronda30-feature): "New coach joined" en Recent
+      // activity. No existe una tabla/log de eventos aparte -- este feed
+      // siempre fue un fabricado del lado del cliente a partir de
+      // created_at de varias tablas (ver el comentario grande unas líneas
+      // arriba), así que se sigue el mismo patrón con "memberships" en vez
+      // de crear una tabla nueva solo para esto.
+      // Limitación real, dejada a propósito: memberships no tiene una
+      // columna "approved_at"/"decided_at" (a diferencia de
+      // club_association_members, que sí la tiene) -- memberships.created_at
+      // es el momento en que se ENVIÓ la solicitud, no en que un admin la
+      // aprobó. Como hoy solo hay 2 roles posibles (admin/coach, desde
+      // step55), y solo nos interesan altas ya activas, se usa esa fecha
+      // como aproximación de "se unió" -- es la misma aproximación que ya
+      // hace el resto de este feed (todo se ordena por created_at, no por
+      // "cuándo pasó de verdad" cada cosa).
+      supabaseClient.from("memberships").select("id, created_at, profiles(full_name)").eq("organization_id", currentOrgId).eq("role", "coach").eq("status", "active").order("created_at", { ascending: false }).limit(3).then((r) => r, () => ({ data: [] })),
     ]);
     const ev = (evRes && evRes.data) || [];
+    const co = (coRes && coRes.data) || [];
 
+    // "coach" no tiene tabla propia que borrar desde aquí a propósito --
+    // el botón de borrado de más abajo solo se muestra para tipos con
+    // ACTIVITY_TABLES[tipo] definido. Borrar una fila de "memberships"
+    // saca a esa persona del club entero, así que ese botón de basura de
+    // una línea no es el lugar correcto para eso (ya existe un flujo
+    // propio y más explícito en Settings → miembros).
     const ACTIVITY_TABLES = { exercise: "exercises", play: "plays", match: "matches", training: "trainings", assessment: "player_assessments", event: "events" };
 
     const items = [];
@@ -2358,6 +2488,7 @@
     (tr || []).forEach((r) => items.push({ type: "training", title: "Training planned", detail: `${r.title || "Training"}${r.team ? " — " + r.team : ""}`, at: r.created_at, id: r.id }));
     (as_ || []).forEach((r) => items.push({ type: "assessment", title: "Assessment completed", detail: r.players ? `${r.players.first_name} ${r.players.last_name}` : "", at: r.created_at, id: r.id }));
     (ev || []).forEach((r) => items.push({ type: "event", title: "Event added", detail: r.title, at: r.created_at, id: r.id }));
+    (co || []).forEach((r) => items.push({ type: "coach", title: "New coach joined", detail: (r.profiles && r.profiles.full_name) || "", at: r.created_at, id: r.id }));
 
     items.sort((a, b) => new Date(b.at) - new Date(a.at));
     const top = items.slice(0, 5);
@@ -2373,7 +2504,7 @@
         <div class="activity-icon" style="background:${c.bg}; color:${c.fg};"><svg viewBox="0 0 24 24" width="20" height="20">${ACTIVITY_ICONS[it.type] || ACTIVITY_ICONS.exercise}</svg></div>
         <div class="activity-text" style="flex:1;"><strong style="color:${c.fg};">${escapeHtml(it.title)}</strong><span>${escapeHtml(it.detail || "")}</span></div>
         <div class="activity-time">${timeAgo(it.at)}</div>
-        <button type="button" class="activity-del-btn" data-del-table="${ACTIVITY_TABLES[it.type]}" data-del-id="${it.id}" title="Delete" style="background:none; border:none; cursor:pointer; color:#b91c1c; padding:6px; border-radius:8px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
+        ${ACTIVITY_TABLES[it.type] ? `<button type="button" class="activity-del-btn" data-del-table="${ACTIVITY_TABLES[it.type]}" data-del-id="${it.id}" title="Delete" style="background:none; border:none; cursor:pointer; color:#b91c1c; padding:6px; border-radius:8px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>` : ""}
       </div>
     `;
     }).join("");

@@ -748,6 +748,19 @@
       .order("status");
     if (error) { console.error("loadMembers error:", error); return; }
 
+    // Dani, test funcional ronda 30 (hallazgo ALTO nº2): esta lista traía
+    // TODAS las membresías del club, sin aplicar el filtro que la
+    // tarjeta de arriba ya prometía ("only see and manage members scoped
+    // to that same team") -- a diferencia de "Team org chart" (más abajo
+    // en esta misma página), que sí lo aplica. La base de datos protege
+    // de verdad la ESCRITURA (can_manage_membership_row, step54) así que
+    // esto no era una fuga de datos de por sí, pero mostraba gente que
+    // un admin acotado a un equipo no debía ni ver aquí -- mismo filtro
+    // que loadOrgChart(), palabra por palabra.
+    const scopedData = (data || []).filter((m) =>
+      !myTeamSeason || !m.team_season || (m.team_season === myTeamSeason && m.team_name === myTeamName)
+    );
+
     const { data: playersData } = await supabaseClient
       .from("players").select("id, first_name, last_name, season, team").eq("organization_id", currentOrgId).order("last_name");
     orgPlayersForLinking = playersData || [];
@@ -764,7 +777,7 @@
       if (!teamKeys.has(key)) { teamKeys.add(key); teamOptions.push({ season: r.season, team: r.team }); }
     });
 
-    (data || []).forEach((m) => {
+    scopedData.forEach((m) => {
       const row = document.createElement("div");
       row.className = "member-row";
 
@@ -895,10 +908,24 @@
     list.innerHTML = admins.map((m) => rowHtml(m, "Admin")).join("") + coaches.map((m) => rowHtml(m, "Coach")).join("");
   }
 
+  // Dani, test funcional ronda 30 (hallazgo ALTO nº2, verificado con la
+  // RLS real de can_manage_membership_row/step54): un admin acotado a un
+  // equipo que intenta tocar una fila de OTRO equipo del mismo club no
+  // recibe ningún error de Postgres -- la política simplemente no
+  // selecciona esa fila para el UPDATE/DELETE, así que PostgREST
+  // devuelve "éxito" con 0 filas afectadas. Sin `.select()` en la
+  // llamada no hay forma de distinguir eso de un cambio real, así que el
+  // código de abajo mostraba "Member blocked"/"Role updated."/etc.
+  // igual, aunque la base de datos no hubiera cambiado nada. Se añade
+  // `.select()` a las cuatro escrituras de esta pantalla y se trata "0
+  // filas devueltas, sin error" como el fallo silencioso que es.
+  const SCOPE_BLOCKED_MSG = "That didn't go through — this member is scoped to a different team than you manage, so the change was blocked.";
+
   async function linkPlayer(membershipId, playerId) {
     try {
-      const { error } = await supabaseClient.from("memberships").update({ linked_player_id: playerId }).eq("id", membershipId);
+      const { data, error } = await supabaseClient.from("memberships").update({ linked_player_id: playerId }).eq("id", membershipId).select("id");
       if (error) throw error;
+      if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
       showMessage(playerId ? "Linked to that roster player." : "Unlinked.", "success");
     } catch (err) {
       showMessage(err.message || "Couldn't link that player.", "error");
@@ -907,8 +934,9 @@
 
   async function setTeamScope(membershipId, season, team) {
     try {
-      const { error } = await supabaseClient.from("memberships").update({ team_season: season, team_name: team }).eq("id", membershipId);
+      const { data, error } = await supabaseClient.from("memberships").update({ team_season: season, team_name: team }).eq("id", membershipId).select("id");
       if (error) throw error;
+      if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
       showMessage(season ? `Scoped to ${team} — ${season} only.` : "Scoped to the whole club again.", "success");
     } catch (err) {
       showMessage(err.message || "Couldn't change that scope.", "error");
@@ -918,8 +946,9 @@
 
   async function changeStatus(membershipId, newStatus, rowEl) {
     try {
-      const { error } = await supabaseClient.from("memberships").update({ status: newStatus }).eq("id", membershipId);
+      const { data, error } = await supabaseClient.from("memberships").update({ status: newStatus }).eq("id", membershipId).select("id");
       if (error) throw error;
+      if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
       showMessage(newStatus === "blocked" ? "Member blocked — they've lost access to this club." : "Member reactivated.", "success");
       await loadMembers();
     } catch (err) {
@@ -929,8 +958,9 @@
 
   async function changeRole(membershipId, newRole, rowEl) {
     try {
-      const { error } = await supabaseClient.from("memberships").update({ role: newRole }).eq("id", membershipId);
+      const { data, error } = await supabaseClient.from("memberships").update({ role: newRole }).eq("id", membershipId).select("id");
       if (error) throw error;
+      if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
       showMessage("Role updated.", "success");
     } catch (err) {
       showMessage(err.message || "Couldn't change that role.", "error");
@@ -941,8 +971,9 @@
   async function removeMember(membershipId, rowEl) {
     if (!confirm("Remove this person from the club?")) return;
     try {
-      const { error } = await supabaseClient.from("memberships").delete().eq("id", membershipId);
+      const { data, error } = await supabaseClient.from("memberships").delete().eq("id", membershipId).select("id");
       if (error) throw error;
+      if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
       rowEl.remove();
     } catch (err) {
       showMessage(err.message || "Couldn't remove that member.", "error");
@@ -1132,7 +1163,14 @@ els.logoutBtn.addEventListener("click", async () => {
           if (error) { showMessage(error.message, "error"); return; }
           showMessage(`You've left "${name}".`, "success");
         }
-        await loadDeleteAccountSection();
+        // Dani 2026-09-17 (ronda30): borrar/salir de un club dejaba el resto
+        // de la página (logo, org-switcher, secciones de sharing, roster de
+        // equipos...) mostrando datos del club que se acaba de borrar/dejar,
+        // porque solo se recargaba esta sección. org-switcher.js ya usa
+        // location.reload() tras cambiar de club (mismo tipo de cambio de
+        // estado global), así que aquí se hace lo mismo en vez de intentar
+        // recargar cada card por separado.
+        window.location.reload();
       });
     });
   }

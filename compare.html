@@ -384,6 +384,20 @@
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   function escapeHtml(str) { return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
+  // Dani, test funcional ronda 30 (hallazgo CRÍTICO nº1): mismos
+  // helpers que match.html/roster.html/etc. -- "column" es opcional
+  // porque acá también hace falta filtrar a través de un join
+  // (matches.team_category, trainings.team_category), no solo la
+  // columna directa de la tabla que se está consultando.
+  function filterByCategory(query, category, column) {
+    column = column || "team_category";
+    return category ? query.eq(column, category) : query.is(column, null);
+  }
+  function filterByGender(query, gender, column) {
+    column = column || "team_gender";
+    return gender ? query.eq(column, gender) : query.is(column, null);
+  }
+
   // Même liste de critères que assessment.html (juste le texte, pas besoin
   // du détail basic/avancé ici).
   const CRITERIA = {
@@ -437,7 +451,7 @@
 
   let currentOrgId = null;
   let isPlatformController = false;
-  let currentSeason = null, currentTeam = null;
+  let currentSeason = null, currentTeam = null, currentTeamCategory = "", currentTeamGender = "";
   let allPlayers = []; // { id, name, team, season } -- de l'équipe/saison choisie à gauche
   let selectedIds = [];
   let latestAssessments = {}; // player_id -> { date, ratings }
@@ -472,9 +486,9 @@
   // -----------------------------------------------------------------------
   async function loadTree() {
     const { data, error } = await supabaseClient
-      .from("players").select("season, team, team_category").eq("organization_id", currentOrgId);
+      .from("players").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
     if (error) { showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error"); console.error("loadTree error:", error); return; }
-    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category").eq("organization_id", currentOrgId);
+    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
     const rows = mergeTeamRows(data, teamRows);
 
     document.getElementById("tree").innerHTML = "";
@@ -484,7 +498,7 @@
     newBtn.addEventListener("click", async () => {
       const created = await promptNewTeam(supabaseClient, currentOrgId);
       if (!created) return;
-      await selectSeasonTeam(created.season, created.team);
+      await selectSeasonTeam(created.season, created.team, created.team_category, created.team_gender);
     });
     document.getElementById("tree").appendChild(newBtn);
 
@@ -496,7 +510,15 @@
       document.getElementById("tree").appendChild(hint);
       return;
     }
-    renderTeamTree("tree", rows, currentSeason, currentTeam, (season, team) => selectSeasonTeam(season, team));
+    // Dani, test funcional ronda 30 (hallazgo CRÍTICO nº1): antes solo se
+    // pasaban season/team -- dos equipos con el mismo nombre pero
+    // categoría/género distintos (p. ej. "Saint Sulpice" U8 y U10)
+    // terminaban compartiendo la misma rama y, más abajo, el mismo
+    // roster/estadísticas. Ahora currentTeamCategory/currentTeamGender
+    // viajan también, y renderTeamTree (team-tree.js) ya agrupa por los
+    // cuatro campos.
+    renderTeamTree("tree", rows, currentSeason, currentTeam, currentTeamCategory, currentTeamGender,
+      (season, team, category, gender) => selectSeasonTeam(season, team, category, gender));
   }
 
   async function loadExampleTeam(key) {
@@ -523,16 +545,18 @@
     const { error } = await supabaseClient.from("players").delete()
       .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
     if (error) { showMessage(error.message, "error"); return; }
-    if (currentSeason === ex.season && currentTeam === ex.team) { currentSeason = null; currentTeam = null; }
+    if (currentSeason === ex.season && currentTeam === ex.team) { currentSeason = null; currentTeam = null; currentTeamCategory = ""; currentTeamGender = ""; }
     showMessage("Example data removed.", "success");
     await loadTree();
   }
 
   renderExampleDataCard("example-data-card", { onLoad: loadExampleTeam, onRemove: removeExampleTeam });
 
-  async function selectSeasonTeam(season, team) {
+  async function selectSeasonTeam(season, team, category, gender) {
     currentSeason = season; currentTeam = team;
-    document.getElementById("current-selection").textContent = `${team} — ${season}`;
+    currentTeamCategory = category || ""; currentTeamGender = gender || "";
+    const label = [team, currentTeamCategory, currentTeamGender].filter(Boolean).join(" — ");
+    document.getElementById("current-selection").textContent = `${label} — ${season}`;
     selectedIds = [];
     matchStatsCache = {}; attendanceCache = {};
     await loadTree();
@@ -545,9 +569,12 @@
   async function loadTeamPlayers() {
     document.getElementById("picker-empty").style.display = currentTeam ? "none" : "block";
     if (!currentTeam) { allPlayers = []; renderPlayerPicker(); return; }
-    const { data, error } = await supabaseClient
-      .from("players").select("id, first_name, last_name, team, season")
-      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam).order("last_name");
+    const { data, error } = await filterByGender(filterByCategory(
+      supabaseClient
+        .from("players").select("id, first_name, last_name, team, season")
+        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
+      currentTeamCategory
+    ), currentTeamGender).order("last_name");
     if (error) { console.error("loadTeamPlayers error:", error); return; }
     allPlayers = (data || []).map((p) => ({ id: p.id, name: `${p.first_name} ${p.last_name}`, team: p.team, season: p.season }));
     renderPlayerPicker();
@@ -570,9 +597,12 @@
   // -----------------------------------------------------------------------
   async function loadTeamOverview() {
     if (!currentTeam) { renderTeamOverviewGrid({ sessionCount: 0, totalMinutes: 0, avgMinutes: 0, attendanceRate: null }); renderSessionsTrendChart([]); renderCategoriesBarChart([]); return; }
-    const { data: trainings, error } = await supabaseClient
-      .from("trainings").select("id, date, planned_minutes, categories_summary")
-      .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam);
+    const { data: trainings, error } = await filterByGender(filterByCategory(
+      supabaseClient
+        .from("trainings").select("id, date, planned_minutes, categories_summary")
+        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
+      currentTeamCategory
+    ), currentTeamGender);
     if (error) { console.error("loadTeamOverview error:", error); return; }
     const trainingIds = (trainings || []).map((t) => t.id);
 
@@ -802,9 +832,12 @@
   async function loadMatchStats() {
     for (const id of selectedIds) {
       if (matchStatsCache[id]) continue;
-      const { data, error } = await supabaseClient.from("match_player_stats")
-        .select("points, rebounds, assists, fouls, custom_stats, matches!inner(season, team)")
-        .eq("player_id", id).eq("matches.season", currentSeason).eq("matches.team", currentTeam);
+      const { data, error } = await filterByGender(filterByCategory(
+        supabaseClient.from("match_player_stats")
+          .select("points, rebounds, assists, fouls, custom_stats, matches!inner(season, team, team_category, team_gender)")
+          .eq("player_id", id).eq("matches.season", currentSeason).eq("matches.team", currentTeam),
+        currentTeamCategory, "matches.team_category"
+      ), currentTeamGender, "matches.team_gender");
       if (error) { matchStatsCache[id] = null; continue; }
       const rows = data || [];
       if (rows.length === 0) { matchStatsCache[id] = { games: 0 }; continue; }
@@ -831,7 +864,8 @@
       const s = matchStatsCache[id];
       const tr = document.createElement("tr");
       if (!s || s.games === 0) {
-        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="${5 + matchFields.length}">No matches recorded for ${escapeHtml(currentTeam || "")} (${escapeHtml(currentSeason || "")})</td>`;
+        const teamLabel = [currentTeam, currentTeamCategory, currentTeamGender].filter(Boolean).join(" ");
+        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="${5 + matchFields.length}">No matches recorded for ${escapeHtml(teamLabel)} (${escapeHtml(currentSeason || "")})</td>`;
       } else {
         const customCells = matchFields.map((f) => `<td>${(s.custom[f.key] || 0).toFixed(1)}</td>`).join("");
         tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td>${s.games}</td><td>${s.ppg.toFixed(1)}</td><td>${s.rpg.toFixed(1)}</td><td>${s.apg.toFixed(1)}</td><td>${s.fpg.toFixed(1)}</td>${customCells}`;
@@ -851,9 +885,12 @@
     // necesidad de un filtro aparte.
     for (const id of selectedIds) {
       if (attendanceCache[id]) continue;
-      const { data, error } = await supabaseClient.from("attendance")
-        .select("status, trainings!inner(season, team)")
-        .eq("player_id", id).eq("trainings.season", currentSeason).eq("trainings.team", currentTeam);
+      const { data, error } = await filterByGender(filterByCategory(
+        supabaseClient.from("attendance")
+          .select("status, trainings!inner(season, team, team_category, team_gender)")
+          .eq("player_id", id).eq("trainings.season", currentSeason).eq("trainings.team", currentTeam),
+        currentTeamCategory, "trainings.team_category"
+      ), currentTeamGender, "trainings.team_gender");
       if (error) { attendanceCache[id] = null; continue; }
       const rows = data || [];
       const present = rows.filter((r) => r.status === "present").length;

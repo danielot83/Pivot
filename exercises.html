@@ -547,6 +547,16 @@
   let currentStep = "court_1";
   let diagram = {}; // { court_1: [...elements], court_2: [...], ... }
   let dragging = null, drawingFrom = null;
+  // Dani, test funcional ronda 30 (hallazgo MEDIO nº7): el hint-text dice
+  // "Del/Backspace clears the selection", pero no existía ningún
+  // listener de teclado en este archivo -- esa combinación no hacía
+  // nada, y la única forma de quitar una flecha/pase/pantalla ya
+  // dibujada era deshacer sucesivo (perdiendo todo lo de después) o
+  // borrar el diagrama entero. `selectedElement` guarda el elemento
+  // elegido con la herramienta "Move/Select" (ahora también reconoce
+  // flechas/pases/pantallas, no solo jugadores/conos/zonas) -- Delete o
+  // Backspace lo quita de verdad.
+  let selectedElement = null;
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
 
@@ -1074,7 +1084,56 @@
   function render() {
     drawBackground();
     currentElements().forEach((el) => drawDiagramElement(ctx, toPx, els.canvas, el));
+    drawSelectionHighlight();
   }
+
+  // Aro discontinuo (punto/zona) o línea discontinua más gruesa por
+  // detrás (flecha/pase/pantalla) alrededor del elemento seleccionado --
+  // sin tocar court-diagram.js, que no sabe nada de selección. Se
+  // comprueba que `selectedElement` siga en el diagrama actual antes de
+  // dibujar nada -- así, cambiar de paso/deshacer/borrar hace que el
+  // resalte desaparezca solo, sin tener que acordarse de limpiar la
+  // variable en cada sitio que toca el diagrama.
+  function drawSelectionHighlight() {
+    if (activeTool !== "select" || !selectedElement || !currentElements().includes(selectedElement)) return;
+    const el = selectedElement;
+    ctx.save();
+    ctx.strokeStyle = "#ec6718";
+    ctx.setLineDash([4, 3]);
+    if (el.points && el.points.length >= 2) {
+      const [x1, y1] = el.points[0], [x2, y2] = el.points[el.points.length - 1];
+      const [px1, py1] = toPx(x1, y1), [px2, py2] = toPx(x2, y2);
+      ctx.lineWidth = 5;
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2); ctx.stroke();
+    } else if (el.type === "zone") {
+      const [x, y] = toPx(el.x, el.y);
+      const [x2, y2] = toPx(el.x + el.w, el.y + el.h);
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - 3, y - 3, (x2 - x) + 6, (y2 - y) + 6);
+    } else if (el.x !== undefined) {
+      const [px, py] = toPx(el.x, el.y);
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(px, py, 16, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Delete" && e.key !== "Backspace") return;
+    // No robarle Backspace a un campo de texto normal de la página
+    // (nombre, descripción, tags...) -- solo actúa si el foco no está
+    // en un input/textarea/select y hay algo seleccionado en el lienzo.
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (!selectedElement || !currentElements().includes(selectedElement)) return;
+    e.preventDefault();
+    const idx = currentElements().indexOf(selectedElement);
+    if (idx !== -1) currentElements().splice(idx, 1);
+    selectedElement = null;
+    dragging = null;
+    render();
+  });
 
   function eventToFraction(e) {
     const rect = els.canvas.getBoundingClientRect();
@@ -1085,12 +1144,41 @@
   function elementAt(x, y) {
     return currentElements().find((el) => el.x !== undefined && Math.hypot(el.x - x, el.y - y) < 0.06);
   }
+  // Distancia de un punto al segmento [x1,y1]-[x2,y2] -- para poder
+  // seleccionar una flecha/pase/pantalla haciendo clic CERCA de la
+  // línea, no solo exactamente sobre uno de sus dos extremos.
+  function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+  }
+  function elementAtAny(x, y) {
+    const point = elementAt(x, y);
+    if (point) return point;
+    return currentElements().find((el) => {
+      if (!el.points || el.points.length < 2) return false;
+      const [x1, y1] = el.points[0], [x2, y2] = el.points[el.points.length - 1];
+      return distToSegment(x, y, x1, y1, x2, y2) < 0.02;
+    }) || null;
+  }
 
   els.canvas.addEventListener("mousedown", onDown); els.canvas.addEventListener("touchstart", onDown);
   function onDown(e) {
     e.preventDefault();
     const { x, y } = eventToFraction(e);
-    if (activeTool === "select") { dragging = elementAt(x, y); return; }
+    if (activeTool === "select") {
+      const hit = elementAtAny(x, y);
+      selectedElement = hit;
+      // Solo los elementos de "punto" (jugador, cono, zona...) se
+      // arrastran, como ya era -- una flecha/pase/pantalla se
+      // selecciona (para poder borrarla) pero no se arrastra de un
+      // clic, sus dos extremos no tienen una sola posición que mover.
+      dragging = hit && hit.x !== undefined ? hit : null;
+      render();
+      return;
+    }
     if (["player","defender","coach","cone","ball","post","handoff"].includes(activeTool)) {
       const el = { type: activeTool, x, y, color: els.colorSelect.value };
       // Même auto-numérotation que dans Play design : attaque et défense
@@ -1146,11 +1234,20 @@
 
   document.getElementById("undo-btn").addEventListener("click", () => { currentElements().pop(); render(); });
   document.getElementById("clear-btn").addEventListener("click", () => { diagram[currentStep] = []; render(); });
+  // Dani, test funcional ronda 30 (hallazgo MEDIO nº6, mismo botón que
+  // ya se había aclarado con Dani en la ronda 27): esto ACUMULABA sobre
+  // lo que ya hubiera en el diagrama siguiente en vez de reemplazarlo --
+  // usar el botón dos veces sobre el mismo destino (el propio flujo que
+  // invita el hint-text: copiar, ajustar, copiar otra vez) dejaba
+  // jugadores/flechas/conos duplicados superpuestos. "Copy to next
+  // diagram" reemplaza el diagrama siguiente por una copia del actual,
+  // como ya dice el texto de ayuda ("duplicates everything into the
+  // next diagram") -- no lo suma a lo que ya hubiera ahí.
   document.getElementById("copy-step-btn").addEventListener("click", () => {
     const idx = COURT_IDS.indexOf(currentStep);
     if (idx >= COURT_IDS.length - 1) return;
     const nextStep = COURT_IDS[idx + 1];
-    diagram[nextStep] = [...(diagram[nextStep] || []), ...JSON.parse(JSON.stringify(currentElements()))];
+    diagram[nextStep] = JSON.parse(JSON.stringify(currentElements()));
     currentStep = nextStep;
     buildStepTabs(); resizeCanvasForStep(); render();
   });
@@ -1306,7 +1403,13 @@
     if (!owned) showMessage("This exercise belongs to another club — you can look, but not edit or save changes.", "success");
   }
 
+  // Dani, test funcional ronda 30 (hallazgo ALTO nº4): dos clics rápidos
+  // en "Save exercise" veían ambos `currentExId` vacío (solo se rellena
+  // DESPUÉS del insert) y creaban dos fichas duplicadas -- se
+  // deshabilita el botón de forma síncrona mientras se guarda.
   async function saveExercise() {
+    const saveBtn = document.getElementById("save-ex-btn");
+    if (saveBtn.disabled) return;
     const name = els.name.value.trim();
     if (!name) { showMessage("Give the exercise a name first.", "error"); return; }
     // Le matériel visible sur le schéma (cônes, plots, ballons) s'ajoute
@@ -1339,6 +1442,8 @@
     // grupo viene heredado del original -- así es como varias filas se
     // reconocen entre sí como "el mismo ejercicio, en otro idioma".
     if (currentTranslationGroupId) payload.translation_group_id = currentTranslationGroupId;
+    const originalLabel = saveBtn.textContent;
+    saveBtn.disabled = true; saveBtn.textContent = "Saving…";
     try {
       let error;
       if (currentExId) {
@@ -1373,6 +1478,8 @@
       await loadExercises();
     } catch (err) {
       showMessage(err.message || "Couldn't save that exercise.", "error");
+    } finally {
+      saveBtn.disabled = false; saveBtn.textContent = originalLabel;
     }
   }
 

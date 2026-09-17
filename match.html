@@ -1524,6 +1524,20 @@
         }
       });
 
+      // Dani, test funcional ronda 30 (hallazgo ALTO nº3): antes, un campo
+      // básico (minutes/points/rebounds/assists/fouls) que NO viniera en
+      // el archivo terminaba igual en `r` con su valor por defecto
+      // (0, o null para minutes) -- y como el merge de más abajo hace
+      // `{...prev, ...r}`, ese 0/null por defecto SOBREESCRIBÍA lo que ya
+      // hubiera guardado a mano para ese jugador. Un Excel de un
+      // anotador externo típico ("Nombre" + "Puntos" nada más) borraba
+      // en silencio los minutos/rebotes/asistencias/faltas ya cargados.
+      // Arreglo: solo se incluye en `r` (y por tanto solo se fusiona) un
+      // campo básico si su columna existía de verdad en el archivo --
+      // igual que ya pasaba correctamente con custom_stats, que solo
+      // trae las claves que sí vinieron.
+      const presentFields = new Set(Object.values(fieldMap).filter((f) => !f.startsWith("custom:")));
+
       parsedRows = [];
       let unmatched = 0;
       rawRows.forEach((raw) => {
@@ -1541,15 +1555,13 @@
         if (!player) { unmatched++; return; }
         const custom_stats = {};
         Object.keys(rCustom).forEach((k) => { custom_stats[k] = rCustom[k] ? parseFloat(rCustom[k]) : 0; });
-        parsedRows.push({
-          player_id: player.id,
-          minutes: r.minutes ? parseFloat(r.minutes) : null,
-          points: r.points ? parseInt(r.points, 10) : 0,
-          rebounds: r.rebounds ? parseInt(r.rebounds, 10) : 0,
-          assists: r.assists ? parseInt(r.assists, 10) : 0,
-          fouls: r.fouls ? parseInt(r.fouls, 10) : 0,
-          custom_stats,
-        });
+        const row = { player_id: player.id, custom_stats };
+        if (presentFields.has("minutes")) row.minutes = r.minutes ? parseFloat(r.minutes) : null;
+        if (presentFields.has("points")) row.points = r.points ? parseInt(r.points, 10) : 0;
+        if (presentFields.has("rebounds")) row.rebounds = r.rebounds ? parseInt(r.rebounds, 10) : 0;
+        if (presentFields.has("assists")) row.assists = r.assists ? parseInt(r.assists, 10) : 0;
+        if (presentFields.has("fouls")) row.fouls = r.fouls ? parseInt(r.fouls, 10) : 0;
+        parsedRows.push(row);
       });
 
       if (parsedRows.length === 0) {
@@ -1611,7 +1623,20 @@
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") input.blur(); });
   }
 
+  // Dani, test funcional ronda 30 (hallazgo ALTO nº4, y el mismo patrón
+  // que el nº5 de training.html, encontrado aquí también al arreglarlo):
+  // -- doble clic en "Save match details" duplicaba el partido, porque
+  //    `currentMatchId` solo se rellena DESPUÉS del insert -- se
+  //    deshabilita el botón de forma síncrona mientras se guarda.
+  // -- el borrado-y-reinserción suelto de match_player_stats y de
+  //    match_opponent_stats (dos pares de llamadas sin transacción)
+  //    podía dejar las estadísticas vacías de verdad si la segunda
+  //    llamada de cualquiera de los dos pares fallaba -- ver
+  //    database/step83_atomic_match_stats_replace.sql, que junta los
+  //    cuatro pasos en una sola función atómica.
   async function saveMatch() {
+    const saveBtn = document.getElementById("save-match-btn");
+    if (saveBtn.disabled) return;
     if (!currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
     const payload = {
       organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null, team_gender: currentTeamGender || null,
@@ -1626,6 +1651,8 @@
       language: els.matchLanguage.value,
     };
     if (currentTranslationGroupId) payload.translation_group_id = currentTranslationGroupId;
+    const originalLabel = saveBtn.textContent;
+    saveBtn.disabled = true; saveBtn.textContent = "Saving…";
     try {
       let matchId = currentMatchId;
       if (matchId) {
@@ -1640,31 +1667,33 @@
         document.getElementById("delete-match-btn").style.display = canDelete() ? "inline-block" : "none";
       }
 
-      // remplace toutes les stats de ce match par l'état actuel (simple et sûr)
-      await supabaseClient.from("match_player_stats").delete().eq("match_id", matchId);
-      const rows = Object.keys(statsByPlayer)
-        .filter((pid) => statsByPlayer[pid].called_up || statsByPlayer[pid].started || statsByPlayer[pid].minutes || statsByPlayer[pid].points || statsByPlayer[pid].rebounds || statsByPlayer[pid].assists || statsByPlayer[pid].fouls)
-        .map((pid) => ({ match_id: matchId, player_id: pid, ...statsByPlayer[pid] }));
-      if (rows.length > 0) {
-        const { error: sErr } = await supabaseClient.from("match_player_stats").insert(rows);
-        if (sErr) throw sErr;
-      }
-
-      // Estadísticas del rival -- reemplaza todo también, mismo criterio simple.
-      await supabaseClient.from("match_opponent_stats").delete().eq("match_id", matchId);
-      const oppRows = opponentStats
+      // Reemplaza todas las estadísticas de este partido (propias y del
+      // rival) de un solo golpe, atómico -- ver el comentario de arriba
+      // y database/step83_atomic_match_stats_replace.sql.
+      // Dani 2026-09-17 (ronda30): un partido en el que solo se rellenó una
+      // stat personalizada (sin "Called up" ni ningún campo estándar) se
+      // descartaba silenciosamente porque el filtro solo miraba los campos
+      // básicos. custom_stats solo tiene keys cuando el usuario tocó esa
+      // celda (ver makeCellEditable/commit), así que su sola presencia ya
+      // es motivo suficiente para guardar la fila.
+      const playerRows = Object.keys(statsByPlayer)
+        .filter((pid) => statsByPlayer[pid].called_up || statsByPlayer[pid].started || statsByPlayer[pid].minutes || statsByPlayer[pid].points || statsByPlayer[pid].rebounds || statsByPlayer[pid].assists || statsByPlayer[pid].fouls || (statsByPlayer[pid].custom_stats && Object.keys(statsByPlayer[pid].custom_stats).length > 0))
+        .map((pid) => ({ player_id: pid, ...statsByPlayer[pid] }));
+      const opponentRows = opponentStats
         .filter((r) => (r.player_name || "").trim())
-        .map((r) => ({ organization_id: currentOrgId, match_id: matchId, player_name: r.player_name.trim(), minutes: r.minutes, points: r.points || 0, rebounds: r.rebounds || 0, assists: r.assists || 0, fouls: r.fouls || 0, custom_stats: r.custom_stats || {} }));
-      if (oppRows.length > 0) {
-        const { error: oErr } = await supabaseClient.from("match_opponent_stats").insert(oppRows);
-        if (oErr) throw oErr;
-      }
+        .map((r) => ({ player_name: r.player_name.trim(), minutes: r.minutes, points: r.points || 0, rebounds: r.rebounds || 0, assists: r.assists || 0, fouls: r.fouls || 0, custom_stats: r.custom_stats || {} }));
+      const { error: statsErr } = await supabaseClient.rpc("replace_match_details", {
+        p_match_id: matchId, p_organization_id: currentOrgId, p_player_rows: playerRows, p_opponent_rows: opponentRows,
+      });
+      if (statsErr) throw statsErr;
 
       showMessage("Match saved.", "success");
       await loadMatchesList();
       await loadSeasonSummary();
     } catch (err) {
       showMessage(err.message || "Couldn't save that match.", "error");
+    } finally {
+      saveBtn.disabled = false; saveBtn.textContent = originalLabel;
     }
   }
 
@@ -1696,16 +1725,32 @@
     const { data: stats } = await supabaseClient.from("match_player_stats").select("*").in("match_id", ids);
     const byPlayer = {};
     (stats || []).forEach((s) => {
-      byPlayer[s.player_id] = byPlayer[s.player_id] || { gp: 0, points: 0, rebounds: 0, assists: 0, fouls: 0, custom: {} };
+      byPlayer[s.player_id] = byPlayer[s.player_id] || { gp: 0, points: 0, rebounds: 0, assists: 0, fouls: 0, custom: {}, customGp: {} };
       const b = byPlayer[s.player_id];
       b.gp++; b.points += s.points || 0; b.rebounds += s.rebounds || 0; b.assists += s.assists || 0; b.fouls += s.fouls || 0;
-      matchFields.forEach((f) => { b.custom[f.key] = (b.custom[f.key] || 0) + ((s.custom_stats && s.custom_stats[f.key]) || 0); });
+      // Dani 2026-09-17 (ronda30): una columna de stat personalizada creada
+      // a media temporada no tiene valor en los partidos anteriores a su
+      // creación (custom_stats no trae esa key, no es 0). Antes se sumaba
+      // igual en el numerador (con || 0) pero el denominador era b.gp de
+      // TODOS los partidos, diluyendo la media. Ahora se cuenta, por cada
+      // stat personalizada, solo los partidos donde esa stat tiene un valor
+      // realmente registrado (no null/undefined).
+      matchFields.forEach((f) => {
+        const v = s.custom_stats && s.custom_stats[f.key];
+        if (v !== undefined && v !== null) {
+          b.custom[f.key] = (b.custom[f.key] || 0) + v;
+          b.customGp[f.key] = (b.customGp[f.key] || 0) + 1;
+        }
+      });
     });
     teamPlayers.forEach((p) => {
       const b = byPlayer[p.id];
       if (!b) return;
       const tr = document.createElement("tr");
-      const customCells = matchFields.map((f) => `<td>${(b.custom[f.key] / b.gp).toFixed(1)}</td>`).join("");
+      const customCells = matchFields.map((f) => {
+        const cgp = b.customGp[f.key] || 0;
+        return `<td>${cgp > 0 ? (b.custom[f.key] / cgp).toFixed(1) : "—"}</td>`;
+      }).join("");
       tr.innerHTML = `<td>${escapeHtml(p.jersey_number || "")}</td><td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td><td>${b.gp}</td><td>${(b.points / b.gp).toFixed(1)}</td><td>${(b.rebounds / b.gp).toFixed(1)}</td><td>${(b.assists / b.gp).toFixed(1)}</td><td>${(b.fouls / b.gp).toFixed(1)}</td>${customCells}`;
       els.summaryBody.appendChild(tr);
     });

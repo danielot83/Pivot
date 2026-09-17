@@ -154,7 +154,7 @@ function pivotInitTopbarWidgets() {
   async function renderThread(otherId) {
     const { data, error } = await supabaseClient
       .from("messages")
-      .select("id, sender_id, recipient_id, body, created_at, read_at, sender:sender_id(full_name)")
+      .select("id, sender_id, recipient_id, body, created_at, read_at, sender:sender_id(full_name), recipient:recipient_id(full_name)")
       .or(`and(sender_id.eq.${currentUserId},recipient_id.eq.${otherId}),and(sender_id.eq.${otherId},recipient_id.eq.${currentUserId})`)
       .order("created_at", { ascending: true });
     if (error) { console.error("renderThread error:", error); return; }
@@ -164,7 +164,13 @@ function pivotInitTopbarWidgets() {
       await supabaseClient.from("messages").update({ read_at: new Date().toISOString() }).in("id", unreadIds);
     }
 
-    const otherName = (data && data[0] && (data[0].sender_id === otherId ? data[0].sender.full_name : null)) || "Conversation";
+    // Dani, test funcional ronda 30 (hallazgo BAJO, mismo bug que
+    // dashboard.html -- ver el comentario allá para el detalle): usar
+    // sender/recipient del mensaje según quién lo escribió, en vez de
+    // depender de que el PRIMER mensaje del hilo lo haya mandado la otra
+    // persona.
+    const firstMsg = data && data[0];
+    const otherName = (firstMsg && (firstMsg.sender_id === currentUserId ? firstMsg.recipient : firstMsg.sender)?.full_name) || "Conversation";
     msgPanel.innerHTML = `
       <button id="back-to-inbox-btn" style="background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer; padding:0 0 8px;">&larr; Back</button>
       <div style="font-weight:600; margin-bottom:8px;">${pivotEscapeHtml(otherName)}</div>
@@ -362,18 +368,16 @@ function pivotInitSidebarChrome() {
   sidebarOverlayEl.addEventListener("click", closeSidebar);
   document.querySelectorAll(".sidebar-link").forEach((link) => link.addEventListener("click", closeSidebar));
 
-  const helpLink = document.getElementById("sidebar-help-link");
-  if (helpLink) {
-    helpLink.addEventListener("click", (e) => {
-      e.preventDefault();
-      closeSidebar();
-      const helpBox = document.getElementById("help-box");
-      if (helpBox) {
-        helpBox.style.display = helpBox.style.display === "none" ? "block" : "none";
-        if (helpBox.style.display === "block") helpBox.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    });
-  }
+  // Dani 2026-09-17 (ronda30, BAJO): antes este listener hacía
+  // e.preventDefault() en el link "Help" del sidebar y sólo mostraba/ocultaba
+  // el #help-box vacío, en vez de navegar a help.html. En dashboard.html ese
+  // comportamiento ya se había quitado (ver comentario en dashboard.html:
+  // "ahora es una navegación normal a help.html"), pero esta función
+  // compartida seguía interceptando el click en las páginas que sí la llaman
+  // (settings.html, etc.), así que el link se comportaba distinto según la
+  // página. Se quita la intercepción: el <a href="./help.html"> navega
+  // normal en todas las páginas, y closeSidebar() ya se dispara igual por el
+  // listener genérico de ".sidebar-link" de la línea de arriba.
 }
 
 function pivotUpdateSidebarUser(name, role) {

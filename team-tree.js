@@ -42,14 +42,32 @@ function mergeTeamRows(playerRows, teamRows) {
 
 /**
  * Dibuja el árbol dentro del contenedor dado.
+ *
+ * Dani, test funcional ronda 30 (hallazgo CRÍTICO nº1): esta función
+ * agrupaba por Equipo → Categoría → Temporada, pero nunca por GÉNERO --
+ * se quedó así de cuando compare.html (su única usuaria; el resto de la
+ * app migró hace varias rondas a renderTeamGenderCategoryDropdown) migró
+ * de "Temporada+Equipo" a "Equipo+Categoría", justo antes de que
+ * step62_team_gender_dimension.sql añadiera el género como cuarta
+ * dimensión real del equipo. Resultado: dos equipos con el mismo nombre
+ * y categoría pero distinto género (o, como en el caso real que motivó
+ * este hallazgo, simplemente dos categorías -- "Saint Sulpice" U8 y U10 --
+ * ya que ni siquiera se leía team_gender de la base) se mezclaban en la
+ * misma rama del árbol. Se añade el género como un nivel más (igual que
+ * la categoría: solo se muestra su propia etiqueta si hay un valor), y
+ * onSelect/onDelete y el resaltado de "activo" ahora tienen en cuenta
+ * equipo+categoría+género+temporada, los cuatro, no solo equipo+temporada.
+ *
  * @param {string} containerId - id del elemento donde dibujar.
- * @param {Array<{season, team, team_category}>} rows - filas planas (normalmente de players).
+ * @param {Array<{season, team, team_category, team_gender}>} rows - filas planas (normalmente de players).
  * @param {string|null} activeSeason - temporada actualmente seleccionada.
  * @param {string|null} activeTeam - equipo actualmente seleccionado.
- * @param {(season: string, team: string, category: string) => void} onSelect - al hacer clic en un año.
- * @param {(season: string, team: string) => void} [onDelete] - opcional: si se da, añade un botón 🗑 por año.
+ * @param {string|null} activeCategory - categoría actualmente seleccionada ("" o null = sin categoría).
+ * @param {string|null} activeGender - género actualmente seleccionado ("" o null = sin género).
+ * @param {(season: string, team: string, category: string, gender: string) => void} onSelect - al hacer clic en un año.
+ * @param {(season: string, team: string, category: string, gender: string) => void} [onDelete] - opcional: si se da, añade un botón 🗑 por año.
  */
-function renderTeamTree(containerId, rows, activeSeason, activeTeam, onSelect, onDelete) {
+function renderTeamTree(containerId, rows, activeSeason, activeTeam, activeCategory, activeGender, onSelect, onDelete) {
   const container = document.getElementById(containerId);
   if (!container) return;
   // No limpia el contenedor -- quien llama a esto es responsable de
@@ -61,8 +79,10 @@ function renderTeamTree(containerId, rows, activeSeason, activeTeam, onSelect, o
     if (!r.team) return;
     byTeam[r.team] = byTeam[r.team] || {};
     const catKey = r.team_category || "";
-    byTeam[r.team][catKey] = byTeam[r.team][catKey] || new Set();
-    byTeam[r.team][catKey].add(r.season);
+    byTeam[r.team][catKey] = byTeam[r.team][catKey] || {};
+    const genderKey = r.team_gender || "";
+    byTeam[r.team][catKey][genderKey] = byTeam[r.team][catKey][genderKey] || new Set();
+    byTeam[r.team][catKey][genderKey].add(r.season);
   });
 
   Object.keys(byTeam).sort().forEach((team) => {
@@ -79,28 +99,38 @@ function renderTeamTree(containerId, rows, activeSeason, activeTeam, onSelect, o
         catEl.style.cssText = "font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; margin:6px 0 2px 8px;";
         container.appendChild(catEl);
       }
-      Array.from(categories[cat]).sort().reverse().forEach((season) => {
-        const btn = document.createElement("button");
-        btn.className = "tree-team" + (season === activeSeason && team === activeTeam ? " active" : "");
-        if (cat) btn.style.marginLeft = "8px";
-        btn.textContent = season;
-        btn.addEventListener("click", () => onSelect(season, team, cat));
-
-        if (onDelete) {
-          const row = document.createElement("div");
-          row.style.cssText = "display:flex; align-items:center;";
-          btn.style.flex = "1";
-          const delBtn = document.createElement("button");
-          delBtn.textContent = "🗑";
-          delBtn.title = `Remove ${team} (${season}) — deletes all its players`;
-          delBtn.style.cssText = "background:none; border:none; cursor:pointer; font-size:11px; padding:4px 6px; color:var(--muted);";
-          delBtn.addEventListener("click", () => onDelete(season, team));
-          row.appendChild(btn);
-          row.appendChild(delBtn);
-          container.appendChild(row);
-        } else {
-          container.appendChild(btn);
+      const genders = categories[cat];
+      Object.keys(genders).sort().forEach((gender) => {
+        if (gender) {
+          const genderEl = document.createElement("div");
+          genderEl.textContent = gender;
+          genderEl.style.cssText = `font-size:11px; font-weight:600; color:var(--muted); letter-spacing:.2px; margin:4px 0 2px ${cat ? "16px" : "8px"};`;
+          container.appendChild(genderEl);
         }
+        Array.from(genders[gender]).sort().reverse().forEach((season) => {
+          const isActive = season === activeSeason && team === activeTeam && cat === (activeCategory || "") && gender === (activeGender || "");
+          const btn = document.createElement("button");
+          btn.className = "tree-team" + (isActive ? " active" : "");
+          if (cat || gender) btn.style.marginLeft = "8px";
+          btn.textContent = season;
+          btn.addEventListener("click", () => onSelect(season, team, cat, gender));
+
+          if (onDelete) {
+            const row = document.createElement("div");
+            row.style.cssText = "display:flex; align-items:center;";
+            btn.style.flex = "1";
+            const delBtn = document.createElement("button");
+            delBtn.textContent = "🗑";
+            delBtn.title = `Remove ${team} (${season}) — deletes all its players`;
+            delBtn.style.cssText = "background:none; border:none; cursor:pointer; font-size:11px; padding:4px 6px; color:var(--muted);";
+            delBtn.addEventListener("click", () => onDelete(season, team, cat, gender));
+            row.appendChild(btn);
+            row.appendChild(delBtn);
+            container.appendChild(row);
+          } else {
+            container.appendChild(btn);
+          }
+        });
       });
     });
   });
@@ -273,9 +303,13 @@ function makeDeleteBtn(team, season, category, onDelete) {
  * después.
  */
 function guessSeasonOptions() {
+  // Dani, test funcional ronda 30 (hallazgo MEDIO nº13): getMonth() es
+  // 0-based (enero = 0), así que agosto es el índice 7, no el 6 -- el 6
+  // es julio. Con el ">= 6" de antes, cualquier día de julio ya
+  // preseleccionaba la temporada siguiente, un mes antes de tiempo.
   const today = new Date();
   const y = today.getFullYear();
-  const currentStart = today.getMonth() >= 6 ? y : y - 1; // agosto (índice 6) en adelante ya es la temporada siguiente
+  const currentStart = today.getMonth() >= 7 ? y : y - 1; // agosto (índice 7) en adelante ya es la temporada siguiente
   const seasons = [];
   for (let offset = -1; offset <= 2; offset++) {
     const start = currentStart + offset;

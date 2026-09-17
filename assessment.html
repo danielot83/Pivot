@@ -959,26 +959,47 @@
       if (playersChip) playersChip.textContent = "0";
       return;
     }
+    // Dani, test funcional ronda 30 (hallazgo BAJO): esto filtraba
+    // `active = true`, así que un jugador marcado inactivo en Roster
+    // desaparecía también de aquí -- sus evaluaciones seguían en la
+    // base, pero no había forma de verlas desde la UI sin reactivarlo
+    // primero. Se sigue contando solo a los activos en el chip de
+    // "Players" (ese número describe el roster actual del equipo), pero
+    // el desplegable ahora también ofrece a los inactivos, al final de
+    // la lista y marcados como tales, para poder revisar su historial
+    // sin tener que reactivarlos.
     const { data, error } = await filterByGender(filterByCategory(
       supabaseClient
-        .from("players").select("id, first_name, last_name")
-        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam)
-        .eq("active", true),
+        .from("players").select("id, first_name, last_name, active")
+        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
       currentTeamCategory
     ), currentTeamGender).order("last_name");
     teamPlayers = data || [];
     const playersChip = document.getElementById("tsc-chip-players");
-    if (playersChip) playersChip.textContent = teamPlayers.length;
+    if (playersChip) playersChip.textContent = teamPlayers.filter((p) => p.active).length;
     if (error || !data || data.length === 0) {
       els.playerSelect.innerHTML = '<option value="">No players in this team yet — add some in Roster</option>';
       return;
     }
-    data.forEach((p) => {
+    const active = data.filter((p) => p.active);
+    const inactive = data.filter((p) => !p.active);
+    active.forEach((p) => {
       const opt = document.createElement("option");
       opt.value = p.id;
       opt.textContent = `${p.first_name} ${p.last_name}`;
       els.playerSelect.appendChild(opt);
     });
+    if (inactive.length > 0) {
+      const group = document.createElement("optgroup");
+      group.label = "Inactive";
+      inactive.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = `${p.first_name} ${p.last_name} (inactive)`;
+        group.appendChild(opt);
+      });
+      els.playerSelect.appendChild(group);
+    }
     loadHistory();
     loadTracking();
   }
@@ -1387,7 +1408,15 @@
     doc.save(`${playerName.replace(/\s+/g, "_")}_${els.date.value || "assessment"}.pdf`);
   }
 
+  // Dani, test funcional ronda 30 (hallazgo ALTO nº4): dos clics rápidos
+  // en "Save" disparaban dos guardados antes de que el primero
+  // terminara -- como `editingId` solo pasa a valer algo DESPUÉS del
+  // `await` (y encima nunca se rellena tras un insert exitoso), ambos
+  // clics veían `editingId` vacío y ambos insertaban, duplicando la
+  // evaluación. Se deshabilita el botón de forma síncrona mientras se
+  // guarda, igual que "Edit team" más arriba en este archivo.
   async function saveAssessment() {
+    if (els.saveBtn.disabled) return;
     clearMessage();
     const playerId = els.playerSelect.value;
     if (!playerId) { showMessage("Pick a player first.", "error"); return; }
@@ -1404,6 +1433,8 @@
       negative_points: els.negativePoints.value.trim() || null,
       to_improve: els.toImprove.value.trim() || null,
     };
+    const originalLabel = els.saveBtn.textContent;
+    els.saveBtn.disabled = true; els.saveBtn.textContent = "Saving…";
     try {
       let error;
       if (editingId) ({ error } = await supabaseClient.from("player_assessments").update(payload).eq("id", editingId));
@@ -1414,6 +1445,8 @@
       showMessage("Assessment saved.", "success");
     } catch (err) {
       showMessage(err.message || "Couldn't save that assessment.", "error");
+    } finally {
+      els.saveBtn.disabled = false; els.saveBtn.textContent = originalLabel;
     }
   }
 
@@ -1615,10 +1648,22 @@
       "Score each from 1 (needs a lot of work) to 5 (excellent).",
       "",
     ];
+    // Dani, test funcional ronda 30 (hallazgo MEDIO nº10): esto pedía
+    // (y parseAiResponse más abajo aplicaba) los 36 criterios SIEMPRE,
+    // sin mirar "Show advanced criteria" -- si la casilla estaba
+    // apagada, hasta la mitad de las notas que la IA devolvía quedaban
+    // invisibles en el formulario (esa sección ni se dibuja), pero
+    // igual contaban en sectorAverage()/overallAverage() y, por tanto,
+    // en el PDF -- el propio texto del botón invita a "revisar antes de
+    // guardar", pero no había forma de revisar lo que no se veía. Ahora
+    // el prompt (y lo que se acepta de la respuesta) respeta la misma
+    // casilla que ya decide qué se DIBUJA -- mismo criterio, línea
+    // 1333 de este archivo.
     SECTOR_ORDER.forEach((sectKey) => {
       const sect = CRITERIA[sectKey];
       Object.keys(sect.groups).forEach((grpKey) => {
         sect.groups[grpKey].items.forEach((item, i) => {
+          if (!els.advancedToggle.checked && !item.basic) return;
           lines.push(`${sectKey}.${grpKey}.${i}: ${item.text}`);
         });
       });
@@ -1634,6 +1679,9 @@
       const [, sectKey, grpKey, idx, score] = m;
       if (!currentRatings[sectKey] || !currentRatings[sectKey][grpKey]) return;
       const i = parseInt(idx, 10), v = Math.max(1, Math.min(5, parseInt(score, 10)));
+      const item = CRITERIA[sectKey] && CRITERIA[sectKey].groups[grpKey] && CRITERIA[sectKey].groups[grpKey].items[i];
+      if (!item) return;
+      if (!els.advancedToggle.checked && !item.basic) return; // no aplicar (ni contar) lo que no se puede ver ni revisar
       currentRatings[sectKey][grpKey][i] = v;
       found[`${sectKey}.${grpKey}.${idx}`] = v;
     });

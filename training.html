@@ -1219,7 +1219,13 @@
   }
 
   function nextSessionNumber() {
-    const mine = allTrainingsCache.filter((t) => t.organization_id === currentOrgId);
+    // Dani 2026-09-17 (ronda30): el número de sesión se calculaba contando
+    // TODOS los entrenamientos del club, sin filtrar por equipo/temporada
+    // -- con varios equipos en el mismo club, la numeración salía mal
+    // (mezclaba sesiones de equipos distintos). Se filtra igual que ya
+    // hacen loadTrainingsList/exportWholeBook (season + team + team_category
+    // + team_gender).
+    const mine = allTrainingsCache.filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam && (t.team_category || "") === (currentTeamCategory || "") && (t.team_gender || "") === (currentTeamGender || ""));
     return mine.reduce((max, t) => Math.max(max, t.number || 0), 0) + 1;
   }
 
@@ -1256,7 +1262,12 @@
     if (error) { showMessage(error.message, "error"); return; }
     currentTrainingId = id;
     currentTrainingOwned = training.organization_id === currentOrgId;
-    els.title.value = training.title || ""; els.date.value = training.date; els.planned.value = training.planned_minutes || 90;
+    // Dani 2026-09-17 (ronda30): `training.planned_minutes || 90` trataba un
+    // 0 explícito (partido/sesión de 0 min planificados) como "no
+    // guardado" y lo pisaba con el default de 90 al reabrir. Se distingue
+    // null/undefined (sin valor) de 0 (valor real).
+    els.title.value = training.title || ""; els.date.value = training.date;
+    els.planned.value = (training.planned_minutes === null || training.planned_minutes === undefined) ? 90 : training.planned_minutes;
     els.number.value = training.number || "";
     els.category.value = training.category || "";
     els.mainObjective.value = training.main_objective || "";
@@ -1545,7 +1556,18 @@
     showMessage(`Added "${ex.name}" to the session.`, "success", { scroll: false });
   }
 
+  // Dani, test funcional ronda 30 (hallazgos ALTO nº4 y nº5):
+  // -- nº4: dos clics rápidos en "Save" veían ambos `currentTrainingId`
+  //    vacío (solo se rellena DESPUÉS del insert) y creaban dos sesiones
+  //    duplicadas -- se deshabilita el botón de forma síncrona mientras
+  //    se guarda, mismo patrón que en roster.html/assessment.html.
+  // -- nº5: borrar-y-reinsertar el plan de ejercicios en dos llamadas
+  //    sueltas dejaba el plan vacío de verdad si la segunda fallaba --
+  //    ver database/step82_atomic_training_exercises_replace.sql, que
+  //    junta las dos en una sola función atómica.
   async function saveTraining() {
+    const saveBtn = document.getElementById("save-training-btn");
+    if (saveBtn.disabled) return;
     if (!currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
     const payload = {
       organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null, team_gender: currentTeamGender || null,
@@ -1553,7 +1575,12 @@
       number: els.number.value ? parseInt(els.number.value, 10) : nextSessionNumber(),
       category: els.category.value || null,
       main_objective: els.mainObjective.value || null,
-      planned_minutes: parseInt(els.planned.value, 10) || null,
+      // Dani 2026-09-17 (ronda30): `parseInt(...) || null` convertía un 0
+      // explícito (input vacío tras parseInt de "" es NaN, pero "0" da 0)
+      // en null, así que se perdía y volvía a mostrar el default de 90 al
+      // reabrir la sesión. Se guarda null solo cuando el campo está
+      // realmente vacío.
+      planned_minutes: (els.planned.value !== "" && !Number.isNaN(parseInt(els.planned.value, 10))) ? parseInt(els.planned.value, 10) : null,
       players_count: els.players.value ? parseInt(els.players.value, 10) : null,
       coaches: [els.coach1.value.trim(), els.coach2.value.trim(), els.coach3.value.trim()].filter(Boolean),
       visibility: els.visibility.value,
@@ -1566,6 +1593,8 @@
       next_training_notes: els.nextNotes.value.trim() || null,
     };
     if (currentTranslationGroupId) payload.translation_group_id = currentTranslationGroupId;
+    const originalLabel = saveBtn.textContent;
+    saveBtn.disabled = true; saveBtn.textContent = "Saving…";
     try {
       let trainingId = currentTrainingId;
       if (trainingId) { const { error } = await supabaseClient.from("trainings").update(payload).eq("id", trainingId); if (error) throw error; }
@@ -1576,16 +1605,13 @@
         renderAttendanceTable(); // ya se puede marcar asistencia -- antes tenía que reabrirse la sesión para eso
       }
 
-      await supabaseClient.from("training_exercises").delete().eq("training_id", trainingId);
-      if (sessionExercises.length > 0) {
-        const rows = sessionExercises.map((se, i) => ({
-          training_id: trainingId, exercise_id: (se.is_pause || se.is_match) ? null : se.exercise_id, order_index: i, duration_minutes: se.duration_minutes,
-          key_points: se.key_points || [], session_variants: se.session_variants || null, is_pause: !!se.is_pause,
-          is_match: !!se.is_match, match_format: se.is_match ? (se.match_format || "5v5") : null,
-        }));
-        const { error } = await supabaseClient.from("training_exercises").insert(rows);
-        if (error) throw error;
-      }
+      const exerciseRows = sessionExercises.map((se, i) => ({
+        exercise_id: (se.is_pause || se.is_match) ? null : se.exercise_id, order_index: i, duration_minutes: se.duration_minutes,
+        key_points: se.key_points || [], session_variants: se.session_variants || null, is_pause: !!se.is_pause,
+        is_match: !!se.is_match, match_format: se.is_match ? (se.match_format || "5v5") : null,
+      }));
+      const { error: rpcError } = await supabaseClient.rpc("replace_training_exercises", { p_training_id: trainingId, p_rows: exerciseRows });
+      if (rpcError) throw rpcError;
 
       // La asistencia ya no se guarda aquí -- cada clic en la casilla P/A/E/L
       // escribe al momento en la tabla "attendance" (ver cycleAttendanceStatus).
@@ -1594,6 +1620,8 @@
       await loadTrainingsList();
     } catch (err) {
       showMessage(err.message || "Couldn't save that session.", "error");
+    } finally {
+      saveBtn.disabled = false; saveBtn.textContent = originalLabel;
     }
   }
 

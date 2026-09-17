@@ -850,6 +850,20 @@
       btn.dataset.status = nextStatus || "";
       btn.className = "att-status-btn" + (nextStatus ? " " + STATUS_CLASS[nextStatus] : "");
       btn.textContent = nextStatus ? STATUS_LABEL[nextStatus] : "—";
+      // Dani 2026-09-17 (ronda30): esto solo tocaba el botón en pantalla y
+      // la base de datos -- `lastGridData.attendanceByKey`, que es de donde
+      // leen los exports a Excel/PDF, se rellena una sola vez en
+      // loadAttendanceGrid() y nunca se actualizaba aquí. Resultado: el
+      // export usaba el estado de ANTES del último clic. Se mantiene
+      // sincronizado el mismo objeto que leen los exports.
+      if (lastGridData && lastGridData.attendanceByKey) {
+        const key = `${eventId}|${playerId}`;
+        if (nextStatus === null) {
+          delete lastGridData.attendanceByKey[key];
+        } else {
+          lastGridData.attendanceByKey[key] = { id: btn.dataset.recordId, player_id: playerId, status: nextStatus };
+        }
+      }
     } catch (err) {
       showMessage(err.message || "Couldn't save that — try again.", "error");
     } finally {

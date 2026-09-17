@@ -678,7 +678,18 @@
         const idx = parseInt(el.dataset.idx, 10);
         if (steps.length <= 1) return;
         steps.splice(idx, 1);
-        currentStepIndex = Math.min(currentStepIndex, steps.length - 1);
+        // Dani, test funcional ronda 30 (hallazgo MEDIO nº8): esto solo
+        // recortaba currentStepIndex para que siguiera siendo un índice
+        // válido, pero no lo desplazaba cuando el step borrado estaba
+        // ANTES del que se estaba viendo -- al quitar un elemento de en
+        // medio de la lista, todo lo de después se corre una posición,
+        // así que quedarse con el mismo NÚMERO de índice termina
+        // apuntando al contenido de otro step (el que antes iba justo
+        // después del que se estaba viendo), aunque la pestaña activa
+        // muestre la numeración correcta ("Step 3 of 3") -- parecía que
+        // seguías en el mismo paso y en realidad estabas editando otro.
+        if (idx < currentStepIndex) currentStepIndex -= 1;
+        currentStepIndex = Math.max(0, Math.min(currentStepIndex, steps.length - 1));
         buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
       });
     });
@@ -1382,7 +1393,13 @@
     await loadPlaysList();
   }
 
+  // Dani, test funcional ronda 30 (hallazgo ALTO nº4): dos clics rápidos
+  // en "Save play" veían ambos `currentPlayId` vacío y creaban dos
+  // jugadas duplicadas -- se deshabilita el botón de forma síncrona
+  // mientras se guarda.
   async function savePlay() {
+    const saveBtn = document.getElementById("save-play-btn");
+    if (saveBtn.disabled) return;
     if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
     const name = els.playName.value.trim();
     if (!name) { showMessage("Give the play a name first.", "error"); return; }
@@ -1403,6 +1420,8 @@
     // idioma por ahora); solo cuando venga de un futuro "duplicar como
     // traducción" heredaría el grupo del original.
     if (currentTranslationGroupId) payload.translation_group_id = currentTranslationGroupId;
+    const originalLabel = saveBtn.textContent;
+    saveBtn.disabled = true; saveBtn.textContent = "Saving…";
     try {
       let error;
       if (currentPlayId) ({ error } = await supabaseClient.from("plays").update(payload).eq("id", currentPlayId));
@@ -1422,6 +1441,8 @@
       await loadPlaysList();
     } catch (err) {
       showMessage(err.message || "Couldn't save that play.", "error");
+    } finally {
+      saveBtn.disabled = false; saveBtn.textContent = originalLabel;
     }
   }
 

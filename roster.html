@@ -582,6 +582,22 @@
   let currentTeamGender = ""; // Boys/Girls/Mixed
   let logoRequestToken = 0; // se incrementa cada vez que se pide un logo -- para descartar respuestas viejas que llegan tarde
   let lastTreeRows = [];
+  let currentRosterPlayers = []; // último roster cargado (equipo/temporada/categoría/género actuales) -- para validar dorsales duplicados sin volver a preguntar a la base
+
+  // Dani, test funcional ronda 30 (hallazgo BAJO): no había ninguna
+  // validación de dorsal -- aceptaba texto no numérico, vacío, o
+  // repetido entre jugadores del MISMO equipo (dos jugadores con el
+  // mismo número, sin ningún aviso). Vacío sigue permitido (dorsal
+  // todavía no asignado); si se escribe algo, tiene que ser un número, y
+  // no puede coincidir con el de otro jugador activo del mismo roster
+  // que se está viendo ahora mismo.
+  function jerseyNumberError(value, excludePlayerId) {
+    if (value === null || value === undefined || value === "") return null;
+    if (!/^\d+$/.test(String(value).trim())) return "Jersey number must be a whole number.";
+    const dupe = currentRosterPlayers.find((p) => p.id !== excludePlayerId && p.active !== false && String(p.jersey_number || "").trim() === String(value).trim());
+    if (dupe) return `#${value} is already ${dupe.first_name} ${dupe.last_name}'s number on this team.`;
+    return null;
+  }
 
   // A petición de Dani: dos equipos del mismo club pueden llamarse igual
   // (p.ej. "DEL basket Saint Sulpice" en U8 y en U10) -- los nombres de los
@@ -988,6 +1004,7 @@
   }
 
   function renderPlayers(players) {
+    currentRosterPlayers = players;
     els.body.innerHTML = "";
     els.emptyState.style.display = players.length === 0 ? "block" : "none";
     players.forEach((p) => els.body.appendChild(renderRow(p)));
@@ -1050,10 +1067,27 @@
     td.appendChild(input);
     input.focus();
 
+    // Dani, test funcional ronda 30 (hallazgo BAJO): comparar `newValue`
+    // (siempre un string, viene de un <input>) contra `original` (tal
+    // cual llega de la base -- un number de verdad para una columna
+    // numérica) con `!==` los trataba como distintos aunque el valor
+    // mostrado fuera exactamente el mismo ("23" !== 23), así que abrir
+    // una celda numérica y salir sin tocar nada igual disparaba un
+    // UPDATE de sobra. Se normalizan los dos lados según el tipo de
+    // columna antes de comparar.
+    const normalizeForCompare = (v) => {
+      if (col.type === "checkbox") return !!v;
+      if (col.type === "number") return v === null || v === "" ? null : Number(v);
+      return v === "" ? null : v;
+    };
     const commit = async () => {
       const newValue = col.type === "checkbox" ? input.checked : (input.value || null);
+      if (col.key === "jersey_number") {
+        const err = jerseyNumberError(newValue, player.id);
+        if (err) { showMessage(err, "error"); td.textContent = formatCellValue(original, col); return; }
+      }
       td.textContent = formatCellValue(newValue, col);
-      if (newValue !== original) {
+      if (normalizeForCompare(newValue) !== normalizeForCompare(original)) {
         const { error } = await supabaseClient.from("players").update({ [col.key]: newValue }).eq("id", player.id);
         if (error) { showMessage(error.message, "error"); }
         else { player[col.key] = newValue; }
@@ -1080,21 +1114,35 @@
   }
   function closePanel() { els.panel.classList.remove("open"); }
 
+  // Dani, test funcional ronda 30 (hallazgo ALTO nº4, verificado
+  // directamente): dos clics rápidos en "Save" (o un reintento por red
+  // lenta) disparaban dos `insert()` antes de que el primero terminara
+  // -- nada bloqueaba el botón mientras se guardaba, así que se creaba
+  // un jugador duplicado. Mismo arreglo que ya usa "Edit team" un poco
+  // más arriba en este archivo (línea ~810): deshabilitar el botón de
+  // forma SÍNCRONA, antes de cualquier `await`, y reactivarlo en un
+  // `finally` -- así el segundo clic no encuentra nada que disparar.
   async function savePlayer() {
+    if (els.saveBtn.disabled) return;
     clearMessage();
     const first_name = document.getElementById("f-first_name").value.trim();
     const last_name = document.getElementById("f-last_name").value.trim();
     if (!first_name || !last_name) { showMessage("First and last name are required.", "error"); return; }
+    const jerseyValue = document.getElementById("f-jersey_number").value.trim() || null;
+    const jerseyErr = jerseyNumberError(jerseyValue, null);
+    if (jerseyErr) { showMessage(jerseyErr, "error"); return; }
     const payload = {
       organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null, team_gender: currentTeamGender || null,
       first_name, last_name,
       birth_year: document.getElementById("f-birth_year").value ? parseInt(document.getElementById("f-birth_year").value, 10) : null,
       category: document.getElementById("f-category").value.trim() || null,
-      jersey_number: document.getElementById("f-jersey_number").value.trim() || null,
+      jersey_number: jerseyValue,
       gender: document.getElementById("f-gender").value || null,
       license_number: document.getElementById("f-license_number").value.trim() || null,
       has_license: false, active: true,
     };
+    const originalLabel = els.saveBtn.textContent;
+    els.saveBtn.disabled = true; els.saveBtn.textContent = "Saving…";
     try {
       const { error } = await supabaseClient.from("players").insert(payload);
       if (error) throw error;
@@ -1103,6 +1151,8 @@
       await loadTree();
     } catch (err) {
       showMessage(err.message || "Couldn't save that player.", "error");
+    } finally {
+      els.saveBtn.disabled = false; els.saveBtn.textContent = originalLabel;
     }
   }
 

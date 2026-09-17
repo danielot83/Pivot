@@ -788,10 +788,18 @@
     renderNotebooksList();
   });
 
+  // Dani, test funcional ronda 30 (hallazgo ALTO nº4): dos clics rápidos
+  // en "Save notebook" veían ambos `currentNotebookId` vacío y creaban
+  // dos notebooks duplicados -- se deshabilita el botón de forma
+  // síncrona mientras se guarda.
   document.getElementById("save-notebook-btn").addEventListener("click", async () => {
+    const saveBtn = document.getElementById("save-notebook-btn");
+    if (saveBtn.disabled) return;
     const name = document.getElementById("notebook-name").value.trim();
     if (!name) { showMessage("Give the notebook a name first.", "error"); return; }
     const visibility = document.getElementById("notebook-visibility").value;
+    const originalLabel = saveBtn.textContent;
+    saveBtn.disabled = true; saveBtn.textContent = "Saving…";
     try {
       let notebookId = currentNotebookId;
       if (notebookId) {
@@ -813,6 +821,8 @@
       document.getElementById("export-notebook-btn").style.display = "inline-block";
     } catch (err) {
       showMessage(err.message || "Couldn't save that notebook.", "error");
+    } finally {
+      saveBtn.disabled = false; saveBtn.textContent = originalLabel;
     }
   });
 
@@ -1910,9 +1920,24 @@
       .reduce((max, ex) => Math.max(max, ex.number || 0), 0) + 1;
   }
 
+  // Dani, test funcional ronda 30 (hallazgo MEDIO nº9): esto copiaba
+  // `translation_group_id` tal cual del original -- "Duplicate" (a
+  // diferencia de "Duplicate as translation", un poco más abajo, que SÍ
+  // debe compartir el grupo a propósito) crea un ejercicio
+  // independiente, no otro idioma del mismo -- con el mismo
+  // translation_group_id, el editor lo fusionaba visualmente con el
+  // original en una sola entrada con selector de idioma ambiguo ("EN
+  // 1"/"EN 2") en vez de aparecer como algo aparte. Se deja que la base
+  // de datos le asigne uno nuevo de verdad (translation_group_id tiene
+  // `default uuid_generate_v4()`, igual que un ejercicio creado desde
+  // cero), simplemente no mandando ese campo. De paso, si el original
+  // era "🌐 Community", la copia ya no hereda esa visibilidad de forma
+  // automática -- empieza en "team" (mismo criterio ya usado en
+  // copyToMyLibrary(), un poco más abajo); quien duplica puede
+  // reabrirla y ponerla en Community otra vez si de verdad quería eso.
   async function duplicateExercise(e) {
-    const copy = { ...e, name: e.name, number: nextNumberForMyClub(), favorite: false };
-    delete copy.id; delete copy.created_by;
+    const copy = { ...e, name: e.name, number: nextNumberForMyClub(), favorite: false, visibility: "team" };
+    delete copy.id; delete copy.created_by; delete copy.translation_group_id;
     const { error } = await supabaseClient.from("exercises").insert(copy);
     if (error) { showMessage(error.message, "error"); return; }
     showMessage("Exercise duplicated.", "success");
@@ -1946,7 +1971,19 @@
   // en vez de como dos ejercicios distintos sin relación.
   // -----------------------------------------------------------------------
   async function duplicateAsTranslation(e) {
-    const options = Object.keys(LANGUAGE_NAMES).filter((l) => l !== (e.language || "en"));
+    // Dani, test funcional ronda 30 (hallazgo BAJO): esto solo excluía el
+    // idioma del ejercicio actualmente abierto, no el de TODO el grupo de
+    // traducción -- si el grupo ya tenía EN y FR y estabas mirando el EN,
+    // seguía ofreciendo FR como opción, creando un segundo miembro en el
+    // mismo idioma (y dejando el otro invisible/ambiguo en el selector).
+    const groupLanguages = new Set(
+      e.translation_group_id
+        ? allExercises.filter((x) => x.translation_group_id === e.translation_group_id).map((x) => x.language || "en")
+        : []
+    );
+    groupLanguages.add(e.language || "en");
+    const options = Object.keys(LANGUAGE_NAMES).filter((l) => !groupLanguages.has(l));
+    if (options.length === 0) { showMessage("This exercise already has a copy in every supported language.", "error"); return; }
     const choice = prompt(`Translate to which language? (${options.join(" / ")})`, options[0]);
     if (!choice || !LANGUAGE_NAMES[choice]) { if (choice) showMessage("Unknown language code.", "error"); return; }
     const copy = { ...e, number: nextNumberForMyClub(), favorite: false, language: choice, translation_group_id: e.translation_group_id };
