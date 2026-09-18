@@ -14,7 +14,7 @@
   connect-src 'self' https://eeucbnhqsnfitzwzghtg.supabase.co https://cdn.jsdelivr.net;
   object-src 'none'; base-uri 'none'; form-action 'none'" />
 <title>PlayPivot | Basketball Play Design Tool</title>
-<meta name="description" content="Draw basketball plays, offensive sets, defensive schemes and out-of-bounds plays to build and share your digital playbook." />
+<meta name="description" content="Draw basketball plays, offensive sets, defensive schemes and out-of-bounds plays to build and share your team's saved plays." />
 <style>
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
@@ -124,6 +124,16 @@
     font-size: 14px; color: var(--accent-deep); background: none; border: 1px dashed var(--accent-deep); border-radius: 100px;
     cursor: pointer; padding: 7px 14px; text-align: left;
   }
+  /* Picker de "Duplicate a saved play" -- a petición de Dani (2026-09-18):
+     botón junto a "+ New play" que abre este panel con las jugadas ya
+     guardadas del equipo seleccionado (mismas que "Your saved plays" de al
+     lado) para partir de una en vez de una jugada en blanco. */
+  .play-picker-panel {
+    display: none; position: absolute; top: 100%; left: 0; margin-top: 6px; z-index: 50;
+    width: 260px; max-height: 320px; overflow-y: auto; background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 8px;
+  }
+  .play-picker-panel.open { display: block; }
   details.tree-folder { margin-bottom: 2px; }
   details.tree-folder > summary {
     cursor: pointer; list-style: none; padding: 8px 10px; border-radius: 8px; font-weight: 600; color: var(--ink);
@@ -192,7 +202,7 @@
      Training builder/Player assessment, agregada abajo del todo por ahora
      (este módulo se va a reorganizar más adelante, esto es para que ya
      quede interconectado con las otras páginas via localStorage). No
-     toca "Filter by team"/"Your playbook" de arriba, que siguen igual.
+     toca "Filter by team"/"Your saved plays" de arriba, que siguen igual.
      --------------------------------------------------------------------- */
   .tsc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
   .tsc-header-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-deep); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
@@ -278,7 +288,7 @@
       <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
       <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
       <a href="./play_design.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
-      <a href="./play_library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21V7"/><path d="M4 5c2-1 5-1 8 2 3-3 6-3 8-2v13c-2-1-5-1-8 2-3-3-6-3-8-2Z"/></svg>Play library</a>
+      <a href="./play_library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21V7"/><path d="M4 5c2-1 5-1 8 2 3-3 6-3 8-2v13c-2-1-5-1-8 2-3-3-6-3-8-2Z"/></svg>Playbook</a>
       <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
     </nav>
 
@@ -382,22 +392,31 @@
 
   <div class="side-card">
     <h2 style="margin-bottom:6px; text-transform:none; font-size:15px; letter-spacing:0; color:var(--ink); font-weight:700;">New play</h2>
-    <p class="hint" style="margin:0 0 10px;">Starts a blank play for the team selected above.</p>
-    <button class="btn btn-primary" id="new-play-btn">+ New play</button>
+    <p class="hint" style="margin:0 0 10px;">Starts a blank play for the team selected above, or pick up where an existing one left off.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-primary" id="new-play-btn">+ New play</button>
+      <div style="position:relative; display:inline-block;">
+        <button class="btn btn-secondary" id="start-from-play-btn">↻ Duplicate a saved play</button>
+        <div class="play-picker-panel" id="play-picker-panel">
+          <p style="font-size:11px; color:var(--muted); margin:2px 6px 8px;">Pick one of this team's saved plays to start a new one from it — the original stays untouched.</p>
+          <div id="start-from-play-list"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="team-bar-card">
-    <h2>Your playbook</h2>
+    <h2>Your saved plays</h2>
     <p class="hint" id="playbook-team-label" style="margin:-6px 0 10px;"></p>
     <div id="plays-tree"></div>
     <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--line);">
-      <a href="./play_library.html" class="tree-new" style="text-decoration:none; display:inline-block;">🌐 Browse the play library →</a>
+      <a href="./play_library.html" class="tree-new" style="text-decoration:none; display:inline-block;">🌐 Browse Playbook →</a>
     </div>
   </div>
 
     <div class="field-row">
       <div class="field" style="flex:2;"><label for="play-name">Play name</label><input id="play-name" type="text" placeholder="e.g. Horns flare" /></div>
-      <div class="field"><label for="play-category">Playbook</label><input id="play-category" type="text" placeholder="e.g. Attack, Defense, Out of bounds" /></div>
+      <div class="field"><label for="play-category">Category</label><input id="play-category" type="text" placeholder="e.g. Attack, Defense, Out of bounds" /></div>
       <div class="field"><label for="play-visibility">Who can see it?</label>
         <select id="play-visibility">
           <option value="private">🔒 Only me</option>
@@ -1258,28 +1277,30 @@
   }
 
   // -----------------------------------------------------------------------
-  // "Your playbook" -- a petición de Dani (8/9), ya NO es un árbol
-  // Temporada→Equipo→Categoría de TODA la organización: ahora vive
-  // encajado con el selector "Teams & Seasons" de arriba, igual que en
+  // "Your saved plays" (llamado "Your playbook" hasta 2026-09-18, renombrado
+  // a petición de Dani para que "Playbook" solo signifique una cosa en toda
+  // la app: la página play_library.html) -- a petición de Dani (8/9), ya NO
+  // es un árbol Temporada→Equipo→Categoría de TODA la organización: ahora
+  // vive encajado con el selector "Teams & Seasons" de arriba, igual que en
   // Roster/Attendance/Match day. Solo muestra los plays del EQUIPO
-  // elegido arriba (currentTeam), agrupados por "Playbook" (antes
-  // llamado "Category (folder)", mismo campo `category` en la BD, solo
-  // cambió la etiqueta). Deliberadamente NO se filtra también por
-  // temporada -- un playbook de "Ataque" de un equipo suele servir igual
-  // pase lo que pase la temporada.
+  // elegido arriba (currentTeam), agrupados por "Category" (antes
+  // llamado "Category (folder)", luego "Playbook" hasta hoy -- mismo campo
+  // `category` en la BD, solo cambió la etiqueta). Deliberadamente NO se
+  // filtra también por temporada -- una categoría de "Ataque" de un equipo
+  // suele servir igual pase lo que pase la temporada.
   //
   // Los plays de otros clubes (asociación/comunidad) y el resto de tus
   // propios plays fuera del equipo seleccionado ya no aparecen aquí --
-  // para eso está el nuevo "Play library" (play_library.html), enlazado
-  // debajo de esta tarjeta.
+  // para eso está "Playbook" (play_library.html), enlazado debajo de esta
+  // tarjeta.
   // -----------------------------------------------------------------------
   async function loadPlaysList() {
     if (els.playbookTeamLabel) {
       els.playbookTeamLabel.textContent = currentTeam
-        ? `For ${currentTeam} — across all seasons. Looking for something else? Try the play library below.`
-        : "Pick a team above to see its playbook.";
+        ? `For ${currentTeam} — across all seasons. Looking for something else? Try Playbook below.`
+        : "Pick a team above to see its saved plays.";
     }
-    if (!currentTeam) { els.playsTree.innerHTML = ""; return; }
+    if (!currentTeam) { els.playsTree.innerHTML = ""; renderStartFromPlayList([]); return; }
 
     const { data, error } = await supabaseClient
       .from("plays").select("id, name, season, team, category, visibility, organization_id").eq("organization_id", currentOrgId).order("name");
@@ -1290,6 +1311,7 @@
     // campo opcional) se sigue mostrando aquí también -- para no
     // esconderlo -- en vez de solo bajo el equipo exacto.
     const mine = (data || []).filter((p) => p.team === currentTeam || !p.team);
+    renderStartFromPlayList(mine);
 
     const byCategory = {};
     mine.forEach((p) => {
@@ -1332,6 +1354,32 @@
         catEl.appendChild(leaf);
       });
       els.playsTree.appendChild(catEl);
+    });
+  }
+
+  // Lista plana (sin agrupar por categoría, a diferencia del árbol de al
+  // lado -- aquí es solo para elegir rápido un punto de partida) para el
+  // panel "Duplicate a saved play", con las mismas jugadas del equipo
+  // seleccionado (`mine`, ya calculado en loadPlaysList).
+  function renderStartFromPlayList(mine) {
+    const list = document.getElementById("start-from-play-list");
+    if (!list) return;
+    list.innerHTML = "";
+    if (!mine || mine.length === 0) {
+      list.innerHTML = '<p style="font-size:12px; color:var(--muted); margin:4px 6px;">No saved plays for this team yet.</p>';
+      return;
+    }
+    mine.forEach((p) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "tree-folder-leaf";
+      row.style.display = "block"; row.style.width = "100%"; row.style.textAlign = "left";
+      row.textContent = `${VISIBILITY_ICONS[p.visibility || "team"] || ""} ${p.name}`;
+      row.addEventListener("click", () => {
+        document.getElementById("play-picker-panel").classList.remove("open");
+        startFromPlay(p.id);
+      });
+      list.appendChild(row);
     });
   }
 
@@ -1390,6 +1438,41 @@
     document.getElementById("save-play-btn").style.display = owned ? "inline-block" : "none";
     [els.playName, els.playCategory, els.playVisibility, els.playLanguage].forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This play belongs to another club — you can look, but not edit or save changes.", "success");
+    await loadPlaysList();
+  }
+
+  // "Duplicate a saved play" -- a petición de Dani (2026-09-18): igual que
+  // openPlay() (carga el mismo diagrama/pasos) pero con currentPlayId=null,
+  // así que "Save play" crea una jugada NUEVA en vez de sobrescribir la
+  // original -- ésta queda intacta. El nombre se sufija " (copy)" para que
+  // se note que es un punto de partida, no la jugada de siempre.
+  async function startFromPlay(id) {
+    const { data, error } = await supabaseClient.from("plays").select("*").eq("id", id).single();
+    if (error) { showMessage(error.message, "error"); return; }
+    currentPlayId = null;
+    els.playName.value = data.name ? `${data.name} (copy)` : "";
+    editingPlaySeason = currentSeason || data.season || null;
+    editingPlayTeam = currentTeam || data.team || null;
+    els.playCategory.value = data.category || "";
+    els.playVisibility.value = data.visibility || "team";
+    els.playLanguage.value = data.language || "en"; currentTranslationGroupId = null;
+    steps = (data.diagram && Array.isArray(data.diagram.steps) && data.diagram.steps.length > 0)
+      ? data.diagram.steps.map((s) => ({ courtType: s.courtType || "half", note: s.note || "", points: s.points || [], actions: s.actions || [] }))
+      : [newStep()];
+    currentStepIndex = 0;
+    ["player", "defender"].forEach((kind) => {
+      const key = kind === "player" ? "nextPlayerNum" : "nextDefenderNum";
+      let max = 0;
+      steps.forEach((s) => s.points.forEach((p) => {
+        if (p.type === kind) { const n = parseInt(p.label, 10); if (!isNaN(n) && n > max) max = n; }
+      }));
+      pointCounters[key] = max + 1;
+    });
+    buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
+    document.getElementById("delete-play-btn").style.display = "none";
+    document.getElementById("save-play-btn").style.display = "inline-block";
+    [els.playName, els.playCategory, els.playVisibility, els.playLanguage].forEach((el) => (el.disabled = false));
+    showMessage(`Started a new play from "${data.name}" — edit freely, the original is untouched until you hit Save.`, "success");
     await loadPlaysList();
   }
 
@@ -1702,11 +1785,11 @@
     box.innerHTML = `
       <strong>How to use Play design</strong>
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.9;">
-        <li><strong>Team &amp; season</strong> — pick them at the top, exactly like in Roster/Attendance/Match day. Every play you save is filed under the team selected there; switching teams switches which playbook you see below.</li>
-        <li><strong>+ New play</strong> — starts a blank play for whichever team is currently selected above.</li>
-        <li><strong>Your playbook</strong> — every play saved for the selected team, across all its seasons (a "Defense" playbook usually still makes sense next season). Grouped by <strong>Playbook</strong> underneath.</li>
-        <li><strong>Playbook = the "subfolder"</strong> — free text, typed by you (e.g. "Half-court offense", "Out of bounds", "Press break", "Zone offense"). There's no separate screen to "create" one — just type a name here and save; the next play you give the same name will automatically group with it. Typos create a new, separate folder, so keep the wording consistent (e.g. always "Out of bounds", not sometimes "OOB").</li>
-        <li>Looking for a play from another team, another season, or shared by another club? Use <strong>🌐 Browse the play library</strong>, below your playbook — it has its own filters (team, playbook, language, and who made it) and can open any play straight into this editor.</li>
+        <li><strong>Team &amp; season</strong> — pick them at the top, exactly like in Roster/Attendance/Match day. Every play you save is filed under the team selected there; switching teams switches which saved plays you see below.</li>
+        <li><strong>+ New play</strong> — starts a blank play for whichever team is currently selected above. <strong>↻ Duplicate a saved play</strong>, right next to it, starts instead from one of this team's existing plays (pick it from the panel that opens) — the original stays untouched, only the new copy gets saved.</li>
+        <li><strong>Your saved plays</strong> — every play saved for the selected team, across all its seasons (a "Defense" category usually still makes sense next season). Grouped by <strong>Category</strong> underneath.</li>
+        <li><strong>Category = the "subfolder"</strong> — free text, typed by you (e.g. "Half-court offense", "Out of bounds", "Press break", "Zone offense"). There's no separate screen to "create" one — just type a name here and save; the next play you give the same name will automatically group with it. Typos create a new, separate folder, so keep the wording consistent (e.g. always "Out of bounds", not sometimes "OOB").</li>
+        <li>Looking for a play from another team, another season, or shared by another club? Use <strong>🌐 Browse Playbook</strong>, below your saved plays — it has its own filters (team, category, language, and who made it) and can open any play straight into this editor.</li>
         <li>A new play starts <strong>completely empty</strong> — nothing is pre-placed. Pick "Attacker", "Defender", "Ball", "Cone", "Coach", "Post", or "Handoff" and click the court to add one; you'll be asked for a number/label for attackers and defenders.</li>
         <li><strong>Move/select</strong> — drag any point you've placed. Double-click a player/defender to rename it, or double-click any other point to remove it.</li>
         <li><strong>Steps</strong> — click "+ Add step" as many times as the play needs. Each new step starts with points positioned exactly where the previous step's cuts/dribbles ended — draw a pass from 1 to 2 and step 2 opens with the ball already at 2.</li>
@@ -1726,6 +1809,14 @@ els.logoutBtn.addEventListener("click", async () => {
   });
 
   document.getElementById("new-play-btn").addEventListener("click", newPlay);
+  document.getElementById("start-from-play-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.getElementById("play-picker-panel").classList.toggle("open");
+  });
+  document.addEventListener("click", (e) => {
+    const panel = document.getElementById("play-picker-panel");
+    if (panel.classList.contains("open") && !panel.contains(e.target) && e.target.id !== "start-from-play-btn") panel.classList.remove("open");
+  });
 
   async function init() {
     const { data } = await supabaseClient.auth.getSession();
@@ -1738,7 +1829,7 @@ els.logoutBtn.addEventListener("click", async () => {
       await loadTree();
       await loadTeamPlayersCount();
       await loadPlaysList();
-      // Enlace directo desde Play library ("Open in Play design →") -- si
+      // Enlace directo desde Playbook ("Open in Play design →") -- si
       // viene con ?openPlay=<id>, abrimos esa jugada nada más cargar, en
       // vez de dejar el editor en blanco.
       const params = new URLSearchParams(window.location.search);
