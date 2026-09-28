@@ -455,12 +455,13 @@
           </div>
           <button class="btn btn-secondary" id="undo-btn">↩ Undo</button>
           <button class="btn btn-secondary" id="copy-step-btn">Copy to next diagram ➡</button>
+          <button class="btn btn-secondary" id="delete-element-btn">🗑 Delete element</button>
           <button class="btn btn-secondary" id="clear-btn">Clear this diagram</button>
         </div>
         <div class="court-card">
           <canvas id="court-canvas" width="300" height="300"></canvas>
         </div>
-        <p class="hint-text">Double-click a player/defender to label them. Del/Backspace clears the selection. "Copy to next diagram" is for drawing a sequence: draw diagram 1, copy it, then move a couple of things for diagram 2.</p>
+        <p class="hint-text">Double-click a player/defender to label them. Click an element with "Move/Select", then "🗑 Delete element" (or Del/Backspace) to remove just that one. "Copy to next diagram" is for drawing a sequence: draw diagram 1, copy it forward — any player or the ball lands wherever its movement/dribble/pass/shot arrow pointed to, ready for you to draw what happens next.</p>
       </div>
 
       <div class="toolbar" style="margin-top:16px;">
@@ -1119,6 +1120,17 @@
     ctx.restore();
   }
 
+  // Extraído a su propia función para poder llamarlo tanto desde
+  // Del/Backspace como desde el botón "🗑 Delete element" (a petición de
+  // Dani -- en una tablet/pista no siempre hay teclado a mano).
+  function deleteSelectedElement() {
+    if (!selectedElement || !currentElements().includes(selectedElement)) return;
+    const idx = currentElements().indexOf(selectedElement);
+    if (idx !== -1) currentElements().splice(idx, 1);
+    selectedElement = null;
+    dragging = null;
+    render();
+  }
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Delete" && e.key !== "Backspace") return;
     // No robarle Backspace a un campo de texto normal de la página
@@ -1128,12 +1140,9 @@
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
     if (!selectedElement || !currentElements().includes(selectedElement)) return;
     e.preventDefault();
-    const idx = currentElements().indexOf(selectedElement);
-    if (idx !== -1) currentElements().splice(idx, 1);
-    selectedElement = null;
-    dragging = null;
-    render();
+    deleteSelectedElement();
   });
+  document.getElementById("delete-element-btn").addEventListener("click", deleteSelectedElement);
 
   function eventToFraction(e) {
     const rect = els.canvas.getBoundingClientRect();
@@ -1243,11 +1252,82 @@
   // diagram" reemplaza el diagrama siguiente por una copia del actual,
   // como ya dice el texto de ayuda ("duplicates everything into the
   // next diagram") -- no lo suma a lo que ya hubiera ahí.
+  // A petición de Dani: "Copy to next diagram" debería aplicar el
+  // movimiento, como ya hace "+ Add step" en Play design (play_design.html)
+  // -- si hay una flecha/dribble/pase/tiro moviendo a un jugador o al
+  // balón, el diagrama copiado empieza con ese jugador/balón YA en el
+  // punto de llegada, no en el de salida.
+  //
+  // A diferencia de Play design, aquí cada línea de movimiento NO guarda
+  // a qué jugador pertenece (pointId) -- el editor de ejercicios siempre
+  // ha sido más de "dibujo libre", sin ese enganche. Así que se resuelve
+  // por proximidad: el jugador/balón/etc. más cercano al INICIO de la
+  // línea es a quien mueve -- mismo margen de tolerancia (0.09, en
+  // fracción de cancha) que usa Play design para el mismo gesto al
+  // EMPEZAR a dibujar una línea de movimiento. Si no hay nada
+  // suficientemente cerca del inicio, esa línea no mueve a nadie.
+  //
+  // Las líneas de movimiento reales (arrow/dribble/pass/shot) Y las
+  // fintas (fake_move/fake_pass/fake_shot) no pasan al diagrama
+  // siguiente -- representan algo que "ya pasó" en ESTE diagrama, y
+  // dejarlas dibujadas encima de un jugador que ya se movió quedaría mal
+  // (y habría que borrarlas a mano de todas formas). Todo lo demás
+  // (jugadores, defensas, coach, balón, conos, postes, handoffs,
+  // pantallas, zonas) se copia igual que antes, en su sitio.
+  const MOVER_LINE_TYPES = ["arrow", "dribble", "pass", "shot"];
+  const DROPPED_LINE_TYPES = ["arrow", "dribble", "pass", "shot", "fake_move", "fake_pass", "fake_shot"];
+  const POINT_TYPES_FOR_MOVEMENT = ["player", "defender", "coach", "ball", "cone", "post", "handoff"];
+  const MOVE_MATCH_RADIUS = 0.09;
+  const BALL_ATTACH_RADIUS = 0.06;
+
+  function nearestPointElement(elements, x, y, excludeSet) {
+    let best = null, bestDist = Infinity;
+    elements.forEach((el) => {
+      if (!POINT_TYPES_FOR_MOVEMENT.includes(el.type) || excludeSet.has(el)) return;
+      const d = Math.hypot(el.x - x, el.y - y);
+      if (d < MOVE_MATCH_RADIUS && d < bestDist) { best = el; bestDist = d; }
+    });
+    return best;
+  }
+
+  function resolveMovementForCopy(elements) {
+    // Primero se decide QUIÉN se mueve con cada línea, sobre las
+    // posiciones originales -- así, si dos líneas se resuelven en el
+    // mismo lote, la segunda no "engancha" por error al jugador que la
+    // primera ya movió.
+    const usedAsTarget = new Set();
+    const moves = [];
+    elements.forEach((el) => {
+      if (!MOVER_LINE_TYPES.includes(el.type) || !el.points || el.points.length < 2) return;
+      const [sx, sy] = el.points[0];
+      const [ex, ey] = el.points[el.points.length - 1];
+      let target = nearestPointElement(elements, sx, sy, usedAsTarget);
+      if (!target) return;
+      if ((el.type === "pass" || el.type === "shot") && (target.type === "player" || target.type === "defender")) {
+        // Una pase/tiro: quien vuela es el balón, no quien lo envía --
+        // igual que en Play design.
+        const ball = elements.find((b) => b !== target && b.type === "ball" && Math.hypot(b.x - target.x, b.y - target.y) < BALL_ATTACH_RADIUS);
+        if (ball) target = ball; else return; // sin balón cerca, no hay nada que mover con un pase/tiro
+      }
+      usedAsTarget.add(target);
+      moves.push({ target, dx: ex - target.x, dy: ey - target.y, carriesCompanion: el.type === "arrow" || el.type === "dribble" });
+    });
+    moves.forEach(({ target, dx, dy, carriesCompanion }) => {
+      if (carriesCompanion && (target.type === "player" || target.type === "defender")) {
+        const ball = elements.find((b) => b !== target && b.type === "ball" && Math.hypot(b.x - target.x, b.y - target.y) < BALL_ATTACH_RADIUS);
+        if (ball) { ball.x += dx; ball.y += dy; }
+      }
+      target.x += dx; target.y += dy;
+    });
+    return elements.filter((el) => !DROPPED_LINE_TYPES.includes(el.type));
+  }
+
   document.getElementById("copy-step-btn").addEventListener("click", () => {
     const idx = COURT_IDS.indexOf(currentStep);
     if (idx >= COURT_IDS.length - 1) return;
     const nextStep = COURT_IDS[idx + 1];
-    diagram[nextStep] = JSON.parse(JSON.stringify(currentElements()));
+    const cloned = JSON.parse(JSON.stringify(currentElements()));
+    diagram[nextStep] = resolveMovementForCopy(cloned);
     currentStep = nextStep;
     buildStepTabs(); resizeCanvasForStep(); render();
   });
@@ -1897,7 +1977,8 @@
         <li>Anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.</li>
         <li><strong>Court diagram section</strong> — 5 diagrams (3 half-court, 1 vertical, 1 full horizontal), each independent — they're not steps you have to fill in order. Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
         <li><strong>Color</strong> picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).</li>
-        <li><strong>Copy to next diagram</strong> duplicates everything into the next diagram — handy when you ARE drawing a sequence: draw diagram 1, copy it forward, then just move a couple of things for diagram 2, instead of starting from scratch each time.</li>
+        <li><strong>Copy to next diagram</strong> duplicates everything into the next diagram — handy when you ARE drawing a sequence: draw diagram 1, copy it forward, then just move a couple of things for diagram 2, instead of starting from scratch each time. Any movement/dribble/pass/shot arrow is applied first (the player or ball lands where the arrow pointed) and doesn't carry over itself, so diagram 2 starts from the result, ready for its own arrows.</li>
+        <li><strong>🗑 Delete element</strong> — pick "Move/Select", click the player/arrow/zone/etc. you want gone, then this button (or Del/Backspace on a keyboard) removes just that one.</li>
         <li><strong>Export PDF</strong> downloads the exercise sheet straight away: your club's logo and name, number, name, only the categories/material you actually picked, objectives, difficulty stars, description, variants, and all 5 diagrams — same one-page sheet as the desktop app.</li>
         <li><strong>Numbering</strong> — the next free number in your own club is filled in automatically; nobody has to track it by hand. <strong>Language</strong> — this page always edits one language at a time; to add a translation of an exercise, use "Duplicate as translation" in the Library, which creates a linked copy in another language.</li>
         <li>Editing an existing exercise bumps its version number (v1 at creation) — visible in the Library, handy for tracking which ones changed recently.</li>

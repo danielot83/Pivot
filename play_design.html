@@ -467,6 +467,7 @@
         </select>
       </div>
       <button class="btn btn-secondary" id="undo-btn">↩ Undo last</button>
+      <button class="btn btn-secondary" id="delete-element-btn">🗑 Delete element</button>
       <button class="btn btn-secondary" id="clear-actions-btn">Clear this step</button>
     </div>
 
@@ -575,6 +576,12 @@
   let currentStepIndex = 0;
   let dragging = null, drawingFrom = null, draggingBallId = null;
   let animating = false;
+  // A petición de Dani: poder borrar UN elemento suelto (un punto o una
+  // línea/pantalla/zona) con "Move/Select" + un botón, en vez de solo
+  // "Undo last" (el último trazo) o "Clear this step" (todo). Guarda una
+  // referencia { item, kind: "point"|"action" } -- hace falta saber de
+  // qué array (step.points o step.actions) borrarlo.
+  let selectedElement = null;
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
 
@@ -660,7 +667,40 @@
     drawCourtBackground(ctx, els.canvas, step.courtType, cssW, cssH);
     step.actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, a));
     step.points.forEach((p) => drawPointElement(ctx, toPx, p));
+    drawSelectionHighlight();
     els.stepNote.value = step.note || "";
+  }
+
+  // Aro/línea discontinua alrededor del elemento seleccionado -- mismo
+  // patrón visual que ya usa Exercise creator (exercises.html) para lo
+  // mismo, adaptado a que aquí los puntos y las acciones viven en dos
+  // arrays separados (step.points / step.actions).
+  function drawSelectionHighlight() {
+    if (activeTool !== "select" || !selectedElement) return;
+    const step = currentStep();
+    const el = selectedElement.item;
+    const stillThere = selectedElement.kind === "point" ? step.points.includes(el) : step.actions.includes(el);
+    if (!stillThere) { selectedElement = null; return; }
+    ctx.save();
+    ctx.strokeStyle = "#ec6718";
+    ctx.setLineDash([4, 3]);
+    if (el.points && el.points.length >= 2) {
+      const [x1, y1] = el.points[0], [x2, y2] = el.points[el.points.length - 1];
+      const [px1, py1] = toPx(x1, y1), [px2, py2] = toPx(x2, y2);
+      ctx.lineWidth = 5;
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2); ctx.stroke();
+    } else if (el.type === "zone") {
+      const [x, y] = toPx(el.x, el.y);
+      const [x2, y2] = toPx(el.x + el.w, el.y + el.h);
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - 3, y - 3, (x2 - x) + 6, (y2 - y) + 6);
+    } else if (el.x !== undefined) {
+      const [px, py] = toPx(el.x, el.y);
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(px, py, 16, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function resizeCanvasForStep() {
@@ -674,9 +714,10 @@
   // Onglets d'étapes -- nombre libre. "+ Add step" crée la suite logique.
   // -----------------------------------------------------------------------
   function buildStepTabs() {
-    els.stepHint.textContent = steps.length > 1
+    els.stepHint.textContent = (steps.length > 1
       ? `Step ${currentStepIndex + 1} of ${steps.length} — points start where the previous step's moves ended.`
-      : "Add more steps to build out the full sequence of the play.";
+      : "Add more steps to build out the full sequence of the play.")
+      + ' Click anything with "Move/Select", then "🗑 Delete element" (or Backspace) to remove just that one.';
     const row = document.getElementById("step-tabs");
     row.innerHTML = "";
     steps.forEach((s, i) => {
@@ -775,6 +816,48 @@
   }
   const pointCounters = { nextPlayerNum: 1, nextDefenderNum: 1 };
 
+  // Distancia de un punto al segmento [x1,y1]-[x2,y2] -- para poder
+  // seleccionar una flecha/pase/pantalla haciendo clic CERCA de la
+  // línea, no solo exactamente sobre uno de sus dos extremos. Mismo
+  // cálculo que ya usa Exercise creator para lo mismo.
+  function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+  }
+  // Busca una ACCIÓN (línea de movimiento/pase/tiro, pantalla, o zona)
+  // cerca de (x,y) -- para seleccionarla y poder borrarla. A diferencia
+  // de los puntos, las acciones no se pueden arrastrar aquí (nunca se ha
+  // podido), solo seleccionar.
+  function actionAt(x, y) {
+    const step = currentStep();
+    const zoneHit = step.actions.find((a) => a.type === "zone" && Math.hypot(a.x - x, a.y - y) < 0.06);
+    if (zoneHit) return zoneHit;
+    return step.actions.find((a) => {
+      if (!a.points || a.points.length < 2) return false;
+      const [x1, y1] = a.points[0], [x2, y2] = a.points[a.points.length - 1];
+      return distToSegment(x, y, x1, y1, x2, y2) < 0.02;
+    }) || null;
+  }
+  // Quita del step el elemento actualmente seleccionado (un punto o una
+  // acción) -- desde el botón "🗑 Delete element" o Delete/Backspace.
+  function deleteSelectedElement() {
+    if (!selectedElement) return;
+    const step = currentStep();
+    if (selectedElement.kind === "point") {
+      const idx = step.points.indexOf(selectedElement.item);
+      if (idx !== -1) step.points.splice(idx, 1);
+    } else {
+      const idx = step.actions.indexOf(selectedElement.item);
+      if (idx !== -1) step.actions.splice(idx, 1);
+    }
+    selectedElement = null;
+    dragging = null;
+    render();
+  }
+
   els.canvas.addEventListener("mousedown", onPointerDown);
   els.canvas.addEventListener("touchstart", onPointerDown);
   function onPointerDown(e) {
@@ -785,6 +868,7 @@
     if (activeTool === "select") {
       const p = pointAt(x, y);
       if (p) {
+        selectedElement = { item: p, kind: "point" };
         dragging = p.id;
         // si un ballon est juste à côté (le joueur "l'a en main"), il
         // doit suivre le joueur tant qu'on ne dessine pas un vrai pas/tir
@@ -793,7 +877,16 @@
           const ball = step.points.find((b) => b.type === "ball" && (b.carriedBy === p.id || (b.id !== p.id && Math.hypot(b.x - p.x, b.y - p.y) < ATTACH_RADIUS)));
           if (ball) draggingBallId = ball.id;
         }
+        render();
+        return;
       }
+      // Ningún punto ahí -- ¿una línea/pantalla/zona? Se puede
+      // seleccionar (para borrarla con el botón/Backspace) aunque no se
+      // pueda arrastrar.
+      const action = actionAt(x, y);
+      selectedElement = action ? { item: action, kind: "action" } : null;
+      dragging = null;
+      render();
       return;
     }
     if (POINT_TOOLS.includes(activeTool)) {
@@ -923,7 +1016,20 @@
   document.getElementById("clear-actions-btn").addEventListener("click", () => {
     const step = currentStep();
     step.actions = []; step.points = [];
+    selectedElement = null;
     render();
+  });
+  document.getElementById("delete-element-btn").addEventListener("click", deleteSelectedElement);
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Delete" && e.key !== "Backspace") return;
+    // No robarle Backspace a un campo de texto normal de la página
+    // (nombre de la jugada, nota del step...) -- mismo criterio que en
+    // Exercise creator para lo mismo.
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (!selectedElement) return;
+    e.preventDefault();
+    deleteSelectedElement();
   });
 
   // -----------------------------------------------------------------------
@@ -1791,7 +1897,7 @@
         <li><strong>Category = the "subfolder"</strong> — free text, typed by you (e.g. "Half-court offense", "Out of bounds", "Press break", "Zone offense"). There's no separate screen to "create" one — just type a name here and save; the next play you give the same name will automatically group with it. Typos create a new, separate folder, so keep the wording consistent (e.g. always "Out of bounds", not sometimes "OOB").</li>
         <li>Looking for a play from another team, another season, or shared by another club? Use <strong>🌐 Browse Playbook</strong>, below your saved plays — it has its own filters (team, category, language, and who made it) and can open any play straight into this editor.</li>
         <li>A new play starts <strong>completely empty</strong> — nothing is pre-placed. Pick "Attacker", "Defender", "Ball", "Cone", "Coach", "Post", or "Handoff" and click the court to add one; you'll be asked for a number/label for attackers and defenders.</li>
-        <li><strong>Move/select</strong> — drag any point you've placed. Double-click a player/defender to rename it, or double-click any other point to remove it.</li>
+        <li><strong>Move/select</strong> — drag any point you've placed. Double-click a player/defender to rename it, or double-click any other point to remove it. Clicking a line/screen/zone (or a point) selects it — then <strong>🗑 Delete element</strong> (or Delete/Backspace on a keyboard) removes just that one, without touching anything else on the step.</li>
         <li><strong>Steps</strong> — click "+ Add step" as many times as the play needs. Each new step starts with points positioned exactly where the previous step's cuts/dribbles ended — draw a pass from 1 to 2 and step 2 opens with the ball already at 2.</li>
         <li><strong>Note for this step</strong> — a short caption (e.g. "1 passes to 2 and cuts backdoor") that appears on screen while that step plays during "Animate", and under the diagram in the exported PDF.</li>
         <li><strong>This step's court</strong> — half or full, chosen independently for every step.</li>
