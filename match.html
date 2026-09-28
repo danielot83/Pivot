@@ -510,6 +510,14 @@
           <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
           <button class="btn btn-secondary" id="import-stats-btn">Import stats from Excel</button>
           <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
+          <button class="btn btn-secondary" id="import-photo-btn">📷 Import from a photo</button>
+          <select id="import-photo-lang-select" title="Sheet text is mostly in" style="padding:8px 6px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
+            <option value="eng">EN</option>
+            <option value="fra">FR</option>
+            <option value="spa">ES</option>
+          </select>
+          <a href="#" id="photo-import-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; align-self:center;">❔ What this does</a>
+          <input type="file" id="import-photo-file-input" accept="image/*" capture="environment" style="display:none" />
           <div class="spacer"></div>
           <button class="btn btn-secondary" id="delete-match-btn" style="display:none; color:#991b1b;">Delete this match</button>
         </div>
@@ -662,6 +670,14 @@
     { key: "rebounds", label: "Reb", default: true },
     { key: "assists", label: "Ast", default: true },
     { key: "fouls", label: "Fouls", default: true },
+    // Dani, ronda 31: columnas nuevas, apagadas por defecto (default:false)
+    // a propósito -- igual que las stats personalizadas de cada club, no
+    // todo el mundo las necesita, y así ningún club ve la tabla más
+    // apretada de golpe. Se activan desde el mismo menú "Columns ▾".
+    { key: "periods_played", label: "Periods", default: false },
+    { key: "made_1", label: "1PM", default: false },
+    { key: "made_2", label: "2PM", default: false },
+    { key: "made_3", label: "3PM", default: false },
   ];
   function callupColumnDefs() {
     return [
@@ -1211,7 +1227,7 @@
     els.matchVisibility.value = "team";
     els.matchLanguage.value = "en"; currentTranslationGroupId = null;
     statsByPlayer = {};
-    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, custom_stats: {} }));
+    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} }));
     attendanceByPlayer = {};
     opponentStats = [];
     renderCallupTable();
@@ -1246,9 +1262,9 @@
 
     const { data: statRows } = await supabaseClient.from("match_player_stats").select("*").eq("match_id", id);
     statsByPlayer = {};
-    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, custom_stats: {} }));
+    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} }));
     (statRows || []).forEach((s) => {
-      statsByPlayer[s.player_id] = { called_up: s.called_up, started: s.started, minutes: s.minutes, points: s.points, rebounds: s.rebounds, assists: s.assists, fouls: s.fouls, custom_stats: s.custom_stats || {} };
+      statsByPlayer[s.player_id] = { called_up: s.called_up, started: s.started, minutes: s.minutes, points: s.points, rebounds: s.rebounds, assists: s.assists, fouls: s.fouls, periods_played: s.periods_played ?? null, made_1: s.made_1 ?? 0, made_2: s.made_2 ?? 0, made_3: s.made_3 ?? 0, custom_stats: s.custom_stats || {} };
     });
 
     // Presente ahora se puede marcar desde aquí O desde Attendance --
@@ -1302,6 +1318,10 @@
       case "rebounds": return `<td class="editable" data-player="${p.id}" data-field="rebounds">${s.rebounds ?? 0}</td>`;
       case "assists": return `<td class="editable" data-player="${p.id}" data-field="assists">${s.assists ?? 0}</td>`;
       case "fouls": return `<td class="editable" data-player="${p.id}" data-field="fouls">${s.fouls ?? 0}</td>`;
+      case "periods_played": return `<td class="editable" data-player="${p.id}" data-field="periods_played" title="How many periods/quarters this player was on court">${s.periods_played ?? ""}</td>`;
+      case "made_1": return `<td class="editable" data-player="${p.id}" data-field="made_1" title="1-point shots made">${s.made_1 ?? 0}</td>`;
+      case "made_2": return `<td class="editable" data-player="${p.id}" data-field="made_2" title="2-point shots made">${s.made_2 ?? 0}</td>`;
+      case "made_3": return `<td class="editable" data-player="${p.id}" data-field="made_3" title="3-point shots made">${s.made_3 ?? 0}</td>`;
       default:
         if (col.custom) return `<td class="editable" data-player="${p.id}" data-custom="${escapeHtml(col.fieldKey)}">${(s.custom_stats && s.custom_stats[col.fieldKey]) ?? 0}</td>`;
         return "<td></td>";
@@ -1488,7 +1508,136 @@
     rebounds: ["rebounds", "reb", "rebotes"],
     assists: ["assists", "ast", "asistencias"],
     fouls: ["fouls", "faltas", "pf"],
+    // Dani, ronda 31: dos columnas que algunas hojas de partido (federación,
+    // torneos de categorías inferiores) traen y que antes no se registraban
+    // en ningún sitio -- "períodos jugados" (cuántos cuartos/periodos jugó
+    // cada jugador) y el desglose de canastas de 1/2/3 puntos. Ambas son
+    // opcionales: si la hoja no las trae, todo sigue funcionando exactamente
+    // igual que antes (ver presentFields más abajo).
+    periods_played: ["periods played", "periods_played", "períodos jugados", "periodos jugados", "cuartos jugados", "q jugados", "quarters played", "periodes jouees"],
+    made_1: ["1pm", "1 pm", "made 1", "1pt made", "1 point made", "1s made", "tiros de 1 anotados", "canastas de 1", "puntos de 1 anotados", "1 punto anotado"],
+    made_2: ["2pm", "2 pm", "made 2", "2pt made", "2 point made", "2s made", "tiros de 2 anotados", "canastas de 2", "puntos de 2 anotados", "2 puntos anotados"],
+    made_3: ["3pm", "3 pm", "made 3", "3pt made", "3 point made", "3s made", "triples", "triples anotados", "tiros de 3 anotados", "canastas de 3", "puntos de 3 anotados", "3 puntos anotados"],
   };
+
+  // Dani, ronda 31: la lógica de "¿qué columna significa qué?" + "arma la
+  // fila de stats de un jugador a partir de eso" se saca a dos funciones
+  // compartidas -- antes vivía solo dentro del import de Excel; ahora el
+  // import por foto (más abajo) la reutiliza tal cual, en vez de
+  // duplicarla, para que las dos vías de import se comporten exactamente
+  // igual (mismos alias, mismo cálculo de puntos a partir del desglose,
+  // mismo emparejamiento de nombre contra el roster).
+  function deriveFieldMapFromHeaders(headerRow) {
+    const fieldMap = {};
+    headerRow.forEach((h, idx) => {
+      const norm = normalizeMatchHeader(h);
+      for (const field in MATCH_STAT_ALIASES) {
+        if (MATCH_STAT_ALIASES[field].some((alias) => normalizeMatchHeader(alias) === norm)) { fieldMap[idx] = field; break; }
+      }
+      if (fieldMap[idx] === undefined) {
+        const custom = matchFields.find((f) => normalizeMatchHeader(f.label) === norm || normalizeMatchHeader(f.key) === norm);
+        if (custom) fieldMap[idx] = "custom:" + custom.key;
+      }
+    });
+    return fieldMap;
+  }
+
+  // Dani, test funcional ronda 30 (hallazgo ALTO nº3): un campo básico
+  // (minutes/points/rebounds/assists/fouls...) que NO viniera en el
+  // archivo/foto no debe terminar en `r` con su valor por defecto (0, o
+  // null para minutes) -- si no, el merge posterior sobreescribiría en
+  // silencio lo que ya hubiera guardado a mano para ese jugador. Por eso
+  // cada campo básico solo se incluye (y por tanto solo se fusiona) si su
+  // columna existía de verdad -- igual que ya pasaba con custom_stats.
+  function parsedRowsFromFieldMap(fieldMap, dataRows) {
+    const presentFields = new Set(Object.values(fieldMap).filter((f) => !f.startsWith("custom:")));
+    const parsedRows = [];
+    let unmatched = 0;
+    dataRows.forEach((cells) => {
+      const r = {};
+      const rCustom = {};
+      cells.forEach((val, idx) => {
+        const field = fieldMap[idx];
+        if (field === undefined) return;
+        if (field.startsWith("custom:")) { rCustom[field.slice(7)] = val; }
+        else r[field] = val;
+      });
+      const name = normalizeMatchHeader(r.player_name);
+      if (!name) return;
+      const player = teamPlayers.find((p) => normalizeMatchHeader(`${p.first_name} ${p.last_name}`) === name || normalizeMatchHeader(`${p.last_name} ${p.first_name}`) === name);
+      if (!player) { unmatched++; return; }
+      const custom_stats = {};
+      Object.keys(rCustom).forEach((k) => { custom_stats[k] = rCustom[k] ? parseFloat(rCustom[k]) : 0; });
+      const row = { player_id: player.id, custom_stats };
+      if (presentFields.has("minutes")) row.minutes = r.minutes ? parseFloat(r.minutes) : null;
+      if (presentFields.has("points")) row.points = r.points ? parseInt(r.points, 10) : 0;
+      if (presentFields.has("rebounds")) row.rebounds = r.rebounds ? parseInt(r.rebounds, 10) : 0;
+      if (presentFields.has("assists")) row.assists = r.assists ? parseInt(r.assists, 10) : 0;
+      if (presentFields.has("fouls")) row.fouls = r.fouls ? parseInt(r.fouls, 10) : 0;
+      if (presentFields.has("periods_played")) row.periods_played = r.periods_played ? parseInt(r.periods_played, 10) : null;
+      if (presentFields.has("made_1")) row.made_1 = r.made_1 ? parseInt(r.made_1, 10) : 0;
+      if (presentFields.has("made_2")) row.made_2 = r.made_2 ? parseInt(r.made_2, 10) : 0;
+      if (presentFields.has("made_3")) row.made_3 = r.made_3 ? parseInt(r.made_3, 10) : 0;
+      // Dani, ronda 31: si la hoja/foto trae el desglose de canastas de
+      // 1/2/3 puntos pero NO trae una columna de puntos total, el total se
+      // calcula solo a partir del desglose -- así una hoja que solo anota
+      // "quién metió cada canasta" (como la del torneo U8) sigue dejando
+      // el total de puntos correcto sin que nadie lo sume a mano. Si la
+      // hoja SÍ trae puntos totales, esa columna manda siempre (no se
+      // sobreescribe con el cálculo, por si hay una canasta especial --
+      // técnico, 4 puntos por falta antideportiva, etc. -- que el
+      // desglose 1/2/3 no contempla).
+      if (!presentFields.has("points") && (presentFields.has("made_1") || presentFields.has("made_2") || presentFields.has("made_3"))) {
+        row.points = (row.made_1 || 0) * 1 + (row.made_2 || 0) * 2 + (row.made_3 || 0) * 3;
+      }
+      parsedRows.push(row);
+    });
+    return { parsedRows, unmatched };
+  }
+
+  // Dani, ronda 31: este guardado ya pasa por la misma RPC atómica
+  // (replace_match_details, step83/step84) que usa el guardado manual --
+  // antes el import de Excel hacía su propio delete()+insert() suelto,
+  // sin transacción, solo sobre match_player_stats (el mismo riesgo que
+  // motivó step83 para el guardado manual: si el insert fallaba a mitad
+  // de camino, el delete ya estaba confirmado y las stats quedaban
+  // vacías de verdad). Como la RPC reemplaza las DOS tablas de una vez,
+  // hay que traer también las estadísticas de rivales ya guardadas para
+  // pasarlas sin tocar -- ni el import de Excel ni el de foto las tocan.
+  // Compartida por las dos vías de import (Excel y foto).
+  async function importParsedRowsIntoMatch(parsedRows) {
+    const matchId = await promptMatchTarget(allMatchesCache, parsedRows.length);
+    if (!matchId) return false;
+    try {
+      const { data: existing } = await supabaseClient.from("match_player_stats").select("*").eq("match_id", matchId);
+      const { data: existingOpponent } = await supabaseClient.from("match_opponent_stats").select("*").eq("match_id", matchId);
+      const byPlayer = {};
+      (existing || []).forEach((s) => { const clean = { ...s }; delete clean.id; delete clean.match_id; byPlayer[s.player_id] = clean; });
+      parsedRows.forEach((r) => {
+        const prev = byPlayer[r.player_id] || {};
+        const mergedCustom = { ...(prev.custom_stats || {}), ...(r.custom_stats || {}) };
+        byPlayer[r.player_id] = { ...prev, ...r, called_up: true, started: prev.started || false, custom_stats: mergedCustom };
+      });
+      const playerRows = Object.keys(byPlayer).map((pid) => ({ player_id: pid, ...byPlayer[pid] }));
+      const opponentRows = (existingOpponent || []).map((r) => {
+        const clean = { ...r };
+        delete clean.id; delete clean.match_id; delete clean.organization_id; delete clean.created_at;
+        return clean;
+      });
+      const { error } = await supabaseClient.rpc("replace_match_details", {
+        p_match_id: matchId, p_organization_id: currentOrgId, p_player_rows: playerRows, p_opponent_rows: opponentRows,
+      });
+      if (error) throw error;
+      showMessage(`Imported stats for ${parsedRows.length} player(s).`, "success");
+      if (currentMatchId === matchId) await openMatch(matchId);
+      await loadMatchesList();
+      await loadSeasonSummary();
+      return true;
+    } catch (err) {
+      showMessage(err.message || "Couldn't save those stats.", "error");
+      return false;
+    }
+  }
 
   document.getElementById("import-stats-btn").addEventListener("click", () => {
     if (!currentTeam) { showMessage("Pick a team first.", "error"); return; }
@@ -1512,60 +1661,14 @@
       // personalizadas de este club, reconocidas automáticamente por
       // nombre exacto (clave o etiqueta) -- "lo más flexible posible",
       // sin necesidad de mapear nada a mano.
-      const fieldMap = {};
-      Object.keys(rawRows[0]).forEach((h) => {
-        const norm = normalizeMatchHeader(h);
-        for (const field in MATCH_STAT_ALIASES) {
-          if (MATCH_STAT_ALIASES[field].some((alias) => normalizeMatchHeader(alias) === norm)) { fieldMap[h] = field; break; }
-        }
-        if (!fieldMap[h]) {
-          const custom = matchFields.find((f) => normalizeMatchHeader(f.label) === norm || normalizeMatchHeader(f.key) === norm);
-          if (custom) fieldMap[h] = "custom:" + custom.key;
-        }
-      });
-
-      // Dani, test funcional ronda 30 (hallazgo ALTO nº3): antes, un campo
-      // básico (minutes/points/rebounds/assists/fouls) que NO viniera en
-      // el archivo terminaba igual en `r` con su valor por defecto
-      // (0, o null para minutes) -- y como el merge de más abajo hace
-      // `{...prev, ...r}`, ese 0/null por defecto SOBREESCRIBÍA lo que ya
-      // hubiera guardado a mano para ese jugador. Un Excel de un
-      // anotador externo típico ("Nombre" + "Puntos" nada más) borraba
-      // en silencio los minutos/rebotes/asistencias/faltas ya cargados.
-      // Arreglo: solo se incluye en `r` (y por tanto solo se fusiona) un
-      // campo básico si su columna existía de verdad en el archivo --
-      // igual que ya pasaba correctamente con custom_stats, que solo
-      // trae las claves que sí vinieron.
-      const presentFields = new Set(Object.values(fieldMap).filter((f) => !f.startsWith("custom:")));
-
-      parsedRows = [];
-      let unmatched = 0;
-      rawRows.forEach((raw) => {
-        const r = {};
-        const rCustom = {};
-        for (const header in raw) {
-          const field = fieldMap[header];
-          if (!field) continue;
-          if (field.startsWith("custom:")) { rCustom[field.slice(7)] = raw[header]; }
-          else r[field] = raw[header];
-        }
-        const name = normalizeMatchHeader(r.player_name);
-        if (!name) return;
-        const player = teamPlayers.find((p) => normalizeMatchHeader(`${p.first_name} ${p.last_name}`) === name || normalizeMatchHeader(`${p.last_name} ${p.first_name}`) === name);
-        if (!player) { unmatched++; return; }
-        const custom_stats = {};
-        Object.keys(rCustom).forEach((k) => { custom_stats[k] = rCustom[k] ? parseFloat(rCustom[k]) : 0; });
-        const row = { player_id: player.id, custom_stats };
-        if (presentFields.has("minutes")) row.minutes = r.minutes ? parseFloat(r.minutes) : null;
-        if (presentFields.has("points")) row.points = r.points ? parseInt(r.points, 10) : 0;
-        if (presentFields.has("rebounds")) row.rebounds = r.rebounds ? parseInt(r.rebounds, 10) : 0;
-        if (presentFields.has("assists")) row.assists = r.assists ? parseInt(r.assists, 10) : 0;
-        if (presentFields.has("fouls")) row.fouls = r.fouls ? parseInt(r.fouls, 10) : 0;
-        parsedRows.push(row);
-      });
+      const headerRow = Object.keys(rawRows[0]);
+      const fieldMap = deriveFieldMapFromHeaders(headerRow);
+      const dataRows = rawRows.map((raw) => headerRow.map((h) => raw[h]));
+      const result = parsedRowsFromFieldMap(fieldMap, dataRows);
+      parsedRows = result.parsedRows;
 
       if (parsedRows.length === 0) {
-        showMessage(unmatched > 0 ? `Found ${unmatched} row(s), but none matched a name in ${currentTeam}'s roster.` : "Couldn't find a usable player name column.", "error");
+        showMessage(result.unmatched > 0 ? `Found ${result.unmatched} row(s), but none matched a name in ${currentTeam}'s roster.` : "Couldn't find a usable player name column.", "error");
         return;
       }
     } catch (err) {
@@ -1573,28 +1676,307 @@
       return;
     }
 
-    const matchId = await promptMatchTarget(allMatchesCache, parsedRows.length);
-    if (!matchId) return;
+    await importParsedRowsIntoMatch(parsedRows);
+  });
 
-    try {
-      const { data: existing } = await supabaseClient.from("match_player_stats").select("*").eq("match_id", matchId);
-      const byPlayer = {};
-      (existing || []).forEach((s) => { const clean = { ...s }; delete clean.id; delete clean.match_id; byPlayer[s.player_id] = clean; });
-      parsedRows.forEach((r) => {
-        const prev = byPlayer[r.player_id] || {};
-        const mergedCustom = { ...(prev.custom_stats || {}), ...(r.custom_stats || {}) };
-        byPlayer[r.player_id] = { ...prev, ...r, called_up: true, started: prev.started || false, custom_stats: mergedCustom };
+  // -----------------------------------------------------------------------
+  // "Import from a photo" -- hoja de partido manuscrita o de un formato
+  // no soportado por el Excel de siempre. Dani, ronda 31: mismo criterio
+  // que ya usa "Fill in from a photo" en Exercise creator -- OCR con
+  // Tesseract.js, enteramente en el navegador, SIN IA ni servidor propio
+  // (para no arriesgarse a que el uso de otro club le dispare la
+  // factura). A diferencia de una foto de ejercicio (texto libre que cae
+  // en un solo campo), aquí hace falta reconstruir una TABLA -- mucho
+  // menos fiable, sobre todo con letra a mano -- así que el resultado
+  // SIEMPRE pasa por una tabla editable de revisión antes de guardar
+  // nada; nunca se importa directamente.
+  // -----------------------------------------------------------------------
+  let matchPhotoTesseractLoadPromise = null;
+  function loadTesseractForMatch() {
+    if (window.Tesseract) return Promise.resolve();
+    if (!matchPhotoTesseractLoadPromise) {
+      matchPhotoTesseractLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Couldn't load the text-reading library — check your internet connection and try again."));
+        document.head.appendChild(script);
       });
-      await supabaseClient.from("match_player_stats").delete().eq("match_id", matchId);
-      const rows = Object.keys(byPlayer).map((pid) => ({ match_id: matchId, player_id: pid, ...byPlayer[pid] }));
-      const { error } = await supabaseClient.from("match_player_stats").insert(rows);
-      if (error) throw error;
-      showMessage(`Imported stats for ${parsedRows.length} player(s).`, "success");
-      if (currentMatchId === matchId) await openMatch(matchId);
-      await loadMatchesList();
-      await loadSeasonSummary();
+    }
+    return matchPhotoTesseractLoadPromise;
+  }
+
+  function openPhotoImportGuideModal() {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:460px; width:100%; padding:24px 26px; max-height:85vh; overflow-y:auto;">
+        <h3 style="margin:0 0 6px; font-size:17px;">Import from a photo — what it actually does</h3>
+        <p class="hint" style="margin:0 0 14px;">This is NOT AI — it's plain text recognition (OCR), running on your own device. No account, no setup, no internet service reading your match sheets.</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>What it does:</strong> reads the photo, guesses where the rows and columns of your stats table are, and shows you an editable grid so you can check and fix anything — nothing is imported until you review it and click "Import these rows".</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 14px;"><strong>What it doesn't do:</strong> it's much less reliable with handwriting than with printed text, and it can't always tell where one column ends and the next begins on a busy sheet. Expect to fix some cells by hand, especially on a handwritten sheet — that's the technology's limit, not a bug. It also never guesses what a column means — you confirm that yourself for each one, right below the grid.</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 16px;"><strong>Tips for a better read:</strong> good light, the sheet held flat and filling the frame, and as straight-on an angle as possible all make a real difference.</p>
+        <p class="hint" style="margin:0 0 16px;">You can reopen this anytime with "❔ What this does", next to "Import from a photo".</p>
+        <button class="btn btn-primary" id="photo-import-guide-close-btn" style="width:100%;">Got it</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector("#photo-import-guide-close-btn").addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    try { localStorage.setItem(`pivot_photo_import_guide_seen_${currentOrgId || "x"}`, "1"); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
+  }
+
+  document.getElementById("photo-import-guide-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    openPhotoImportGuideModal();
+  });
+
+  // Agrupa un array de objetos en clusters 1D (mismo eje que se le pida --
+  // Y para filas, X para columnas de una fila, o X global para columnas
+  // de toda la tabla): separa en un cluster nuevo cuando el hueco con el
+  // siguiente valor supera el umbral dado.
+  function cluster1D(items, getValue, threshold) {
+    const sorted = [...items].sort((a, b) => getValue(a) - getValue(b));
+    const clusters = [];
+    let current = [];
+    let last = null;
+    sorted.forEach((item) => {
+      const v = getValue(item);
+      if (last !== null && v - last > threshold) { clusters.push(current); current = []; }
+      current.push(item);
+      last = v;
+    });
+    if (current.length) clusters.push(current);
+    return clusters;
+  }
+
+  // A partir de las palabras reconocidas por Tesseract (cada una con su
+  // caja x0/y0/x1/y1), reconstruye una tabla aproximada: agrupa palabras
+  // en filas por su centro Y, dentro de cada fila agrupa palabras
+  // cercanas en una misma celda (hueco pequeño = misma celda, p.ej.
+  // "John Smith"), y finalmente alinea las celdas de TODAS las filas en
+  // columnas comunes agrupando sus bordes izquierdos por todo el
+  // documento -- así una hoja con líneas de tabla impresas (columnas
+  // siempre en la misma posición) se reconstruye razonablemente bien.
+  // Es un método aproximado a propósito: el resultado siempre se revisa
+  // y se corrige a mano en una tabla editable antes de importar nada.
+  function buildGridFromOcrWords(words, imageWidth, imageHeight) {
+    const valid = (words || []).filter((w) => w.text && w.text.trim() && w.bbox);
+    if (valid.length === 0) return [];
+    const heights = valid.map((w) => w.bbox.y1 - w.bbox.y0).sort((a, b) => a - b);
+    const medianHeight = heights[Math.floor(heights.length / 2)] || 20;
+    const rowThreshold = Math.max(medianHeight * 0.7, imageHeight * 0.01);
+    const rowClusters = cluster1D(valid, (w) => (w.bbox.y0 + w.bbox.y1) / 2, rowThreshold)
+      .sort((a, b) => {
+        const avgA = a.reduce((s, w) => s + (w.bbox.y0 + w.bbox.y1) / 2, 0) / a.length;
+        const avgB = b.reduce((s, w) => s + (w.bbox.y0 + w.bbox.y1) / 2, 0) / b.length;
+        return avgA - avgB;
+      });
+
+    const cellGapThreshold = imageWidth * 0.02;
+    const rows = rowClusters.map((rowWords) => {
+      const sorted = [...rowWords].sort((a, b) => a.bbox.x0 - b.bbox.x0);
+      const cells = [];
+      let current = null;
+      sorted.forEach((w) => {
+        if (current && w.bbox.x0 - current.x1 <= cellGapThreshold) {
+          current.text += " " + w.text;
+          current.x1 = Math.max(current.x1, w.bbox.x1);
+        } else {
+          current = { text: w.text, x0: w.bbox.x0, x1: w.bbox.x1 };
+          cells.push(current);
+        }
+      });
+      return cells;
+    });
+
+    const allCells = [];
+    rows.forEach((cells, rowIdx) => cells.forEach((c) => allCells.push({ ...c, rowIdx })));
+    if (allCells.length === 0) return [];
+    const colThreshold = imageWidth * 0.05;
+    const colClusters = cluster1D(allCells, (c) => c.x0, colThreshold).sort((a, b) => {
+      const avgA = a.reduce((s, c) => s + c.x0, 0) / a.length;
+      const avgB = b.reduce((s, c) => s + c.x0, 0) / b.length;
+      return avgA - avgB;
+    });
+    const numCols = Math.max(colClusters.length, 1);
+
+    const grid = rows.map(() => new Array(numCols).fill(""));
+    colClusters.forEach((cluster, colIdx) => {
+      cluster.forEach((c) => { grid[c.rowIdx][colIdx] = c.text; });
+    });
+    // Filas totalmente vacías (ruido reconocido fuera de la tabla) fuera.
+    return grid.filter((row) => row.some((cell) => cell.trim()));
+  }
+
+  const PHOTO_COLUMN_MEANING_OPTIONS = [
+    { value: "", label: "— Ignore this column —" },
+    { value: "player_name", label: "Player name" },
+    { value: "minutes", label: "Minutes" },
+    { value: "points", label: "Points (total)" },
+    { value: "rebounds", label: "Rebounds" },
+    { value: "assists", label: "Assists" },
+    { value: "fouls", label: "Fouls" },
+    { value: "periods_played", label: "Periods played" },
+    { value: "made_1", label: "1-point shots made" },
+    { value: "made_2", label: "2-point shots made" },
+    { value: "made_3", label: "3-point shots made" },
+  ];
+  function photoColumnMeaningOptions() {
+    return [...PHOTO_COLUMN_MEANING_OPTIONS, ...matchFields.map((f) => ({ value: "custom:" + f.key, label: f.label }))];
+  }
+
+  let photoGridRows = [];
+  let photoColumnMeaning = [];
+
+  function renderPhotoGrid() {
+    const wrap = document.getElementById("photo-grid-wrap");
+    if (!wrap) return;
+    const numCols = photoColumnMeaning.length;
+    const options = photoColumnMeaningOptions();
+    let html = '<table style="border-collapse:collapse; width:100%;"><thead><tr>';
+    for (let c = 0; c < numCols; c++) {
+      html += `<th style="padding:6px; border-bottom:1px solid var(--line); min-width:120px; text-align:left;">
+        <select data-col-meaning="${c}" style="width:100%; font-size:12.5px; padding:4px;">
+          ${options.map((o) => `<option value="${o.value}" ${photoColumnMeaning[c] === o.value ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
+        </select>
+        <button type="button" data-del-col="${c}" title="Remove this column" style="margin-top:4px; border:none; background:none; color:var(--muted); cursor:pointer; font-size:12px; padding:0;">✕ column</button>
+      </th>`;
+    }
+    html += "<th></th></tr></thead><tbody>";
+    photoGridRows.forEach((row, r) => {
+      html += "<tr>";
+      for (let c = 0; c < numCols; c++) {
+        html += `<td style="padding:2px; border-bottom:1px solid var(--line);"><input data-row="${r}" data-col="${c}" value="${escapeHtml(row[c] || "")}" style="width:100%; border:1px solid transparent; padding:4px; font-size:13px;"></td>`;
+      }
+      html += `<td style="padding:2px; border-bottom:1px solid var(--line); white-space:nowrap;"><button type="button" data-del-row="${r}" title="Remove this row" style="border:none; background:none; color:var(--muted); cursor:pointer;">✕</button></td></tr>`;
+    });
+    html += "</tbody></table>";
+    wrap.innerHTML = html;
+
+    wrap.querySelectorAll("[data-col-meaning]").forEach((sel) => {
+      sel.addEventListener("change", () => { photoColumnMeaning[parseInt(sel.dataset.colMeaning, 10)] = sel.value; });
+    });
+    wrap.querySelectorAll("input[data-row][data-col]").forEach((inp) => {
+      inp.addEventListener("change", () => { photoGridRows[parseInt(inp.dataset.row, 10)][parseInt(inp.dataset.col, 10)] = inp.value; });
+    });
+    wrap.querySelectorAll("[data-del-row]").forEach((btn) => {
+      btn.addEventListener("click", () => { photoGridRows.splice(parseInt(btn.dataset.delRow, 10), 1); renderPhotoGrid(); });
+    });
+    wrap.querySelectorAll("[data-del-col]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.dataset.delCol, 10);
+        photoColumnMeaning.splice(idx, 1);
+        photoGridRows.forEach((r) => r.splice(idx, 1));
+        renderPhotoGrid();
+      });
+    });
+  }
+
+  function openPhotoReviewModal() {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:920px; width:100%; max-height:88vh; overflow-y:auto; padding:22px 24px;">
+        <h3 style="margin:0 0 4px; font-size:17px;">Check what was read from the photo</h3>
+        <p class="hint" style="margin:0 0 14px;">Fix any wrong cell, add or remove rows/columns if the table came out wrong, and pick what each column means in its dropdown. Nothing is saved until you click "Import these rows".</p>
+        <div id="photo-grid-wrap" style="overflow-x:auto; border:1px solid var(--line); border-radius:8px;"></div>
+        <div style="display:flex; gap:8px; margin-top:10px; align-items:center;">
+          <button class="btn btn-secondary" id="photo-add-row-btn" type="button">+ Add row</button>
+          <button class="btn btn-secondary" id="photo-add-col-btn" type="button">+ Add column</button>
+          <div class="spacer"></div>
+          <button class="btn btn-secondary" id="photo-review-cancel-btn" type="button">Cancel</button>
+          <button class="btn btn-primary" id="photo-review-confirm-btn" type="button">Import these rows</button>
+        </div>
+        <p id="photo-review-msg" class="hint" style="margin-top:10px; color:var(--accent-deep);"></p>
+      </div>`;
+    document.body.appendChild(overlay);
+    renderPhotoGrid();
+    overlay.querySelector("#photo-add-row-btn").addEventListener("click", () => {
+      photoGridRows.push(new Array(photoColumnMeaning.length).fill(""));
+      renderPhotoGrid();
+    });
+    overlay.querySelector("#photo-add-col-btn").addEventListener("click", () => {
+      photoColumnMeaning.push("");
+      photoGridRows.forEach((r) => r.push(""));
+      renderPhotoGrid();
+    });
+    overlay.querySelector("#photo-review-cancel-btn").addEventListener("click", () => overlay.remove());
+    overlay.querySelector("#photo-review-confirm-btn").addEventListener("click", async () => {
+      const fieldMap = {};
+      photoColumnMeaning.forEach((v, idx) => { if (v) fieldMap[idx] = v; });
+      const msgEl = overlay.querySelector("#photo-review-msg");
+      if (!Object.values(fieldMap).includes("player_name")) {
+        msgEl.textContent = 'Pick which column is "Player name" before importing.';
+        return;
+      }
+      const dataRows = photoGridRows.map((row) => row.map((cell) => (cell || "").trim()));
+      const { parsedRows, unmatched } = parsedRowsFromFieldMap(fieldMap, dataRows);
+      if (parsedRows.length === 0) {
+        msgEl.textContent = unmatched > 0
+          ? `Found ${unmatched} row(s), but none matched a name in ${currentTeam}'s roster — fix the name column and try again.`
+          : "No usable rows yet — check the player name column.";
+        return;
+      }
+      overlay.remove();
+      await importParsedRowsIntoMatch(parsedRows);
+    });
+  }
+
+  document.getElementById("import-photo-btn").addEventListener("click", () => {
+    if (!currentTeam) { showMessage("Pick a team first.", "error"); return; }
+    document.getElementById("import-photo-file-input").click();
+  });
+
+  document.getElementById("import-photo-file-input").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+
+    let seen = true;
+    try { seen = localStorage.getItem(`pivot_photo_import_guide_seen_${currentOrgId || "x"}`) === "1"; } catch (err) { /* no pasa nada */ }
+    if (!seen) openPhotoImportGuideModal();
+
+    const lang = document.getElementById("import-photo-lang-select").value;
+    showMessage("Reading the photo…", "success");
+    try {
+      const imgDims = await new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => { resolve({ width: img.naturalWidth, height: img.naturalHeight }); URL.revokeObjectURL(url); };
+        img.onerror = () => { reject(new Error("Couldn't open that photo.")); URL.revokeObjectURL(url); };
+        img.src = url;
+      });
+      await loadTesseractForMatch();
+      const worker = await window.Tesseract.createWorker(lang, 1, {
+        logger: (m) => {
+          if (m.status === "recognizing text" && typeof m.progress === "number") {
+            showMessage(`Reading the photo… ${Math.round(m.progress * 100)}%`, "success");
+          }
+        },
+      });
+      let result;
+      try { result = await worker.recognize(file); }
+      finally { await worker.terminate(); }
+      const words = (result && result.data && result.data.words) || [];
+      if (words.length === 0) throw new Error("Couldn't find any readable text in that photo.");
+      const grid = buildGridFromOcrWords(words, imgDims.width, imgDims.height);
+      if (grid.length === 0) throw new Error("Couldn't make out a table in that photo — try a clearer, flatter photo, held straight-on.");
+
+      const numCols = Math.max(...grid.map((r) => r.length));
+      photoGridRows = grid.map((r) => { const row = [...r]; while (row.length < numCols) row.push(""); return row; });
+      // Adivina qué significa cada columna a partir de la primera fila leída
+      // (probablemente la cabecera de la hoja) -- solo un punto de partida
+      // pensado para ahorrar clics; se puede cambiar en cualquier
+      // desplegable antes de importar, y por defecto la primera columna
+      // se asume que es el nombre (lo más habitual en estas hojas).
+      const guessMap = deriveFieldMapFromHeaders(photoGridRows[0] || []);
+      photoColumnMeaning = new Array(numCols).fill("").map((_, idx) => guessMap[idx] || (idx === 0 ? "player_name" : ""));
+      showMessage("Photo read — check the table below before importing.", "success");
+      openPhotoReviewModal();
     } catch (err) {
-      showMessage(err.message || "Couldn't save those stats.", "error");
+      console.error("Photo import OCR error:", err);
+      showMessage(err.message || "Couldn't read that photo.", "error");
     }
   });
 
@@ -1616,6 +1998,19 @@
         stats.custom_stats[custom] = val ?? 0;
       } else {
         statsByPlayer[td.dataset.player][td.dataset.field] = val;
+        // Dani, ronda 31: si se edita a mano el desglose de canastas de
+        // 1/2/3 puntos, el total de puntos se recalcula solo a partir del
+        // desglose -- mismo criterio que en el importador de Excel, para
+        // no tener que sumarlo aparte. Solo se dispara al tocar una de
+        // estas 3 celdas -- un club que no las use (columnas apagadas por
+        // defecto, ver CALLUP_FIXED_COLUMNS) nunca lo notará, su columna
+        // "Pts" sigue siendo 100% manual como siempre.
+        if (td.dataset.field === "made_1" || td.dataset.field === "made_2" || td.dataset.field === "made_3") {
+          const s = statsByPlayer[td.dataset.player];
+          s.points = (s.made_1 || 0) * 1 + (s.made_2 || 0) * 2 + (s.made_3 || 0) * 3;
+          const ptsTd = els.callupBody.querySelector(`td[data-player="${td.dataset.player}"][data-field="points"]`);
+          if (ptsTd && !ptsTd.querySelector("input")) ptsTd.textContent = s.points;
+        }
       }
       td.textContent = val ?? "";
     };
@@ -1677,7 +2072,7 @@
       // celda (ver makeCellEditable/commit), así que su sola presencia ya
       // es motivo suficiente para guardar la fila.
       const playerRows = Object.keys(statsByPlayer)
-        .filter((pid) => statsByPlayer[pid].called_up || statsByPlayer[pid].started || statsByPlayer[pid].minutes || statsByPlayer[pid].points || statsByPlayer[pid].rebounds || statsByPlayer[pid].assists || statsByPlayer[pid].fouls || (statsByPlayer[pid].custom_stats && Object.keys(statsByPlayer[pid].custom_stats).length > 0))
+        .filter((pid) => statsByPlayer[pid].called_up || statsByPlayer[pid].started || statsByPlayer[pid].minutes || statsByPlayer[pid].points || statsByPlayer[pid].rebounds || statsByPlayer[pid].assists || statsByPlayer[pid].fouls || statsByPlayer[pid].periods_played || statsByPlayer[pid].made_1 || statsByPlayer[pid].made_2 || statsByPlayer[pid].made_3 || (statsByPlayer[pid].custom_stats && Object.keys(statsByPlayer[pid].custom_stats).length > 0))
         .map((pid) => ({ player_id: pid, ...statsByPlayer[pid] }));
       const opponentRows = opponentStats
         .filter((r) => (r.player_name || "").trim())
@@ -1819,7 +2214,17 @@
     doc.line(marginX, y, pageW - marginX, y);
     y += 20;
 
-    const headers = ["#", "Player", "Min", "Pts", "Reb", "Ast", "Fouls", ...matchFields.map((f) => f.label)];
+    // Dani, ronda 31: "Periods"/"1PM"/"2PM"/"3PM" solo se imprimen si el
+    // club las tiene activadas en "Columns ▾" -- igual que las columnas
+    // personalizadas de siempre, para no cambiar el aspecto de la ficha
+    // impresa de nadie que no las use.
+    const extraStatCols = [
+      { key: "periods_played", label: "Per", value: (s) => s.periods_played ?? "" },
+      { key: "made_1", label: "1PM", value: (s) => s.made_1 ?? 0 },
+      { key: "made_2", label: "2PM", value: (s) => s.made_2 ?? 0 },
+      { key: "made_3", label: "3PM", value: (s) => s.made_3 ?? 0 },
+    ].filter((c) => visibleCallupColumns.includes(c.key));
+    const headers = ["#", "Player", "Min", "Pts", "Reb", "Ast", "Fouls", ...extraStatCols.map((c) => c.label), ...matchFields.map((f) => f.label)];
     const colW = (pageW - marginX * 2) / headers.length;
     doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...muted);
     headers.forEach((h, i) => doc.text(h.toUpperCase(), marginX + i * colW, y));
@@ -1832,8 +2237,8 @@
     rowPlayers.forEach((p) => {
       const s = statsByPlayer[p.id] || {};
       const row = blank
-        ? [p.jersey_number || "", `${p.first_name} ${p.last_name}`, "", "", "", "", "", ...matchFields.map(() => "")]
-        : [p.jersey_number || "", `${p.first_name} ${p.last_name}`, s.minutes ?? "—", s.points ?? 0, s.rebounds ?? 0, s.assists ?? 0, s.fouls ?? 0, ...matchFields.map((f) => (s.custom_stats && s.custom_stats[f.key]) ?? 0)];
+        ? [p.jersey_number || "", `${p.first_name} ${p.last_name}`, "", "", "", "", "", ...extraStatCols.map(() => ""), ...matchFields.map(() => "")]
+        : [p.jersey_number || "", `${p.first_name} ${p.last_name}`, s.minutes ?? "—", s.points ?? 0, s.rebounds ?? 0, s.assists ?? 0, s.fouls ?? 0, ...extraStatCols.map((c) => c.value(s)), ...matchFields.map((f) => (s.custom_stats && s.custom_stats[f.key]) ?? 0)];
       row.forEach((v, i) => doc.text(String(v), marginX + i * colW, y));
       if (blank) { doc.setDrawColor(225, 225, 225); doc.line(marginX, y + 5, pageW - marginX, y + 5); }
       y += blank ? 22 : 16;

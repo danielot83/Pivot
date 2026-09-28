@@ -1731,7 +1731,15 @@
 
     const catChecked = sess.categories_summary || [];
     const matChecked = sess.material_summary || [];
-    const objList = (sess.objectives_summary || []).slice(0, 4);
+    // Dani, ronda 31: antes, un 5º objetivo (o más) se descartaba en
+    // silencio -- la caja de "OBJECTIVES" en sí sigue teniendo sitio fijo
+    // para 4 (tocar eso desestabilizaría todo el cálculo de alturas de la
+    // columna izquierda, que asume ese número), pero ahora lo que sobra
+    // ya no desaparece: se continúa en la página 2 (ver
+    // drawContinuationPage, más abajo).
+    const allObjectives = sess.objectives_summary || [];
+    const objList = allObjectives.slice(0, 4);
+    const overflowObjectives = allObjectives.slice(4);
 
     const leftNRows = CATEGORIES.length + MATERIALS.length + 4;
     const leftVarTitles = (TITLE_H + PAD) * 3;
@@ -1814,7 +1822,6 @@
     const FEEDBACK_H = 140;
     const reservedBottom = GAP + TOTAL_LINE_H + GAP + ATTENDANCE_H + (ATTENDANCE_H > 0 ? GAP : 0) + FEEDBACK_H;
     const tableBottom = BOTTOM - reservedBottom;
-    const tableRows = Math.max(sessionExercises.length, 6);
     const tableBodyH = tableBottom - top - headerH;
     const rowsThatFit = Math.max(1, Math.floor(tableBodyH / 34));
     // Dani 2026-09-18 ("qué pasa con más de 7 ejercicios"): antes nRows
@@ -1824,15 +1831,20 @@
     // listado de asistencia si el equipo es grande) el resultado ERA
     // siempre sessionExercises.length: las filas se encogían sin límite,
     // el nombre del ejercicio (hasta 3 líneas envueltas, ~30pt) se salía
-    // de una fila de pocos puntos y pisaba la siguiente -- nunca se
-    // recortaba ni pasaba a una segunda hoja. Ahora nRows nunca supera lo
-    // que cabe de verdad (rowsThatFit), y si sobran ejercicios la última
-    // fila visible se convierte en un aviso "+N more" en vez de
-    // deformarse -- la sesión completa se sigue viendo en pantalla y
-    // exportando a Excel, esto solo afecta a la ficha en PDF de una hoja.
-    const nRows = Math.min(tableRows, rowsThatFit);
-    const overflowCount = Math.max(0, sessionExercises.length - nRows);
-    const lastShownIdx = overflowCount > 0 ? nRows - 2 : nRows - 1;
+    // de una fila de pocos puntos y pisaba la siguiente.
+    //
+    // Dani, ronda 31 ("hazlo bien a largo plazo, que detecte solo cuántas
+    // páginas hacen falta"): el parche de la ronda anterior (aviso "+N
+    // more") ya no se usa -- ahora, si sobran ejercicios de los que caben
+    // a tamaño legible, la tabla de la página 1 se llena entera con
+    // ejercicios reales (sin fila de aviso, sin encoger nada) y el resto
+    // se continúa en una página 2 (y una 3ª, etc., si hiciera falta) --
+    // ver drawContinuationPage más abajo. Cuando SÍ caben todos, el
+    // comportamiento es idéntico a antes (mínimo 6 filas, alguna en
+    // blanco, para que la hoja impresa siga pareciendo un plan completo).
+    const hasExerciseOverflow = sessionExercises.length > rowsThatFit;
+    const nRows = hasExerciseOverflow ? rowsThatFit : Math.min(Math.max(sessionExercises.length, 6), rowsThatFit);
+    const overflowExercises = hasExerciseOverflow ? sessionExercises.slice(nRows) : [];
     const rowH = tableBodyH / nRows;
 
     let ty = top + headerH;
@@ -1840,15 +1852,7 @@
       doc.setDrawColor(GREY); doc.setLineWidth(0.5);
       doc.line(midX0, ty + rowH, tableRight, ty + rowH);
       [colX.num, colX.name, colX.points, colX.variants].forEach((x) => doc.line(x, ty, x, ty + rowH));
-      if (overflowCount > 0 && i === nRows - 1) {
-        const midY = ty + rowH / 2 + 3;
-        doc.setFont("helvetica", "italic"); doc.setFontSize(8.5); doc.setTextColor(GREY);
-        doc.text(`+ ${overflowCount + 1} more — see the full plan on screen or in the Excel export`, midX0 + colTime + 4, midY);
-        doc.setTextColor(DARK);
-        ty += rowH;
-        continue;
-      }
-      const se = i <= lastShownIdx ? sessionExercises[i] : null;
+      const se = sessionExercises[i] || null;
       if (se) {
         const midY = ty + rowH / 2 + 3;
         doc.setFont("helvetica", "normal"); doc.setFontSize(9);
@@ -1904,6 +1908,14 @@
       });
     }
 
+    // Dani, ronda 31: antes, un comentario o nota demasiado larga para su
+    // caja simplemente se dibujaba igual con doc.text() -- las líneas de
+    // más caían fuera de la caja (y potencialmente pisando lo de abajo),
+    // invisible hasta que alguien mirara el PDF de cerca. Ahora se mide
+    // cuántas líneas caben de verdad en cada caja; lo que no quepa se
+    // continúa en la página 2 (overflowComments/overflowNextText).
+    let overflowComments = "";
+    let overflowNextText = "";
     {
       const boxTop = tableBottom + GAP + TOTAL_LINE_H + GAP + ATTENDANCE_H + (ATTENDANCE_H > 0 ? GAP : 0);
       const boxH = (BOTTOM - boxTop - GAP) / 2;
@@ -1916,12 +1928,27 @@
         doc.setTextColor(DARK); fy += 14;
       }
       const comments = (sess.comments || "").trim();
-      if (comments) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text(doc.splitTextToSize(comments, tableRight - midX0 - 16), midX0 + 8, fy); }
+      if (comments) {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+        const allLines = doc.splitTextToSize(comments, tableRight - midX0 - 16);
+        const lineH = 8.5 * 1.15;
+        const maxLines = Math.max(0, Math.floor(((boxTop + boxH) - fy) / lineH));
+        doc.text(allLines.slice(0, maxLines), midX0 + 8, fy);
+        overflowComments = allLines.slice(maxLines).join(" ");
+      }
 
       const box2Top = boxTop + boxH + GAP;
       sectionFrame(midX0, box2Top, tableRight, BOTTOM, "IDEAS FOR NEXT TIME");
       const nextText = (sess.next_training_notes || "").trim();
-      if (nextText) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text(doc.splitTextToSize(nextText, tableRight - midX0 - 16), midX0 + 8, box2Top + TITLE_H + 4); }
+      if (nextText) {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+        const allLines = doc.splitTextToSize(nextText, tableRight - midX0 - 16);
+        const fy2 = box2Top + TITLE_H + 4;
+        const lineH = 8.5 * 1.15;
+        const maxLines = Math.max(0, Math.floor((BOTTOM - fy2) / lineH));
+        doc.text(allLines.slice(0, maxLines), midX0 + 8, fy2);
+        overflowNextText = allLines.slice(maxLines).join(" ");
+      }
     }
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(8);
@@ -1932,6 +1959,136 @@
     doc.setTextColor(DARK); doc.text("ot", MARGIN + w1 + w2, BOTTOM + 13);
     const w3 = doc.getTextWidth("ot");
     doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text(".", MARGIN + w1 + w2 + w3, BOTTOM + 13);
+    doc.setTextColor(DARK);
+
+    // Dani, ronda 31: si algo no cupo en la página 1 (ejercicios de más,
+    // más de 4 objetivos, o comentarios/notas largas), se continúa en una
+    // página 2 -- y en una 3ª, 4ª, etc. si tampoco cupiera ahí. El PDF ya
+    // no pierde contenido ni lo aprieta artificialmente: crece lo que
+    // haga falta, detectado solo a partir de lo que de verdad no entró.
+    if (overflowExercises.length > 0 || overflowObjectives.length > 0 || overflowComments || overflowNextText) {
+      drawContinuationPage(doc, sess, {
+        exercises: overflowExercises, objectives: overflowObjectives, comments: overflowComments, nextText: overflowNextText,
+      }, logoDataUrl, clubName, nRows);
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Dani, ronda 31: página(s) de continuación de drawSessionPage -- se
+  // dibuja una tabla de ejercicios simple (sin columna izquierda, sin
+  // asistencia, sin cajas de comentarios) usando TODA la altura de la
+  // página, así que caben bastantes más filas que en la página 1. Si
+  // incluso así sobran ejercicios, sigue añadiendo páginas en bucle hasta
+  // que no quede ninguno. Al final, si además sobraron objetivos o texto
+  // de comentarios/notas, se listan como texto simple debajo (con una
+  // página nueva si no queda sitio razonable). Simplificación consciente:
+  // ese bloque de texto final no se pagina más allá de una página -- un
+  // caso extremo (decenas de objetivos, un comentario kilométrico) podría
+  // salirse de esa última página; no se ha visto un caso así en la
+  // práctica, y añadir paginación también ahí se puede hacer si hace
+  // falta.
+  // -----------------------------------------------------------------------
+  function drawContinuationPage(doc, sess, overflow, logoDataUrl, clubName, startIndex) {
+    const PAGE_W = 595, PAGE_H = 842, MARGIN = 20, BOTTOM = PAGE_H - MARGIN;
+    const DARK = 30, GREY = 130;
+
+    function drawContinuedHeader() {
+      doc.addPage();
+      doc.setTextColor(DARK);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(13);
+      doc.text(`${clubName || "PlayPivot"} — SESSION SHEET (continued)`, MARGIN, 30);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(GREY);
+      doc.text(`${sess.date ? formatDateDisplay(sess.date) : ""}${sess.number ? " — Session #" + sess.number : ""}`, MARGIN, 44);
+      doc.setTextColor(DARK);
+      return 62;
+    }
+
+    let top = drawContinuedHeader();
+    const leftEdge = MARGIN, tableRight = PAGE_W - MARGIN;
+    const colTime = 38, colNum = 22, colName = 170, colPoints = 150;
+    const colX = { time: leftEdge, num: leftEdge + colTime, name: leftEdge + colTime + colNum, points: leftEdge + colTime + colNum + colName, variants: leftEdge + colTime + colNum + colName + colPoints };
+
+    let remaining = overflow.exercises || [];
+    let idx = startIndex || 0;
+    while (remaining.length > 0) {
+      const headerH = 18;
+      doc.setDrawColor(DARK); doc.setLineWidth(0.7);
+      doc.setFillColor(240, 240, 240);
+      doc.rect(leftEdge, top, tableRight - leftEdge, headerH, "FD");
+      [["Time (min)", colX.time], ["N°", colX.num], ["Exercise", colX.name], ["Key points", colX.points], ["Variants", colX.variants]].forEach(([label, x]) => {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(7.8); doc.setTextColor(DARK);
+        doc.text(label, x + 4, top + 12);
+      });
+      [colX.num, colX.name, colX.points, colX.variants].forEach((x) => doc.line(x, top, x, top + headerH));
+
+      const bodyH = BOTTOM - top - headerH;
+      const rowsThatFit = Math.max(1, Math.floor(bodyH / 34));
+      const shown = remaining.slice(0, rowsThatFit);
+      const rowH = 34;
+      let ty = top + headerH;
+      shown.forEach((se) => {
+        doc.setDrawColor(GREY); doc.setLineWidth(0.5);
+        doc.line(colX.time, ty + rowH, tableRight, ty + rowH);
+        [colX.num, colX.name, colX.points, colX.variants].forEach((x) => doc.line(x, ty, x, ty + rowH));
+        const midY = ty + rowH / 2 + 3;
+        doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(DARK);
+        doc.text(String(se.duration_minutes || ""), colX.time + colTime / 2, midY, { align: "center" });
+        doc.text(String(idx + 1), colX.num + colNum / 2, midY, { align: "center" });
+        doc.setFont("helvetica", "bold");
+        const nameLines = doc.splitTextToSize(se.is_pause ? "⏸ Pause" : se.is_match ? `Match ${se.match_format || "5v5"}` : se.name, colName - 8);
+        const nameStartY = ty + rowH / 2 - ((Math.min(nameLines.length, 3) - 1) * 10) / 2 + 3;
+        doc.text(nameLines.slice(0, 3), colX.name + 4, nameStartY);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
+        const pointsText = (se.key_points || []).join(" · ");
+        if (pointsText) doc.text(doc.splitTextToSize("- " + pointsText, colPoints - 8), colX.points + 4, ty + 14);
+        if (se.session_variants) doc.text(doc.splitTextToSize(se.session_variants, (tableRight - colX.variants) - 8), colX.variants + 4, ty + 14);
+        idx++;
+        ty += rowH;
+      });
+      doc.setDrawColor(DARK); doc.setLineWidth(0.7);
+      doc.rect(leftEdge, top, tableRight - leftEdge, headerH + shown.length * rowH);
+
+      remaining = remaining.slice(shown.length);
+      top = ty + 16;
+      if (remaining.length > 0) top = drawContinuedHeader();
+    }
+
+    const hasMoreText = (overflow.objectives && overflow.objectives.length) || overflow.comments || overflow.nextText;
+    if (hasMoreText) {
+      if (BOTTOM - top < 140) top = drawContinuedHeader();
+      if (overflow.objectives && overflow.objectives.length) {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(DARK);
+        doc.text("MORE OBJECTIVES:", leftEdge, top + 10);
+        top += 16;
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+        overflow.objectives.forEach((obj) => {
+          const lines = doc.splitTextToSize("• " + obj, tableRight - leftEdge - 8);
+          doc.text(lines, leftEdge + 4, top + 8);
+          top += lines.length * 10 + 4;
+        });
+        top += 8;
+      }
+      if (overflow.comments) {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(DARK);
+        doc.text("COMMENTS (continued):", leftEdge, top + 10);
+        top += 16;
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+        const lines = doc.splitTextToSize(overflow.comments, tableRight - leftEdge - 8);
+        doc.text(lines, leftEdge + 4, top + 8);
+        top += lines.length * 10 + 12;
+      }
+      if (overflow.nextText) {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(DARK);
+        doc.text("IDEAS FOR NEXT TIME (continued):", leftEdge, top + 10);
+        top += 16;
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+        const lines = doc.splitTextToSize(overflow.nextText, tableRight - leftEdge - 8);
+        doc.text(lines, leftEdge + 4, top + 8);
+      }
+    }
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(GREY);
+    doc.text("PlayPivot. (continued)", MARGIN, BOTTOM + 13);
     doc.setTextColor(DARK);
   }
 
