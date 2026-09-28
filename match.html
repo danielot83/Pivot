@@ -473,9 +473,13 @@
             </div>
           </div>
           <p class="sub" style="margin-top:-6px;">Click any stat cell to edit. "Columns ▾" shows/hides and reorders columns (just for you), and — for admins/coaches — adds or removes your club's own custom stats (steals, turnovers, +/-…).</p>
+          <p class="hint" style="margin:2px 0 10px;">"Called up" is yours to tick — the button above the column selects/clears everyone at once. Click "Present" to cycle through it, same options as Attendance — it's the same record, mark it here or there and it shows up in both. Present only becomes clickable once the match has been saved at least once.</p>
           <!-- Leyenda, a petición de Dani ("para ver que son las cosas") --
                explica de un vistazo lo que significan las casillas/el botón
-               Present de la tabla, sin tener que leer el párrafo de arriba. -->
+               Present de la tabla. Movida aquí, justo pegada a la tabla (antes
+               vivía más arriba, separada de ella por este mismo párrafo) --
+               a petición de Dani: "la columna debería estar más abajo, junto
+               con la tabla". -->
           <div class="callup-legend">
             <span><input type="checkbox" checked tabindex="-1" style="margin-right:4px; vertical-align:middle; pointer-events:none;"> Called up</span>
             <span><button type="button" class="present-badge present-yes" tabindex="-1" style="border:none; margin-right:4px; vertical-align:middle; pointer-events:none;">P</button>Present</span>
@@ -485,7 +489,6 @@
             <span><button type="button" class="present-badge present-unknown" tabindex="-1" style="border:none; margin-right:4px; vertical-align:middle; pointer-events:none;">—</button>Not marked yet</span>
             <span><input type="checkbox" tabindex="-1" style="margin-right:4px; vertical-align:middle; pointer-events:none;"> Starter</span>
           </div>
-          <p class="hint" style="margin:2px 0 10px;">"Called up" is yours to tick — the button above the column selects/clears everyone at once. Click "Present" to cycle through it, same options as Attendance — it's the same record, mark it here or there and it shows up in both. Present only becomes clickable once the match has been saved at least once.</p>
           <table>
             <thead><tr id="callup-head"></tr></thead>
             <tbody id="callup-body"></tbody>

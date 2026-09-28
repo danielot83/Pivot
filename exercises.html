@@ -1326,6 +1326,12 @@
     const idx = COURT_IDS.indexOf(currentStep);
     if (idx >= COURT_IDS.length - 1) return;
     const nextStep = COURT_IDS[idx + 1];
+    // A petición de Dani: avisar antes de reemplazar -- si el diagrama de
+    // destino ya tenía algo dibujado, "Copy to next diagram" lo sustituía
+    // en silencio (así quedó decidido en la ronda 30, para que usar el
+    // botón dos veces no acumulara duplicados), pero sustituir sin avisar
+    // significa que un diagrama ya trabajado se puede perder sin querer.
+    if ((diagram[nextStep] || []).length > 0 && !confirm(`${COURT_LABELS[COURT_IDS.indexOf(nextStep)]} already has something drawn on it. Replace it with a copy of ${COURT_LABELS[idx]}?`)) return;
     const cloned = JSON.parse(JSON.stringify(currentElements()));
     diagram[nextStep] = resolveMovementForCopy(cloned);
     currentStep = nextStep;

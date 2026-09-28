@@ -169,10 +169,39 @@
 
   .section-label { font-size: 13px; font-weight: 600; margin: 20px 0 10px; }
   .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }  .checkbox-field { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-  .multiselect { max-height: 130px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-bottom: 12px; }
-  .multiselect label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 2px 0; }
+  .field-label { font-size: 13px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 4px; }
+  /* Category/Age de "Add from library" -- a petición de Dani ("exactamente
+     el mismo módulo de filtro que en library"): desplegable cerrado por
+     defecto (como "Columns ▾"), en vez de la caja siempre visible de
+     antes, mismo patrón que Library desde la ronda de sus propios
+     filtros. */
+  .filter-dropdown { position: relative; }
+  .filter-dropdown-btn { width: 100%; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  button.filter-dropdown-btn { font-weight: 400; background: var(--card); filter: none; padding: 7px 9px; }
+  .multiselect {
+    display: none; position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 5; width: 220px;
+    max-height: 220px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+    background: var(--card); box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  }
+  .multiselect.open { display: block; }
+  .multiselect label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 3px 0; }
   .multiselect label input { width: auto; }
   .reset-btn { width: 100%; padding: 7px; border-radius: 6px; border: 1px solid var(--line); background: none; font-size: 12.5px; cursor: pointer; color: var(--ink); }
+  .reset-btn:hover { border-color: var(--accent); }
+  /* Fila de filtros de "Add from library" -- mismo grid de 4 columnas que
+     Library, para que quepan en dos filas parejas (Notebook/Search/
+     Difficulty/Language, luego Category/Age/Favorites/Reset). */
+  .filters-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 22px; align-items: end; }
+  .filters-row .field { margin-bottom: 0; }
+  .filters-row .multiselect { margin-bottom: 0; }
+  .filters-row .checkbox-field { margin-bottom: 0; }
+  .filters-row .reset-btn { width: auto; padding: 8px 16px; align-self: center; }
+  @media (max-width: 700px) { .filters-row { grid-template-columns: repeat(2, 1fr); } }
+  /* "Add from library" | "In this session" en dos columnas, a petición de
+     Dani -- mismo patrón de grid ya usado en la tarjeta de Team & Season
+     (.tsc-cols) más arriba en esta misma página. */
+  .add-exercise-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 700px) { .add-exercise-cols { grid-template-columns: 1fr; } }
 
   /* ---------------------------------------------------------------------
      App shell: sidebar (fixed on desktop/tablet, off-canvas on mobile)
@@ -529,61 +558,81 @@
            sale al principio". -->
       <p class="hint" style="margin:-8px 0 14px; font-size:11px;">"Who can see it?" has no "Community" option here — attendance names real players.</p>
 
-      <div class="duration-banner" id="duration-banner"></div>
-
       <p class="section-label">Exercises in this session</p>
-      <!-- Filtros para "Add from library" -- a petición de Dani: "cuando
-           empiezas a elegir los ejercicios, tiene que haber filtros. Si no
-           es imposible de encontrar nada." Mismo patrón (mismos campos) que
-           ya usaban Library y el editor de Notebooks, aplicado aquí al
-           desplegable de añadir ejercicios a la sesión. -->
-      <div class="toolbar" style="margin-bottom:8px; align-items:flex-start;">
-        <div class="field" style="min-width:170px;">
+      <!-- Filtros para "Add from library" -- mismo módulo de filtros que
+           Library (a petición de Dani), en vez del que había antes: se
+           añade Search, y Category/Age pasan de caja siempre visible a
+           desplegable cerrado ("All ▾"), igual que en Library. -->
+      <div class="filters-row" style="margin-bottom:16px;">
+        <div class="field">
           <label for="notebook-filter">Filter by notebook</label>
           <select id="notebook-filter"><option value="">All exercises</option></select>
         </div>
-        <div class="field" style="flex:0 0 130px;">
-          <label for="add-exercise-difficulty-filter" style="font-size:11.5px;">Difficulty</label>
-          <select id="add-exercise-difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select>
-        </div>
-        <div class="field" style="flex:0 0 150px;">
-          <label for="add-exercise-language-filter" style="font-size:11.5px;">Language</label>
-          <select id="add-exercise-language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select>
-        </div>
-        <div class="field" style="flex:1; min-width:170px;">
-          <label class="field-label" style="font-size:13px; font-weight:600; color:var(--muted); display:block;">Category</label>
-          <div class="multiselect" id="add-exercise-category-filter" style="max-height:76px;"></div>
-        </div>
-        <div class="field" style="flex:1; min-width:170px;">
-          <label class="field-label" style="font-size:13px; font-weight:600; color:var(--muted); display:block;">Age</label>
-          <div class="multiselect" id="add-exercise-age-filter" style="max-height:76px;"></div>
+        <div class="field">
+          <label for="add-exercise-search">Search</label>
+          <input id="add-exercise-search" type="text" placeholder="Name, tag, description…" />
         </div>
         <div class="field">
-          <div class="checkbox-field"><input type="checkbox" id="add-exercise-favorites-filter" /><label for="add-exercise-favorites-filter" style="font-size:12.5px;">Favorites only</label></div>
-          <button class="reset-btn" id="add-exercise-reset-filters-btn">Reset filters</button>
+          <label for="add-exercise-difficulty-filter">Difficulty</label>
+          <select id="add-exercise-difficulty-filter"><option value="">All</option><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select>
+        </div>
+        <div class="field">
+          <label for="add-exercise-language-filter">Language</label>
+          <select id="add-exercise-language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select>
+        </div>
+        <div class="field">
+          <label class="field-label">Category</label>
+          <div class="filter-dropdown">
+            <button type="button" class="btn btn-secondary filter-dropdown-btn" id="add-exercise-category-filter-btn">All ▾</button>
+            <div class="multiselect" id="add-exercise-category-filter"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Age</label>
+          <div class="filter-dropdown">
+            <button type="button" class="btn btn-secondary filter-dropdown-btn" id="add-exercise-age-filter-btn">All ▾</button>
+            <div class="multiselect" id="add-exercise-age-filter"></div>
+          </div>
+        </div>
+        <div class="checkbox-field" style="align-self:center;"><input type="checkbox" id="add-exercise-favorites-filter" /><label for="add-exercise-favorites-filter">Favorites only</label></div>
+        <button class="reset-btn" id="add-exercise-reset-filters-btn">Reset filters</button>
+      </div>
+
+      <!-- Dos columnas -- a petición de Dani: "Add from library" a la
+           izquierda (a mitad de ancho) y los ejercicios ya elegidos de la
+           sesión a la derecha, en vez de una tabla debajo de la otra. -->
+      <div class="add-exercise-cols">
+        <div>
+          <!-- A petición de Dani: en vez de un desplegable con solo el nombre
+               ("es difícil, aunque tengas los filtros, no sé exactamente lo que
+               es"), una tabla como la de Library -- se ve categoría, edad,
+               dificultad e idioma de cada ejercicio, y un clic en la fila lo
+               añade directamente a la sesión. -->
+          <p class="section-label" style="margin:0 0 8px;">Add from library <span id="add-exercise-count" class="hint" style="font-weight:400; text-transform:none;"></span></p>
+          <div class="list-card" id="add-exercise-list-card" style="max-height:420px; overflow-y:auto;"></div>
+          <div class="empty-state" id="add-exercise-list-empty" style="display:none;">No exercises match these filters.</div>
+        </div>
+        <div>
+          <div class="toolbar" style="align-items:center; margin:0 0 8px;">
+            <p class="section-label" style="margin:0; flex:1;">In this session</p>
+            <button class="btn btn-secondary" id="add-pause-btn" title="Add a rest/break between exercises">⏸ Add pause</button>
+            <!-- A petición de Dani: "meter partido 5c5 3c3" -- un bloque de
+                 partido/scrimmage en el plan de la sesión, igual de simple que
+                 la pausa (mismo hueco de tiempo, sin enlazar con Match day),
+                 con el formato (5v5/4v4/3v3) elegible en la propia fila. -->
+            <button class="btn btn-secondary" id="add-match-btn" title="Add a scrimmage/match segment">Add match</button>
+          </div>
+          <table>
+            <thead><tr><th></th><th>#</th><th>Exercise</th><th>Minutes</th><th></th><th></th></tr></thead>
+            <tbody id="session-exercises-body"></tbody>
+          </table>
+          <div class="empty-state" id="session-empty">No exercises added yet.</div>
+          <!-- Minutos totales -- a petición de Dani, movido aquí abajo de la
+               columna de ejercicios elegidos (antes vivía arriba del todo,
+               separado de la tabla que resume). -->
+          <div class="duration-banner" id="duration-banner" style="margin-top:14px;"></div>
         </div>
       </div>
-      <div class="toolbar" style="align-items:center; margin-bottom:6px;">
-        <p class="section-label" style="margin:0; flex:1;">Add from library <span id="add-exercise-count" class="hint" style="font-weight:400; text-transform:none;"></span></p>
-        <button class="btn btn-secondary" id="add-pause-btn" title="Add a rest/break between exercises">⏸ Add pause</button>
-        <!-- A petición de Dani: "meter partido 5c5 3c3" -- un bloque de
-             partido/scrimmage en el plan de la sesión, igual de simple que
-             la pausa (mismo hueco de tiempo, sin enlazar con Match day),
-             con el formato (5v5/3v3) elegible en la propia fila. -->
-        <button class="btn btn-secondary" id="add-match-btn" title="Add a scrimmage/match segment">Add match</button>
-      </div>
-      <!-- A petición de Dani: en vez de un desplegable con solo el nombre
-           ("es difícil, aunque tengas los filtros, no sé exactamente lo que
-           es"), una tabla como la de Library -- se ve categoría, edad,
-           dificultad e idioma de cada ejercicio, y un clic en la fila lo
-           añade directamente a la sesión. -->
-      <div class="list-card" id="add-exercise-list-card" style="max-height:260px; overflow-y:auto; margin-bottom:14px;"></div>
-      <div class="empty-state" id="add-exercise-list-empty" style="display:none; margin-bottom:14px;">No exercises match these filters.</div>
-      <table>
-        <thead><tr><th></th><th>#</th><th>Exercise</th><th>Minutes</th><th></th><th></th></tr></thead>
-        <tbody id="session-exercises-body"></tbody>
-      </table>
-      <div class="empty-state" id="session-empty">No exercises added yet.</div>
 
       <p class="section-label">Auto-summary <span style="font-weight:400; color:var(--muted); text-transform:none; font-size:12px;">— rolled up from the exercises above, edit freely</span></p>
       <div class="toolbar">
@@ -835,8 +884,10 @@
     return Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map((cb) => cb.value);
   }
   function populateExerciseSelect() {
+    updateAddExerciseFilterDropdownLabels();
     const notebookId = els.notebookFilter.value;
     const allowedIds = notebookId ? new Set((notebookExerciseIds[notebookId] || [])) : null;
+    const text = document.getElementById("add-exercise-search").value.toLowerCase().trim();
     const diff = document.getElementById("add-exercise-difficulty-filter").value;
     const lang = document.getElementById("add-exercise-language-filter").value;
     const cats = addExerciseFilterCheckedValues("add-exercise-category-filter");
@@ -844,6 +895,11 @@
     const favOnly = document.getElementById("add-exercise-favorites-filter").checked;
     const shown = allExercises
       .filter((e) => !allowedIds || allowedIds.has(e.id))
+      .filter((e) => {
+        if (!text) return true;
+        const hay = [e.number, e.name, (e.categories || []).join(" "), (e.material || []).join(" "), (e.objectives || []).join(" "), e.description, e.variants].join(" ").toLowerCase();
+        return hay.includes(text);
+      })
       .filter((e) => !diff || String(e.difficulty) === diff)
       .filter((e) => !lang || (e.language || "en") === lang)
       .filter((e) => cats.length === 0 || cats.every((c) => (e.categories || []).includes(c)))
@@ -891,7 +947,9 @@
   ["add-exercise-difficulty-filter", "add-exercise-language-filter", "add-exercise-favorites-filter"].forEach((id) => {
     document.getElementById(id).addEventListener("change", populateExerciseSelect);
   });
+  document.getElementById("add-exercise-search").addEventListener("input", populateExerciseSelect);
   document.getElementById("add-exercise-reset-filters-btn").addEventListener("click", () => {
+    document.getElementById("add-exercise-search").value = "";
     document.getElementById("add-exercise-difficulty-filter").value = "";
     // El idioma NO se resetea aquí a propósito -- mismo criterio que en la
     // Library, para no volver a mezclar los idiomas de golpe.
@@ -899,6 +957,27 @@
     document.getElementById("add-exercise-favorites-filter").checked = false;
     populateExerciseSelect();
   });
+
+  // Category/Age -- desplegables cerrados por defecto, mismo mecanismo que
+  // Library (a petición de Dani: "exactamente el mismo módulo de filtro
+  // que en library").
+  function toggleAddExerciseFilterDropdown(panelId) {
+    const panel = document.getElementById(panelId);
+    const wasOpen = panel.classList.contains("open");
+    document.querySelectorAll(".multiselect.open").forEach((p) => p.classList.remove("open"));
+    if (!wasOpen) panel.classList.add("open");
+  }
+  document.getElementById("add-exercise-category-filter-btn").addEventListener("click", (e) => { e.stopPropagation(); toggleAddExerciseFilterDropdown("add-exercise-category-filter"); });
+  document.getElementById("add-exercise-age-filter-btn").addEventListener("click", (e) => { e.stopPropagation(); toggleAddExerciseFilterDropdown("add-exercise-age-filter"); });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".filter-dropdown")) document.querySelectorAll(".multiselect.open").forEach((p) => p.classList.remove("open"));
+  });
+  function updateAddExerciseFilterDropdownLabels() {
+    const catCount = addExerciseFilterCheckedValues("add-exercise-category-filter").length;
+    const ageCount = addExerciseFilterCheckedValues("add-exercise-age-filter").length;
+    document.getElementById("add-exercise-category-filter-btn").textContent = catCount ? `Category (${catCount}) ▾` : "Category ▾";
+    document.getElementById("add-exercise-age-filter-btn").textContent = ageCount ? `Age (${ageCount}) ▾` : "Age ▾";
+  }
 
   // -----------------------------------------------------------------------
   // Notebooks -- des listes toutes prêtes d'exercices, groupées par thème
@@ -1382,7 +1461,8 @@
           <td>${i + 1}</td>
           <td><em>Match</em>
             <select class="match-format-select" data-idx="${i}" style="margin-left:6px; font-size:12.5px; padding:2px 4px; border:1px solid var(--line); border-radius:4px;">
-              <option value="5v5" ${se.match_format === "3v3" ? "" : "selected"}>5v5</option>
+              <option value="5v5" ${(se.match_format || "5v5") === "5v5" ? "selected" : ""}>5v5</option>
+              <option value="4v4" ${se.match_format === "4v4" ? "selected" : ""}>4v4</option>
               <option value="3v3" ${se.match_format === "3v3" ? "selected" : ""}>3v3</option>
             </select>
           </td>
@@ -2595,7 +2675,7 @@
         <li>No teams showing up? Click <strong>"+ New season/team"</strong> to create one on the spot — no need to add players first.</li>
         <li><strong>Main objective</strong> is a quick one-line summary of what the session is mainly about (Warm-up, Shooting, Defense…) — same list the exercises themselves use.</li>
         <li>Filters above <strong>"Add from library"</strong> (difficulty, language, category, age, favorites) narrow that dropdown down so you can actually find something in a big library — <strong>Filter by notebook</strong> does the same but by a whole ready-made list at once. Reset them anytime with "Reset filters".</li>
-        <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, <strong>⏸ Add pause</strong> to drop in a rest period between exercises, and <strong>Add match</strong> to drop in a scrimmage (choose 5v5 or 3v3 right in the row) — both count toward the total time same as anything else.</li>
+        <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, <strong>⏸ Add pause</strong> to drop in a rest period between exercises, and <strong>Add match</strong> to drop in a scrimmage (choose 5v5, 4v4, or 3v3 right in the row) — both count toward the total time same as anything else.</li>
         <li>The banner above the exercise list tracks your running total against the planned length, and turns red if you go over.</li>
         <li><strong>Auto-summary</strong> fills itself in from the exercises you add (categories, material, up to 4 objectives) — edit it by hand any time.</li>
         <li><strong>Attendance</strong> starts blank for every session — click a player's badge to cycle Present → Absent → Excused → Late → blank. It's saved instantly (once the session itself has been saved once) and shared live with Match day and the Attendance page — mark it in any of the three and it shows the same everywhere.</li>
