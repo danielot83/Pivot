@@ -107,6 +107,20 @@
   .list-row:hover .add-plus { background: var(--accent); color: #fff; }
   .category-icon { font-size: 15px; margin-right: 4px; filter: grayscale(1) contrast(0.9) brightness(0.75); opacity: 0.75; }
   .lang-badge-slot { flex: 0 0 auto; display: flex; gap: 3px; }
+  /* Popup de vista previa al clicar un ejercicio en "Add from library" (a
+     petición de Dani) -- mismo patrón visual que el popup de detalle de
+     library.html, pero escapado bajo #exercise-preview-card para no chocar
+     con .section-label (ya usada arriba con otro estilo) ni con ninguna
+     otra clase genérica de esta página. */
+  #exercise-preview-card .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--muted); margin: 14px 0 4px; }
+  #exercise-preview-card .section:first-of-type .section-label { margin-top: 0; }
+  #exercise-preview-card .section p { font-size: 13px; margin: 0; white-space: pre-line; }
+  #exercise-preview-card .meta-row { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  #exercise-preview-card .tag-chip { display: inline-block; background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 2px 9px; font-size: 11.5px; margin: 2px 3px 2px 0; }
+  #exercise-preview-card .diagram-thumbs { display: flex; flex-wrap: wrap; gap: 10px; }
+  #exercise-preview-card .diagram-thumb { text-align: center; }
+  #exercise-preview-card .diagram-thumb canvas { border: 1px solid var(--line); border-radius: 6px; display: block; }
+  #exercise-preview-card .diagram-thumb span { display: block; font-size: 10.5px; color: var(--muted); margin-top: 3px; }
   .lang-pill-single { font-size: 10px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 2px 7px; }
   .new-btn { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; font-weight: 600; }
 
@@ -800,7 +814,7 @@
   }
 
   async function loadExerciseOptions() {
-    const { data } = await supabaseClient.from("exercises").select("id, name, categories, material, objectives, difficulty, language, favorite, age, created_by, organization_id").order("name");
+    const { data } = await supabaseClient.from("exercises").select("id, name, number, categories, material, objectives, description, variants, diagram, difficulty, language, favorite, age, created_by, organization_id").order("name");
     allExercises = data || [];
     const { data: usageRows } = await supabaseClient.from("training_exercises").select("exercise_id");
     usageCounts = {};
@@ -853,7 +867,15 @@
         </div>
         <span class="add-plus" title="Add to this session">+</span>
       `;
-      row.addEventListener("click", () => addExerciseToSession(e.id));
+      // A petición de Dani: clicar la fila abre una vista previa del
+      // ejercicio en vez de añadirlo directamente; el botón "+" conserva
+      // el añadido instantáneo de un solo clic (stopPropagation para que
+      // no abra también el popup).
+      row.addEventListener("click", () => openExercisePreview(e.id));
+      row.querySelector(".add-plus").addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        addExerciseToSession(e.id);
+      });
       els.addExerciseListCard.appendChild(row);
     });
     const countLabel = document.getElementById("add-exercise-count");
@@ -1545,6 +1567,61 @@
     els.durationBanner.innerHTML = `<strong>${total} min</strong> planned so far, out of <strong>${planned} min</strong> total${over ? " — over the planned length" : ""}.`;
   }
   els.planned.addEventListener("input", updateDurationBanner);
+
+  // A petición de Dani: clic en la fila de "Add from library" abre un
+  // popup con el detalle del ejercicio (nombre, categorías, objetivos,
+  // descripción, variantes y miniaturas del diagrama de cancha si tiene)
+  // en vez de añadirlo directamente -- mismo patrón visual que el popup
+  // de detalle de library.html, reutilizando las funciones de dibujo de
+  // court-diagram.js (ya cargado en esta página pero sin usar hasta ahora).
+  const EXERCISE_PREVIEW_LANGUAGE_NAMES = { en: "English", fr: "Français", es: "Español" };
+  function openExercisePreview(id) {
+    const e = allExercises.find((ex) => ex.id === id);
+    if (!e) return;
+    const langName = EXERCISE_PREVIEW_LANGUAGE_NAMES[e.language || "en"] || e.language;
+    const used = usageCounts[id] || 0;
+    const drawnSteps = COURT_IDS.filter((k) => ((e.diagram || {})[k] || []).length > 0);
+    const diagramSection = drawnSteps.length
+      ? `<div class="section"><div class="section-label">Court diagram</div><div class="diagram-thumbs">${drawnSteps.map((k) => `<div class="diagram-thumb"><canvas data-step="${k}" width="1" height="1"></canvas><span>${COURT_LABELS[COURT_IDS.indexOf(k)]}</span></div>`).join("")}</div></div>`
+      : "";
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div id="exercise-preview-card" style="background:var(--card); border-radius:12px; max-width:520px; width:100%; padding:22px 24px; max-height:88vh; overflow-y:auto; position:relative;">
+        <button id="exercise-preview-close-btn" style="position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--paper); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">✕</button>
+        <h3 style="margin:0 0 4px; font-size:16px; padding-right:30px;">${e.favorite ? "★ " : ""}${escapeHtml(e.name)}</h3>
+        <div class="meta-row">#${e.number || "—"} · ${"★".repeat(e.difficulty || 1)}${"☆".repeat(3 - (e.difficulty || 1))} · ${used === 0 ? "never used" : used + "× used"} · ${langName}</div>
+        <div class="section"><div class="section-label">Age</div><p>${(e.age || []).map((a) => `<span class="tag-chip">${escapeHtml(a)}</span>`).join("") || "—"}</p></div>
+        <div class="section"><div class="section-label">Categories</div><p>${(e.categories || []).map((c) => `<span class="tag-chip">${CATEGORY_ICONS[c] ? `<span class="category-icon">${CATEGORY_ICONS[c]}</span>` : ""}${escapeHtml(c)}</span>`).join("") || "—"}</p></div>
+        <div class="section"><div class="section-label">Material</div><p>${(e.material || []).map((m) => `<span class="tag-chip">${escapeHtml(m)}</span>`).join("") || "—"}</p></div>
+        <div class="section"><div class="section-label">Objectives</div><p>${escapeHtml((e.objectives || []).join("\n")) || "—"}</p></div>
+        <div class="section"><div class="section-label">Description</div><p>${escapeHtml(e.description) || "—"}</p></div>
+        <div class="section"><div class="section-label">Variants</div><p>${escapeHtml(e.variants) || "—"}</p></div>
+        ${diagramSection}
+        <div class="toolbar" style="margin-top:16px; margin-bottom:0;">
+          <button class="btn btn-primary" id="exercise-preview-add-btn">+ Add to this session</button>
+          <a class="btn btn-secondary" href="./exercises.html?id=${e.id}" target="_blank" rel="noopener" style="text-decoration:none;">Open in Exercise creator ↗</a>
+          <button class="btn btn-secondary" id="exercise-preview-cancel-btn">Close</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector("#exercise-preview-close-btn").addEventListener("click", close);
+    overlay.querySelector("#exercise-preview-cancel-btn").addEventListener("click", close);
+    overlay.addEventListener("click", (ev) => { if (ev.target === overlay) close(); });
+    overlay.querySelector("#exercise-preview-add-btn").addEventListener("click", () => { addExerciseToSession(id); close(); });
+    overlay.querySelectorAll(".diagram-thumb canvas").forEach((canvas) => {
+      const stepId = canvas.dataset.step;
+      const courtType = COURT_TYPES[stepId];
+      const [origW, origH] = CANVAS_SIZES[courtType];
+      const scale = 130 / origW;
+      const cssW = origW * scale, cssH = origH * scale;
+      const ctx = setupHiDPICanvas(canvas, cssW, cssH);
+      const toPx = (x, y) => [x * cssW, y * cssH];
+      drawCourtBackground(ctx, canvas, courtType, cssW, cssH);
+      ((e.diagram || {})[stepId] || []).forEach((el) => drawDiagramElement(ctx, toPx, canvas, el, 1));
+    });
+  }
 
   // A petición de Dani: clic en la fila de la tabla "Add from library" en
   // vez de elegir en un desplegable y pulsar un botón "+ Add" aparte.
