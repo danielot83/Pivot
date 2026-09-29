@@ -741,7 +741,7 @@
     const { data, error } = await supabaseClient
       .from("memberships")
       // Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): linked_player_id ya no se lee, era solo para el "linked player" del rol player.
-      .select("id, role, status, user_id, team_season, team_name, profiles(full_name)")
+      .select("id, role, status, user_id, team_season, team_name, team_category, team_gender, profiles(full_name)")
       .eq("organization_id", currentOrgId)
       .in("status", ["active", "blocked"])
       .order("status");
@@ -761,18 +761,28 @@
     );
 
     const { data: playersData } = await supabaseClient
-      .from("players").select("id, first_name, last_name, season, team").eq("organization_id", currentOrgId).order("last_name");
+      .from("players").select("id, first_name, last_name, season, team, team_category, team_gender").eq("organization_id", currentOrgId).order("last_name");
 
     // Mêmes saison+équipe que dans le roster, pour "scoper" une adhésion
     // à UNE équipe précise au lieu de tout le club -- fusion players +
     // teams (le registre), comme ailleurs, pour avoir aussi les équipes
     // qui n'ont pas encore de joueur.
-    const { data: teamsData } = await supabaseClient.from("teams").select("season, team").eq("organization_id", currentOrgId);
+    //
+    // Dani 2026-09-29 (step85, captura de "Team org chart" mostrando el
+    // nombre del club en vez de U8/U10): esto deduplicaba SOLO por
+    // season+team -- si dos equipos comparten el mismo "team" (nombre) y
+    // solo se distinguen por categoría/género, este desplegable los
+    // mezclaba en una única opción, y no había forma de acotar a alguien
+    // a "solo U8" -- se guardaba team_name pero category/gender se
+    // perdían sin más (memberships no los tenía). Ahora la clave/opción
+    // incluye categoría y género, igual que team-tree.js en el resto de
+    // la app.
+    const { data: teamsData } = await supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
     const teamKeys = new Set();
     const teamOptions = [];
     [...(playersData || []), ...(teamsData || [])].forEach((r) => {
-      const key = `${r.season}|${r.team}`;
-      if (!teamKeys.has(key)) { teamKeys.add(key); teamOptions.push({ season: r.season, team: r.team }); }
+      const key = `${r.season}|${r.team}|${r.team_category || ""}|${r.team_gender || ""}`;
+      if (!teamKeys.has(key)) { teamKeys.add(key); teamOptions.push({ season: r.season, team: r.team, team_category: r.team_category || "", team_gender: r.team_gender || "" }); }
     });
 
     scopedData.forEach((m) => {
@@ -804,23 +814,36 @@
       // todo el club -- opcional. En blanco = ve todo el club, como
       // siempre. Para un jugador vinculado arriba, el equipo se deduce
       // solo de su ficha, no hace falta tocar esto también.
+      // Dani 2026-09-29 (step85): el valor de cada opción ahora lleva 4
+      // partes (season|team|category|gender), no 2 -- así el desplegable
+      // distingue "U8" de "U10" aunque ambos compartan el mismo "team".
+      // scopeValueOf/scopeCurrentValue son la misma codificación de un
+      // lado (opciones) y del otro (membresía actual), para que "selected"
+      // y el valor tras cancelar "+ Create new team…" siempre coincidan.
+      const scopeValueOf = (t) => `${t.season}|${t.team}|${t.team_category || ""}|${t.team_gender || ""}`;
+      const scopeCurrentValue = m.team_season ? `${m.team_season}|${m.team_name}|${m.team_category || ""}|${m.team_gender || ""}` : "";
       const scopeSelect = document.createElement("select");
       scopeSelect.title = "Scope this person to one team only (optional)";
       scopeSelect.disabled = m.status === "blocked";
       scopeSelect.innerHTML = '<option value="">Whole club</option>' +
-        teamOptions.map((t) => `<option value="${escapeHtml(t.season)}|${escapeHtml(t.team)}" ${t.season === m.team_season && t.team === m.team_name ? "selected" : ""}>${escapeHtml(t.team)} — ${escapeHtml(t.season)} only</option>`).join("") +
+        teamOptions.map((t) => {
+          const catGender = [t.team_category, t.team_gender].filter(Boolean).join(" ");
+          const label = catGender ? `${t.team} · ${catGender}` : t.team;
+          return `<option value="${escapeHtml(scopeValueOf(t))}" ${scopeValueOf(t) === scopeCurrentValue ? "selected" : ""}>${escapeHtml(label)} — ${escapeHtml(t.season)} only</option>`;
+        }).join("") +
         '<option value="__new__">+ Create new team…</option>';
       scopeSelect.addEventListener("change", async () => {
         if (scopeSelect.value === "__new__") {
           const created = await promptNewTeam(supabaseClient, currentOrgId);
-          if (!created) { scopeSelect.value = m.team_season ? `${m.team_season}|${m.team_name}` : ""; return; }
-          teamOptions.push({ season: created.season, team: created.team });
-          await setTeamScope(m.id, created.season, created.team);
+          if (!created) { scopeSelect.value = scopeCurrentValue; return; }
+          teamOptions.push(created);
+          await setTeamScope(m.id, created.season, created.team, created.team_category, created.team_gender);
           await loadMembers();
           return;
         }
-        const [season, team] = scopeSelect.value ? scopeSelect.value.split("|") : [null, null];
-        setTeamScope(m.id, season, team);
+        if (!scopeSelect.value) { setTeamScope(m.id, null, null, null, null); return; }
+        const [season, team, category, gender] = scopeSelect.value.split("|");
+        setTeamScope(m.id, season, team, category || null, gender || null);
       });
 
       const statusBtn = document.createElement("button");
@@ -874,7 +897,7 @@
     }
     const { data, error } = await supabaseClient
       .from("memberships")
-      .select("user_id, role, team_season, team_name, profiles(full_name)")
+      .select("user_id, role, team_season, team_name, team_category, team_gender, profiles(full_name)")
       .eq("organization_id", currentOrgId)
       .eq("status", "active");
     if (error) { console.error("loadOrgChart error:", error); list.innerHTML = '<p class="hint" style="margin:0;">Couldn\'t load this right now.</p>'; return; }
@@ -897,13 +920,19 @@
     // los que es coach (p. ej. "Coach · U8, U10") en vez de una fila por
     // equipo. Mismo criterio que loadDashOrgChart() en dashboard.html,
     // palabra por palabra (como el resto de esta función).
+    //
+    // Dani 2026-09-29 (segunda vuelta, captura con "COACH · DEL BASKET
+    // SAINT SULPICE" -- el nombre del club, no un equipo real): ver
+    // pivotMembershipScopeLabel() en org-switcher.js -- team_name a secas
+    // no distingue dos equipos con el mismo nombre, solo la categoría/
+    // género lo hace (step85).
     const byPerson = new Map();
     rows.forEach((m) => {
       const key = m.user_id || ((m.profiles && m.profiles.full_name) || "?");
       if (!byPerson.has(key)) byPerson.set(key, { name: (m.profiles && m.profiles.full_name) || "Someone", isAdmin: false, scopes: new Set() });
       const person = byPerson.get(key);
       if (m.role === "admin") person.isAdmin = true;
-      person.scopes.add(m.team_name || "whole club");
+      person.scopes.add(pivotMembershipScopeLabel(m));
     });
     const byName = (a, b) => a.name.localeCompare(b.name);
     const people = Array.from(byPerson.values()).sort(byName);
@@ -933,12 +962,15 @@
   // filas devueltas, sin error" como el fallo silencioso que es.
   const SCOPE_BLOCKED_MSG = "That didn't go through — this member is scoped to a different team than you manage, so the change was blocked.";
 
-  async function setTeamScope(membershipId, season, team) {
+  async function setTeamScope(membershipId, season, team, teamCategory, teamGender) {
     try {
-      const { data, error } = await supabaseClient.from("memberships").update({ team_season: season, team_name: team }).eq("id", membershipId).select("id");
+      const { data, error } = await supabaseClient.from("memberships")
+        .update({ team_season: season, team_name: team, team_category: teamCategory || null, team_gender: teamGender || null })
+        .eq("id", membershipId).select("id");
       if (error) throw error;
       if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
-      showMessage(season ? `Scoped to ${team} — ${season} only.` : "Scoped to the whole club again.", "success");
+      const catGender = [teamCategory, teamGender].filter(Boolean).join(" ");
+      showMessage(season ? `Scoped to ${team}${catGender ? ` · ${catGender}` : ""} — ${season} only.` : "Scoped to the whole club again.", "success");
     } catch (err) {
       showMessage(err.message || "Couldn't change that scope.", "error");
     }

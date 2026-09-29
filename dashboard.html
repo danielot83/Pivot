@@ -1210,7 +1210,7 @@
     }
     const { data, error } = await supabaseClient
       .from("memberships")
-      .select("user_id, role, team_season, team_name, profiles(full_name)")
+      .select("user_id, role, team_season, team_name, team_category, team_gender, profiles(full_name)")
       .eq("organization_id", currentOrgId)
       .eq("status", "active");
     if (error) { console.error("loadDashOrgChart error:", error); list.innerHTML = '<p style="margin:0; color:var(--muted); font-size:13.5px;">Couldn\'t load this right now.</p>'; return; }
@@ -1226,13 +1226,21 @@
     // parecía un fallo, no equipos distintos. Se agrupa por persona
     // (user_id) y se enseña, junto al rol, la lista de equipos de los que
     // es coach (p. ej. "Coach · U8, U10") en vez de una fila por equipo.
+    //
+    // Dani 2026-09-29 (segunda vuelta, captura con "COACH · DEL BASKET
+    // SAINT SULPICE" -- el nombre del club, no un equipo real): "scope"
+    // usaba team_name a secas, pero team_name es el nombre GENÉRICO del
+    // equipo (step53) -- lo que de verdad distingue dos equipos con el
+    // mismo nombre es la categoría/género (step85, membershipScopeLabel
+    // más abajo). Si no hay categoría, se sigue cayendo en team_name (o
+    // "whole club") -- mismo comportamiento de antes para quien no la usa.
     const byPerson = new Map();
     rows.forEach((m) => {
       const key = m.user_id || ((m.profiles && m.profiles.full_name) || "?");
       if (!byPerson.has(key)) byPerson.set(key, { name: (m.profiles && m.profiles.full_name) || "Someone", isAdmin: false, scopes: new Set() });
       const person = byPerson.get(key);
       if (m.role === "admin") person.isAdmin = true;
-      person.scopes.add(m.team_name || "whole club");
+      person.scopes.add(pivotMembershipScopeLabel(m));
     });
     const byName = (a, b) => a.name.localeCompare(b.name);
     const people = Array.from(byPerson.values()).sort(byName);
@@ -1899,17 +1907,28 @@
       approveBtn.className = "btn-approve"; approveBtn.textContent = "Approve";
       const rejectBtn = document.createElement("button");
       rejectBtn.className = "btn-reject"; rejectBtn.textContent = "Reject";
-      approveBtn.addEventListener("click", () => respondToRequest(req.id, "active", row));
-      rejectBtn.addEventListener("click", () => respondToRequest(req.id, "rejected", row));
+      approveBtn.addEventListener("click", () => respondToRequest(req, "active", row));
+      rejectBtn.addEventListener("click", () => respondToRequest(req, "rejected", row));
       actions.appendChild(approveBtn); actions.appendChild(rejectBtn);
       row.appendChild(info); row.appendChild(actions);
       els.pendingRequests.appendChild(row);
     });
   }
 
-  async function respondToRequest(id, newStatus, rowEl) {
+  async function respondToRequest(req, newStatus, rowEl) {
     try {
-      const { error } = await supabaseClient.from("memberships").update({ status: newStatus }).eq("id", id);
+      // Dani, 2026-09-29: aprobar antes solo cambiaba el status -- la
+      // categoría/género que la persona había pedido (requested_team_category/
+      // requested_team_gender, step78) se perdían para siempre, así que el
+      // organigrama nunca podía distinguir "U8" de "U10" para nadie que se
+      // hubiera unido por este camino. Ahora, al aprobar, se copian a las
+      // columnas "de verdad" (team_category/team_gender, step85).
+      const update = { status: newStatus };
+      if (newStatus === "active") {
+        update.team_category = req.requested_team_category || null;
+        update.team_gender = req.requested_team_gender || null;
+      }
+      const { error } = await supabaseClient.from("memberships").update(update).eq("id", req.id);
       if (error) throw error;
       rowEl.remove();
       // Dani 2026-09-17 (ronda30-feature): aprobar aquí debe verse reflejado

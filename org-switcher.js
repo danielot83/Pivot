@@ -83,6 +83,28 @@ function pivotDedupeMembershipsByOrg(memberships) {
 }
 
 /**
+ * Dani, 2026-09-29 (captura de "Team org chart" mostrando "COACH · DEL
+ * BASKET SAINT SULPICE" -- el nombre del club, no un equipo real): una
+ * membresía acotada a un equipo se distingue de otra con el MISMO
+ * team_name por su categoría/género (step85_membership_team_category_gender.sql),
+ * no por team_name a secas -- team_name es el nombre genérico del
+ * "equipo" (step53), que en más de un club es literalmente el nombre del
+ * club (dos equipos, mismo nombre, distinta categoría). Usada por
+ * loadDashOrgChart() (dashboard.html) y loadOrgChart() (settings.html),
+ * palabra por palabra, para que ambas listas digan siempre lo mismo.
+ *
+ * @param {{team_name?: string, team_category?: string, team_gender?: string}} m
+ * @returns {string} p.ej. "U8", "U8 Boys", el team_name si no hay
+ *   categoría, o "whole club" si la membresía no está acotada a nada.
+ */
+function pivotMembershipScopeLabel(m) {
+  const catGender = [m && m.team_category, m && m.team_gender].filter(Boolean).join(" ");
+  if (catGender) return catGender;
+  if (m && m.team_name) return m.team_name;
+  return "whole club";
+}
+
+/**
  * A partir de la lista de membresías activas de la persona, decide qué
  * está activo ahora mismo -- lo guardado la última vez si todavía es
  * válido, si no la primera membresía de la lista -- y lo guarda para la
