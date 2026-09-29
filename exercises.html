@@ -51,15 +51,20 @@
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
   .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 14px; color: var(--ink); margin-bottom: 12px; }
-  /* Intro banner -- a petición de Dani: el principio de esta página era solo
-     el título y los 3 botones, sin ningún contexto ("no me gusta asi", "no
-     me parece que el principio sea atractivo"). Esta franja, siempre
-     visible (a diferencia de help-box, que está escondida detrás del "?"),
-     da una frase de contexto antes de los 3 botones. */
-  .intro-banner { display: flex; align-items: center; gap: 14px; background: var(--accent-tint); border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; }
-  .intro-banner .intro-banner-emoji { font-size: 24px; line-height: 1; flex-shrink: 0; }
-  .intro-banner p { margin: 0; font-size: 14.5px; color: var(--ink); }
-  .intro-banner strong { color: var(--accent-deep); }
+  /* Intro -- a petición de Dani: el principio de esta página era solo el
+     título y los 3 botones, sin ningún contexto ("no me gusta asi", "no me
+     parece que el principio sea atractivo"). Primera versión: una franja
+     con una frase resumen. Dani, 2026-09-29 ("mejor. Quita el balón... y
+     márcalo con un cuadradito"): sin balón, y un cuadradito propio por
+     opción explicando en un par de frases qué hace cada una, en vez de una
+     sola frase para las tres juntas -- siempre visible, a diferencia de
+     help-box (escondida detrás del "?"). */
+  .intro-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  @media (max-width: 700px) { .intro-tiles { grid-template-columns: 1fr; } }
+  .intro-tile { background: var(--accent-tint); border-radius: 10px; padding: 14px 16px; }
+  .intro-tile .intro-tile-icon { font-size: 18px; line-height: 1; }
+  .intro-tile .intro-tile-title { font-size: 14px; font-weight: 700; color: var(--accent-deep); margin: 6px 0 4px; }
+  .intro-tile .intro-tile-desc { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0; }
 
   .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
   .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
@@ -305,9 +310,22 @@
     <div class="help-box" id="help-box"></div>
     <div class="msg" id="msg"></div>
 
-    <div class="intro-banner">
-      <span class="intro-banner-emoji" aria-hidden="true">🏀</span>
-      <p>Build your exercise sheet however's fastest for you: describe it to <strong>AI</strong>, snap a <strong>photo</strong> of your notes, or copy an <strong>existing exercise</strong> — or just fill in the fields below by hand. You always draw the court diagram yourself, at the end.</p>
+    <div class="intro-tiles">
+      <div class="intro-tile">
+        <span class="intro-tile-icon" aria-hidden="true">🤖</span>
+        <p class="intro-tile-title">Fill in with AI</p>
+        <p class="intro-tile-desc">Copy a ready-made prompt into any AI chat, describe your idea, then paste its reply back here — it fills in Name, Category, Objectives and the rest for you. You still draw the court diagram yourself.</p>
+      </div>
+      <div class="intro-tile">
+        <span class="intro-tile-icon" aria-hidden="true">📷</span>
+        <p class="intro-tile-title">Fill in from a photo</p>
+        <p class="intro-tile-desc">Snap or upload a photo of a paper sheet, whiteboard, or your own notes — it reads the text straight into Description. You fill in the rest by hand and draw the diagram yourself, using the photo as reference.</p>
+      </div>
+      <div class="intro-tile">
+        <span class="intro-tile-icon" aria-hidden="true">📋</span>
+        <p class="intro-tile-title">Start from existing exercise</p>
+        <p class="intro-tile-desc">Pick one of your saved exercises and copy everything — including the court diagram — into this new one. The original stays untouched, ready for you to tweak.</p>
+      </div>
     </div>
 
     <div id="editor-area" style="display:block">
