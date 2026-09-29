@@ -229,6 +229,23 @@
   .summary-add-row button { white-space: nowrap; padding: 5px 10px; }
   .summary-empty-hint { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
 
+  /* Dani 2026-09-29 ("eso debería de ser un desplegable, ocupa mucho"): con
+     muchos ejercicios añadidos, la lista de chips (sobre todo Objectives)
+     podía crecer a 10-15 elementos y ocupar media pantalla. Mismo patrón
+     que el desplegable de Category/Age de "Add from library"
+     (.filter-dropdown/.multiselect) pero con su propia clase -- ese chip
+     list necesita quedarse en flex/flex-wrap una vez abierto, y
+     `.multiselect.open{display:block}` (más específico que
+     `.summary-checklist{display:flex}`) se lo habría pisado si reusara
+     esas mismas clases. Colapsado por defecto: un botón con cuántos hay
+     marcados, más una vista previa en texto debajo para no tener que
+     abrirlo para ver qué hay. */
+  .summary-dropdown { position: relative; }
+  .summary-dropdown-btn { width: 100%; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 6px; font-weight: 400; background: var(--card); filter: none; padding: 7px 9px; }
+  .summary-dropdown-panel { display: none; position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 5; width: min(360px, 80vw); max-height: 280px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--card); box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+  .summary-dropdown-panel.open { display: block; }
+  .summary-preview { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+
   /* ---------------------------------------------------------------------
      App shell: sidebar (fixed on desktop/tablet, off-canvas on mobile)
      + main content column. Same shell as dashboard.html/roster.html.
@@ -678,21 +695,39 @@
       <p class="section-label">Summary <span style="font-weight:400; color:var(--muted); text-transform:none; font-size:12px;">— detected from the exercises above, tick what applies</span></p>
       <div class="toolbar" style="align-items:flex-start;">
         <div class="field" style="flex:1;">
-          <label>Categories worked</label>
-          <div class="summary-checklist" id="tr-cat-checklist"></div>
-          <div class="summary-add-row"><input type="text" id="tr-cat-add-input" placeholder="Add something else…" /><button type="button" class="btn btn-secondary" id="tr-cat-add-btn">+ Add</button></div>
+          <label class="field-label">Categories worked</label>
+          <div class="summary-dropdown">
+            <button type="button" class="btn btn-secondary summary-dropdown-btn" id="tr-cat-toggle-btn">None selected ▾</button>
+            <div class="summary-dropdown-panel" id="tr-cat-panel">
+              <div class="summary-checklist" id="tr-cat-checklist"></div>
+              <div class="summary-add-row"><input type="text" id="tr-cat-add-input" placeholder="Add something else…" /><button type="button" class="btn btn-secondary" id="tr-cat-add-btn">+ Add</button></div>
+            </div>
+          </div>
+          <p class="summary-preview" id="tr-cat-preview"></p>
           <textarea id="tr-cat-summary" style="display:none;"></textarea>
         </div>
         <div class="field" style="flex:1;">
-          <label>Material needed</label>
-          <div class="summary-checklist" id="tr-mat-checklist"></div>
-          <div class="summary-add-row"><input type="text" id="tr-mat-add-input" placeholder="Add something else…" /><button type="button" class="btn btn-secondary" id="tr-mat-add-btn">+ Add</button></div>
+          <label class="field-label">Material needed</label>
+          <div class="summary-dropdown">
+            <button type="button" class="btn btn-secondary summary-dropdown-btn" id="tr-mat-toggle-btn">None selected ▾</button>
+            <div class="summary-dropdown-panel" id="tr-mat-panel">
+              <div class="summary-checklist" id="tr-mat-checklist"></div>
+              <div class="summary-add-row"><input type="text" id="tr-mat-add-input" placeholder="Add something else…" /><button type="button" class="btn btn-secondary" id="tr-mat-add-btn">+ Add</button></div>
+            </div>
+          </div>
+          <p class="summary-preview" id="tr-mat-preview"></p>
           <textarea id="tr-mat-summary" style="display:none;"></textarea>
         </div>
         <div class="field" style="flex:1;">
-          <label>Objectives <span class="hint" style="font-weight:400;">(first 4 checked go on the main page, the rest continue on page 2)</span></label>
-          <div class="summary-checklist" id="tr-obj-checklist"></div>
-          <div class="summary-add-row"><input type="text" id="tr-obj-add-input" placeholder="Add something else…" /><button type="button" class="btn btn-secondary" id="tr-obj-add-btn">+ Add</button></div>
+          <label class="field-label">Objectives <span class="hint" style="font-weight:400;">(first 4 checked go on the main page, the rest continue on page 2)</span></label>
+          <div class="summary-dropdown">
+            <button type="button" class="btn btn-secondary summary-dropdown-btn" id="tr-obj-toggle-btn">None selected ▾</button>
+            <div class="summary-dropdown-panel" id="tr-obj-panel">
+              <div class="summary-checklist" id="tr-obj-checklist"></div>
+              <div class="summary-add-row"><input type="text" id="tr-obj-add-input" placeholder="Add something else…" /><button type="button" class="btn btn-secondary" id="tr-obj-add-btn">+ Add</button></div>
+            </div>
+          </div>
+          <p class="summary-preview" id="tr-obj-preview"></p>
           <textarea id="tr-obj-summary" style="display:none;"></textarea>
         </div>
       </div>
@@ -1491,9 +1526,9 @@
   //   fuente de verdad -- lo que ya leían/escribían save/openTraining/
   //   exportToPdf/exportWholeBook no cambia, solo la forma de editarlos.
   const SUMMARY_TYPES = {
-    categories: { exerciseField: "categories", els: () => els.catSummary, checklistId: "tr-cat-checklist", addInputId: "tr-cat-add-input" },
-    material: { exerciseField: "material", els: () => els.matSummary, checklistId: "tr-mat-checklist", addInputId: "tr-mat-add-input" },
-    objectives: { exerciseField: "objectives", els: () => els.objSummary, checklistId: "tr-obj-checklist", addInputId: "tr-obj-add-input" },
+    categories: { exerciseField: "categories", els: () => els.catSummary, checklistId: "tr-cat-checklist", addInputId: "tr-cat-add-input", panelId: "tr-cat-panel", toggleBtnId: "tr-cat-toggle-btn", previewId: "tr-cat-preview" },
+    material: { exerciseField: "material", els: () => els.matSummary, checklistId: "tr-mat-checklist", addInputId: "tr-mat-add-input", panelId: "tr-mat-panel", toggleBtnId: "tr-mat-toggle-btn", previewId: "tr-mat-preview" },
+    objectives: { exerciseField: "objectives", els: () => els.objSummary, checklistId: "tr-obj-checklist", addInputId: "tr-obj-add-input", panelId: "tr-obj-panel", toggleBtnId: "tr-obj-toggle-btn", previewId: "tr-obj-preview" },
   };
   let summarySeenPool = { categories: new Set(), material: new Set(), objectives: new Set() };
 
@@ -1545,22 +1580,50 @@
     const labels = Array.from(new Set([...pool, ...included]));
     if (labels.length === 0) {
       container.innerHTML = `<span class="summary-empty-hint">Nothing detected yet — add exercises above, or type one below.</span>`;
-      return;
+    } else {
+      container.innerHTML = "";
+      labels.forEach((label) => {
+        const checked = included.includes(label);
+        const chip = document.createElement("label");
+        chip.className = "summary-chip" + (checked ? "" : " unchecked");
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.checked = checked;
+        cb.addEventListener("change", (e) => toggleSummaryItem(type, label, e.target.checked));
+        const span = document.createElement("span");
+        span.textContent = label;
+        chip.appendChild(cb); chip.appendChild(span);
+        container.appendChild(chip);
+      });
     }
-    container.innerHTML = "";
-    labels.forEach((label) => {
-      const checked = included.includes(label);
-      const chip = document.createElement("label");
-      chip.className = "summary-chip" + (checked ? "" : " unchecked");
-      const cb = document.createElement("input");
-      cb.type = "checkbox"; cb.checked = checked;
-      cb.addEventListener("change", (e) => toggleSummaryItem(type, label, e.target.checked));
-      const span = document.createElement("span");
-      span.textContent = label;
-      chip.appendChild(cb); chip.appendChild(span);
-      container.appendChild(chip);
-    });
+    updateSummaryDropdownUI(type, included);
   }
+
+  // Dani 2026-09-29 ("eso debería de ser un desplegable, ocupa mucho"): la
+  // lista de chips vive ahora dentro de un desplegable colapsado por
+  // defecto (mismo patrón que Category/Age de "Add from library") -- el
+  // botón dice cuántos hay marcados, y debajo queda una vista previa en
+  // texto para poder ver de un vistazo qué hay sin tener que abrirlo.
+  function updateSummaryDropdownUI(type, included) {
+    const btn = document.getElementById(SUMMARY_TYPES[type].toggleBtnId);
+    if (btn) btn.textContent = included.length ? `${included.length} selected ▾` : "None selected ▾";
+    const preview = document.getElementById(SUMMARY_TYPES[type].previewId);
+    if (preview) preview.textContent = included.length ? included.join(", ") : "Nothing selected yet.";
+  }
+
+  function toggleSummaryDropdown(type) {
+    const panel = document.getElementById(SUMMARY_TYPES[type].panelId);
+    if (!panel) return;
+    const wasOpen = panel.classList.contains("open");
+    document.querySelectorAll(".summary-dropdown-panel.open").forEach((p) => p.classList.remove("open"));
+    if (!wasOpen) panel.classList.add("open");
+  }
+  Object.keys(SUMMARY_TYPES).forEach((type) => {
+    const btn = document.getElementById(SUMMARY_TYPES[type].toggleBtnId);
+    if (btn) btn.addEventListener("click", (e) => { e.stopPropagation(); toggleSummaryDropdown(type); });
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".summary-dropdown")) document.querySelectorAll(".summary-dropdown-panel.open").forEach((p) => p.classList.remove("open"));
+  });
 
   function toggleSummaryItem(type, label, on) {
     let included = getSummaryIncluded(type);

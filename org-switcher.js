@@ -43,6 +43,35 @@ function pivotSetStoredOrgId(orgId) {
 }
 
 /**
+ * Dani 2026-09-29, captura del selector de club: el mismo club (p. ej.
+ * "DEL basket Saint Sulpice") salía repetido varias veces en la lista --
+ * "porque tengo todos esos equipos? algo falla".
+ *
+ * No es un dato corrupto: desde step81_team_scoped_join_request_uniqueness
+ * una persona puede tener legítimamente varias filas en `memberships`
+ * para el MISMO club, una por cada equipo del que es coach dentro de ese
+ * club (antes de ese cambio solo podía haber una fila por club en total).
+ * Pero este selector decide "¿en qué CLUB estoy viendo la app?", no "¿en
+ * qué equipo?" -- eso ya lo elige un desplegable aparte dentro de cada
+ * página (Team & Season). Enseñar el mismo club N veces aquí no distingue
+ * nada (elegir cualquiera de las N entradas lleva al mismo club) y solo
+ * confunde -- se deja una sola entrada por club, prefiriendo la fila con
+ * role="admin" si existe (mismo criterio que ya se usaba para decidir si
+ * la barra lateral dice "Club admin" o "Coach"), si no la primera que
+ * llegue.
+ */
+function pivotDedupeMembershipsByOrg(memberships) {
+  const byOrg = new Map();
+  (memberships || []).forEach((m) => {
+    const existing = byOrg.get(m.organization_id);
+    if (!existing || (m.role === "admin" && existing.role !== "admin")) {
+      byOrg.set(m.organization_id, m);
+    }
+  });
+  return Array.from(byOrg.values());
+}
+
+/**
  * A partir de la lista de membresías activas de la persona, decide qué
  * está activo ahora mismo -- lo guardado la última vez si todavía es
  * válido, si no la primera membresía de la lista -- y lo guarda para la
@@ -77,6 +106,7 @@ async function pivotResolveActiveOrg(memberships, options) {
   const isPlatformController = !!options.isPlatformController;
   const supportsAdminView = !!options.supportsAdminView;
   const stored = pivotGetStoredOrgId();
+  memberships = pivotDedupeMembershipsByOrg(memberships);
 
   if (isPlatformController && supportsAdminView && stored === PIVOT_ADMIN_VIEW_VALUE) {
     return { is_admin_view: true, organization_id: PIVOT_ADMIN_VIEW_VALUE };
@@ -124,7 +154,7 @@ function pivotRenderOrgSwitcher(containerId, memberships, activeOrgId, options) 
   const el = document.getElementById(containerId);
   if (!el) return;
 
-  const list = memberships || [];
+  const list = pivotDedupeMembershipsByOrg(memberships);
   el.style.display = "block";
   const optionsHtml = list
     .map((m) => `<option value="${m.organization_id}" ${m.organization_id === activeOrgId ? "selected" : ""}>${pivotEscapeHtml((m.organizations && m.organizations.name) || "?")}</option>`)
