@@ -874,7 +874,7 @@
     }
     const { data, error } = await supabaseClient
       .from("memberships")
-      .select("role, team_season, team_name, profiles(full_name)")
+      .select("user_id, role, team_season, team_name, profiles(full_name)")
       .eq("organization_id", currentOrgId)
       .eq("status", "active");
     if (error) { console.error("loadOrgChart error:", error); list.innerHTML = '<p class="hint" style="margin:0;">Couldn\'t load this right now.</p>'; return; }
@@ -887,15 +887,37 @@
       !myTeamSeason || !m.team_season || (m.team_season === myTeamSeason && m.team_name === myTeamName)
     );
     if (rows.length === 0) { list.innerHTML = '<p class="hint" style="margin:0;">Nobody to show yet.</p>'; return; }
-    const byName = (a, b) => ((a.profiles && a.profiles.full_name) || "").localeCompare((b.profiles && b.profiles.full_name) || "");
-    const admins = rows.filter((m) => m.role === "admin").sort(byName);
-    const coaches = rows.filter((m) => m.role !== "admin").sort(byName);
-    const rowHtml = (m, label) => `
-      <div style="display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line);">
-        <span>${escapeHtml((m.profiles && m.profiles.full_name) || "Someone")}</span>
-        <span style="font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase;">${label}${m.team_season ? "" : " · whole club"}</span>
+    // Dani 2026-09-29 (misma captura que en Dashboard -- "DOT" repetido dos
+    // veces, ambas diciendo solo "COACH" sin nada que las distinga): desde
+    // que una persona puede tener varias filas de membership para el mismo
+    // club (una por equipo del que es coach, step81), esta lista podía
+    // enseñar el mismo nombre repetido sin decir de qué equipo era cada
+    // fila -- parecía un fallo, no equipos distintos. Se agrupa por
+    // persona (user_id) y se enseña, junto al rol, la lista de equipos de
+    // los que es coach (p. ej. "Coach · U8, U10") en vez de una fila por
+    // equipo. Mismo criterio que loadDashOrgChart() en dashboard.html,
+    // palabra por palabra (como el resto de esta función).
+    const byPerson = new Map();
+    rows.forEach((m) => {
+      const key = m.user_id || ((m.profiles && m.profiles.full_name) || "?");
+      if (!byPerson.has(key)) byPerson.set(key, { name: (m.profiles && m.profiles.full_name) || "Someone", isAdmin: false, scopes: new Set() });
+      const person = byPerson.get(key);
+      if (m.role === "admin") person.isAdmin = true;
+      person.scopes.add(m.team_name || "whole club");
+    });
+    const byName = (a, b) => a.name.localeCompare(b.name);
+    const people = Array.from(byPerson.values()).sort(byName);
+    const admins = people.filter((p) => p.isAdmin);
+    const coaches = people.filter((p) => !p.isAdmin);
+    const rowHtml = (p, label) => {
+      const scopes = Array.from(p.scopes).sort((a, b) => (a === "whole club" ? -1 : b === "whole club" ? 1 : a.localeCompare(b, undefined, { numeric: true })));
+      return `
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); gap:10px;">
+        <span>${escapeHtml(p.name)}</span>
+        <span style="font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase; text-align:right;">${label} · ${escapeHtml(scopes.join(", "))}</span>
       </div>`;
-    list.innerHTML = admins.map((m) => rowHtml(m, "Admin")).join("") + coaches.map((m) => rowHtml(m, "Coach")).join("");
+    };
+    list.innerHTML = admins.map((p) => rowHtml(p, "Admin")).join("") + coaches.map((p) => rowHtml(p, "Coach")).join("");
   }
 
   // Dani, test funcional ronda 30 (hallazgo ALTO nº2, verificado con la
