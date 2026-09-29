@@ -63,6 +63,17 @@ function pivotSetStoredOrgId(orgId) {
 function pivotDedupeMembershipsByOrg(memberships) {
   const byOrg = new Map();
   (memberships || []).forEach((m) => {
+    // Dani 2026-09-29 ("me siguen apareciendo pinches carnales... se han
+    // borrado algunos"): "Remove whole club" (Admin general, dashboard.html)
+    // pone organizations.is_active=false pero nunca toca `memberships` --
+    // así que cualquier miembro de un club "borrado" (Dani incluido)
+    // seguía viéndolo exactamente igual en este selector, como si la
+    // desactivación no hubiera hecho nada. Se ignoran aquí las membresías
+    // de un club desactivado. Solo se excluye cuando el join trae
+    // is_active===false EXPLÍCITO -- si la consulta de una página todavía
+    // no pide ese campo (undefined), no se filtra nada, para no romper en
+    // seco una página que aún no lo seleccione.
+    if (m.organizations && m.organizations.is_active === false) return;
     const existing = byOrg.get(m.organization_id);
     if (!existing || (m.role === "admin" && existing.role !== "admin")) {
       byOrg.set(m.organization_id, m);

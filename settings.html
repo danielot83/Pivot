@@ -471,7 +471,7 @@
 
     const { data, error } = await supabaseClient
       .from("memberships")
-      .select("organization_id, role, status, team_season, team_name, organizations(name)")
+      .select("organization_id, role, status, team_season, team_name, organizations(name, is_active)")
       .eq("status", "active");
     if ((error || !data || data.length === 0) && !isPlatformController) {
       showMessage("You're not an active member of any club yet.", "error");

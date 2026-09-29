@@ -644,7 +644,7 @@
 
     const { data, error } = await supabaseClient
       .from("memberships")
-      .select("organization_id, status, role, team_season, team_name, organizations(name)")
+      .select("organization_id, status, role, team_season, team_name, organizations(name, is_active)")
       .eq("status", "active")
       .eq("user_id", currentUserId);
 

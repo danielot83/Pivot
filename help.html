@@ -324,7 +324,7 @@
 
     const { data } = await supabaseClient
       .from("memberships")
-      .select("organization_id, role, status, team_season, team_name, organizations(name)")
+      .select("organization_id, role, status, team_season, team_name, organizations(name, is_active)")
       .eq("status", "active");
 
     const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });

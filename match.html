@@ -839,7 +839,7 @@
     canValidateAssociations = isPlatformController || !!(profRow && profRow.is_association_validator);
     pivotUpdateSidebarUser((profRow && profRow.full_name) || userData.user.email, isPlatformController ? "Platform admin" : null);
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, role, status, organizations(name)").eq("status", "active").eq("user_id", currentUserId);
+      .from("memberships").select("organization_id, role, status, organizations(name, is_active)").eq("status", "active").eq("user_id", currentUserId);
     if ((error || !data || data.length === 0) && !isPlatformController) {
       showMessage("You're not an active member of any club yet.", "error");
       return null;
