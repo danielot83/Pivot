@@ -1859,6 +1859,23 @@
     if (clubName) { doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text(clubName, textX, 26); }
     doc.setFont("helvetica", "bold"); doc.setFontSize(18);
     doc.text("SESSION SHEET", textX, 46);
+    // Dani 2026-09-28 ("no pone el club, equipo categoria etc"): el nombre
+    // del club ya se dibujaba arriba, pero el equipo (currentTeam), su
+    // categoría/género (currentTeamCategory/currentTeamGender) y la
+    // temporada (currentSeason) no aparecían en ningún sitio de la ficha de
+    // sesión -- solo en la portada del "Export whole book". Ahora se pasan
+    // en `sess` (ver exportToPdf/exportWholeBook) y se pintan aquí, debajo
+    // del título.
+    {
+      const teamCat = [sess.team_category, sess.team_gender].filter(Boolean).join(" ");
+      const teamLine = [sess.team, teamCat].filter(Boolean).join(" · ");
+      const teamSeasonLine = [teamLine, sess.season].filter(Boolean).join(" — ");
+      if (teamSeasonLine) {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(GREY);
+        doc.text(teamSeasonLine, textX, 61);
+        doc.setTextColor(DARK);
+      }
+    }
 
     const fieldY = 92, fieldLineY = 116;
     const fields = [
@@ -2534,6 +2551,7 @@
       objectives_summary: els.objSummary.value.split("\n").map((s) => s.trim()).filter(Boolean),
       exercises: sessionExercises, teamPlayersList: teamPlayers, attendance: presentBoolMap(attendance),
       rating: sessionRating, comments: els.comments.value, next_training_notes: els.nextNotes.value,
+      team: currentTeam, team_category: currentTeamCategory, team_gender: currentTeamGender, season: currentSeason,
     };
     drawSessionPage(doc, sess, logoDataUrl, clubName);
 
@@ -2620,6 +2638,7 @@
         material_summary: training.material_summary || [], objectives_summary: training.objectives_summary || [],
         exercises, teamPlayersList: teamPlayers, attendance: sessAttendance,
         rating: training.rating, comments: training.comments, next_training_notes: training.next_training_notes,
+        team: currentTeam, team_category: currentTeamCategory, team_gender: currentTeamGender, season: currentSeason,
       }, logoDataUrl, clubName);
     }
 
