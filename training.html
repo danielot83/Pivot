@@ -200,8 +200,40 @@
   /* "Add from library" | "In this session" en dos columnas, a petición de
      Dani -- mismo patrón de grid ya usado en la tarjeta de Team & Season
      (.tsc-cols) más arriba en esta misma página. */
-  .add-exercise-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  /* Dani, 2026-09-29 (segunda vuelta, "que tengan el mismo tamaño hacia
+     abajo"): con align-items:start cada tarjeta medía solo lo que su
+     propio contenido ocupaba -- "In this session" casi siempre acababa
+     más alta que "Add from library" porque, a diferencia de ella, tiene
+     un resumen de minutos debajo de la lista. align-items:stretch (el
+     valor por defecto de grid, así que basta con quitar el "start") hace
+     que las dos tarjetas midan siempre lo mismo -- la más baja se estira
+     hasta igualar a la más alta -- y .scroll-area (más abajo) reparte ese
+     estirón en la propia lista con scroll, en vez de dejar un hueco en
+     blanco al final de la tarjeta. */
+  .add-exercise-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
   @media (max-width: 700px) { .add-exercise-cols { grid-template-columns: 1fr; } }
+  .add-exercise-cols .side-card { display: flex; flex-direction: column; }
+  .add-exercise-cols .scroll-area { flex: 1; min-height: 0; max-height: 420px; overflow-y: auto; }
+
+  /* Dani, 2026-09-29 (tercera vuelta, "que ocupe todo el espacio"): los
+     campos de "Session details" (título, fecha, categoría, objetivo
+     principal...) no tenían ancho propio -- cada .field medía solo lo que
+     necesitaba su contenido (la anchura por defecto de un <input>, o el
+     ancho en línea de los campos numéricos/nombres cortos), así que en un
+     cuadro ancho se quedaban agrupados a la izquierda con un hueco vacío a
+     la derecha. Scoped a .session-fields (solo las dos filas de "Session
+     details") para no tocar el resto de .toolbar de la página, que son
+     filas de botones y sí deben medir solo lo que ocupan sus botones.
+     Cada .field reparte el ancho sobrante del cuadro (flex-grow); su
+     input/select ya se estira solo al 100% del field porque .field es un
+     flex column con align-items:stretch (por defecto) -- no hace falta
+     tocar el input. Los campos con un ancho en línea fijo a propósito
+     (Session #, Planned length, Players expected, Coach 1-3: números o
+     nombres cortos que no necesitan más sitio) llevan la clase
+     .field-fixed y no crecen, para no dejarlos con un hueco vacío al lado
+     de un input que sigue siendo estrecho. */
+  .session-fields .field { flex: 1 1 160px; }
+  .session-fields .field.field-fixed { flex: 0 0 auto; }
 
   /* Dani 2026-09-29 ("está todo por debajo como mezclado, deberíamos de
      poner cuadraditos"): las secciones de la sesión (Add from
@@ -563,27 +595,36 @@
            Dani señaló como "la letra que no es la misma". -->
       <div class="team-bar-card">
         <h2>Session details</h2>
-        <div class="toolbar">
+        <div class="toolbar session-fields">
           <div class="field"><label for="tr-title">Session title</label><input id="tr-title" type="text" placeholder="e.g. Tuesday practice" /></div>
           <div class="field"><label for="tr-date">Date</label><input id="tr-date" type="date" /></div>
-          <div class="field"><label for="tr-number">Session #</label><input id="tr-number" type="number" style="width:70px;" /></div>
+          <div class="field field-fixed"><label for="tr-number">Session #</label><input id="tr-number" type="number" style="width:70px;" /></div>
           <div class="field"><label for="tr-category">Category</label>
             <select id="tr-category"><option value="">—</option></select>
           </div>
           <!-- Nuevo, a petición de Dani: "puedes meter ahí objetivo principal,
                que sea un desplegable" -- reutiliza la misma lista de enfoques
                (Warm-up, Shooting, Defense...) que ya usan los ejercicios, en
-               vez de inventar una lista nueva. -->
-          <div class="field"><label for="tr-main-objective">Main objective</label>
-            <select id="tr-main-objective"><option value="">—</option></select>
+               vez de inventar una lista nueva.
+               A petición de Dani, 2026-09-29 (tercera vuelta, "quiza poner un
+               despegable para poder marcar varios objetivos"): pasa de un
+               <select> de una sola opción a un desplegable con checkboxes --
+               mismo patrón .filter-dropdown/.multiselect que ya usan los
+               filtros de Categoría/Edad de "Add from library" más abajo en
+               esta misma página, en vez de inventar un componente nuevo. -->
+          <div class="field"><label for="tr-main-objective-btn">Main objective</label>
+            <div class="filter-dropdown">
+              <button type="button" class="btn btn-secondary filter-dropdown-btn" id="tr-main-objective-btn">All ▾</button>
+              <div class="multiselect" id="tr-main-objective-options"></div>
+            </div>
           </div>
-          <div class="field"><label for="tr-planned">Planned length (min)</label><input id="tr-planned" type="number" style="width:90px;" value="90" /></div>
+          <div class="field field-fixed"><label for="tr-planned">Planned length (min)</label><input id="tr-planned" type="number" style="width:90px;" value="90" /></div>
         </div>
-        <div class="toolbar">
-          <div class="field"><label for="tr-players">Players expected</label><input id="tr-players" type="number" style="width:90px;" /></div>
-          <div class="field"><label for="tr-coach1">Coach 1</label><input id="tr-coach1" type="text" style="width:130px;" /></div>
-          <div class="field"><label for="tr-coach2">Coach 2</label><input id="tr-coach2" type="text" style="width:130px;" /></div>
-          <div class="field"><label for="tr-coach3">Coach 3</label><input id="tr-coach3" type="text" style="width:130px;" /></div>
+        <div class="toolbar session-fields">
+          <div class="field field-fixed"><label for="tr-players">Players expected</label><input id="tr-players" type="number" style="width:90px;" /></div>
+          <div class="field field-fixed"><label for="tr-coach1">Coach 1</label><input id="tr-coach1" type="text" style="width:130px;" /></div>
+          <div class="field field-fixed"><label for="tr-coach2">Coach 2</label><input id="tr-coach2" type="text" style="width:130px;" /></div>
+          <div class="field field-fixed"><label for="tr-coach3">Coach 3</label><input id="tr-coach3" type="text" style="width:130px;" /></div>
           <div class="field"><label for="tr-visibility">Who can see it?</label>
             <select id="tr-visibility">
               <option value="private">🔒 Only me</option>
@@ -674,7 +715,7 @@
                dificultad e idioma de cada ejercicio, y un clic en la fila lo
                añade directamente a la sesión. -->
           <p class="section-label" style="margin:0 0 8px;">Add from library <span id="add-exercise-count" class="hint" style="font-weight:400; text-transform:none;"></span></p>
-          <div class="list-card" id="add-exercise-list-card" style="max-height:420px; overflow-y:auto;"></div>
+          <div class="list-card scroll-area" id="add-exercise-list-card"></div>
           <div class="empty-state" id="add-exercise-list-empty" style="display:none;">No exercises match these filters.</div>
         </div>
         <div class="side-card">
@@ -697,8 +738,12 @@
                que ocupe el mismo hueco cuando está vacía) -- los botones de
                arriba y el resumen de minutos de abajo se quedan siempre
                visibles, igual que el contador "(N of M)" de la izquierda
-               queda fuera de su propio scroll. -->
-          <div style="max-height:420px; overflow-y:auto;">
+               queda fuera de su propio scroll. Ahora usa la clase
+               .scroll-area (compartida con #add-exercise-list-card) en vez
+               de un max-height fijo en línea, para que las dos columnas
+               estiren su lista hasta ocupar el mismo alto total de tarjeta
+               (ver comentario de .add-exercise-cols más arriba). -->
+          <div class="scroll-area">
             <table>
               <thead><tr><th></th><th>#</th><th>Exercise</th><th>Minutes</th><th></th><th></th></tr></thead>
               <tbody id="session-exercises-body"></tbody>
@@ -855,7 +900,7 @@
     date: document.getElementById("tr-date"),
     number: document.getElementById("tr-number"),
     category: document.getElementById("tr-category"),
-    mainObjective: document.getElementById("tr-main-objective"),
+    mainObjectiveBtn: document.getElementById("tr-main-objective-btn"),
     planned: document.getElementById("tr-planned"),
     players: document.getElementById("tr-players"),
     coach1: document.getElementById("tr-coach1"),
@@ -933,13 +978,20 @@
   // "Main objective" reutiliza CATEGORIES (Warm-up, Shooting, Defense...),
   // ya cargado desde exercise-categories.js -- mismo enfoque que usan los
   // ejercicios, para no tener dos vocabularios distintos en la misma app.
-  CATEGORIES.forEach((c) => {
-    const opt = document.createElement("option");
-    // A petición de Dani: sin el emoji de color delante -- solo el nombre
-    // (los <option> de un <select> nativo no se pueden recolorear con CSS,
-    // así que la única forma de que "no sea en colores" es no ponerlo).
-    opt.value = c; opt.textContent = c;
-    els.mainObjective.appendChild(opt);
+  // A petición de Dani, 2026-09-29 (tercera vuelta): ahora es un
+  // .filter-dropdown/.multiselect (checkboxes), no un <select> de una sola
+  // opción -- mismas buildMultiselect/toggleAddExerciseFilterDropdown/
+  // outside-click-closer que ya usan los filtros de Categoría/Edad más
+  // abajo (definidas más adelante en este mismo script, pero las funciones
+  // declaradas con "function" quedan disponibles en todo el bloque).
+  buildMultiselect("tr-main-objective-options", CATEGORIES, updateMainObjectiveLabel);
+  function updateMainObjectiveLabel() {
+    const count = checkedValues("tr-main-objective-options").length;
+    els.mainObjectiveBtn.textContent = count ? `${count} selected ▾` : "All ▾";
+  }
+  document.getElementById("tr-main-objective-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleAddExerciseFilterDropdown("tr-main-objective-options");
   });
 
   // -----------------------------------------------------------------------
@@ -1465,7 +1517,9 @@
     currentTrainingOwned = true;
     els.title.value = ""; els.date.value = new Date().toISOString().slice(0, 10); els.planned.value = "90";
     els.number.value = nextSessionNumber();
-    els.category.value = ""; els.mainObjective.value = ""; els.players.value = "";
+    els.category.value = ""; els.players.value = "";
+    document.querySelectorAll("#tr-main-objective-options input").forEach((cb) => (cb.checked = false));
+    updateMainObjectiveLabel();
     els.coach1.value = ""; els.coach2.value = ""; els.coach3.value = "";
     els.visibility.value = "team";
     els.language.value = "en"; currentTranslationGroupId = null;
@@ -1484,8 +1538,9 @@
     els.trainingArea.style.display = "block";
     document.getElementById("delete-training-btn").style.display = "none";
     document.getElementById("save-training-btn").style.display = "inline-block";
-    [els.title, els.date, els.number, els.category, els.mainObjective, els.planned, els.players, els.coach1, els.coach2, els.coach3, els.visibility, els.language]
+    [els.title, els.date, els.number, els.category, els.mainObjectiveBtn, els.planned, els.players, els.coach1, els.coach2, els.coach3, els.visibility, els.language]
       .forEach((el) => (el.disabled = false));
+    document.querySelectorAll("#tr-main-objective-options input").forEach((cb) => (cb.disabled = false));
   }
 
   async function openTraining(id) {
@@ -1501,7 +1556,13 @@
     els.planned.value = (training.planned_minutes === null || training.planned_minutes === undefined) ? 90 : training.planned_minutes;
     els.number.value = training.number || "";
     els.category.value = training.category || "";
-    els.mainObjective.value = training.main_objective || "";
+    // A petición de Dani, 2026-09-29 (tercera vuelta): main_objective ahora
+    // guarda varios valores en el mismo texto, separados por "; " (sin
+    // cambiar la columna de la base de datos, que sigue siendo un simple
+    // texto) -- se reparte de vuelta en checkboxes marcados al abrir.
+    const savedObjectives = (training.main_objective || "").split("; ").map((s) => s.trim()).filter(Boolean);
+    document.querySelectorAll("#tr-main-objective-options input").forEach((cb) => (cb.checked = savedObjectives.includes(cb.value)));
+    updateMainObjectiveLabel();
     els.players.value = training.players_count || "";
     const coaches = training.coaches || [];
     els.coach1.value = coaches[0] || ""; els.coach2.value = coaches[1] || ""; els.coach3.value = coaches[2] || "";
@@ -1538,8 +1599,9 @@
     const owned = currentTrainingOwned;
     document.getElementById("delete-training-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     document.getElementById("save-training-btn").style.display = owned ? "inline-block" : "none";
-    [els.title, els.date, els.number, els.category, els.mainObjective, els.planned, els.players, els.coach1, els.coach2, els.coach3, els.visibility, els.language]
+    [els.title, els.date, els.number, els.category, els.mainObjectiveBtn, els.planned, els.players, els.coach1, els.coach2, els.coach3, els.visibility, els.language]
       .forEach((el) => (el.disabled = !owned));
+    document.querySelectorAll("#tr-main-objective-options input").forEach((cb) => (cb.disabled = !owned));
     if (!owned) showMessage("This session belongs to another club — you can look, but not edit or save changes.", "success");
     await loadTrainingsList();
   }
@@ -1989,7 +2051,11 @@
       date: els.date.value, title: els.title.value.trim() || null,
       number: els.number.value ? parseInt(els.number.value, 10) : nextSessionNumber(),
       category: els.category.value || null,
-      main_objective: els.mainObjective.value || null,
+      // A petición de Dani, 2026-09-29 (tercera vuelta): varios objetivos
+      // marcados se guardan en el mismo texto de siempre, unidos por "; "
+      // (openTraining los separa de vuelta al reabrir) -- sin tocar la
+      // columna de la base de datos.
+      main_objective: checkedValues("tr-main-objective-options").join("; ") || null,
       // Dani 2026-09-17 (ronda30): `parseInt(...) || null` convertía un 0
       // explícito (input vacío tras parseInt de "" es NaN, pero "0" da 0)
       // en null, así que se perdía y volvía a mostrar el default de 90 al
