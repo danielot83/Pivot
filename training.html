@@ -203,6 +203,32 @@
   .add-exercise-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
   @media (max-width: 700px) { .add-exercise-cols { grid-template-columns: 1fr; } }
 
+  /* Dani 2026-09-29 ("está todo por debajo como mezclado, deberíamos de
+     poner cuadraditos"): las secciones de la sesión (Add from
+     library/In this session, Summary, Attendance, Post-session feedback)
+     pasan a ser tarjetas separadas (.side-card, ya existía y se usaba en
+     "Post-session feedback") en vez de bloques seguidos sin separación
+     visual. */
+
+  /* Dani 2026-09-29 ("en vez de hacerlo automáticamente, que el
+     entrenador decida qué se puede hacer y qué no"): Categories
+     worked/Material/Objectives dejan de ser texto libre que se
+     regeneraba entero (y perdía ediciones) cada vez que cambiaba un
+     ejercicio -- ahora cada elemento detectado en los ejercicios de la
+     sesión es un chip con checkbox que el entrenador marca/desmarca, más
+     un campo para añadir algo que no venga de ningún ejercicio. El
+     textarea original (tr-cat-summary/tr-mat-summary/tr-obj-summary)
+     sigue existiendo oculto como fuente de verdad -- guardado, PDF y
+     carga de sesión no cambian, solo la forma de editarlo. */
+  .summary-checklist { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-bottom: 8px; min-height: 26px; }
+  .summary-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; padding: 4px 9px 4px 7px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; user-select: none; }
+  .summary-chip input[type="checkbox"] { cursor: pointer; margin: 0; }
+  .summary-chip.unchecked { opacity: 0.55; }
+  .summary-add-row { display: flex; gap: 6px; }
+  .summary-add-row input { flex: 1; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; font-family: inherit; }
+  .summary-add-row button { white-space: nowrap; padding: 5px 10px; }
+  .summary-empty-hint { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+
   /* ---------------------------------------------------------------------
      App shell: sidebar (fixed on desktop/tablet, off-canvas on mobile)
      + main content column. Same shell as dashboard.html/roster.html.
@@ -601,8 +627,12 @@
       <!-- Dos columnas -- a petición de Dani: "Add from library" a la
            izquierda (a mitad de ancho) y los ejercicios ya elegidos de la
            sesión a la derecha, en vez de una tabla debajo de la otra. -->
+      <!-- A petición de Dani, 2026-09-29 ("dos cuadraditos diferentes para
+           librería y sesión"): cada columna es ahora su propia tarjeta
+           (.side-card, mismo patrón que ya usaba "Post-session feedback")
+           en vez de dos bloques sin separación visual. -->
       <div class="add-exercise-cols">
-        <div>
+        <div class="side-card">
           <!-- A petición de Dani: en vez de un desplegable con solo el nombre
                ("es difícil, aunque tengas los filtros, no sé exactamente lo que
                es"), una tabla como la de Library -- se ve categoría, edad,
@@ -612,7 +642,7 @@
           <div class="list-card" id="add-exercise-list-card" style="max-height:420px; overflow-y:auto;"></div>
           <div class="empty-state" id="add-exercise-list-empty" style="display:none;">No exercises match these filters.</div>
         </div>
-        <div>
+        <div class="side-card">
           <div class="toolbar" style="align-items:center; margin:0 0 8px;">
             <p class="section-label" style="margin:0; flex:1;">In this session</p>
             <button class="btn btn-secondary" id="add-pause-btn" title="Add a rest/break between exercises">⏸ Add pause</button>
@@ -634,18 +664,47 @@
         </div>
       </div>
 
-      <p class="section-label">Auto-summary <span style="font-weight:400; color:var(--muted); text-transform:none; font-size:12px;">— rolled up from the exercises above, edit freely</span></p>
-      <div class="toolbar">
-        <div class="field" style="flex:1;"><label for="tr-cat-summary">Categories worked</label><textarea id="tr-cat-summary" rows="2" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea></div>
-        <div class="field" style="flex:1;"><label for="tr-mat-summary">Material needed</label><textarea id="tr-mat-summary" rows="2" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea></div>
-        <div class="field" style="flex:1;"><label for="tr-obj-summary">Objectives (up to 4)</label><textarea id="tr-obj-summary" rows="2" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea></div>
+      <!-- A petición de Dani, 2026-09-29: "en vez de hacerlo automáticamente,
+           que el entrenador decida qué se puede hacer y qué no" -- cada
+           categoría/material/objetivo detectado en los ejercicios de la
+           sesión es ahora un chip con checkbox (marcado por defecto la
+           primera vez que aparece); desmarcarlo lo saca del resumen y del
+           PDF sin que vuelva a aparecer solo. El "+ Add" deja meter algo que
+           no venga de ningún ejercicio. Los textarea originales
+           (tr-cat-summary/tr-mat-summary/tr-obj-summary) se quedan como
+           fuente de verdad, ocultos -- guardado, carga de sesión y PDF no
+           cambian, ver syncSummaryChecklists()/toggleSummaryItem() más abajo. -->
+      <div class="side-card">
+      <p class="section-label">Summary <span style="font-weight:400; color:var(--muted); text-transform:none; font-size:12px;">— detected from the exercises above, tick what applies</span></p>
+      <div class="toolbar" style="align-items:flex-start;">
+        <div class="field" style="flex:1;">
+          <label>Categories worked</label>
+          <div class="summary-checklist" id="tr-cat-checklist"></div>
+          <div class="summary-add-row"><input type="text" id="tr-cat-add-input" placeholder="Add something else…" /><button type="button" class="btn btn-secondary" id="tr-cat-add-btn">+ Add</button></div>
+          <textarea id="tr-cat-summary" style="display:none;"></textarea>
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Material needed</label>
+          <div class="summary-checklist" id="tr-mat-checklist"></div>
+          <div class="summary-add-row"><input type="text" id="tr-mat-add-input" placeholder="Add something else…" /><button type="button" class="btn btn-secondary" id="tr-mat-add-btn">+ Add</button></div>
+          <textarea id="tr-mat-summary" style="display:none;"></textarea>
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Objectives <span class="hint" style="font-weight:400;">(first 4 checked go on the main page, the rest continue on page 2)</span></label>
+          <div class="summary-checklist" id="tr-obj-checklist"></div>
+          <div class="summary-add-row"><input type="text" id="tr-obj-add-input" placeholder="Add something else…" /><button type="button" class="btn btn-secondary" id="tr-obj-add-btn">+ Add</button></div>
+          <textarea id="tr-obj-summary" style="display:none;"></textarea>
+        </div>
+      </div>
       </div>
 
+      <div class="side-card">
       <p class="section-label">Attendance</p>
       <table>
         <thead><tr><th>Present</th><th>Player</th></tr></thead>
         <tbody id="attendance-body"></tbody>
       </table>
+      </div>
 
       <div class="side-card" style="margin-top:16px;">
         <a href="#" id="feedback-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Post-session feedback (fill in after it happened)</a>
@@ -1354,7 +1413,8 @@
     // (sin marcar), igual que Match day y que el propio módulo Attendance --
     // antes se marcaba "presente" a todo el equipo por defecto.
     attendance = {};
-    renderSessionTable(); renderAttendanceTable(); updateDurationBanner();
+    resetSummarySeenPool();
+    renderSessionTable(); renderAttendanceTable(); updateDurationBanner(); syncSummaryChecklists();
     els.trainingArea.style.display = "block";
     document.getElementById("delete-training-btn").style.display = "none";
     document.getElementById("save-training-btn").style.display = "inline-block";
@@ -1406,7 +1466,8 @@
     (attRows || []).forEach((r) => (attendance[r.player_id] = { id: r.id, status: r.status }));
 
     expandedRowIdx = null;
-    renderSessionTable(); renderAttendanceTable(); updateDurationBanner();
+    resetSummarySeenPool();
+    renderSessionTable(); renderAttendanceTable(); updateDurationBanner(); syncSummaryChecklists();
     els.trainingArea.style.display = "block";
     const owned = currentTrainingOwned;
     document.getElementById("delete-training-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
@@ -1417,19 +1478,118 @@
     await loadTrainingsList();
   }
 
-  function computeAutoSummary() {
-    const cats = [], mats = [], objs = [];
+  // Dani 2026-09-29: "en vez de hacerlo automáticamente, que el entrenador
+  // decida qué se puede hacer y qué no" -- Categories worked/Material/
+  // Objectives dejaban de regenerarse enteras (perdiendo cualquier edición)
+  // cada vez que se añadía o quitaba un ejercicio de la sesión. Ahora:
+  // - `detectSummaryPool(type)` sigue calculando lo mismo que antes
+  //   (categorías/material/objetivos únicos de los ejercicios añadidos).
+  // - `summarySeenPool` recuerda, para la sesión abierta ahora mismo, qué
+  //   elementos ya se han "ofrecido" al menos una vez, para no volver a
+  //   marcar solo algo que el entrenador desmarcó a propósito.
+  // - Los textarea (tr-cat-summary y compañía) se quedan ocultos como
+  //   fuente de verdad -- lo que ya leían/escribían save/openTraining/
+  //   exportToPdf/exportWholeBook no cambia, solo la forma de editarlos.
+  const SUMMARY_TYPES = {
+    categories: { exerciseField: "categories", els: () => els.catSummary, checklistId: "tr-cat-checklist", addInputId: "tr-cat-add-input" },
+    material: { exerciseField: "material", els: () => els.matSummary, checklistId: "tr-mat-checklist", addInputId: "tr-mat-add-input" },
+    objectives: { exerciseField: "objectives", els: () => els.objSummary, checklistId: "tr-obj-checklist", addInputId: "tr-obj-add-input" },
+  };
+  let summarySeenPool = { categories: new Set(), material: new Set(), objectives: new Set() };
+
+  function resetSummarySeenPool() {
+    summarySeenPool = { categories: new Set(), material: new Set(), objectives: new Set() };
+  }
+
+  function detectSummaryPool(type) {
+    const items = [];
     sessionExercises.forEach((se) => {
       const ex = allExercises.find((e) => e.id === se.exercise_id);
       if (!ex) return;
-      cats.push(...(ex.categories || []));
-      mats.push(...(ex.material || []));
-      objs.push(...(ex.objectives || []));
+      items.push(...(ex[SUMMARY_TYPES[type].exerciseField] || []));
     });
-    els.catSummary.value = Array.from(new Set(cats)).join("\n");
-    els.matSummary.value = Array.from(new Set(mats)).join("\n");
-    els.objSummary.value = Array.from(new Set(objs)).slice(0, 4).join("\n");
+    return Array.from(new Set(items));
   }
+
+  function getSummaryIncluded(type) {
+    return SUMMARY_TYPES[type].els().value.split("\n").map((s) => s.trim()).filter(Boolean);
+  }
+
+  function setSummaryIncluded(type, arr) {
+    SUMMARY_TYPES[type].els().value = arr.join("\n");
+  }
+
+  function syncSummaryChecklists() {
+    Object.keys(SUMMARY_TYPES).forEach((type) => {
+      const pool = detectSummaryPool(type);
+      const included = getSummaryIncluded(type);
+      const seen = summarySeenPool[type];
+      let changed = false;
+      pool.forEach((label) => {
+        if (!seen.has(label)) {
+          seen.add(label);
+          if (!included.includes(label)) { included.push(label); changed = true; }
+        }
+      });
+      if (changed) setSummaryIncluded(type, included);
+      renderSummaryChecklist(type, pool, getSummaryIncluded(type));
+    });
+  }
+
+  function renderSummaryChecklist(type, pool, included) {
+    const container = document.getElementById(SUMMARY_TYPES[type].checklistId);
+    if (!container) return;
+    // Se enseña lo detectado en los ejercicios + lo ya incluido aunque ya
+    // no venga de ningún ejercicio (un "+ Add" manual, o el ejercicio que
+    // lo traía se ha quitado mientras tanto de la sesión).
+    const labels = Array.from(new Set([...pool, ...included]));
+    if (labels.length === 0) {
+      container.innerHTML = `<span class="summary-empty-hint">Nothing detected yet — add exercises above, or type one below.</span>`;
+      return;
+    }
+    container.innerHTML = "";
+    labels.forEach((label) => {
+      const checked = included.includes(label);
+      const chip = document.createElement("label");
+      chip.className = "summary-chip" + (checked ? "" : " unchecked");
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = checked;
+      cb.addEventListener("change", (e) => toggleSummaryItem(type, label, e.target.checked));
+      const span = document.createElement("span");
+      span.textContent = label;
+      chip.appendChild(cb); chip.appendChild(span);
+      container.appendChild(chip);
+    });
+  }
+
+  function toggleSummaryItem(type, label, on) {
+    let included = getSummaryIncluded(type);
+    if (on && !included.includes(label)) included.push(label);
+    if (!on) included = included.filter((x) => x !== label);
+    setSummaryIncluded(type, included);
+    renderSummaryChecklist(type, detectSummaryPool(type), included);
+  }
+
+  function addManualSummaryItem(type) {
+    const input = document.getElementById(SUMMARY_TYPES[type].addInputId);
+    if (!input) return;
+    const text = (input.value || "").trim();
+    if (!text) return;
+    const included = getSummaryIncluded(type);
+    if (!included.includes(text)) included.push(text);
+    setSummaryIncluded(type, included);
+    summarySeenPool[type].add(text); // ya "ofrecido" -- si luego un ejercicio trae lo mismo no lo vuelve a forzar
+    input.value = "";
+    renderSummaryChecklist(type, detectSummaryPool(type), included);
+  }
+
+  Object.keys(SUMMARY_TYPES).forEach((type) => {
+    const inputId = SUMMARY_TYPES[type].addInputId;
+    const btn = document.getElementById(inputId.replace("-input", "-btn"));
+    const input = document.getElementById(inputId);
+    if (btn) btn.addEventListener("click", () => addManualSummaryItem(type));
+    if (input) input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addManualSummaryItem(type); } });
+  });
 
   function renderSessionTable() {
     els.sessionBody.innerHTML = "";
@@ -1507,7 +1667,7 @@
       tr.querySelector('[data-action="remove"]').addEventListener("click", () => {
         sessionExercises.splice(i, 1);
         if (expandedRowIdx === i) expandedRowIdx = null;
-        renderSessionTable(); updateDurationBanner(); computeAutoSummary();
+        renderSessionTable(); updateDurationBanner(); syncSummaryChecklists();
       });
       const upBtn = tr.querySelector('[data-action="up"]');
       if (upBtn) upBtn.addEventListener("click", () => {
@@ -1713,7 +1873,7 @@
     const ex = allExercises.find((e) => e.id === id);
     if (!ex) return;
     sessionExercises.push({ exercise_id: id, name: ex.name, duration_minutes: 10, key_points: [], session_variants: "" });
-    renderSessionTable(); updateDurationBanner(); computeAutoSummary();
+    renderSessionTable(); updateDurationBanner(); syncSummaryChecklists();
     showMessage(`Added "${ex.name}" to the session.`, "success", { scroll: false });
   }
 
