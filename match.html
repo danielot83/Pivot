@@ -464,9 +464,9 @@
         <!-- Tabla de convocatoria/minutos/puntos por jugador -- ahora visible (a petición de
              Dani), justo debajo de la info general, con su propio menú "Columns ▾" (igual que
              Roster) que fusiona lo que antes era la tarjeta separada "Match stat columns". -->
-        <div id="callup-section">
+        <div id="callup-section" class="side-card">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-            <p class="tsc-step-label" style="margin-bottom:2px;">Call-up &amp; stats</p>
+            <p class="tsc-step-label" style="margin-bottom:2px; margin-top:0;">Call-up &amp; stats</p>
             <div class="columns-menu">
               <button class="btn btn-secondary" id="callup-columns-btn">Columns ▾</button>
               <div class="columns-panel" id="callup-columns-panel"></div>
@@ -495,19 +495,21 @@
           </table>
         </div>
 
-        <p class="tsc-step-label">Opponent stats <span style="font-weight:400; color:var(--muted); font-size:13px; text-transform:none;">(optional — no roster on file for them, so names are typed in)</span></p>
-        <table>
-          <thead><tr><th>Player name</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Fouls</th><th></th></tr></thead>
-          <tbody id="opponent-stats-body"></tbody>
-        </table>
-        <button class="btn btn-secondary" id="add-opponent-row-btn" style="margin-top:-12px; margin-bottom:20px;">+ Add opponent player</button>
+        <div class="side-card">
+          <p class="tsc-step-label" style="margin-top:0;">Opponent stats <span style="font-weight:400; color:var(--muted); font-size:13px; text-transform:none;">(optional — no roster on file for them, so names are typed in)</span></p>
+          <table>
+            <thead><tr><th>Player name</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Fouls</th><th></th></tr></thead>
+            <tbody id="opponent-stats-body"></tbody>
+          </table>
+          <button class="btn btn-secondary" id="add-opponent-row-btn" style="margin-top:-12px;">+ Add opponent player</button>
+        </div>
 
         <!-- Save/export/delete -- a petición de Dani, movido aquí abajo del
              todo (antes vivía arriba de la tabla de convocatoria): así se
              rellena todo -- info general, convocatoria, stats, rival -- y se
              guarda una sola vez al final, sin tener que subir de nuevo hasta
              arriba. Mismo criterio que ya usa Training builder. -->
-        <div class="toolbar" style="margin-top:16px;">
+        <div class="toolbar side-card" style="margin-top:16px;">
           <button class="btn btn-primary" id="save-match-btn">Save match details</button>
           <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
           <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
