@@ -62,8 +62,11 @@
   .intro-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
   @media (max-width: 700px) { .intro-tiles { grid-template-columns: 1fr; } }
   .intro-tile { background: var(--accent-tint); border-radius: 10px; padding: 14px 16px; }
-  .intro-tile .intro-tile-icon { font-size: 18px; line-height: 1; }
-  .intro-tile .intro-tile-title { font-size: 14px; font-weight: 700; color: var(--accent-deep); margin: 6px 0 4px; }
+  /* .intro-tile-icon eliminado a petición de Dani, 2026-09-29 (cuarta vuelta,
+     "hay que quitar los logos aqui") -- ya no hay emoji delante del título de
+     cada opción; se ha quitado también su regla CSS y el margin-top de 6px
+     del título, pensado para el aire que dejaba ese emoji encima. */
+  .intro-tile .intro-tile-title { font-size: 14px; font-weight: 700; color: var(--accent-deep); margin: 0 0 4px; }
   .intro-tile .intro-tile-desc { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0; }
 
   .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
@@ -312,17 +315,14 @@
 
     <div class="intro-tiles">
       <div class="intro-tile">
-        <span class="intro-tile-icon" aria-hidden="true">🤖</span>
         <p class="intro-tile-title">Fill in with AI</p>
         <p class="intro-tile-desc">Copy a ready-made prompt into any AI chat, describe your idea, then paste its reply back here — it fills in Name, Category, Objectives and the rest for you. You still draw the court diagram yourself.</p>
       </div>
       <div class="intro-tile">
-        <span class="intro-tile-icon" aria-hidden="true">📷</span>
         <p class="intro-tile-title">Fill in from a photo</p>
         <p class="intro-tile-desc">Snap or upload a photo of a paper sheet, whiteboard, or your own notes — it reads the text straight into Description. You fill in the rest by hand and draw the diagram yourself, using the photo as reference.</p>
       </div>
       <div class="intro-tile">
-        <span class="intro-tile-icon" aria-hidden="true">📋</span>
         <p class="intro-tile-title">Start from existing exercise</p>
         <p class="intro-tile-desc">Pick one of your saved exercises and copy everything — including the court diagram — into this new one. The original stays untouched, ready for you to tweak.</p>
       </div>
