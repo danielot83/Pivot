@@ -971,6 +971,17 @@
       if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
       const catGender = [teamCategory, teamGender].filter(Boolean).join(" ");
       showMessage(season ? `Scoped to ${team}${catGender ? ` · ${catGender}` : ""} — ${season} only.` : "Scoped to the whole club again.", "success");
+      // Dani 2026-09-29 (captura: acota a Daniel a "U10 Mixed" aquí arriba,
+      // pero "Team org chart" -- la tarjeta de más abajo en esta misma
+      // página -- seguía diciendo "Whole club"): esa tarjeta solo consulta
+      // la base de datos la PRIMERA vez que se despliega (initOrgChart(),
+      // para no pagar esa consulta si nadie la abre nunca). Si ya estaba
+      // abierta cuando cambiabas el equipo de alguien aquí, se quedaba
+      // con los datos de antes del cambio -- no volvía a mirar la base de
+      // datos sola. Si ya se cargó una vez (orgChartLoaded), se refresca
+      // aquí mismo para que diga lo correcto sin tener que recargar la
+      // página entera.
+      if (orgChartLoaded) loadOrgChart();
     } catch (err) {
       showMessage(err.message || "Couldn't change that scope.", "error");
     }
@@ -984,6 +995,11 @@
       if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
       showMessage(newStatus === "blocked" ? "Member blocked — they've lost access to this club." : "Member reactivated.", "success");
       await loadMembers();
+      // Dani 2026-09-29: mismo motivo que en setTeamScope -- bloquear/
+      // reactivar a alguien cambia quién aparece en "Team org chart" (esa
+      // tarjeta solo enseña status="active"), pero si ya estaba abierta no
+      // se refrescaba sola.
+      if (orgChartLoaded) loadOrgChart();
     } catch (err) {
       showMessage(err.message || "Couldn't change that member's status.", "error");
     }
@@ -995,6 +1011,9 @@
       if (error) throw error;
       if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
       showMessage("Role updated.", "success");
+      // Dani 2026-09-29: mismo motivo que en setTeamScope -- Admin/Coach es
+      // justo lo que enseña "Team org chart" junto al equipo.
+      if (orgChartLoaded) loadOrgChart();
     } catch (err) {
       showMessage(err.message || "Couldn't change that role.", "error");
       await loadMembers(); // remettre le select à la vraie valeur si ça a échoué
@@ -1008,6 +1027,9 @@
       if (error) throw error;
       if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
       rowEl.remove();
+      // Dani 2026-09-29: mismo motivo que en setTeamScope -- quien se quita
+      // de aquí debe desaparecer también de "Team org chart" sin recargar.
+      if (orgChartLoaded) loadOrgChart();
     } catch (err) {
       showMessage(err.message || "Couldn't remove that member.", "error");
     }
