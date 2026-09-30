@@ -166,6 +166,61 @@ async function pivotResolveActiveOrg(memberships, options) {
 }
 
 /**
+ * Dani, 2026-09-30 (Training builder: "en mi otro equipo, en Dell... esos
+ * son los entrenamientos de Dell, se supone que no los tengo compartidos
+ * con otros equipos, entonces no deberían de verse"): un módulo con
+ * partido/entrenamiento/ejercicio/jugada "compartida por otro club" solo
+ * ANTES filtraba por organization_id !== currentOrgId, sin mirar
+ * `visibility` en absoluto -- así que CUALQUIER fila de otro club que la
+ * consulta llegara a traer (por RLS, o por el bypass de
+ * is_platform_controller(), o simplemente porque la persona también es
+ * miembro activo de ESE otro club) se enseñaba como si fuera
+ * "compartida", aunque su círculo real fuera private/team (nunca pensado
+ * para salir de su propio club).
+ *
+ * Esta función decide, para una lista ya traída de la base de datos (con
+ * al menos `organization_id` y `visibility` en cada fila), qué filas
+ * tienen sentido enseñar en la pantalla de trabajo normal de UN club/
+ * equipo concreto:
+ *   - Del club activo ahora mismo (currentOrgId): siempre se enseña,
+ *     cualquier círculo -- es mi propio contenido en este club.
+ *   - 'community' (🌐 PlayPivot Community) de CUALQUIER club: siempre se
+ *     enseña, sea o no uno de mis propios clubes -- es de verdad público,
+ *     cualquier otra persona en PlayPivot lo vería igual de "compartido
+ *     por otro club" aunque no sepa que los dos clubes los administro yo.
+ *   - De CUALQUIER OTRO club del que también soy miembro (myOrgIds), con
+ *     círculo 'private' o 'team': NUNCA se enseña aquí -- no es "de otro
+ *     club" de verdad, es mi propio club EN OTRO SITIO, y esos dos
+ *     círculos nunca fueron pensados para salir de su propio club. Debe
+ *     ser invisible en este contexto, tal como pidió Dani ("no es que no
+ *     tengas acceso, es que no se pueden ver").
+ *   - 'association' de un club de verdad ajeno (no uno de los míos): se
+ *     enseña -- si la fila llegó hasta aquí sin ser mío ni 'community',
+ *     solo puede ser porque visible_trainings()/visible_matches()/
+ *     visible_exercises()/visible_plays()/visible_notebooks() (base de
+ *     datos) confirmó un shares_association_with() real, no solo que soy
+ *     miembro de ese club (si lo fuera, ya habría entrado en el caso de
+ *     arriba).
+ *   - 'private'/'team' de un club de verdad ajeno: nunca debería llegar
+ *     hasta aquí si la consulta está bien hecha, pero se descarta también
+ *     aquí por si acaso, como defensa en profundidad.
+ *
+ * @param {Array<{organization_id: string, visibility?: string}>} rows
+ * @param {string} currentOrgId
+ * @param {Iterable<string>} myOrgIds -- todos los organization_id de mis
+ *   propias membresías activas (incluido currentOrgId)
+ */
+function pivotFilterVisibleRows(rows, currentOrgId, myOrgIds) {
+  const myOtherOrgIds = new Set(Array.from(myOrgIds || []).filter((id) => id !== currentOrgId));
+  return (rows || []).filter((r) => {
+    if (r.organization_id === currentOrgId) return true;
+    if (r.visibility === "community") return true;
+    if (myOtherOrgIds.has(r.organization_id)) return false;
+    return r.visibility === "association";
+  });
+}
+
+/**
  * Dibuja el selector: los propios clubes de la persona, más "⚡ Admin
  * (all clubs)" arriba del todo si es platform admin Y esta página sabe
  * mostrar esa vista (supportsAdminView -- hoy en día solo el

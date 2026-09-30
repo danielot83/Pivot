@@ -624,6 +624,7 @@
   };
 
   let currentOrgId = null;
+  let myOrgIds = new Set(); // 2026-09-30: todos mis clubes activos, ver pivotFilterVisibleRows en org-switcher.js
   let currentUserId = null;
   let canValidateAssociations = false;
   let myRole = null;
@@ -842,6 +843,7 @@
     pivotUpdateSidebarUser((profRow && profRow.full_name) || userData.user.email, isPlatformController ? "Platform admin" : null);
     const { data, error } = await supabaseClient
       .from("memberships").select("organization_id, role, status, organizations(name, is_active)").eq("status", "active").eq("user_id", currentUserId);
+    myOrgIds = new Set((data || []).map((m) => m.organization_id));
     if ((error || !data || data.length === 0) && !isPlatformController) {
       showMessage("You're not an active member of any club yet.", "error");
       return null;
@@ -1152,12 +1154,18 @@
   }
 
   async function loadMatchesList() {
+    // 2026-09-30: mismo arreglo que loadTrainingsList (training.html) --
+    // visible_matches() filtra por los 4 círculos reales sin el atajo de
+    // platform controller; pivotFilterVisibleRows quita además mis propios
+    // partidos de OTRO club (no son "de otro club" de verdad).
     const { data, error } = await supabaseClient
-      .from("matches").select("id, date, opponent, location, comments, team_score, opponent_score, visibility, organization_id, season, team, team_category, team_gender")
+      .rpc("visible_matches")
+      .select("id, date, opponent, location, comments, team_score, opponent_score, visibility, organization_id, season, team, team_category, team_gender")
       .order("date", { ascending: false });
     if (error) { console.error(error); return; }
-    const mine = (data || []).filter((m) => m.organization_id === currentOrgId && m.season === currentSeason && m.team === currentTeam && (m.team_category || "") === (currentTeamCategory || "") && (m.team_gender || "") === (currentTeamGender || ""));
-    const shared = (data || []).filter((m) => m.organization_id !== currentOrgId);
+    const visible = pivotFilterVisibleRows(data || [], currentOrgId, myOrgIds);
+    const mine = visible.filter((m) => m.organization_id === currentOrgId && m.season === currentSeason && m.team === currentTeam && (m.team_category || "") === (currentTeamCategory || "") && (m.team_gender || "") === (currentTeamGender || ""));
+    const shared = visible.filter((m) => m.organization_id !== currentOrgId);
     allMatchesCache = mine;
 
     els.matchesCard.innerHTML = "";

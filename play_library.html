@@ -333,6 +333,7 @@
   };
 
   let currentOrgId = null;
+  let myOrgIds = new Set(); // 2026-09-30: todos mis clubes activos, ver pivotFilterVisibleRows en org-switcher.js
   let currentUserId = null;
   let myRole = null;
   let isPlatformController = false;
@@ -366,6 +367,7 @@
     // plataforma, no solo los suyos.
     const { data, error } = await supabaseClient
       .from("memberships").select("organization_id, role, status, organizations(name, is_active)").eq("status", "active").eq("user_id", currentUserId);
+    myOrgIds = new Set((data || []).map((m) => m.organization_id));
     if ((error || !data || data.length === 0) && !isPlatformController) {
       showMessage("You're not an active member of any club yet.", "error");
       return null;
@@ -384,14 +386,19 @@
   }
 
   // -----------------------------------------------------------------------
-  // RLS ya devuelve solo lo que puedes ver (tus plays + los compartidos
-  // contigo), igual que en exercises/library.html -- por eso no hace falta
-  // filtrar aquí por organization_id.
+  // 2026-09-30 (Dani, Training builder: "en mi otro equipo... no los tengo
+  // compartidos... no deberían de verse"): este comentario decía "RLS ya
+  // devuelve solo lo que puedes ver" -- falso para un platform controller
+  // (recibe TODA la tabla, is_platform_controller() en la política RLS) y
+  // también para cualquiera con varias membresías activas (is_member_of()
+  // vale para CUALQUIERA de sus clubes, no solo el activo ahora mismo).
+  // visible_plays() (base de datos) + pivotFilterVisibleRows
+  // (org-switcher.js) corrigen los dos casos.
   // -----------------------------------------------------------------------
   async function loadPlays() {
-    const { data, error } = await supabaseClient.from("plays").select("*").order("name");
+    const { data, error } = await supabaseClient.rpc("visible_plays").select("*").order("name");
     if (error) { console.error("loadPlays error:", error); return; }
-    allPlays = data || [];
+    allPlays = pivotFilterVisibleRows(data || [], currentOrgId, myOrgIds);
 
     // "Who made it" en cada fila -- mismo patrón que exercises.html /
     // library.html: consulta aparte a profiles (no hay relación de clave

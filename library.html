@@ -563,6 +563,7 @@
   };
 
   let currentOrgId = null;
+  let myOrgIds = new Set(); // 2026-09-30: todos mis clubes activos, ver pivotFilterVisibleRows en org-switcher.js
   let currentUserId = null;
   let myRole = null;
   let isPlatformController = false;
@@ -629,9 +630,12 @@
   let notebookOwned = true;
 
   async function loadNotebooks() {
-    const { data, error } = await supabaseClient.from("notebooks").select("*").order("name");
+    // 2026-09-30: mismo arreglo que loadExercises más arriba -- notebooks
+    // tiene exactamente la misma política de 4 círculos + atajo de
+    // platform controller (step34_notebooks_and_training_fields.sql).
+    const { data, error } = await supabaseClient.rpc("visible_notebooks").select("*").order("name");
     if (error) { console.error("loadNotebooks error:", error); return; }
-    allNotebooks = data || [];
+    allNotebooks = pivotFilterVisibleRows(data || [], currentOrgId, myOrgIds);
     const { data: links } = await supabaseClient.from("notebook_exercises").select("notebook_id, exercise_id").order("position");
     notebookExerciseIds = {};
     (links || []).forEach((l) => { (notebookExerciseIds[l.notebook_id] = notebookExerciseIds[l.notebook_id] || []).push(l.exercise_id); });
@@ -899,6 +903,7 @@
     // plataforma, no solo los suyos.
     const { data, error } = await supabaseClient
       .from("memberships").select("organization_id, role, status, organizations(name, is_active)").eq("status", "active").eq("user_id", currentUserId);
+    myOrgIds = new Set((data || []).map((m) => m.organization_id));
     if ((error || !data || data.length === 0) && !isPlatformController) {
       showMessage("You're not an active member of any club yet.", "error");
       return null;
@@ -941,16 +946,25 @@
   }
 
   // -----------------------------------------------------------------------
-  // Charge les exercices (RLS renvoie déjà les siens + les partagés) et le
-  // nombre de séances où chacun a servi (training_exercises), pour le
-  // filtre "jamais utilisé" et le badge "Nx" dans la liste.
+  // Charge les exercices et le nombre de séances où chacun a servi
+  // (training_exercises), pour le filtre "jamais utilisé" et le badge
+  // "Nx" dans la liste.
+  //
+  // 2026-09-30 (Dani, Training builder: "en mi otro equipo... no los tengo
+  // compartidos... no deberían de verse"): le vieux commentaire ici disait
+  // "RLS renvoie déjà les siens + les partagés" -- faux pour un compte
+  // platform controller (reçoit TOUTE la table, cf. is_platform_controller()
+  // dans la politique RLS), et même pour un compte normal membre de
+  // plusieurs clubs (is_member_of() n'importe lequel de ses clubes, pas
+  // seulement le club actif). visible_exercises() (base de données) +
+  // pivotFilterVisibleRows (org-switcher.js) corrigent les deux.
   // -----------------------------------------------------------------------
   async function loadExercises() {
     // Las 3 consultas no dependen unas de otras -- se lanzan a la vez
     // (Promise.all) en vez de una detrás de otra, para no sumar round-trips
     // de red innecesarios cada vez que se abre o refresca la página.
     const [{ data, error }, { data: usageRows }, { data: favRows }] = await Promise.all([
-      supabaseClient.from("exercises").select("*").order("number"),
+      supabaseClient.rpc("visible_exercises").select("*").order("number"),
       supabaseClient.from("training_exercises").select("exercise_id"),
       // Favoritos personales -- propios de este usuario, no la vieja columna
       // "exercises.favorite" (que era la misma para todo el mundo que viera
@@ -958,7 +972,7 @@
       supabaseClient.from("exercise_favorites").select("exercise_id").eq("user_id", currentUserId),
     ]);
     if (error) { console.error(error); return; }
-    allExercises = data || [];
+    allExercises = pivotFilterVisibleRows(data || [], currentOrgId, myOrgIds);
     buildTranslationGroups();
 
     // "Who made it" en cada fila (antes solo existía como filtro Source) --
@@ -1928,8 +1942,10 @@
     }
 
     // ---------- Una ficha completa por ejercicio, diagramas incluidos ----------
+    // 2026-09-30: visible_exercises() en vez de la tabla directa, mismo
+    // motivo que loadExercises() más arriba -- por si acaso.
     const { data: fullExercises } = await supabaseClient
-      .from("exercises").select("*").in("id", notebookContents);
+      .rpc("visible_exercises").select("*").in("id", notebookContents);
     const byId = {};
     (fullExercises || []).forEach((ex) => (byId[ex.id] = ex));
 

@@ -933,6 +933,7 @@
   const AGE_GROUPS = ["U6","U7","U8","U9","U10","U11","U12","U13","U14","U15","U16","U17","U18","U19","U20","Seniors","All ages"];
 
   let currentOrgId = null;
+  let myOrgIds = new Set(); // 2026-09-30: todos mis clubes activos, ver pivotFilterVisibleRows en org-switcher.js
   let currentUserId = null;
   let myRole = null;
   let isPlatformController = false;
@@ -1035,6 +1036,7 @@
     // suyos, y este selector los trataba todos como "mis clubes".
     const { data, error } = await supabaseClient
       .from("memberships").select("organization_id, role, status, organizations(name, is_active)").eq("status", "active").eq("user_id", currentUserId);
+    myOrgIds = new Set((data || []).map((m) => m.organization_id));
     if ((error || !data || data.length === 0) && !isPlatformController) {
       showMessage("You're not an active member of any club yet.", "error");
       return null;
@@ -1053,8 +1055,15 @@
   }
 
   async function loadExerciseOptions() {
-    const { data } = await supabaseClient.from("exercises").select("id, name, number, categories, material, objectives, description, variants, diagram, difficulty, language, favorite, age, created_by, organization_id").order("name");
-    allExercises = data || [];
+    // 2026-09-30: mismo arreglo que exercises.html/library.html -- visible_exercises()
+    // + pivotFilterVisibleRows, en vez de pedir la tabla entera y confiar en
+    // que RLS ya la filtre bien (no lo hace para un platform controller, ni
+    // para alguien con varios clubes -- ver org-switcher.js).
+    const { data } = await supabaseClient
+      .rpc("visible_exercises")
+      .select("id, name, number, categories, material, objectives, description, variants, diagram, difficulty, language, favorite, age, created_by, organization_id")
+      .order("name");
+    allExercises = pivotFilterVisibleRows(data || [], currentOrgId, myOrgIds);
     const { data: usageRows } = await supabaseClient.from("training_exercises").select("exercise_id");
     usageCounts = {};
     (usageRows || []).forEach((r) => { if (r.exercise_id) usageCounts[r.exercise_id] = (usageCounts[r.exercise_id] || 0) + 1; });
@@ -1174,9 +1183,11 @@
   let notebookExerciseIds = {}; // notebook_id -> [exercise_id, ...]
 
   async function loadNotebooks() {
-    const { data, error } = await supabaseClient.from("notebooks").select("*").order("name");
+    // 2026-09-30: mismo arreglo que library.html -- visible_notebooks() +
+    // pivotFilterVisibleRows.
+    const { data, error } = await supabaseClient.rpc("visible_notebooks").select("*").order("name");
     if (error) { console.error("loadNotebooks error:", error); return; }
-    allNotebooks = data || [];
+    allNotebooks = pivotFilterVisibleRows(data || [], currentOrgId, myOrgIds);
     const { data: links } = await supabaseClient.from("notebook_exercises").select("notebook_id, exercise_id").order("position");
     notebookExerciseIds = {};
     (links || []).forEach((l) => { (notebookExerciseIds[l.notebook_id] = notebookExerciseIds[l.notebook_id] || []).push(l.exercise_id); });
@@ -1468,14 +1479,27 @@
   let allTrainingsCache = [];
 
   async function loadTrainingsList() {
+    // Dani, 2026-09-30 ("en mi otro equipo, en Dell... esos son los
+    // entrenamientos de Dell, no los tengo compartidos... no deberían de
+    // verse"): antes se pedía la tabla "trainings" entera (sin filtrar por
+    // círculo de partage) y se enseñaba como "Shared by other clubs"
+    // CUALQUIER fila de otro club -- incluidas las de Dani mismo en SU
+    // OTRO club, con visibility='team' (nunca pensadas para salir de ahí).
+    // visible_trainings() (función nueva en la base de datos) ya filtra
+    // por los 4 círculos reales SIN el atajo de platform controller;
+    // pivotFilterVisibleRows (org-switcher.js) quita además cualquier fila
+    // de mi PROPIO otro club -- no es "compartida por otro club", es mi
+    // propio club en otro sitio, no debe aparecer aquí en absoluto.
     const { data, error } = await supabaseClient
-      .from("trainings").select("id, date, title, visibility, organization_id, season, team, number, team_category, team_gender")
+      .rpc("visible_trainings")
+      .select("id, date, title, visibility, organization_id, season, team, number, team_category, team_gender")
       .order("date", { ascending: false });
     els.trainingsList.innerHTML = "";
     if (error) { console.error(error); return; }
-    allTrainingsCache = data || [];
-    const mine = (data || []).filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam && (t.team_category || "") === (currentTeamCategory || "") && (t.team_gender || "") === (currentTeamGender || ""));
-    const shared = (data || []).filter((t) => t.organization_id !== currentOrgId);
+    const visible = pivotFilterVisibleRows(data || [], currentOrgId, myOrgIds);
+    allTrainingsCache = visible;
+    const mine = visible.filter((t) => t.organization_id === currentOrgId && t.season === currentSeason && t.team === currentTeam && (t.team_category || "") === (currentTeamCategory || "") && (t.team_gender || "") === (currentTeamGender || ""));
+    const shared = visible.filter((t) => t.organization_id !== currentOrgId);
 
     const isEmpty = mine.length === 0 && shared.length === 0;
     els.trainingsEmpty.style.display = isEmpty ? "block" : "none";
