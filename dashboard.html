@@ -553,6 +553,31 @@
   // alguien elige "+ Create a new club" / "+ Join a club" en el selector.
   window.pivotCreateClub_ = async function (name) {
     try {
+      // Dani, 2026-09-30: "de nuevo salen los pinches carnales" -- un club
+      // volvía a aparecer en su selector después de haber desactivado OTRO
+      // club con el mismo nombre. No es que algo lo "reactivara": no hay
+      // ningún código en la app que ponga organizations.is_active de
+      // vuelta a true (se revisó a fondo) -- organizations.name nunca ha
+      // sido único a propósito (dos clubes reales distintos pueden
+      // coincidir de nombre), así que cada vez que alguien usa "+ Create a
+      // new club" con un nombre que ya tenía, se crea una fila NUEVA y
+      // aparte, no se reutiliza la de antes. Desactivar una no toca a la
+      // otra -- con varias filas duplicadas creadas sin querer (fácil de
+      // hacer si se confunde este botón con "añadir un equipo nuevo DENTRO
+      // del club", ver playpivot-terminologia-club-equipo), ir
+      // desactivando una y viendo "aparecer" la siguiente se siente como
+      // que algo la reactiva, aunque en realidad son clubes-fila distintos.
+      // Este aviso corta el problema de raíz: si ya eres miembro activo de
+      // un club con este mismo nombre, se pregunta antes de crear otro.
+      const { data: existingMine } = await supabaseClient
+        .from("memberships")
+        .select("organizations(name)")
+        .eq("user_id", currentUserId)
+        .eq("status", "active");
+      const alreadyHasSameName = (existingMine || []).some((m) => ((m.organizations && m.organizations.name) || "").trim().toLowerCase() === name.trim().toLowerCase());
+      if (alreadyHasSameName && !confirm(`You're already a member of a club called "${name}" — create ANOTHER separate one with the same name? (If you meant to add a new TEAM inside your existing club instead, cancel and use "+ New season/team" there.)`)) {
+        return;
+      }
       const { data: org, error: orgErr } = await supabaseClient.from("organizations").insert({ name }).select().single();
       if (orgErr) throw orgErr;
       const { error: memErr } = await supabaseClient.from("memberships").insert({ organization_id: org.id, user_id: currentUserId, role: "admin", status: "active" });
@@ -560,7 +585,7 @@
       pivotSetStoredOrgId(org.id);
       window.location.reload();
     } catch (err) {
-      showMessage(err.message || "Couldn't create that club.", "error");
+      showMessage(friendlyJoinRequestError(err, "Couldn't create that club."), "error");
     }
   };
 
@@ -802,9 +827,23 @@
       tbody.innerHTML = `<tr><td colspan="5" style="padding:16px; color:var(--muted);">No clubs match that search.</td></tr>`;
       return;
     }
-    tbody.innerHTML = rows.map((r) => `
-      <tr style="border-bottom:1px solid var(--line);">
-        <td style="padding:10px 16px; font-weight:600;">${escapeHtml(r.org.name)}</td>
+    // Dani, 2026-09-30 ("de nuevo salen los pinches carnales"): organizations.name
+    // nunca ha sido único -- dos filas de club distintas pueden compartir
+    // nombre sin que nada en la app lo impida ni lo avise. Cuando eso pasa
+    // sin querer (alguien crea "el mismo club" dos veces), desactivar una
+    // copia deja la otra intacta y activa -- parece que "se reactiva sola"
+    // cuando en realidad es la copia que faltaba por desactivar. Al estar
+    // ordenadas por nombre ya quedan una junto a otra, pero sin nada que lo
+    // remarque es fácil pasarlas por alto en una lista larga -- este conteo
+    // marca con un aviso naranja cualquier nombre que se repita 2+ veces,
+    // para verlas TODAS de un vistazo sin tener que leer nombre por nombre.
+    const nameCounts = {};
+    rows.forEach((r) => { const key = r.org.name.trim().toLowerCase(); nameCounts[key] = (nameCounts[key] || 0) + 1; });
+    tbody.innerHTML = rows.map((r) => {
+      const isDup = nameCounts[r.org.name.trim().toLowerCase()] > 1;
+      return `
+      <tr style="border-bottom:1px solid var(--line); ${isDup ? "background:#fff7ed;" : ""}">
+        <td style="padding:10px 16px; font-weight:600;">${escapeHtml(r.org.name)}${isDup ? ' <span title="Another active club has this exact same name -- likely an accidental duplicate." style="display:inline-block; margin-left:6px; padding:1px 7px; border-radius:10px; background:#fed7aa; color:#9a3412; font-size:11px; font-weight:700; text-transform:uppercase; vertical-align:middle;">⚠ Duplicate name</span>' : ""}</td>
         <td style="padding:10px 16px;">${r.teamCount}</td>
         <td style="padding:10px 16px;">${r.playerCount}</td>
         <td style="padding:10px 16px;">${r.matchCount}</td>
@@ -819,7 +858,8 @@
         </td>
       </tr>
       <tr id="admin-manage-row-${r.org.id}" style="display:none;"><td colspan="5" style="padding:14px 16px; background:var(--paper);"><div id="admin-manage-content-${r.org.id}"></div></td></tr>
-    `).join("");
+    `;
+    }).join("");
 
     tbody.querySelectorAll("button[data-enter-org-id]").forEach((btn) => {
       btn.addEventListener("click", () => {
