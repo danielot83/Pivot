@@ -775,9 +775,10 @@
         // contaba. Reutilizamos la misma query que ya usaba teamCount
         // (season, team) para filtrar ejemplos también en playerCount, en
         // vez de una query de count aparte.
-        const [{ count: matchCount }, { data: playerRows }, { data: memberRows }] = await Promise.all([
+        const [{ count: matchCount }, { data: playerRows }, { data: teamRows }, { data: memberRows }] = await Promise.all([
           supabaseClient.from("matches").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
           supabaseClient.from("players").select("season, team, team_category, team_gender").eq("organization_id", org.id),
+          supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", org.id),
           supabaseClient.from("memberships").select("profiles(full_name)").eq("organization_id", org.id).eq("status", "active"),
         ]);
         const realPlayerRows = playerRows ? playerRows.filter((r) => !isExampleTeam(r.season, r.team)) : [];
@@ -785,7 +786,12 @@
         // Mismo criterio que loadStats() (vista de un club): un equipo es
         // team+categoría+género, no solo el nombre -- si no, "DEL" con U8
         // y U10 cuenta como 1 equipo en vez de 2.
-        const teamCount = new Set(realPlayerRows.map((r) => `${r.season}|${teamRosterKey(r.team, r.team_category, r.team_gender)}`)).size;
+        // 2026-09-30 (Dani, mismo hallazgo que en loadStats(): un equipo
+        // recién creado sin jugadores todavía no contaba aquí tampoco):
+        // mergeTeamRows junta `players` con la tabla `teams` de verdad, así
+        // un equipo vacío también cuenta.
+        const realTeamRows = mergeTeamRows(realPlayerRows, teamRows).filter((r) => !isExampleTeam(r.season, r.team));
+        const teamCount = new Set(realTeamRows.map((r) => `${r.season}|${teamRosterKey(r.team, r.team_category, r.team_gender)}`)).size;
         const memberNames = (memberRows || []).map((m) => (m.profiles && m.profiles.full_name) || "").filter(Boolean);
         return { org, playerCount, matchCount: matchCount ?? 0, teamCount, memberNames };
       }));
@@ -1989,14 +1995,26 @@
 
   async function loadStats() {
     if (!currentOrgId) return;
-    const { data: playerRows } = await supabaseClient.from("players").select("id, team, season, team_category, team_gender").eq("organization_id", currentOrgId);
+    const [{ data: playerRows }, { data: teamRows }] = await Promise.all([
+      supabaseClient.from("players").select("id, team, season, team_category, team_gender").eq("organization_id", currentOrgId),
+      supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId),
+    ]);
     const realPlayers = (playerRows || []).filter((p) => !isExampleTeam(p.season, p.team));
     els.statPlayers.textContent = realPlayers.length;
     // "Teams" cuenta por team+categoría+género, no solo por team -- un
     // club con DEL (U8 y U10) tiene 2 equipos reales, no 1, igual que en
     // el resto de la app (Match day, Training builder, el propio
     // teamRosterKey de más abajo, etc.).
-    els.statTeams.textContent = new Set(realPlayers.map((r) => `${r.season}|${teamRosterKey(r.team, r.team_category, r.team_gender)}`)).size;
+    // 2026-09-30 (Dani, "porque no aparece el U11F que he creado? porque no
+    // tiene jugadores todavia?"): exacto -- antes se contaba solo a partir
+    // de `players`, así que un equipo recién creado con "+ New season/team"
+    // (existe de verdad en la tabla `teams`, ver roster.html/loadTree) pero
+    // todavía sin ningún jugador no sumaba aquí. mergeTeamRows (team-tree.js,
+    // ya usado por loadOrgTeamRoster más abajo y por roster.html) junta las
+    // dos fuentes sin duplicar, así un equipo vacío cuenta igual que uno con
+    // jugadores.
+    const realTeamRows = mergeTeamRows(realPlayers, teamRows).filter((r) => !isExampleTeam(r.season, r.team));
+    els.statTeams.textContent = new Set(realTeamRows.map((r) => `${r.season}|${teamRosterKey(r.team, r.team_category, r.team_gender)}`)).size;
 
     const realPlayerIds = new Set(realPlayers.map((p) => p.id));
     const { data: assessmentRows } = await supabaseClient.from("player_assessments").select("id, player_id").eq("organization_id", currentOrgId);
@@ -2628,7 +2646,10 @@
     // Même exclusion des données d'exemple (Bulls/Celtics) qu'au niveau
     // d'un club -- sinon le total plateforme comptait les exemples de
     // TOUS les clubes qui en ont chargé, pas juste le tien.
-    const { data: playerRows } = await supabaseClient.from("players").select("id, team, season, team_category, team_gender");
+    const [{ data: playerRows }, { data: teamRows }] = await Promise.all([
+      supabaseClient.from("players").select("id, team, season, team_category, team_gender"),
+      supabaseClient.from("teams").select("season, team, team_category, team_gender"),
+    ]);
     const realPlayers = (playerRows || []).filter((p) => !isExampleTeam(p.season, p.team));
     document.getElementById("pstat-players").textContent = realPlayers.length;
 
@@ -2636,7 +2657,11 @@
     // son una entidad distinta, no solo el nombre), sobre los mismos
     // realPlayers de arriba, para que "Teams" cuente sobre el mismo universo
     // que "Players" aquí al lado.
-    document.getElementById("pstat-teams").textContent = new Set(realPlayers.map((p) => `${p.season}|${teamRosterKey(p.team, p.team_category, p.team_gender)}`)).size;
+    // 2026-09-30 (Dani, mismo hallazgo que loadStats()/loadAdminClubsTable():
+    // un equipo recién creado sin jugadores todavía no contaba en ningún
+    // sitio): mergeTeamRows junta `players` con la tabla `teams` de verdad.
+    const realTeamRows = mergeTeamRows(realPlayers, teamRows).filter((r) => !isExampleTeam(r.season, r.team));
+    document.getElementById("pstat-teams").textContent = new Set(realTeamRows.map((r) => `${r.season}|${teamRosterKey(r.team, r.team_category, r.team_gender)}`)).size;
 
     const realPlayerIds = new Set(realPlayers.map((p) => p.id));
     const { data: assessmentRows } = await supabaseClient.from("player_assessments").select("id, player_id");
