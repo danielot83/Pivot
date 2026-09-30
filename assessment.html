@@ -939,8 +939,18 @@
     const { data: profRow } = await supabaseClient.from("profiles").select("full_name, is_platform_controller").eq("id", userData.user.id).maybeSingle();
     isPlatformController = !!(profRow && profRow.is_platform_controller);
     pivotUpdateSidebarUser((profRow && profRow.full_name) || userData.user.email, isPlatformController ? "Platform admin" : null);
+    // Dani, 2026-09-30 ("de nuevo salen los pinches carnales" / "aparecen en
+    // otros clubes"): faltaba .eq("user_id", ...) aquí -- la policy de
+    // SELECT de `memberships` deja ver TODAS las filas de la tabla a un
+    // platform controller (para poder gestionar cuentas/clubes desde Admin
+    // general), no solo las suyas. Sin este filtro, cualquier persona con
+    // ese permiso (Dani) recibía aquí la fila de CUALQUIER club del
+    // plataforma entero, y este selector de club las trataba todas como
+    // "mis clubes" -- podía acabar viendo/seleccionando un club ajeno sin
+    // ser miembro de verdad. Mismo filtro que ya tenían attendance.html,
+    // match.html, play_design.html y roster.html -- aquí faltaba.
     const { data, error } = await supabaseClient
-      .from("memberships").select("organization_id, role, status, organizations(name, is_active)").eq("status", "active");
+      .from("memberships").select("organization_id, role, status, organizations(name, is_active)").eq("status", "active").eq("user_id", userData.user.id);
     if ((error || !data || data.length === 0) && !isPlatformController) {
       showMessage("You're not an active member of any club yet.", "error");
       return null;

@@ -469,10 +469,23 @@
     isPlatformController = !!(profRow && profRow.is_platform_controller);
     pivotUpdateSidebarUser((profRow && profRow.full_name) || userData.user.email, isPlatformController ? "Platform admin" : null);
 
+    // Dani, 2026-09-30 ("en settings sobresale lo de members" / "aparecen en
+    // otros clubes" / "es un problema de seguridad"): faltaba
+    // .eq("user_id", ...) aquí -- la policy de SELECT de `memberships` deja
+    // ver TODAS las filas de la tabla a un platform controller (para poder
+    // gestionar cuentas/clubes desde Admin general), no solo las suyas. Sin
+    // este filtro, este selector de club recibía la fila de CUALQUIER club
+    // de la plataforma entera y las trataba todas como "mis clubes" -- así
+    // es como "Pinches Carnales" (un club del que Dani NO es miembro, según
+    // confirma "Delete my account & data" más abajo en esta misma página,
+    // que SÍ llevaba este filtro desde siempre) podía aparecer seleccionado
+    // como club activo. Mismo filtro que ya tenían attendance.html,
+    // match.html, play_design.html y roster.html -- aquí faltaba.
     const { data, error } = await supabaseClient
       .from("memberships")
       .select("organization_id, role, status, team_season, team_name, organizations(name, is_active)")
-      .eq("status", "active");
+      .eq("status", "active")
+      .eq("user_id", userData.user.id);
     if ((error || !data || data.length === 0) && !isPlatformController) {
       showMessage("You're not an active member of any club yet.", "error");
       return;

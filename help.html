@@ -322,10 +322,16 @@
     isPlatformController = !!(profRow && profRow.is_platform_controller);
     pivotUpdateSidebarUser((profRow && profRow.full_name) || userData.user.email, isPlatformController ? "Platform admin" : null);
 
+    // Dani, 2026-09-30 ("de nuevo salen los pinches carnales" / "aparecen en
+    // otros clubes"): faltaba .eq("user_id", ...) aquí -- ver el mismo
+    // comentario en assessment.html/loadMyOrganization. Sin este filtro, un
+    // platform controller recibía aquí la fila de CUALQUIER club de la
+    // plataforma, no solo los suyos.
     const { data } = await supabaseClient
       .from("memberships")
       .select("organization_id, role, status, team_season, team_name, organizations(name, is_active)")
-      .eq("status", "active");
+      .eq("status", "active")
+      .eq("user_id", userData.user.id);
 
     const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
     await pivotRenderOrgSwitcher("org-switcher", data, chosen ? chosen.organization_id : null, { isPlatformController, supabaseClient });
