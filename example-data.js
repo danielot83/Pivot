@@ -96,7 +96,7 @@ const EXAMPLE_TEAMS = {
   },
 };
 Object.values(EXAMPLE_TEAMS).forEach((ex) => {
-  ex.players = ex.players.map((p) => ({ ...p, gender: "Boy", has_license: true, active: true }));
+  ex.players = ex.players.map((p) => ({ ...p, gender: "Boy", has_license: true, active: true, dues_paid: true }));
 });
 
 const ALL_EXAMPLE_TEAMS = Object.values(EXAMPLE_TEAMS).map((ex) => ({ season: ex.season, team: ex.team }));

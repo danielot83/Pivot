@@ -517,6 +517,7 @@
     { key: "license_number", label: "License #", default: false, type: "text" },
     { key: "has_license", label: "Ready", default: true, type: "checkbox" },
     { key: "active", label: "Active", default: true, type: "checkbox" },
+    { key: "dues_paid", label: "Cotisation", default: true, type: "checkbox" },
     { key: "visibility", label: "Who sees them", default: true, type: "select", options: ["team", "private"] },
   ];
   const FORM_FIELDS = ["first_name","last_name","birth_year","category","jersey_number","gender","license_number"];
@@ -1139,7 +1140,7 @@
       jersey_number: jerseyValue,
       gender: document.getElementById("f-gender").value || null,
       license_number: document.getElementById("f-license_number").value.trim() || null,
-      has_license: false, active: true,
+      has_license: false, active: true, dues_paid: false,
     };
     const originalLabel = els.saveBtn.textContent;
     els.saveBtn.disabled = true; els.saveBtn.textContent = "Saving…";
@@ -1343,18 +1344,23 @@
   // -- accents ignorés, casse ignorée). Gère aussi une colonne "Contacts"
   // combinée "Nom, Prénom" quand il n'y a pas de colonnes séparées.
   // -----------------------------------------------------------------------
+  // 2026-09-30 (Dani): chaque champ liste aussi le libellé humain exact
+  // utilisé par notre PROPRE "Export to Excel" (COLUMN_DEFS.label plus bas,
+  // ex. "First name", "License #", "Ready") -- sinon réimporter le fichier
+  // qu'on vient d'exporter soi-même ne reconnaissait aucune colonne.
   const HEADER_ALIASES = {
-    first_name: ["first_name", "prenom", "prénom", "firstname"],
-    last_name: ["last_name", "nom", "lastname", "surname"],
+    first_name: ["first_name", "prenom", "prénom", "firstname", "first name"],
+    last_name: ["last_name", "nom", "lastname", "surname", "last name"],
     combined_name: ["contacts", "nom complet", "name", "joueur", "player"],
     birth_year: ["birth_year", "annee de naissance", "année de naissance", "birth year"],
     birth_date: ["birth_date", "date de naissance", "naissance", "date of birth"],
-    category: ["category", "categorie", "catégorie"],
+    category: ["category", "categorie", "catégorie", "position"],
     jersey_number: ["jersey_number", "n maillot", "numero maillot", "n° maillot", "dossard", "number"],
     gender: ["gender", "sexe", "genre"],
-    license_number: ["license_number", "license", "licence", "n licence", "n° licence"],
-    has_license: ["has_license", "licencie", "licencié"],
+    license_number: ["license_number", "license", "licence", "n licence", "n° licence", "license #"],
+    has_license: ["has_license", "licencie", "licencié", "ready"],
     active: ["active", "actif"],
+    dues_paid: ["dues_paid", "cotisation", "cotisation payee", "cotisation payée", "coti", "cotisations"],
   };
 
   function normalizeHeader(h) {
@@ -1391,6 +1397,20 @@
     return match ? parseInt(match[1], 10) : null;
   }
 
+  // 2026-09-30 (Dani, colonne "Cotisation" -- "coti oui/non") : contrairement
+  // à has_license/active plus haut (qui ne reconnaissent que TRUE/FALSE/1/0),
+  // celle-ci accepte aussi oui/non, si/no, vrai/faux -- pour coller
+  // directement au fichier Excel du club, en français.
+  function parseYesNo(value, defaultIfEmpty) {
+    if (value === true || value === 1) return true;
+    if (value === false || value === 0) return false;
+    const v = normalizeHeader(value);
+    if (v === "") return defaultIfEmpty;
+    if (["true", "1", "oui", "si", "sí", "yes", "vrai", "x"].includes(v)) return true;
+    if (["false", "0", "non", "no", "faux"].includes(v)) return false;
+    return defaultIfEmpty;
+  }
+
   async function importFromExcel(file) {
     let payloadBase;
     try {
@@ -1420,12 +1440,23 @@
             last_name = last_name || (ln || "").trim();
             first_name = first_name || (fn || "").trim();
           } else {
-            const parts = combined.split(" ");
-            first_name = first_name || parts.pop() || "";
+            // 2026-09-30 (Dani): c'était inversé -- .pop() prenait le DERNIER
+            // mot comme prénom, alors que le commentaire ci-dessus dit bien
+            // "Prénom Nom" (prénom en premier) quand il n'y a pas de virgule.
+            // .shift() prend maintenant le premier mot comme prénom, le
+            // reste comme nom -- cohérent avec le commentaire.
+            const parts = combined.split(" ").filter(Boolean);
+            first_name = first_name || parts.shift() || "";
             last_name = last_name || parts.join(" ");
           }
         }
-        if (!first_name || !last_name) return; // ligne sans nom exploitable, ignorée
+        // 2026-09-30 (Dani, "que sea flexible... si solo hay nombres, pues
+        // nombres"): avant, une ligne sans nom de famille était ignorée en
+        // silence (fichier "Contacts" avec juste des prénoms, un par ligne
+        // -- .pop()/.shift() sur un seul mot laisse last_name à "").
+        // Maintenant seul le prénom est obligatoire ; le nom de famille part
+        // vide si le fichier ne l'a pas (modifiable ensuite dans le tableau).
+        if (!first_name) return; // ligne sans aucun nom exploitable, ignorée
 
         payloadBase.push({
           first_name, last_name,
@@ -1436,6 +1467,7 @@
           license_number: r.license_number ? String(r.license_number) : null,
           has_license: r.has_license === true || r.has_license === "TRUE" || r.has_license === 1,
           active: !(r.active === false || r.active === "FALSE" || r.active === 0),
+          dues_paid: parseYesNo(r.dues_paid, false),
         });
       });
 
@@ -1541,7 +1573,7 @@
       <p style="margin:8px 0 4px; font-weight:600;">2. Add your players</p>
       <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
         <li>With your team selected, click <strong>"+ Add player"</strong> above the table, fill in the panel, Save. Needs at least a first and last name.</li>
-        <li>Or click <strong>Import from Excel</strong> to bring in a whole spreadsheet at once — it recognizes common column names automatically (English or French, a combined "Last, First" column, full birth dates instead of just the year...).</li>
+        <li>Or click <strong>Import from Excel</strong> to bring in a whole spreadsheet at once — it recognizes common column names automatically (English or French, a combined "Last, First" column, full birth dates instead of just the year...). A first-name-only column also works — the last name is just left blank, editable afterwards in the table.</li>
       </ol>
       <p style="margin:8px 0 4px; font-weight:600;">3. The rest</p>
       <ul style="margin:0; padding-left:18px; line-height:1.7;">
