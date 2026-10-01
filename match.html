@@ -650,6 +650,14 @@
   let currentTranslationGroupId = null;
   let teamPlayers = []; // joueurs actifs de l'équipe sélectionnée
   let statsByPlayer = {}; // player_id -> { called_up, started, minutes, points, rebounds, assists, fouls, custom_stats }
+  // Dani, ronda 32: a petición tuya -- después de un import (Excel o
+  // foto), quién estaba de verdad en el archivo y quién no (como Janine,
+  // que no estaba en tu hoja pero antes del arreglo del bug se veía con
+  // puntos igualmente). Solo vive en memoria -- se resetea solo al
+  // recargar la página o al hacer otro import; no se guarda en la base de
+  // datos, es solo para que lo veas justo después de importar.
+  let lastImportMatchId = null;
+  let lastImportPlayerIds = null;
   let opponentStats = []; // [{ id, player_name, minutes, points, rebounds, assists, fouls, custom_stats }] -- optionnel
   let attendanceByPlayer = {}; // player_id -> { id, status } dans "attendance" pour le match ouvert -- éditable ici, partagé avec Attendance
   let matchFields = []; // colonnes de stats personnalisées de ce club, en plus des basiques
@@ -1325,7 +1333,20 @@
       }
       case "started": return `<td><input type="checkbox" data-player="${p.id}" data-field="started" ${s.started ? "checked" : ""}></td>`;
       case "number": return `<td>${escapeHtml(p.jersey_number || "")}</td>`;
-      case "player": return `<td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>`;
+      case "player": {
+        const name = `${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}`;
+        // Dani, ronda 32: solo se muestra justo después de un import, y
+        // solo para el partido que se importó -- si abrís otro partido, o
+        // recargáis la página, desaparece (vuelve a la fila de siempre).
+        if (currentMatchId && lastImportMatchId === currentMatchId && lastImportPlayerIds) {
+          const inFile = lastImportPlayerIds.has(p.id);
+          const badge = inFile
+            ? `<span class="present-badge present-yes" style="width:18px; height:18px; font-size:9.5px; margin-left:6px;" title="Found in the file you just imported">P</span>`
+            : `<span class="present-badge present-unknown" style="width:18px; height:18px; font-size:9.5px; margin-left:6px;" title="Not in the file you just imported -- these numbers are whatever was already saved before">A</span>`;
+          return `<td>${name}${badge}</td>`;
+        }
+        return `<td>${name}</td>`;
+      }
       case "minutes": return `<td class="editable" data-player="${p.id}" data-field="minutes">${s.minutes ?? ""}</td>`;
       case "points": return `<td class="editable" data-player="${p.id}" data-field="points">${s.points ?? 0}</td>`;
       case "rebounds": return `<td class="editable" data-player="${p.id}" data-field="rebounds">${s.rebounds ?? 0}</td>`;
@@ -1705,32 +1726,69 @@
   // adivina nada -- puede ser de verdad un roster distinto (temporada
   // vieja, categoría equivocada), así que se avisa igual que antes.
   const OWN_TEAM_MATCH_RATE = 0.5;
+  // Dani, ronda 32 (arreglo tras tu aviso): la primera versión de esto
+  // calculaba la "confianza" de cada bloque SOLO por nombre, y recién
+  // DESPUÉS de decidir "este bloque es nuestro" probaba el respaldo por
+  // dorsal. El problema: tu roster real tiene apodos/nombres cortos
+  // ("Nico", "Fabien"...) que no coinciden con el nombre completo de la
+  // hoja ("Nicolas Martin", "Fabian Pires Nunes") -- así que el bloque de
+  // VUESTRO equipo solo llegaba a un buen porcentaje de match GRACIAS al
+  // dorsal, pero esa ayuda nunca se contaba para la confianza. Resultado:
+  // ningún bloque llegaba al 50% "solo por nombre", los dos (el vuestro Y
+  // el del rival) se trataban como "nuestro" por el mismo motivo de
+  // siempre (no adivinar si no hay ningún bloque claramente nuestro) --
+  // y ENTONCES sí se probaba el dorsal en los dos, incluido el del rival,
+  // que coincidía por pura casualidad con dorsales de vuestro roster
+  // (Janine #4 = la "Aurélia" rival, Natale #6 = el "David" rival).
+  //
+  // Arreglo: el dorsal cuenta YA para decidir de quién es cada bloque
+  // (nombre + dorsal juntos). Así el bloque de vuestro equipo llega a
+  // 100% de verdad, el del rival se queda corto (unos pocos dorsales
+  // coincidiendo por azar no bastan), y un bloque que pierde esa
+  // comparación va entero al rival, SIN quedarse con los matches por
+  // dorsal que hubiera encontrado por el camino -- esos se descartan,
+  // nunca se usan para pisar datos de vuestro propio roster.
   function classifyAndBuildMatchRows(blocks) {
     const perBlock = blocks
       .map(({ fieldMap, dataRows }) => {
         const rawRows = rawStatsFromFieldMap(fieldMap, dataRows);
-        const { matchedRows, unmatchedRows } = matchRowsByName(rawRows);
-        return { rawRows, matchedRows, unmatchedRows, rate: rawRows.length > 0 ? matchedRows.length / rawRows.length : 0 };
+        const { matchedRows: byName, unmatchedRows: unmatchedByName } = matchRowsByName(rawRows);
+        const { matchedRows: byNumber, stillUnmatched } = matchUnmatchedByJerseyNumber(unmatchedByName);
+        return {
+          rawRows,
+          matchedRows: [...byName, ...byNumber],
+          stillUnmatched,
+          rate: rawRows.length > 0 ? (byName.length + byNumber.length) / rawRows.length : 0,
+        };
       })
       .filter((b) => b.rawRows.length > 0);
 
-    const hasConfidentOwnBlock = perBlock.some((b) => b.rate >= OWN_TEAM_MATCH_RATE);
+    const isSingleBlock = perBlock.length <= 1;
+    const hasConfidentBlock = perBlock.some((b) => b.rate >= OWN_TEAM_MATCH_RATE);
     const playerRows = [];
     const opponentRows = [];
     let unmatchedCount = 0;
 
     perBlock.forEach((b) => {
-      if (b.rate >= OWN_TEAM_MATCH_RATE || !hasConfidentOwnBlock) {
+      if (isSingleBlock || b.rate >= OWN_TEAM_MATCH_RATE) {
+        // Único bloque de la hoja (de siempre, nada nuevo aquí), o
+        // claramente nuestro equipo (nombre + dorsal juntos).
         playerRows.push(...b.matchedRows);
-        const { matchedRows: byNumber, stillUnmatched } = matchUnmatchedByJerseyNumber(b.unmatchedRows);
-        playerRows.push(...byNumber);
-        unmatchedCount += stillUnmatched.length;
-      } else {
-        // Bloque de otro equipo -- entero a estadísticas del rival,
-        // incluida cualquier fila que por pura coincidencia tuviera el
-        // mismo nombre que alguien del roster propio (es de este bloque,
-        // no del nuestro -- nunca se usa el dorsal aquí, sería adivinar).
+        unmatchedCount += b.stillUnmatched.length;
+      } else if (hasConfidentBlock) {
+        // Otro bloque de la misma hoja SÍ es claramente nuestro equipo --
+        // éste es de otro equipo. Entero a estadísticas del rival, por
+        // nombre -- se descarta cualquier match por dorsal que hubiera
+        // salido aquí por pura coincidencia (es de este bloque, no del
+        // nuestro -- usarlo sería pisar datos de un jugador propio con
+        // los del rival, justo lo que pasaba antes de este arreglo).
         b.rawRows.forEach((row) => opponentRows.push(toOpponentRow(row)));
+      } else {
+        // Ningún bloque de la hoja hace match con confianza -- no se
+        // adivina nada (puede ser de verdad un roster distinto). Se
+        // cuenta como "sin emparejar" para el aviso, igual que con una
+        // hoja de un solo equipo que no encuentra a nadie.
+        unmatchedCount += b.rawRows.length;
       }
     });
 
@@ -1782,6 +1840,13 @@
         p_match_id: matchId, p_organization_id: currentOrgId, p_player_rows: playerRowsOut, p_opponent_rows: opponentRowsOut,
       });
       if (error) throw error;
+      // Dani, ronda 32: a petición tuya -- para que se vea claro quién
+      // salió de verdad en el archivo que acabás de importar y quién no
+      // (como Janine, que no estaba en tu hoja). Se guarda ANTES de
+      // volver a pintar la tabla (openMatch más abajo) para que ya salga
+      // marcado desde el primer render.
+      lastImportMatchId = matchId;
+      lastImportPlayerIds = new Set(playerRows.map((r) => r.player_id));
       const parts = [];
       if (playerRows.length) parts.push(`${playerRows.length} of your player(s)`);
       if (opponentRows.length) parts.push(`${opponentRows.length} opponent player(s)`);
@@ -2451,7 +2516,7 @@
         <li><strong>Call-up &amp; stats</strong> — a small legend above the table explains each column at a glance. Tick <strong>"Called up"</strong> for who's on the roster for this match (the "all" button next to that column heading selects or clears everyone in one click), and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
         <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole club.</li>
         <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
-        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, minutes/points/rebounds/assists/fouls, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away. <strong>"Print blank sheet"</strong> gives you an empty box score with your columns, ready to fill in by hand during the game.</li>
+        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, minutes/points/rebounds/assists/fouls, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away. Right after an import, each of your players' names gets a small "P"/"A" tag — "P" (green) means that player was found in the file you just imported, "A" (grey) means they weren't, so their numbers are whatever was already saved before — this tag disappears if you reload the page or open a different match. <strong>"Print blank sheet"</strong> gives you an empty box score with your columns, ready to fill in by hand during the game.</li>
       </ol>`;
     box.style.display = "block";
   });
