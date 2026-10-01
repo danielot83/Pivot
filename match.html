@@ -513,7 +513,7 @@
           <button class="btn btn-primary" id="save-match-btn">Save match details</button>
           <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
           <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
-          <button class="btn btn-secondary" id="import-stats-btn" title="Reads player stats (yours and the opponent's, if the sheet has both) and, if the file has a general-info block (competition, date, location, referee, teams, final score), fills in empty General info fields too -- never overwrites something already filled in, except the date.">Import stats from Excel</button>
+          <button class="btn btn-secondary" id="import-stats-btn" title="Reads player stats (yours and the opponent's, if the sheet has both), marks Present for who's in the file and Absent for the rest of the roster, and, if the file has a general-info block (competition, date, location, referee, teams, final score), fills in empty General info fields too -- never overwrites something already filled in, except the date.">Import stats from Excel</button>
           <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
           <button class="btn btn-secondary" id="import-photo-btn">📷 Import from a photo</button>
           <select id="import-photo-lang-select" title="Sheet text is mostly in" style="padding:8px 6px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
@@ -656,8 +656,6 @@
   // puntos igualmente). Solo vive en memoria -- se resetea solo al
   // recargar la página o al hacer otro import; no se guarda en la base de
   // datos, es solo para que lo veas justo después de importar.
-  let lastImportMatchId = null;
-  let lastImportPlayerIds = null;
   let opponentStats = []; // [{ id, player_name, minutes, points, rebounds, assists, fouls, custom_stats }] -- optionnel
   let attendanceByPlayer = {}; // player_id -> { id, status } dans "attendance" pour le match ouvert -- éditable ici, partagé avec Attendance
   let matchFields = []; // colonnes de stats personnalisées de ce club, en plus des basiques
@@ -679,10 +677,6 @@
     // petición de Dani; mismo campo que Roster, solo lectura aquí.
     { key: "number", label: "#", default: true },
     { key: "player", label: "Player", default: true },
-    // Dani, ronda 32: lo pediste como columna de verdad, no como etiqueta
-    // pegada al nombre -- ver callupCellHtml más abajo. Vacía ("—") hasta
-    // el primer import de la sesión actual para este partido.
-    { key: "in_file", label: "File", default: true },
     { key: "minutes", label: "Min", default: true },
     { key: "points", label: "Pts", default: true },
     { key: "rebounds", label: "Reb", default: true },
@@ -707,13 +701,14 @@
     const saved = localStorage.getItem("pivot_match_columns");
     if (saved) {
       try {
-        const keys = JSON.parse(saved);
-        // Dani, ronda 32: "in_file" es nueva y tiene que verse sí o sí,
-        // aunque ya tuvieras una preferencia de columnas guardada de antes
-        // -- si no, para quien ya tenía esta pantalla configurada, la
-        // columna quedaría invisible hasta activarla a mano en "Columns
-        // ▾", y lo que pediste fue justo lo contrario (verla directamente).
-        if (!keys.includes("in_file")) keys.push("in_file");
+        let keys = JSON.parse(saved);
+        // Dani, ronda 33: la columna "File" (P/A) de ronda 32 se retira --
+        // esa misma información ahora se ve directamente en "Present"
+        // (ver applyPresentFromImport). Si alguien ya tenía "in_file"
+        // guardada en su preferencia de columnas (de antes de este
+        // cambio), se filtra aquí para que no intente pintar una columna
+        // que ya no existe.
+        keys = keys.filter((k) => k !== "in_file");
         return keys;
       } catch (e) {}
     }
@@ -1349,21 +1344,6 @@
       case "started": return `<td><input type="checkbox" data-player="${p.id}" data-field="started" ${s.started ? "checked" : ""}></td>`;
       case "number": return `<td>${escapeHtml(p.jersey_number || "")}</td>`;
       case "player": return `<td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>`;
-      // Dani, ronda 32: a petición tuya, columna propia en vez de una
-      // etiqueta pegada al nombre -- "P" (verde) si ese jugador estaba en
-      // el archivo que acabás de importar, "A" (gris) si no estaba (sus
-      // números son de antes, no de este import). Solo para el partido
-      // recién importado, en esta sesión del navegador -- "—" en
-      // cualquier otro caso (nada importado todavía, u otro partido).
-      case "in_file": {
-        if (!currentMatchId || lastImportMatchId !== currentMatchId || !lastImportPlayerIds) {
-          return `<td><span class="present-badge present-unknown" style="width:20px; height:20px;" title="Nothing imported yet this session for this match">—</span></td>`;
-        }
-        const inFile = lastImportPlayerIds.has(p.id);
-        return inFile
-          ? `<td><span class="present-badge present-yes" style="width:20px; height:20px;" title="Found in the file you just imported">P</span></td>`
-          : `<td><span class="present-badge present-unknown" style="width:20px; height:20px;" title="Not in the file you just imported -- these numbers are whatever was already saved before">A</span></td>`;
-      }
       case "minutes": return `<td class="editable" data-player="${p.id}" data-field="minutes">${s.minutes ?? ""}</td>`;
       case "points": return `<td class="editable" data-player="${p.id}" data-field="points">${s.points ?? 0}</td>`;
       case "rebounds": return `<td class="editable" data-player="${p.id}" data-field="rebounds">${s.rebounds ?? 0}</td>`;
@@ -1702,6 +1682,34 @@
     return { player_name: row.raw_name, ...stripRawMatchFields(row) };
   }
 
+  // Dani, ronda 33: descubierto durante la verificación del archivo real
+  // del 30/09 -- el equipo rival (Old Jazzers) tiene DOS jugadores
+  // distintos llamados "Ludo" (dorsal 8 y dorsal 14, estadísticas
+  // distintas). Como match_opponent_stats no tiene roster propio, el
+  // único identificador al guardar es el nombre -- y el paso que fusiona
+  // "lo que ya había" con "lo que trae este import" (importParsedStatsIntoMatch)
+  // agrupa por nombre normalizado. Sin este arreglo, el segundo "Ludo"
+  // pisaba silenciosamente al primero y sus puntos/faltas se perdían sin
+  // ningún aviso. Si dentro de UN MISMO bloque hay nombres repetidos, se
+  // numeran con su dorsal ("Ludo (#8)", "Ludo (#14)") para que cada uno
+  // se guarde como una fila aparte; si ninguno de los dos trae dorsal, se
+  // numeran igual con un contador (1), (2)... -- nunca se devuelve un
+  // nombre que ya estaba en uso para ESTE bloque.
+  function disambiguateOpponentNames(rawRows) {
+    const counts = {};
+    rawRows.forEach((r) => {
+      const key = normalizeMatchHeader(r.raw_name);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    const seen = {};
+    return rawRows.map((r) => {
+      const key = normalizeMatchHeader(r.raw_name);
+      if (counts[key] <= 1) return r.raw_name;
+      seen[key] = (seen[key] || 0) + 1;
+      return r.jersey_number ? `${r.raw_name} (#${r.jersey_number})` : `${r.raw_name} (${seen[key]})`;
+    });
+  }
+
   // Dani, ronda 32: antes se asumía que la fila 1 SIEMPRE era la cabecera
   // de la única tabla de la hoja -- una hoja con una fila de título o de
   // notas antes de la tabla (como la que genera ChatGPT a partir de una
@@ -1808,7 +1816,12 @@
         // salido aquí por pura coincidencia (es de este bloque, no del
         // nuestro -- usarlo sería pisar datos de un jugador propio con
         // los del rival, justo lo que pasaba antes de este arreglo).
-        b.rawRows.forEach((row) => opponentRows.push(toOpponentRow(row)));
+        // Dani, ronda 33: si el bloque trae dos jugadores con el mismo
+        // nombre (pasa, un club chico no es tan raro), se numeran por
+        // dorsal antes de guardarlos -- si no, el import se queda con
+        // solo uno de los dos (ver disambiguateOpponentNames).
+        const names = disambiguateOpponentNames(b.rawRows);
+        b.rawRows.forEach((row, i) => opponentRows.push({ ...toOpponentRow(row), player_name: names[i] }));
       } else {
         // Ningún bloque de la hoja hace match con confianza -- no se
         // adivina nada (puede ser de verdad un roster distinto). Se
@@ -1935,6 +1948,46 @@
     }
   }
 
+  // Dani, ronda 33: "Donde esta file P/A tenemos que ponerlo en present" --
+  // en vez de una columna aparte ("File", retirada en esta misma ronda),
+  // el import ahora escribe directamente en "Present" (la misma tabla
+  // "attendance" que usa Attendance): a quien SÍ está en el archivo que
+  // acabás de importar se le marca "Present"; a quien NO está (de todo tu
+  // roster, no solo de los convocados) se le marca "Absent" -- decisión
+  // tuya explícita al pedirte que elegís entre "no tocar" / "marcar
+  // absent" / "solo si ya estaban convocados". No se distingue -- se
+  // marca Absent a cualquiera del roster que no haya salido en el
+  // archivo, esté o no ya convocado.
+  async function applyPresentFromImport(matchId, presentPlayerIds) {
+    try {
+      const { data: existing } = await supabaseClient.from("attendance").select("id, player_id").eq("match_id", matchId);
+      const existingByPlayer = {};
+      (existing || []).forEach((r) => { existingByPlayer[r.player_id] = r.id; });
+
+      const updates = [];
+      const inserts = [];
+      teamPlayers.forEach((p) => {
+        const status = presentPlayerIds.has(p.id) ? "present" : "absent";
+        const existingId = existingByPlayer[p.id];
+        if (existingId) updates.push({ id: existingId, status });
+        else inserts.push({ organization_id: currentOrgId, player_id: p.id, status, created_by: currentUserId, match_id: matchId });
+      });
+
+      const results = await Promise.all([
+        ...updates.map(({ id, status }) => supabaseClient.from("attendance").update({ status, updated_at: new Date().toISOString() }).eq("id", id)),
+        inserts.length ? supabaseClient.from("attendance").insert(inserts) : Promise.resolve({ error: null }),
+      ]);
+      const firstError = results.find((r) => r && r.error);
+      if (firstError) throw firstError.error;
+      return true;
+    } catch (err) {
+      // Dani, ronda 33: igual que con general info -- si esto falla no
+      // bloquea el import de las estadísticas (lo importante).
+      console.error(err);
+      return false;
+    }
+  }
+
   async function importParsedStatsIntoMatch(playerRows, opponentRows, generalInfo) {
     opponentRows = opponentRows || [];
     const matchId = await promptMatchTarget(allMatchesCache, playerRows.length + opponentRows.length);
@@ -1969,13 +2022,14 @@
         p_match_id: matchId, p_organization_id: currentOrgId, p_player_rows: playerRowsOut, p_opponent_rows: opponentRowsOut,
       });
       if (error) throw error;
-      // Dani, ronda 32: a petición tuya -- para que se vea claro quién
-      // salió de verdad en el archivo que acabás de importar y quién no
-      // (como Janine, que no estaba en tu hoja). Se guarda ANTES de
+      // Dani, ronda 33: en vez de solo recordar quién salió en el archivo
+      // (la columna "File" de ronda 32, ya retirada), ahora se marca
+      // directamente en "Present" -- "present" a quien está en el
+      // archivo, "absent" al resto de tu roster. Se guarda ANTES de
       // volver a pintar la tabla (openMatch más abajo) para que ya salga
       // marcado desde el primer render.
-      lastImportMatchId = matchId;
-      lastImportPlayerIds = new Set(playerRows.map((r) => r.player_id));
+      const presentPlayerIds = new Set(playerRows.map((r) => r.player_id));
+      const presentApplied = await applyPresentFromImport(matchId, presentPlayerIds);
       // Dani, ronda 32: "y tienes tb que meter Gernal info" -- si la hoja
       // traía el bloque de información general (competición, fecha,
       // lugar, árbitro, equipos, marcador), se completa aquí mismo. Solo
@@ -1987,6 +2041,7 @@
       if (playerRows.length) parts.push(`${playerRows.length} of your player(s)`);
       if (opponentRows.length) parts.push(`${opponentRows.length} opponent player(s)`);
       let message = parts.length ? `Imported stats for ${parts.join(" and ")}.` : "Import complete.";
+      if (presentApplied) message += " Updated Present too.";
       if (generalInfoApplied) message += " Also filled in general info.";
       showMessage(message, "success");
       if (currentMatchId === matchId) await openMatch(matchId);
@@ -2660,7 +2715,7 @@
         <li><strong>Call-up &amp; stats</strong> — a small legend above the table explains each column at a glance. Tick <strong>"Called up"</strong> for who's on the roster for this match (the "all" button next to that column heading selects or clears everyone in one click), and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
         <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole club.</li>
         <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
-        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, minutes/points/rebounds/assists/fouls, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away. The <strong>"File"</strong> column shows "—" until you import something; right after an import it shows "P" (green) for players found in the file you just imported, and "A" (grey) for players who weren't — so their numbers are whatever was already saved before. It goes back to "—" if you reload the page or open a different match. <strong>"Print blank sheet"</strong> gives you an empty box score with your columns, ready to fill in by hand during the game.</li>
+        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, minutes/points/rebounds/assists/fouls, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away. A successful import also sets <strong>"Present"</strong> for the whole roster: players found in the file are marked Present, everyone else on the roster is marked Absent (overwriting whatever was there before) — and, when the file has a general-info block (competition, date, location, referee, teams, final score), it fills in any empty fields up at the top too, without touching anything you already typed by hand (except the date, which always gets updated). <strong>"Print blank sheet"</strong> gives you an empty box score with your columns, ready to fill in by hand during the game.</li>
       </ol>`;
     box.style.display = "block";
   });
