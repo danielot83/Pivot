@@ -1515,12 +1515,19 @@
     return String(h || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
   const MATCH_STAT_ALIASES = {
-    player_name: ["name", "player", "joueur", "nombre", "jugador"],
+    player_name: ["name", "player", "player name", "joueur", "nom", "nombre", "jugador"],
     minutes: ["minutes", "min", "mins"],
-    points: ["points", "pts", "puntos"],
+    // Dani, ronda 32: "Points total" (así sale de una hoja con desglose
+    // 1/2/3 + total, como la que generó ChatGPT a partir de la foto de la
+    // feuille de marque) no coincidía con ningún alias -- la hoja entera
+    // se descartaba por no encontrar "la" columna de puntos aunque sí
+    // estuviera ahí, con otro nombre.
+    points: ["points", "pts", "puntos", "points total", "total points", "puntos totales", "total puntos", "pts total"],
     rebounds: ["rebounds", "reb", "rebotes"],
     assists: ["assists", "ast", "asistencias"],
-    fouls: ["fouls", "faltas", "pf"],
+    // "fautes" (francés) faltaba -- la hoja de la LRBC y la reconstrucción
+    // de ChatGPT a partir de la foto usan esa palabra, nunca "fouls".
+    fouls: ["fouls", "faltas", "fautes", "pf"],
     // Dani, ronda 31: dos columnas que algunas hojas de partido (federación,
     // torneos de categorías inferiores) traen y que antes no se registraban
     // en ningún sitio -- "períodos jugados" (cuántos cuartos/periodos jugó
@@ -1528,9 +1535,17 @@
     // opcionales: si la hoja no las trae, todo sigue funcionando exactamente
     // igual que antes (ver presentFields más abajo).
     periods_played: ["periods played", "periods_played", "períodos jugados", "periodos jugados", "cuartos jugados", "q jugados", "quarters played", "periodes jouees"],
-    made_1: ["1pm", "1 pm", "made 1", "1pt made", "1 point made", "1s made", "tiros de 1 anotados", "canastas de 1", "puntos de 1 anotados", "1 punto anotado"],
-    made_2: ["2pm", "2 pm", "made 2", "2pt made", "2 point made", "2s made", "tiros de 2 anotados", "canastas de 2", "puntos de 2 anotados", "2 puntos anotados"],
-    made_3: ["3pm", "3 pm", "made 3", "3pt made", "3 point made", "3s made", "triples", "triples anotados", "tiros de 3 anotados", "canastas de 3", "puntos de 3 anotados", "3 puntos anotados"],
+    // Dani, ronda 32: "1 pt" / "2 pts" / "3 pts" (las cabeceras que trae la
+    // reconstrucción de ChatGPT a partir de una foto de feuille de marque)
+    // no coincidían con ningún alias de antes -- se añaden junto a los
+    // formatos ya soportados.
+    made_1: ["1pm", "1 pm", "made 1", "1pt made", "1 point made", "1s made", "1 pt", "1pt", "tiros de 1 anotados", "canastas de 1", "puntos de 1 anotados", "1 punto anotado"],
+    made_2: ["2pm", "2 pm", "made 2", "2pt made", "2 point made", "2s made", "2 pts", "2pts", "tiros de 2 anotados", "canastas de 2", "puntos de 2 anotados", "2 puntos anotados"],
+    made_3: ["3pm", "3 pm", "made 3", "3pt made", "3 point made", "3s made", "3 pts", "3pts", "triples", "triples anotados", "tiros de 3 anotados", "canastas de 3", "puntos de 3 anotados", "3 puntos anotados"],
+    // Dani, ronda 32: número de dorsal -- nunca se guarda como tal (el
+    // emparejamiento sigue siendo por nombre), pero sirve como respaldo si
+    // el nombre no hace match con nadie del roster (ver matchPlayerByRow).
+    jersey_number: ["n°", "no", "num", "numero", "número", "dorsal", "#", "number", "jersey", "jersey number", "maillot"],
   };
 
   // Dani, ronda 31: la lógica de "¿qué columna significa qué?" + "arma la
@@ -1562,10 +1577,15 @@
   // silencio lo que ya hubiera guardado a mano para ese jugador. Por eso
   // cada campo básico solo se incluye (y por tanto solo se fusiona) si su
   // columna existía de verdad -- igual que ya pasaba con custom_stats.
-  function parsedRowsFromFieldMap(fieldMap, dataRows) {
+  //
+  // Dani, ronda 32: esta función ya NO empareja contra el roster -- solo
+  // lee los valores de la fila. El emparejamiento se separó en
+  // matchRowsByName/matchUnmatchedByJerseyNumber porque ahora puede haber
+  // VARIOS bloques (equipos) en la misma hoja, y cada uno se empareja (o
+  // no) por separado -- ver classifyAndBuildMatchRows.
+  function rawStatsFromFieldMap(fieldMap, dataRows) {
     const presentFields = new Set(Object.values(fieldMap).filter((f) => !f.startsWith("custom:")));
-    const parsedRows = [];
-    let unmatched = 0;
+    const rows = [];
     dataRows.forEach((cells) => {
       const r = {};
       const rCustom = {};
@@ -1575,13 +1595,11 @@
         if (field.startsWith("custom:")) { rCustom[field.slice(7)] = val; }
         else r[field] = val;
       });
-      const name = normalizeMatchHeader(r.player_name);
-      if (!name) return;
-      const player = teamPlayers.find((p) => normalizeMatchHeader(`${p.first_name} ${p.last_name}`) === name || normalizeMatchHeader(`${p.last_name} ${p.first_name}`) === name);
-      if (!player) { unmatched++; return; }
+      const rawName = String(r.player_name || "").trim();
+      if (!normalizeMatchHeader(rawName)) return; // fila sin nombre -- vacía, de total, de título de sección...
       const custom_stats = {};
       Object.keys(rCustom).forEach((k) => { custom_stats[k] = rCustom[k] ? parseFloat(rCustom[k]) : 0; });
-      const row = { player_id: player.id, custom_stats };
+      const row = { raw_name: rawName, jersey_number: r.jersey_number ? String(r.jersey_number).trim() : "", custom_stats };
       if (presentFields.has("minutes")) row.minutes = r.minutes ? parseFloat(r.minutes) : null;
       if (presentFields.has("points")) row.points = r.points ? parseInt(r.points, 10) : 0;
       if (presentFields.has("rebounds")) row.rebounds = r.rebounds ? parseInt(r.rebounds, 10) : 0;
@@ -1603,9 +1621,120 @@
       if (!presentFields.has("points") && (presentFields.has("made_1") || presentFields.has("made_2") || presentFields.has("made_3"))) {
         row.points = (row.made_1 || 0) * 1 + (row.made_2 || 0) * 2 + (row.made_3 || 0) * 3;
       }
-      parsedRows.push(row);
+      rows.push(row);
     });
-    return { parsedRows, unmatched };
+    return rows;
+  }
+
+  function stripRawMatchFields(row) {
+    const { raw_name, jersey_number, ...rest } = row;
+    return rest;
+  }
+
+  function matchRowsByName(rawRows) {
+    const matchedRows = [];
+    const unmatchedRows = [];
+    rawRows.forEach((row) => {
+      const name = normalizeMatchHeader(row.raw_name);
+      const player = teamPlayers.find((p) => normalizeMatchHeader(`${p.first_name} ${p.last_name}`) === name || normalizeMatchHeader(`${p.last_name} ${p.first_name}`) === name);
+      if (player) matchedRows.push({ player_id: player.id, ...stripRawMatchFields(row) });
+      else unmatchedRows.push(row);
+    });
+    return { matchedRows, unmatchedRows };
+  }
+
+  // Dani, ronda 32: respaldo por dorsal para lo que no hizo match por
+  // nombre (letra confundida, apodo, nombre y apellido al revés con un
+  // segundo nombre de por medio...). Solo cuenta si el dorsal no es
+  // ambiguo -- un único jugador del roster con ese número.
+  function matchUnmatchedByJerseyNumber(unmatchedRows) {
+    const matchedRows = [];
+    const stillUnmatched = [];
+    unmatchedRows.forEach((row) => {
+      if (row.jersey_number) {
+        const candidates = teamPlayers.filter((p) => String(p.jersey_number || "").trim() === row.jersey_number);
+        if (candidates.length === 1) { matchedRows.push({ player_id: candidates[0].id, ...stripRawMatchFields(row) }); return; }
+      }
+      stillUnmatched.push(row);
+    });
+    return { matchedRows, stillUnmatched };
+  }
+
+  function toOpponentRow(row) {
+    return { player_name: row.raw_name, ...stripRawMatchFields(row) };
+  }
+
+  // Dani, ronda 32: antes se asumía que la fila 1 SIEMPRE era la cabecera
+  // de la única tabla de la hoja -- una hoja con una fila de título o de
+  // notas antes de la tabla (como la que genera ChatGPT a partir de una
+  // foto de la feuille de marque) no encontraba ninguna columna
+  // reconocible ahí y la hoja entera se rechazaba con "Couldn't find a
+  // usable player name column", aunque la tabla sí estuviera más abajo.
+  // Ahora se busca la cabecera donde esté: CUALQUIER fila con una celda
+  // que sea exactamente "Name"/"Player"/"Joueur"/etc. empieza una tabla
+  // nueva -- así una hoja con VARIAS tablas (un bloque por equipo, como
+  // "ÉQUIPE A" / "ÉQUIPE B" en esa misma hoja) también se reconoce, cada
+  // bloque por separado, en vez de leerse como una sola tabla gigante.
+  function findHeaderRowIndexes(sheetRows) {
+    const indexes = [];
+    sheetRows.forEach((row, idx) => {
+      const hasNameCell = row.some((cell) => MATCH_STAT_ALIASES.player_name.includes(normalizeMatchHeader(cell)));
+      if (hasNameCell) indexes.push(idx);
+    });
+    return indexes;
+  }
+
+  function buildBlocksFromSheet(sheetRows) {
+    const headerIdxs = findHeaderRowIndexes(sheetRows);
+    return headerIdxs.map((hIdx, i) => {
+      const endIdx = i + 1 < headerIdxs.length ? headerIdxs[i + 1] : sheetRows.length;
+      return { fieldMap: deriveFieldMapFromHeaders(sheetRows[hIdx]), dataRows: sheetRows.slice(hIdx + 1, endIdx) };
+    });
+  }
+
+  // Dani, ronda 32: a petición tuya -- "que aparezca ahí para luego poder
+  // hacer estadísticas" sobre una hoja que trae los DOS equipos (como la
+  // reconstrucción de ChatGPT a partir de la foto de la feuille de
+  // marque). Cada bloque (cabecera + sus filas) se clasifica por
+  // separado: si la mayoría de sus nombres hacen match con el roster del
+  // equipo seleccionado, es "nuestro" (va a match_player_stats, igual
+  // que siempre); si casi ninguno hace match Y algún OTRO bloque de la
+  // misma hoja SÍ es claramente nuestro equipo, éste es del rival (va a
+  // match_opponent_stats, por nombre libre -- esa tabla nunca exige un
+  // roster cargado). Si NINGÚN bloque hace match con nadie, no se
+  // adivina nada -- puede ser de verdad un roster distinto (temporada
+  // vieja, categoría equivocada), así que se avisa igual que antes.
+  const OWN_TEAM_MATCH_RATE = 0.5;
+  function classifyAndBuildMatchRows(blocks) {
+    const perBlock = blocks
+      .map(({ fieldMap, dataRows }) => {
+        const rawRows = rawStatsFromFieldMap(fieldMap, dataRows);
+        const { matchedRows, unmatchedRows } = matchRowsByName(rawRows);
+        return { rawRows, matchedRows, unmatchedRows, rate: rawRows.length > 0 ? matchedRows.length / rawRows.length : 0 };
+      })
+      .filter((b) => b.rawRows.length > 0);
+
+    const hasConfidentOwnBlock = perBlock.some((b) => b.rate >= OWN_TEAM_MATCH_RATE);
+    const playerRows = [];
+    const opponentRows = [];
+    let unmatchedCount = 0;
+
+    perBlock.forEach((b) => {
+      if (b.rate >= OWN_TEAM_MATCH_RATE || !hasConfidentOwnBlock) {
+        playerRows.push(...b.matchedRows);
+        const { matchedRows: byNumber, stillUnmatched } = matchUnmatchedByJerseyNumber(b.unmatchedRows);
+        playerRows.push(...byNumber);
+        unmatchedCount += stillUnmatched.length;
+      } else {
+        // Bloque de otro equipo -- entero a estadísticas del rival,
+        // incluida cualquier fila que por pura coincidencia tuviera el
+        // mismo nombre que alguien del roster propio (es de este bloque,
+        // no del nuestro -- nunca se usa el dorsal aquí, sería adivinar).
+        b.rawRows.forEach((row) => opponentRows.push(toOpponentRow(row)));
+      }
+    });
+
+    return { playerRows, opponentRows, unmatchedCount };
   }
 
   // Dani, ronda 31: este guardado ya pasa por la misma RPC atómica
@@ -1614,34 +1743,49 @@
   // sin transacción, solo sobre match_player_stats (el mismo riesgo que
   // motivó step83 para el guardado manual: si el insert fallaba a mitad
   // de camino, el delete ya estaba confirmado y las stats quedaban
-  // vacías de verdad). Como la RPC reemplaza las DOS tablas de una vez,
-  // hay que traer también las estadísticas de rivales ya guardadas para
-  // pasarlas sin tocar -- ni el import de Excel ni el de foto las tocan.
-  // Compartida por las dos vías de import (Excel y foto).
-  async function importParsedRowsIntoMatch(parsedRows) {
-    const matchId = await promptMatchTarget(allMatchesCache, parsedRows.length);
+  // vacías de verdad). Compartida por las dos vías de import (Excel y
+  // foto). Dani, ronda 32: ahora también fusiona match_opponent_stats por
+  // nombre cuando el import trae un bloque del rival -- antes esa tabla
+  // nunca se tocaba desde ningún import, solo se pasaba igual que ya
+  // estaba.
+  async function importParsedStatsIntoMatch(playerRows, opponentRows) {
+    opponentRows = opponentRows || [];
+    const matchId = await promptMatchTarget(allMatchesCache, playerRows.length + opponentRows.length);
     if (!matchId) return false;
     try {
       const { data: existing } = await supabaseClient.from("match_player_stats").select("*").eq("match_id", matchId);
       const { data: existingOpponent } = await supabaseClient.from("match_opponent_stats").select("*").eq("match_id", matchId);
       const byPlayer = {};
       (existing || []).forEach((s) => { const clean = { ...s }; delete clean.id; delete clean.match_id; byPlayer[s.player_id] = clean; });
-      parsedRows.forEach((r) => {
+      playerRows.forEach((r) => {
         const prev = byPlayer[r.player_id] || {};
         const mergedCustom = { ...(prev.custom_stats || {}), ...(r.custom_stats || {}) };
         byPlayer[r.player_id] = { ...prev, ...r, called_up: true, started: prev.started || false, custom_stats: mergedCustom };
       });
-      const playerRows = Object.keys(byPlayer).map((pid) => ({ player_id: pid, ...byPlayer[pid] }));
-      const opponentRows = (existingOpponent || []).map((r) => {
+      const playerRowsOut = Object.keys(byPlayer).map((pid) => ({ player_id: pid, ...byPlayer[pid] }));
+
+      const byOpponentName = {};
+      (existingOpponent || []).forEach((r) => {
         const clean = { ...r };
         delete clean.id; delete clean.match_id; delete clean.organization_id; delete clean.created_at;
-        return clean;
+        byOpponentName[normalizeMatchHeader(clean.player_name)] = clean;
       });
+      opponentRows.forEach((r) => {
+        const key = normalizeMatchHeader(r.player_name);
+        const prev = byOpponentName[key] || { player_name: r.player_name };
+        const mergedCustom = { ...(prev.custom_stats || {}), ...(r.custom_stats || {}) };
+        byOpponentName[key] = { ...prev, ...r, player_name: prev.player_name || r.player_name, custom_stats: mergedCustom };
+      });
+      const opponentRowsOut = Object.values(byOpponentName);
+
       const { error } = await supabaseClient.rpc("replace_match_details", {
-        p_match_id: matchId, p_organization_id: currentOrgId, p_player_rows: playerRows, p_opponent_rows: opponentRows,
+        p_match_id: matchId, p_organization_id: currentOrgId, p_player_rows: playerRowsOut, p_opponent_rows: opponentRowsOut,
       });
       if (error) throw error;
-      showMessage(`Imported stats for ${parsedRows.length} player(s).`, "success");
+      const parts = [];
+      if (playerRows.length) parts.push(`${playerRows.length} of your player(s)`);
+      if (opponentRows.length) parts.push(`${opponentRows.length} opponent player(s)`);
+      showMessage(`Imported stats for ${parts.join(" and ")}.`, "success");
       if (currentMatchId === matchId) await openMatch(matchId);
       await loadMatchesList();
       await loadSeasonSummary();
@@ -1662,26 +1806,25 @@
     e.target.value = "";
     if (!file) return;
 
-    let parsedRows;
+    let playerRows, opponentRows;
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rawRows = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
-      if (rawRows.length === 0) { showMessage("That file doesn't have any rows.", "error"); return; }
+      // Dani, ronda 32: ya no se asume una sola tabla con cabecera en la
+      // fila 1 -- se lee la hoja entera como filas sueltas y se buscan ahí
+      // las cabeceras (puede haber más de una, ver buildBlocksFromSheet).
+      const sheetRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
+      if (sheetRows.length === 0) { showMessage("That file doesn't have any rows.", "error"); return; }
 
-      // Columnas fijas por alias (varios idiomas) + las columnas
-      // personalizadas de este club, reconocidas automáticamente por
-      // nombre exacto (clave o etiqueta) -- "lo más flexible posible",
-      // sin necesidad de mapear nada a mano.
-      const headerRow = Object.keys(rawRows[0]);
-      const fieldMap = deriveFieldMapFromHeaders(headerRow);
-      const dataRows = rawRows.map((raw) => headerRow.map((h) => raw[h]));
-      const result = parsedRowsFromFieldMap(fieldMap, dataRows);
-      parsedRows = result.parsedRows;
+      const blocks = buildBlocksFromSheet(sheetRows);
+      if (blocks.length === 0) { showMessage("Couldn't find a usable player name column.", "error"); return; }
+      const result = classifyAndBuildMatchRows(blocks);
+      playerRows = result.playerRows;
+      opponentRows = result.opponentRows;
 
-      if (parsedRows.length === 0) {
-        showMessage(result.unmatched > 0 ? `Found ${result.unmatched} row(s), but none matched a name in ${currentTeam}'s roster.` : "Couldn't find a usable player name column.", "error");
+      if (playerRows.length === 0 && opponentRows.length === 0) {
+        showMessage(result.unmatchedCount > 0 ? `Found ${result.unmatchedCount} row(s), but none matched a name in ${currentTeam}'s roster.` : "Couldn't find a usable player name column.", "error");
         return;
       }
     } catch (err) {
@@ -1689,7 +1832,7 @@
       return;
     }
 
-    await importParsedRowsIntoMatch(parsedRows);
+    await importParsedStatsIntoMatch(playerRows, opponentRows);
   });
 
   // -----------------------------------------------------------------------
@@ -1834,6 +1977,7 @@
     { value: "made_1", label: "1-point shots made" },
     { value: "made_2", label: "2-point shots made" },
     { value: "made_3", label: "3-point shots made" },
+    { value: "jersey_number", label: "Jersey number (backup match if the name doesn't)" },
   ];
   function photoColumnMeaningOptions() {
     return [...PHOTO_COLUMN_MEANING_OPTIONS, ...matchFields.map((f) => ({ value: "custom:" + f.key, label: f.label }))];
@@ -1924,15 +2068,18 @@
         return;
       }
       const dataRows = photoGridRows.map((row) => row.map((cell) => (cell || "").trim()));
-      const { parsedRows, unmatched } = parsedRowsFromFieldMap(fieldMap, dataRows);
-      if (parsedRows.length === 0) {
-        msgEl.textContent = unmatched > 0
-          ? `Found ${unmatched} row(s), but none matched a name in ${currentTeam}'s roster — fix the name column and try again.`
+      const rawRows = rawStatsFromFieldMap(fieldMap, dataRows);
+      const { matchedRows, unmatchedRows } = matchRowsByName(rawRows);
+      const { matchedRows: byNumber, stillUnmatched } = matchUnmatchedByJerseyNumber(unmatchedRows);
+      const playerRows = [...matchedRows, ...byNumber];
+      if (playerRows.length === 0) {
+        msgEl.textContent = stillUnmatched.length > 0
+          ? `Found ${stillUnmatched.length} row(s), but none matched a name in ${currentTeam}'s roster — fix the name column and try again.`
           : "No usable rows yet — check the player name column.";
         return;
       }
       overlay.remove();
-      await importParsedRowsIntoMatch(parsedRows);
+      await importParsedStatsIntoMatch(playerRows, []);
     });
   }
 
@@ -2304,7 +2451,7 @@
         <li><strong>Call-up &amp; stats</strong> — a small legend above the table explains each column at a glance. Tick <strong>"Called up"</strong> for who's on the roster for this match (the "all" button next to that column heading selects or clears everyone in one click), and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
         <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole club.</li>
         <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
-        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, minutes/points/rebounds/assists/fouls, and your own custom stat columns — recognized automatically by name), matches names against this team's roster, then asks which match to save it to. <strong>"Print blank sheet"</strong> gives you an empty box score with your columns, ready to fill in by hand during the game.</li>
+        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, minutes/points/rebounds/assists/fouls, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away. <strong>"Print blank sheet"</strong> gives you an empty box score with your columns, ready to fill in by hand during the game.</li>
       </ol>`;
     box.style.display = "block";
   });
