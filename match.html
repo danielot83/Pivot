@@ -492,14 +492,30 @@
           <table>
             <thead><tr id="callup-head"></tr></thead>
             <tbody id="callup-body"></tbody>
+            <tfoot><tr id="callup-total-row"></tr></tfoot>
           </table>
         </div>
 
-        <div class="side-card">
-          <p class="tsc-step-label" style="margin-top:0;">Opponent stats <span style="font-weight:400; color:var(--muted); font-size:13px; text-transform:none;">(optional — no roster on file for them, so names are typed in)</span></p>
+        <!-- Dani (voz, ronda 35): "hay que meter el numero de los oponentes...
+             hay que hacer el mismo analisis que el nuestro salvo called up y
+             present" -- esta tabla pasa de columnas fijas (Player name/Min/
+             Pts/Reb/Ast/Fouls) a un sistema de columnas igual al de "Call-up
+             & stats" de arriba (N°, Starter, Periods, 1PM/2PM/3PM, stats
+             personalizadas del club), con su propio "Columns ▾" -- cada
+             quien oculta/ordena lo que no usa para el rival sin afectar su
+             propia tabla. -->
+        <div id="opponent-section" class="side-card">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <p class="tsc-step-label" style="margin-bottom:2px; margin-top:0;">Opponent stats <span style="font-weight:400; color:var(--muted); font-size:13px; text-transform:none;">(optional — no roster on file for them, so names and numbers are typed in)</span></p>
+            <div class="columns-menu">
+              <button class="btn btn-secondary" id="opponent-columns-btn">Columns ▾</button>
+              <div class="columns-panel" id="opponent-columns-panel"></div>
+            </div>
+          </div>
           <table>
-            <thead><tr><th>Player name</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Fouls</th><th></th></tr></thead>
+            <thead><tr id="opponent-stats-head"></tr></thead>
             <tbody id="opponent-stats-body"></tbody>
+            <tfoot><tr id="opponent-total-row"></tr></tfoot>
           </table>
           <button class="btn btn-secondary" id="add-opponent-row-btn" style="margin-top:-12px;">+ Add opponent player</button>
         </div>
@@ -515,6 +531,12 @@
           <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
           <button class="btn btn-secondary" id="import-stats-btn" title="Reads player stats (yours and the opponent's, if the sheet has both), marks Present for who's in the file and Absent for the rest of the roster, and, if the file has a general-info block (competition, date, location, referee, teams, final score), fills in empty General info fields too -- never overwrites something already filled in, except the date.">Import stats from Excel</button>
           <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
+          <!-- Dani, ronda 34: "que cada equipo tuviera su modelo que
+               funcione" -- esta plantilla se arma en el momento, con el
+               roster real del equipo que tengas abierto (siempre al día,
+               no un archivo fijo que se desactualiza), lista para
+               rellenar a mano y volver a subir con el botón de arriba. -->
+          <button class="btn btn-secondary" id="download-template-btn" title="Descarga una plantilla .xlsx ya armada con el roster de este equipo -- rellenala durante el partido y subila con 'Import stats from Excel'.">⬇️ Download Excel template</button>
           <button class="btn btn-secondary" id="import-photo-btn">📷 Import from a photo</button>
           <select id="import-photo-lang-select" title="Sheet text is mostly in" style="padding:8px 6px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
             <option value="eng">EN</option>
@@ -523,8 +545,34 @@
           </select>
           <a href="#" id="photo-import-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; align-self:center;">❔ What this does</a>
           <input type="file" id="import-photo-file-input" accept="image/*" capture="environment" style="display:none" />
+          <!-- Dani (voz, ronda 35): "para las fotos asi... quiza podriamos
+               poner algo igual que en los ejercicios para que extraiga
+               toda esa informacion via IA" -- mismo patrón que "Fill in
+               with AI" de Exercise creator: PlayPivot NO llama a ninguna
+               IA por su cuenta (sin servidor propio, sin coste, sin
+               límite de cuenta) -- copiás este prompt a un chat de IA que
+               lea imágenes (ChatGPT, Claude...), le adjuntás la foto ahí,
+               y pegás la respuesta acá. La respuesta pasa por EXACTAMENTE
+               el mismo motor que ya lee un Excel (mismas cabeceras,
+               mismos alias) -- mucho más fiable que el OCR de "Import
+               from a photo" con una foto difícil (letra a mano, tabla
+               compleja), porque la IA SÍ entiende lo que está mirando, no
+               solo reconoce letras sueltas. -->
+          <button type="button" class="btn btn-secondary" id="ai-match-toggle-btn">🤖 Fill in with AI</button>
           <div class="spacer"></div>
           <button class="btn btn-secondary" id="delete-match-btn" style="display:none; color:#991b1b;">Delete this match</button>
+        </div>
+
+        <div class="side-card" id="ai-match-card" style="display:none; margin-top:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <p class="tsc-step-label" style="margin:0;">Fill in with AI</p>
+            <a href="#" id="ai-match-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap;">❔ What this does</a>
+          </div>
+          <p class="hint" style="margin:10px 0;">Copy this prompt into any AI chat that can read images (ChatGPT, Claude…), attach your photo of the scoresheet there, then paste its reply below. PlayPivot doesn't send anything anywhere by itself — you copy and paste between the two tabs, same as "Fill in with AI" in Exercise creator.</p>
+          <textarea id="ai-match-prompt-template" readonly style="width:100%; min-height:130px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12px; font-family:inherit; color:var(--muted); margin-bottom:8px;"></textarea>
+          <button class="btn btn-secondary" id="copy-ai-match-prompt-btn" style="margin-bottom:10px;">📋 Copy this prompt</button>
+          <textarea id="ai-match-reply-input" placeholder="Paste the AI's reply here…" style="width:100%; min-height:110px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit;"></textarea>
+          <button class="btn btn-primary" id="fill-match-from-ai-btn" style="margin-top:8px;">Fill from AI reply</button>
         </div>
       </div>
     </div>
@@ -615,7 +663,10 @@
     matchLanguage: document.getElementById("match-language"),
     callupHead: document.getElementById("callup-head"),
     callupBody: document.getElementById("callup-body"),
+    callupTotalRow: document.getElementById("callup-total-row"),
+    opponentStatsHead: document.getElementById("opponent-stats-head"),
     opponentStatsBody: document.getElementById("opponent-stats-body"),
+    opponentTotalRow: document.getElementById("opponent-total-row"),
     summaryHead: document.getElementById("summary-head"),
     summaryBody: document.getElementById("summary-body"),
     summaryEmpty: document.getElementById("summary-empty"),
@@ -731,6 +782,67 @@
   function orderedVisibleCallupColumns() {
     const defs = callupColumnDefs();
     return callupColumnOrder.map((k) => defs.find((c) => c.key === k)).filter((c) => c && visibleCallupColumns.includes(c.key));
+  }
+
+  // -----------------------------------------------------------------------
+  // Dani (voz, ronda 35): "hay que meter el numero de los oponentes...
+  // hay que hacer el mismo analisis que el nuestro salvo called up y
+  // present" -- mismo sistema de columnas que CALLUP_FIXED_COLUMNS de
+  // arriba, menos "called_up"/"present" (no existen para el rival -- no
+  // hay convocatoria ni asistencia de un equipo que no es el tuyo).
+  // "started" SÍ entra (Dani no lo excluyó al pedirlo). "number" para el
+  // rival es TEXTO LIBRE editable (a diferencia del propio equipo, donde
+  // sale de Roster de solo lectura) -- no hay roster del rival en ningún
+  // lado, así que el dorsal se escribe a mano igual que el nombre. Las
+  // columnas personalizadas del club (matchFields) son las MISMAS que ya
+  // usa Called up -- custom_stats ya es compartido entre las dos tablas
+  // desde siempre, así que agregar/quitar una columna personalizada en
+  // "Columns ▾" de cualquiera de las dos tablas afecta a las dos.
+  // -----------------------------------------------------------------------
+  const OPPONENT_FIXED_COLUMNS = [
+    { key: "started", label: "Starter", default: true },
+    { key: "number", label: "#", default: true },
+    { key: "player", label: "Player", default: true },
+    { key: "minutes", label: "Min", default: true },
+    { key: "points", label: "Pts", default: true },
+    { key: "rebounds", label: "Reb", default: true },
+    { key: "assists", label: "Ast", default: true },
+    { key: "fouls", label: "Fouls", default: true },
+    { key: "periods_played", label: "Periods", default: false },
+    { key: "made_1", label: "1PM", default: false },
+    { key: "made_2", label: "2PM", default: false },
+    { key: "made_3", label: "3PM", default: false },
+  ];
+  function opponentColumnDefs() {
+    return [
+      ...OPPONENT_FIXED_COLUMNS.map((c) => ({ ...c, custom: false })),
+      ...matchFields.map((f) => ({ key: "custom:" + f.key, label: f.label, default: true, custom: true, fieldKey: f.key, fieldId: f.id })),
+    ];
+  }
+  function loadVisibleOpponentColumns() {
+    const saved = localStorage.getItem("pivot_match_opponent_columns");
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return opponentColumnDefs().filter((c) => c.default).map((c) => c.key);
+  }
+  function saveVisibleOpponentColumns(keys) { localStorage.setItem("pivot_match_opponent_columns", JSON.stringify(keys)); }
+  let visibleOpponentColumns = loadVisibleOpponentColumns();
+
+  function loadOpponentColumnOrder() {
+    const saved = localStorage.getItem("pivot_match_opponent_column_order");
+    let order = [];
+    if (saved) { try { order = JSON.parse(saved); } catch (e) {} }
+    const defs = opponentColumnDefs();
+    defs.forEach((c) => { if (!order.includes(c.key)) order.push(c.key); });
+    return order.filter((k) => defs.some((c) => c.key === k));
+  }
+  function saveOpponentColumnOrder(order) { localStorage.setItem("pivot_match_opponent_column_order", JSON.stringify(order)); }
+  let opponentColumnOrder = loadOpponentColumnOrder();
+
+  function orderedVisibleOpponentColumns() {
+    const defs = opponentColumnDefs();
+    return opponentColumnOrder.map((k) => defs.find((c) => c.key === k)).filter((c) => c && visibleOpponentColumns.includes(c.key));
   }
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
@@ -898,12 +1010,19 @@
     // (antes de esto, matchFields todavía estaba vacío).
     if (!localStorage.getItem("pivot_match_columns")) visibleCallupColumns = callupColumnDefs().filter((c) => c.default).map((c) => c.key);
     callupColumnOrder = loadCallupColumnOrder();
+    if (!localStorage.getItem("pivot_match_opponent_columns")) visibleOpponentColumns = opponentColumnDefs().filter((c) => c.default).map((c) => c.key);
+    opponentColumnOrder = loadOpponentColumnOrder();
     renderTableHeads();
     renderCallupColumnsMenu();
+    renderOpponentColumnsMenu();
   }
 
   document.getElementById("callup-columns-btn").addEventListener("click", () => {
     document.getElementById("callup-columns-panel").classList.toggle("open");
+  });
+
+  document.getElementById("opponent-columns-btn").addEventListener("click", () => {
+    document.getElementById("opponent-columns-panel").classList.toggle("open");
   });
 
   function renderCallupColumnsMenu() {
@@ -1007,6 +1126,117 @@
     }
   }
 
+  // Mismo patrón que renderCallupColumnsMenu, para la tabla del rival --
+  // "Columns ▾" propio, que oculta/ordena sin afectar la tabla del propio
+  // equipo. Agregar/quitar una columna personalizada del club (match_stat_fields)
+  // desde acá también la agrega/quita de Called up, porque esa tabla
+  // comparte la misma lista de campos -- solo la VISIBILIDAD es propia de
+  // cada tabla.
+  function renderOpponentColumnsMenu() {
+    const panel = document.getElementById("opponent-columns-panel");
+    panel.innerHTML = "";
+    const defs = opponentColumnDefs();
+    const canManage = myRole === "admin" || myRole === "coach";
+
+    opponentColumnOrder.forEach((key, idx) => {
+      const col = defs.find((c) => c.key === key);
+      if (!col) return;
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex; align-items:center; gap:2px;";
+
+      const label = document.createElement("label");
+      label.style.cssText = "flex:1; display:flex; align-items:center; gap:8px; font-size:13px; padding:4px 0; cursor:pointer;";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = visibleOpponentColumns.includes(col.key);
+      cb.addEventListener("change", () => {
+        visibleOpponentColumns = cb.checked ? [...visibleOpponentColumns, col.key] : visibleOpponentColumns.filter((k) => k !== col.key);
+        saveVisibleOpponentColumns(visibleOpponentColumns);
+        renderTableHeads();
+        renderOpponentStats();
+      });
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(col.label));
+      row.appendChild(label);
+
+      const upBtn = document.createElement("button");
+      upBtn.type = "button"; upBtn.textContent = "↑"; upBtn.title = "Move up";
+      upBtn.disabled = idx === 0;
+      upBtn.style.cssText = "background:none; border:none; cursor:pointer; color:var(--muted); font-size:13px; padding:2px 4px;" + (idx === 0 ? " opacity:0.3; cursor:default;" : "");
+      upBtn.addEventListener("click", () => {
+        [opponentColumnOrder[idx - 1], opponentColumnOrder[idx]] = [opponentColumnOrder[idx], opponentColumnOrder[idx - 1]];
+        saveOpponentColumnOrder(opponentColumnOrder);
+        renderOpponentColumnsMenu(); renderTableHeads(); renderOpponentStats();
+      });
+      row.appendChild(upBtn);
+
+      const downBtn = document.createElement("button");
+      downBtn.type = "button"; downBtn.textContent = "↓"; downBtn.title = "Move down";
+      downBtn.disabled = idx === opponentColumnOrder.length - 1;
+      downBtn.style.cssText = "background:none; border:none; cursor:pointer; color:var(--muted); font-size:13px; padding:2px 4px;" + (idx === opponentColumnOrder.length - 1 ? " opacity:0.3; cursor:default;" : "");
+      downBtn.addEventListener("click", () => {
+        [opponentColumnOrder[idx + 1], opponentColumnOrder[idx]] = [opponentColumnOrder[idx], opponentColumnOrder[idx + 1]];
+        saveOpponentColumnOrder(opponentColumnOrder);
+        renderOpponentColumnsMenu(); renderTableHeads(); renderOpponentStats();
+      });
+      row.appendChild(downBtn);
+
+      if (col.custom && canManage) {
+        const delBtn = document.createElement("button");
+        delBtn.type = "button"; delBtn.textContent = "✕"; delBtn.title = "Remove this stat column for the whole club";
+        delBtn.style.cssText = "background:none; border:none; cursor:pointer; color:#991b1b; font-size:13px; padding:2px 4px;";
+        delBtn.addEventListener("click", async () => {
+          if (!confirm(`Remove "${col.label}"? Numbers already entered for past matches stay saved, just hidden.`)) return;
+          const { error } = await supabaseClient.from("match_stat_fields").delete().eq("id", col.fieldId);
+          if (error) { showMessage(error.message, "error"); return; }
+          visibleCallupColumns = visibleCallupColumns.filter((k) => k !== col.key);
+          callupColumnOrder = callupColumnOrder.filter((k) => k !== col.key);
+          visibleOpponentColumns = visibleOpponentColumns.filter((k) => k !== col.key);
+          opponentColumnOrder = opponentColumnOrder.filter((k) => k !== col.key);
+          saveVisibleCallupColumns(visibleCallupColumns);
+          saveCallupColumnOrder(callupColumnOrder);
+          saveVisibleOpponentColumns(visibleOpponentColumns);
+          saveOpponentColumnOrder(opponentColumnOrder);
+          await loadMatchFields();
+          if (currentMatchId) await openMatch(currentMatchId); else { renderCallupTable(); renderOpponentStats(); }
+        });
+        row.appendChild(delBtn);
+      }
+
+      panel.appendChild(row);
+    });
+
+    if (canManage) {
+      const addRow = document.createElement("div");
+      addRow.style.cssText = "display:flex; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid var(--line);";
+      addRow.innerHTML = `
+        <input id="opponent-add-field-input" type="text" placeholder="e.g. Steals" style="flex:1; min-width:0; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;" />
+        <button type="button" id="opponent-add-field-btn" class="btn btn-secondary" style="padding:6px 10px; font-size:12.5px;">+ Add</button>
+      `;
+      panel.appendChild(addRow);
+      const addInput = addRow.querySelector("#opponent-add-field-input");
+      addRow.querySelector("#opponent-add-field-btn").addEventListener("click", async () => {
+        const label = addInput.value.trim();
+        if (!label) return;
+        const key = label.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "field_" + Date.now();
+        try {
+          const { error } = await supabaseClient.from("match_stat_fields").insert({
+            organization_id: currentOrgId, key, label, position: matchFields.length,
+          });
+          if (error) throw error;
+          addInput.value = "";
+          const newKey = "custom:" + key;
+          if (!visibleOpponentColumns.includes(newKey)) visibleOpponentColumns.push(newKey);
+          saveVisibleOpponentColumns(visibleOpponentColumns);
+          await loadMatchFields();
+          if (currentMatchId) await openMatch(currentMatchId); else renderOpponentStats();
+        } catch (err) {
+          showMessage(err.message || "Couldn't add that column.", "error");
+        }
+      });
+    }
+  }
+
   function renderTableHeads() {
     // A petición de Dani: botón "all" junto a la cabecera "Called up" para
     // marcar/desmarcar a todo el equipo de una vez, en vez de fila a fila.
@@ -1018,6 +1248,10 @@
     }).join("");
     const selAllBtn = document.getElementById("callup-select-all-btn");
     if (selAllBtn) selAllBtn.addEventListener("click", toggleAllCalledUp);
+    // Columna extra al final para el botón de borrar fila -- la tabla del
+    // rival, a diferencia de Called up, no tiene un roster fijo detrás:
+    // cada fila se puede quitar a mano.
+    els.opponentStatsHead.innerHTML = orderedVisibleOpponentColumns().map((c) => `<th>${escapeHtml(c.label)}</th>`).join("") + "<th></th>";
     els.summaryHead.innerHTML = `
       <th>#</th><th>Player</th><th>GP</th><th>Pts/g</th><th>Reb/g</th><th>Ast/g</th><th>Fouls/g</th>
       ${matchFields.map((f) => `<th>${escapeHtml(f.label)}/g</th>`).join("")}
@@ -1391,6 +1625,50 @@
     els.callupBody.querySelectorAll("button.present-badge").forEach((btn) => {
       btn.addEventListener("click", () => cyclePresentStatus(btn));
     });
+    renderCallupTotalRow();
+  }
+
+  // -----------------------------------------------------------------------
+  // Dani (voz, ronda 35): "si pudieramos meter Los totales tb abajo estaria
+  // bien (en los nuestros y los suyos)... cada cosa si son puntos, puntos
+  // si son faltas faltas, cada linea su total" -- una fila TOTAL al fondo
+  // de cada tabla, sumando cada columna numérica por separado (puntos con
+  // puntos, faltas con faltas, etc., nunca mezclados). Columnas de
+  // identidad (número/jugador/casillas) no se suman -- ahí va la etiqueta
+  // "TOTAL", en la primera columna "Player" visible (o en la primera
+  // columna de la tabla si "Player" está oculta).
+  // -----------------------------------------------------------------------
+  const SUMMABLE_STAT_KEYS = new Set(["minutes", "points", "rebounds", "assists", "fouls", "periods_played", "made_1", "made_2", "made_3"]);
+  function buildTotalRowCells(cols, dataRows) {
+    let labelPlaced = false;
+    const cells = cols.map((col) => {
+      if (!labelPlaced && col.key === "player") { labelPlaced = true; return `<td><strong>TOTAL</strong></td>`; }
+      if (SUMMABLE_STAT_KEYS.has(col.key)) {
+        const sum = dataRows.reduce((acc, r) => acc + (Number(r && r[col.key]) || 0), 0);
+        return `<td><strong>${sum}</strong></td>`;
+      }
+      if (col.custom) {
+        const sum = dataRows.reduce((acc, r) => acc + (Number(r && r.custom_stats && r.custom_stats[col.fieldKey]) || 0), 0);
+        return `<td><strong>${sum}</strong></td>`;
+      }
+      return "<td></td>";
+    });
+    // Ninguna columna "Player" visible (se ocultó desde "Columns ▾") --
+    // la etiqueta va en la primera columna igual, para que la fila TOTAL
+    // nunca aparezca sin ninguna marca de qué es.
+    if (!labelPlaced && cells.length) cells[0] = `<td><strong>TOTAL</strong></td>`;
+    return cells.join("");
+  }
+  function renderCallupTotalRow() {
+    if (!els.callupTotalRow) return;
+    const cols = orderedVisibleCallupColumns();
+    const dataRows = teamPlayers.map((p) => statsByPlayer[p.id]);
+    els.callupTotalRow.innerHTML = buildTotalRowCells(cols, dataRows);
+  }
+  function renderOpponentTotalRow() {
+    if (!els.opponentTotalRow) return;
+    const cols = orderedVisibleOpponentColumns();
+    els.opponentTotalRow.innerHTML = buildTotalRowCells(cols, opponentStats) + "<td></td>";
   }
 
   // -----------------------------------------------------------------------
@@ -1447,44 +1725,86 @@
     }
   }
 
+  // Dani (voz, ronda 35): "mismo analisis que el nuestro salvo called up y
+  // present" -- mismo esquema que callupCellHtml, por columna (ver
+  // OPPONENT_FIXED_COLUMNS). "number"/"player" acá SÍ son editables (texto
+  // libre) -- a diferencia del propio equipo, no hay roster del rival del
+  // que leerlos.
+  function opponentCellHtml(col, row, i) {
+    switch (col.key) {
+      case "started": return `<td><input type="checkbox" data-opp="${i}" data-field="started" ${row.started ? "checked" : ""}></td>`;
+      case "number": return `<td class="editable" data-opp="${i}" data-field="jersey_number">${escapeHtml(row.jersey_number || "")}</td>`;
+      case "player": return `<td class="editable" data-opp="${i}" data-field="player_name">${escapeHtml(row.player_name || "")}</td>`;
+      case "minutes": return `<td class="editable" data-opp="${i}" data-field="minutes">${row.minutes ?? ""}</td>`;
+      case "points": return `<td class="editable" data-opp="${i}" data-field="points">${row.points ?? 0}</td>`;
+      case "rebounds": return `<td class="editable" data-opp="${i}" data-field="rebounds">${row.rebounds ?? 0}</td>`;
+      case "assists": return `<td class="editable" data-opp="${i}" data-field="assists">${row.assists ?? 0}</td>`;
+      case "fouls": return `<td class="editable" data-opp="${i}" data-field="fouls">${row.fouls ?? 0}</td>`;
+      case "periods_played": return `<td class="editable" data-opp="${i}" data-field="periods_played" title="How many periods/quarters this player was on court">${row.periods_played ?? ""}</td>`;
+      case "made_1": return `<td class="editable" data-opp="${i}" data-field="made_1" title="1-point shots made">${row.made_1 ?? 0}</td>`;
+      case "made_2": return `<td class="editable" data-opp="${i}" data-field="made_2" title="2-point shots made">${row.made_2 ?? 0}</td>`;
+      case "made_3": return `<td class="editable" data-opp="${i}" data-field="made_3" title="3-point shots made">${row.made_3 ?? 0}</td>`;
+      default:
+        if (col.custom) return `<td class="editable" data-opp="${i}" data-custom="${escapeHtml(col.fieldKey)}">${(row.custom_stats && row.custom_stats[col.fieldKey]) ?? 0}</td>`;
+        return "<td></td>";
+    }
+  }
+
   function renderOpponentStats() {
     els.opponentStatsBody.innerHTML = "";
+    const cols = orderedVisibleOpponentColumns();
     opponentStats.forEach((row, i) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="editable" data-opp="${i}" data-field="player_name">${escapeHtml(row.player_name || "")}</td>
-        <td class="editable" data-opp="${i}" data-field="minutes">${row.minutes ?? ""}</td>
-        <td class="editable" data-opp="${i}" data-field="points">${row.points ?? 0}</td>
-        <td class="editable" data-opp="${i}" data-field="rebounds">${row.rebounds ?? 0}</td>
-        <td class="editable" data-opp="${i}" data-field="assists">${row.assists ?? 0}</td>
-        <td class="editable" data-opp="${i}" data-field="fouls">${row.fouls ?? 0}</td>
-        <td><button type="button" class="team-pill-del" data-opp-del="${i}" title="Remove"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button></td>
-      `;
+      tr.innerHTML = cols.map((col) => opponentCellHtml(col, row, i)).join("") +
+        `<td><button type="button" class="team-pill-del" data-opp-del="${i}" title="Remove"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button></td>`;
       els.opponentStatsBody.appendChild(tr);
+    });
+    els.opponentStatsBody.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.addEventListener("change", () => { opponentStats[parseInt(cb.dataset.opp, 10)][cb.dataset.field] = cb.checked; });
     });
     els.opponentStatsBody.querySelectorAll("td.editable").forEach((td) => {
       td.addEventListener("click", () => makeOpponentCellEditable(td));
     });
     els.opponentStatsBody.querySelectorAll("[data-opp-del]").forEach((btn) => {
-      btn.addEventListener("click", () => { opponentStats.splice(parseInt(btn.dataset.oppDel, 10), 1); renderOpponentStats(); });
+      btn.addEventListener("click", () => { opponentStats.splice(parseInt(btn.dataset.oppDel, 10), 1); renderOpponentStats(); renderOpponentTotalRow(); });
     });
+    renderOpponentTotalRow();
   }
 
   function makeOpponentCellEditable(td) {
     if (td.querySelector("input")) return;
     const field = td.dataset.field;
+    const custom = td.dataset.custom;
     const i = parseInt(td.dataset.opp, 10);
     const original = td.textContent.trim();
+    const isText = field === "player_name" || field === "jersey_number";
     const input = document.createElement("input");
-    input.type = field === "player_name" ? "text" : "number";
+    input.type = isText ? "text" : "number";
     input.value = original;
     td.textContent = "";
     td.appendChild(input);
     input.focus();
     const commit = () => {
-      const val = field === "player_name" ? input.value.trim() : (input.value === "" ? null : parseFloat(input.value));
-      opponentStats[i][field] = val ?? (field === "player_name" ? "" : 0);
-      td.textContent = opponentStats[i][field] ?? "";
+      const val = isText ? input.value.trim() : (input.value === "" ? null : parseFloat(input.value));
+      if (custom) {
+        const row = opponentStats[i];
+        row.custom_stats = row.custom_stats || {};
+        row.custom_stats[custom] = val ?? 0;
+        td.textContent = row.custom_stats[custom] ?? "";
+      } else {
+        opponentStats[i][field] = val ?? (isText ? "" : 0);
+        // Dani, ronda 31 (ya para el propio equipo): si se edita a mano el
+        // desglose 1/2/3, el total de puntos se recalcula solo -- mismo
+        // criterio ahora también para el rival.
+        if (field === "made_1" || field === "made_2" || field === "made_3") {
+          const row = opponentStats[i];
+          row.points = (row.made_1 || 0) * 1 + (row.made_2 || 0) * 2 + (row.made_3 || 0) * 3;
+          const ptsTd = els.opponentStatsBody.querySelector(`td[data-opp="${i}"][data-field="points"]`);
+          if (ptsTd && !ptsTd.querySelector("input")) ptsTd.textContent = row.points;
+        }
+        td.textContent = opponentStats[i][field] ?? "";
+      }
+      renderOpponentTotalRow();
     };
     input.addEventListener("blur", commit);
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") input.blur(); });
@@ -1492,7 +1812,7 @@
 
   document.getElementById("add-opponent-row-btn").addEventListener("click", () => {
     if (!currentMatchId && !els.matchArea.classList.contains("open")) { showMessage("Open or start a match first.", "error"); return; }
-    opponentStats.push({ player_name: "", minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, custom_stats: {} });
+    opponentStats.push({ player_name: "", jersey_number: "", started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} });
     renderOpponentStats();
   });
 
@@ -1678,8 +1998,18 @@
     return { matchedRows, stillUnmatched };
   }
 
+  // Dani (voz, ronda 35): "hay que meter el numero de los oponentes" --
+  // a diferencia de matchRowsByName/matchUnmatchedByJerseyNumber (donde el
+  // dorsal del propio equipo se descarta tras usarse como respaldo de
+  // match, porque match_player_stats no tiene esa columna -- el dorsal del
+  // propio equipo ya vive en Roster), el rival SÍ necesita guardar su
+  // dorsal (match_opponent_stats.jersey_number, step89) porque no hay
+  // ningún roster del rival del que leerlo después. Por eso esta función
+  // ya NO usa stripRawMatchFields (que tira jersey_number) -- solo saca
+  // raw_name, que se reemplaza por player_name.
   function toOpponentRow(row) {
-    return { player_name: row.raw_name, ...stripRawMatchFields(row) };
+    const { raw_name, ...rest } = row;
+    return { player_name: raw_name, ...rest };
   }
 
   // Dani, ronda 33: descubierto durante la verificación del archivo real
@@ -2059,12 +2389,179 @@
     document.getElementById("import-stats-file-input").click();
   });
 
+  // -----------------------------------------------------------------------
+  // Dani, ronda 34: "que cada equipo tuviera su modelo que funcione" --
+  // en vez de mantener un archivo de plantilla fijo (que se desactualiza
+  // en cuanto cambia el roster), esto arma el .xlsx en el momento, con el
+  // roster REAL del equipo abierto ahora mismo (teamPlayers, ya cargado) y
+  // exactamente la misma estructura que lee importParsedStatsIntoMatch:
+  // información general arriba, "ÉQUIPE A" con el roster de este equipo
+  // ya puesto (nombre + dorsal, listo para anotar puntos durante el
+  // partido), "ÉQUIPE B" en blanco para el rival. "Points total" sale
+  // como fórmula a partir de 1 pt/2 pts/3 pts -- si se prefiere anotar
+  // solo el total, se puede escribir el número ahí encima, funciona
+  // igual. Mismo botón sirve para cualquier equipo del club: cambiá de
+  // equipo arriba y descargá de nuevo.
+  // -----------------------------------------------------------------------
+  // Dani (voz, ronda 35): "hay que hacer el mismo analisis que el nuestro
+  // salvo called up y present... como podemos hacer para que adapte, o
+  // para que extraiga las cosas para el excel?" -- antes la plantilla solo
+  // traía 7 columnas fijas (N°/Joueur/1 pt/2 pts/3 pts/Points total/
+  // Fautes), iguales para los dos bloques, y el bloque del rival no tenía
+  // ni Min/Reb/Ast/Periods ni las stats personalizadas del club. Esta
+  // lista es la que "adapta": un solo lugar con todas las columnas
+  // posibles (alias ya reconocidos por MATCH_STAT_ALIASES, así el import
+  // las vuelve a leer sin tocar nada más) más las columnas personalizadas
+  // de ESTE club (matchFields, las mismas que ya usan Called up/Opponent
+  // stats) -- agregar una stat personalizada nueva hace que la próxima
+  // plantilla descargada ya la traiga, sin tocar esta función.
+  function excelTemplateColumns() {
+    const base = [
+      { header: "N°", field: "jersey_number" },
+      { header: "Joueur", field: "player_name" },
+      { header: "Min", field: "minutes" },
+      { header: "1 pt", field: "made_1" },
+      { header: "2 pts", field: "made_2" },
+      { header: "3 pts", field: "made_3" },
+      { header: "Points total", field: "points", formula: true },
+      { header: "Reb", field: "rebounds" },
+      { header: "Ast", field: "assists" },
+      { header: "Fautes", field: "fouls" },
+      { header: "Periods played", field: "periods_played" },
+    ];
+    return [...base, ...matchFields.map((f) => ({ header: f.label, field: "custom:" + f.key }))];
+  }
+
+  function buildMatchExcelTemplate() {
+    const cols = excelTemplateColumns();
+    const colIndex = (field) => cols.findIndex((c) => c.field === field);
+    const blankDataRow = () => cols.map(() => "");
+
+    const rows = [];
+    const ownLabel = teamFileLabel();
+    rows.push([`Plantilla de partido — ${ownLabel}`]);
+    rows.push([]);
+    rows.push(["Compétition", ""]);
+    rows.push(["Date", ""]);
+    rows.push(["Lieu", ""]);
+    rows.push(["Équipe A", ownLabel]);
+    rows.push(["Équipe B", ""]);
+    rows.push(["Arbitre", ""]);
+    rows.push(["Score final", ""]);
+    rows.push([]);
+
+    // Dani (ronda 34): la tabla "Équipe A" ya trae el roster real de este
+    // equipo, para no tener que escribir los nombres a mano -- sigue
+    // igual acá, solo que ahora con más columnas detrás de cada jugador.
+    rows.push([`ÉQUIPE A — ${ownLabel}`]);
+    rows.push(cols.map((c) => c.header));
+    const ownDataStart = rows.length;
+    const sortedPlayers = [...teamPlayers].sort((a, b) => {
+      const an = parseInt(a.jersey_number, 10), bn = parseInt(b.jersey_number, 10);
+      if (!isNaN(an) && !isNaN(bn)) return an - bn;
+      return (a.jersey_number || "").localeCompare(b.jersey_number || "");
+    });
+    sortedPlayers.forEach((p) => {
+      const row = blankDataRow();
+      row[colIndex("jersey_number")] = p.jersey_number || "";
+      row[colIndex("player_name")] = `${p.first_name} ${p.last_name}`.trim();
+      rows.push(row);
+    });
+    const ownDataEnd = rows.length;
+    const ownTotalRowVals = blankDataRow();
+    ownTotalRowVals[colIndex("jersey_number")] = "TOTAL";
+    rows.push(ownTotalRowVals);
+    const ownTotalRow = rows.length - 1;
+    rows.push([]);
+
+    // Dani: "y hay que meter el numero de los oponentes. En verdad hay que
+    // hacer el mismo analisis que el nuestro" -- el bloque del rival ahora
+    // usa EXACTAMENTE las mismas columnas que el propio (antes solo tenía
+    // 7, sin Min/Reb/Ast/Periods/stats del club), 14 filas en blanco para
+    // completar a mano durante el partido (nombre Y dorsal -- no hay
+    // roster del rival del que traerlos).
+    rows.push(["ÉQUIPE B — (rival)"]);
+    rows.push(cols.map((c) => c.header));
+    const oppDataStart = rows.length;
+    for (let i = 0; i < 14; i++) rows.push(blankDataRow());
+    const oppDataEnd = rows.length;
+    const oppTotalRowVals = blankDataRow();
+    oppTotalRowVals[colIndex("jersey_number")] = "TOTAL";
+    rows.push(oppTotalRowVals);
+    const oppTotalRow = rows.length - 1;
+    rows.push([]);
+
+    rows.push([
+      "Celdas vacías: completá durante el partido. \"Points total\" se calcula solo a partir de " +
+      "1 pt/2 pts/3 pts (o escribí el número directo ahí, también funciona). No hace falta que los " +
+      "nombres coincidan letra por letra -- apodos también funcionan, y el dorsal (\"N°\") sirve de " +
+      "respaldo. La fila TOTAL de cada equipo se suma sola. Después: Match day → \"Import stats from Excel\".",
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = cols.map((c) => ({ wch: c.field === "player_name" ? 24 : Math.max(8, c.header.length + 2) }));
+
+    const setFormula = (rowIdx, colIdx, formula) => {
+      ws[XLSX.utils.encode_cell({ r: rowIdx, c: colIdx })] = { t: "n", f: formula };
+    };
+    const pointsCol = colIndex("points");
+    const made1Col = colIndex("made_1"), made2Col = colIndex("made_2"), made3Col = colIndex("made_3");
+    const made1Letter = XLSX.utils.encode_col(made1Col), made2Letter = XLSX.utils.encode_col(made2Col), made3Letter = XLSX.utils.encode_col(made3Col);
+    // "Points total" por fórmula en cada fila de jugador -- direcciones de
+    // celda en notación A1 (1-based), por eso el "+1" sobre el índice
+    // 0-based del array `rows`.
+    [[ownDataStart, ownDataEnd], [oppDataStart, oppDataEnd]].forEach(([start, end]) => {
+      for (let r = start; r < end; r++) setFormula(r, pointsCol, `${made1Letter}${r + 1}*1+${made2Letter}${r + 1}*2+${made3Letter}${r + 1}*3`);
+    });
+    // Fila TOTAL: suma cada columna numérica por separado (puntos con
+    // puntos, faltas con faltas, nunca mezclados) -- N°/Joueur quedan
+    // fuera, ahí va la etiqueta "TOTAL".
+    const summableCols = cols.map((c, i) => i).filter((i) => cols[i].field !== "jersey_number" && cols[i].field !== "player_name");
+    summableCols.forEach((c) => {
+      const col = XLSX.utils.encode_col(c);
+      setFormula(ownTotalRow, c, `SUM(${col}${ownDataStart + 1}:${col}${ownDataEnd})`);
+      setFormula(oppTotalRow, c, `SUM(${col}${oppDataStart + 1}:${col}${oppDataEnd})`);
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Partido");
+    const safeName = (ownLabel || "equipo").replace(/[^a-z0-9]+/gi, "_");
+    XLSX.writeFile(wb, `Plantilla_${safeName}.xlsx`);
+  }
+
+  document.getElementById("download-template-btn").addEventListener("click", () => {
+    if (!currentTeam) { showMessage("Pick a team first.", "error"); return; }
+    if (!teamPlayers.length) { showMessage("This team doesn't have any players in its roster yet.", "error"); return; }
+    buildMatchExcelTemplate();
+  });
+
+  // Dani, ronda 32-35: la parte que convierte "filas sueltas" (sheetRows,
+  // header:1) en playerRows/opponentRows/generalInfo es exactamente la
+  // misma sin importar de dónde vinieron esas filas -- un Excel subido, o
+  // (ronda 35) el texto pegado de la respuesta de un chat de IA. Se saca
+  // acá una sola vez para que las dos vías de import se comporten
+  // IDÉNTICO (mismos alias, mismo cálculo de puntos, mismo criterio de
+  // "qué bloque es el propio") en vez de mantener dos copias.
+  function parseSheetRowsIntoMatchImport(sheetRows) {
+    if (sheetRows.length === 0) throw new Error("That doesn't have any rows.");
+    const headerIdxs = findHeaderRowIndexes(sheetRows);
+    const blocks = buildBlocksFromSheet(sheetRows);
+    if (blocks.length === 0) throw new Error("Couldn't find a usable player name column.");
+    const result = classifyAndBuildMatchRows(blocks);
+    const { playerRows, opponentRows } = result;
+    const generalInfo = buildGeneralInfoFromSheet(sheetRows, headerIdxs, result.ownBlockPosition);
+    if (playerRows.length === 0 && opponentRows.length === 0) {
+      throw new Error(result.unmatchedCount > 0 ? `Found ${result.unmatchedCount} row(s), but none matched a name in ${currentTeam}'s roster.` : "Couldn't find a usable player name column.");
+    }
+    return { playerRows, opponentRows, generalInfo };
+  }
+
   document.getElementById("import-stats-file-input").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
 
-    let playerRows, opponentRows, generalInfo;
+    let parsed;
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
@@ -2073,30 +2570,149 @@
       // fila 1 -- se lee la hoja entera como filas sueltas y se buscan ahí
       // las cabeceras (puede haber más de una, ver buildBlocksFromSheet).
       const sheetRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
-      if (sheetRows.length === 0) { showMessage("That file doesn't have any rows.", "error"); return; }
-
-      const headerIdxs = findHeaderRowIndexes(sheetRows);
-      const blocks = buildBlocksFromSheet(sheetRows);
-      if (blocks.length === 0) { showMessage("Couldn't find a usable player name column.", "error"); return; }
-      const result = classifyAndBuildMatchRows(blocks);
-      playerRows = result.playerRows;
-      opponentRows = result.opponentRows;
-      // Dani, ronda 32, a petición tuya: si la hoja trae también el bloque
-      // de "información general" del partido (competición, fecha, lugar,
-      // árbitro, equipos, marcador final -- como la que genera ChatGPT),
-      // se usa para completar "General info" del partido elegido más abajo.
-      generalInfo = buildGeneralInfoFromSheet(sheetRows, headerIdxs, result.ownBlockPosition);
-
-      if (playerRows.length === 0 && opponentRows.length === 0) {
-        showMessage(result.unmatchedCount > 0 ? `Found ${result.unmatchedCount} row(s), but none matched a name in ${currentTeam}'s roster.` : "Couldn't find a usable player name column.", "error");
-        return;
-      }
+      parsed = parseSheetRowsIntoMatchImport(sheetRows);
     } catch (err) {
       showMessage(err.message || "Couldn't read that Excel file.", "error");
       return;
     }
 
-    await importParsedStatsIntoMatch(playerRows, opponentRows, generalInfo);
+    await importParsedStatsIntoMatch(parsed.playerRows, parsed.opponentRows, parsed.generalInfo);
+  });
+
+  // -----------------------------------------------------------------------
+  // "Fill in with AI" -- Dani (voz, ronda 35): "para las fotos asi...
+  // quiza podriamos poner algo igual que en los ejercicios para que
+  // extraiga toda esa informacion via IA". Mismo patrón que Exercise
+  // creator: un prompt listo para copiar a cualquier chat de IA que lea
+  // imágenes, la respuesta se pega de vuelta acá, y se interpreta como
+  // una tabla de celdas (separadas por "|", formato markdown normal) que
+  // pasa por el MISMO parser que ya usa el Excel (parseSheetRowsIntoMatchImport)
+  // -- nada de esto llama a ninguna IA por cuenta de PlayPivot.
+  // -----------------------------------------------------------------------
+  function buildMatchAiPromptTemplate() {
+    const cols = excelTemplateColumns();
+    const headerLine = "| " + cols.map((c) => c.header).join(" | ") + " |";
+    const sepLine = "|" + cols.map(() => " --- ").join("|") + "|";
+    const ownLabel = teamFileLabel() || "my team";
+    return [
+      "You're helping a basketball coach digitize a paper match box score (feuille de marque) from a photo I'm about to attach in this chat.",
+      "",
+      "Read the photo carefully -- it usually has two tables (one per team) plus some general info (competition, date, place, referee, team names, final score) written somewhere on the page. Reply with ONLY the following, in EXACTLY this format (plain text, real markdown tables with pipes, no bold, nothing before or after):",
+      "",
+      "Compétition: [competition name, or leave blank]",
+      "Date: [DD.MM.YYYY, or leave blank]",
+      "Lieu: [place, or leave blank]",
+      `Équipe A: ${ownLabel}`,
+      "Équipe B: [the OTHER team's name, as written on the sheet]",
+      "Arbitre: [referee name, or leave blank]",
+      "Score final: [team A score] - [team B score]",
+      "",
+      `ÉQUIPE A — ${ownLabel}`,
+      headerLine,
+      sepLine,
+      "[one row per player of team A, same column order as the header above -- leave a cell blank if the sheet doesn't track it]",
+      "",
+      "ÉQUIPE B — [the other team's name]",
+      headerLine,
+      sepLine,
+      "[one row per player of team B, same column order]",
+      "",
+      "Rules: \"N°\" is the jersey number. \"1 pt\"/\"2 pts\"/\"3 pts\" are shots MADE of each value (not attempts) -- fill them in whenever the sheet tracks them separately. ALWAYS fill in \"Points total\" too, with the real total for that player (add up 1 pt/2 pts/3 pts yourself if you filled those in, or your best read of a running score if that's all the sheet has) -- never leave \"Points total\" blank just because you filled in the breakdown, a blank cell there is read as zero. One player per row, don't merge or skip rows, keep the header row as given. If you're unsure about a specific number, still give your best guess rather than leaving it empty, but you can add a short confidence note in a line starting with \"NOTES:\" at the very end, outside both tables.",
+    ].join("\n");
+  }
+
+  // Convierte el texto pegado (tabla markdown con "|", más las líneas
+  // "Etiqueta: valor" del bloque de información general) en el mismo
+  // formato "sheetRows" (filas sueltas, una celda por columna) que ya usa
+  // el import de Excel -- así reutiliza el parser entero sin tocarlo.
+  function parseAiReplyToSheetRows(text) {
+    // El prompt pide un "NOTES: ..." suelto AL FINAL, fuera de las dos
+    // tablas -- pero como no hay ninguna cabecera nueva después, esa línea
+    // (y cualquier cosa después) caería dentro del último bloque leído
+    // (buildBlocksFromSheet se queda con todo hasta el final de la hoja),
+    // y "NOTES: <texto largo>" se colaría como una fila de jugador
+    // inventada (columna 0 = "NOTES" como dorsal, columna 1 = el texto
+    // como nombre). Se corta ahí -- nunca se pierde información real,
+    // "NOTES" es solo para que la IA avise de algo, no datos del partido.
+    const noteIdx = String(text || "").replace(/\r\n/g, "\n").split("\n").findIndex((l) => /^notes\s*:/i.test(l.trim()));
+    const lines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+    const usableLines = noteIdx === -1 ? lines : lines.slice(0, noteIdx);
+    return usableLines.map((raw) => {
+      const line = raw.trim();
+      if (!line) return [];
+      if (line.includes("|")) {
+        if (/^[\s|:-]+$/.test(line)) return []; // separador markdown ---|---|---
+        let cells = line.split("|").map((c) => c.trim());
+        if (cells.length && cells[0] === "") cells = cells.slice(1);
+        if (cells.length && cells[cells.length - 1] === "") cells = cells.slice(0, -1);
+        return cells;
+      }
+      if (line.includes(":")) {
+        const idx = line.indexOf(":");
+        return [line.slice(0, idx).trim(), line.slice(idx + 1).trim()];
+      }
+      return [line];
+    });
+  }
+
+  document.getElementById("ai-match-toggle-btn").addEventListener("click", () => {
+    const card = document.getElementById("ai-match-card");
+    const opening = card.style.display === "none";
+    card.style.display = opening ? "block" : "none";
+    if (opening) {
+      document.getElementById("ai-match-prompt-template").value = buildMatchAiPromptTemplate();
+      try {
+        if (!localStorage.getItem(`pivot_ai_match_guide_seen_${currentOrgId || "x"}`)) openAiMatchGuideModal();
+      } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
+    }
+  });
+
+  document.getElementById("copy-ai-match-prompt-btn").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(document.getElementById("ai-match-prompt-template").value);
+      showMessage("Prompt copied — paste it into any AI chat that can read images, attach your photo, then send it.", "success");
+    } catch (e) {
+      showMessage("Couldn't copy automatically — select the text above and copy it by hand.", "error");
+    }
+  });
+
+  document.getElementById("fill-match-from-ai-btn").addEventListener("click", async () => {
+    if (!currentTeam) { showMessage("Pick a team first.", "error"); return; }
+    const text = document.getElementById("ai-match-reply-input").value;
+    if (!text.trim()) { showMessage("Paste the AI's reply first.", "error"); return; }
+    let parsed;
+    try {
+      const sheetRows = parseAiReplyToSheetRows(text);
+      parsed = parseSheetRowsIntoMatchImport(sheetRows);
+    } catch (err) {
+      showMessage((err.message || "Couldn't read that reply.") + " Use the template above so the AI replies in the right format.", "error");
+      return;
+    }
+    await importParsedStatsIntoMatch(parsed.playerRows, parsed.opponentRows, parsed.generalInfo);
+  });
+
+  function openAiMatchGuideModal() {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:460px; width:100%; padding:24px 26px; max-height:85vh; overflow-y:auto;">
+        <h3 style="margin:0 0 6px; font-size:17px;">Fill in with AI — what it actually does</h3>
+        <p class="hint" style="margin:0 0 14px;">PlayPivot doesn't send your photo anywhere, and doesn't call any AI itself — no account, no setup, no cost on our side. You do the reading with an AI chat you already have (ChatGPT, Claude…), in another tab.</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>Steps:</strong> click "📋 Copy this prompt", open any AI chat that can read images, paste the prompt, attach your photo of the scoresheet, and send it. Then copy the AI's whole reply and paste it into the box below "Fill in with AI" here, and click "Fill from AI reply".</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>Why this instead of "Import from a photo"?</strong> that one reads letters off the image (OCR) without understanding what it's looking at — it struggles with handwriting and busy tables. An AI chat actually understands a box score, so it's usually much more reliable on a hard photo. Review its reply before pasting it in, the same way you'd check anyone else's work.</p>
+        <p class="hint" style="margin:0 0 16px;">You can reopen this anytime with "❔ What this does", next to "Fill in with AI".</p>
+        <button class="btn btn-primary" id="ai-match-guide-close-btn" style="width:100%;">Got it</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector("#ai-match-guide-close-btn").addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    try { localStorage.setItem(`pivot_ai_match_guide_seen_${currentOrgId || "x"}`, "1"); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
+  }
+
+  document.getElementById("ai-match-guide-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    openAiMatchGuideModal();
   });
 
   // -----------------------------------------------------------------------
@@ -2437,6 +3053,7 @@
         }
       }
       td.textContent = val ?? "";
+      renderCallupTotalRow();
     };
     input.addEventListener("blur", commit);
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") input.blur(); });
@@ -2498,9 +3115,28 @@
       const playerRows = Object.keys(statsByPlayer)
         .filter((pid) => statsByPlayer[pid].called_up || statsByPlayer[pid].started || statsByPlayer[pid].minutes || statsByPlayer[pid].points || statsByPlayer[pid].rebounds || statsByPlayer[pid].assists || statsByPlayer[pid].fouls || statsByPlayer[pid].periods_played || statsByPlayer[pid].made_1 || statsByPlayer[pid].made_2 || statsByPlayer[pid].made_3 || (statsByPlayer[pid].custom_stats && Object.keys(statsByPlayer[pid].custom_stats).length > 0))
         .map((pid) => ({ player_id: pid, ...statsByPlayer[pid] }));
+      // Dani (voz, ronda 35): "mismo analisis que el nuestro" -- se manda
+      // todo lo que ahora puede traer una fila de rival (antes se
+      // perdían jersey_number/started/periods_played/made_1/2/3 en cada
+      // guardado manual, aunque hubieran llegado bien por un import de
+      // Excel justo antes: este mapeo solo tomaba 6 campos).
       const opponentRows = opponentStats
         .filter((r) => (r.player_name || "").trim())
-        .map((r) => ({ player_name: r.player_name.trim(), minutes: r.minutes, points: r.points || 0, rebounds: r.rebounds || 0, assists: r.assists || 0, fouls: r.fouls || 0, custom_stats: r.custom_stats || {} }));
+        .map((r) => ({
+          player_name: r.player_name.trim(),
+          jersey_number: r.jersey_number || null,
+          started: r.started || false,
+          minutes: r.minutes,
+          points: r.points || 0,
+          rebounds: r.rebounds || 0,
+          assists: r.assists || 0,
+          fouls: r.fouls || 0,
+          periods_played: r.periods_played ?? null,
+          made_1: r.made_1 || 0,
+          made_2: r.made_2 || 0,
+          made_3: r.made_3 || 0,
+          custom_stats: r.custom_stats || {},
+        }));
       const { error: statsErr } = await supabaseClient.rpc("replace_match_details", {
         p_match_id: matchId, p_organization_id: currentOrgId, p_player_rows: playerRows, p_opponent_rows: opponentRows,
       });
@@ -2641,32 +3277,102 @@
     // Dani, ronda 31: "Periods"/"1PM"/"2PM"/"3PM" solo se imprimen si el
     // club las tiene activadas en "Columns ▾" -- igual que las columnas
     // personalizadas de siempre, para no cambiar el aspecto de la ficha
-    // impresa de nadie que no las use.
-    const extraStatCols = [
-      { key: "periods_played", label: "Per", value: (s) => s.periods_played ?? "" },
-      { key: "made_1", label: "1PM", value: (s) => s.made_1 ?? 0 },
-      { key: "made_2", label: "2PM", value: (s) => s.made_2 ?? 0 },
-      { key: "made_3", label: "3PM", value: (s) => s.made_3 ?? 0 },
-    ].filter((c) => visibleCallupColumns.includes(c.key));
-    const headers = ["#", "Player", "Min", "Pts", "Reb", "Ast", "Fouls", ...extraStatCols.map((c) => c.label), ...matchFields.map((f) => f.label)];
-    const colW = (pageW - marginX * 2) / headers.length;
-    doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...muted);
-    headers.forEach((h, i) => doc.text(h.toUpperCase(), marginX + i * colW, y));
-    y += 14;
-    doc.setDrawColor(225, 225, 225); doc.line(marginX, y, pageW - marginX, y);
-    y += 14;
+    // impresa de nadie que no las use. Dani (voz, ronda 35): "El PDF hay
+    // que meter tb el otro equipo y los totales" -- ahora se dibujan DOS
+    // bloques (propio equipo + rival, cada uno con la visibilidad de SU
+    // propio "Columns ▾") y una fila TOTAL al final de cada uno, con el
+    // mismo motor (`drawTeamSection`) para los dos.
+    const EXTRA_STAT_DEFS = [
+      { key: "periods_played", label: "Per", value: (s) => s && s.periods_played != null ? s.periods_played : "" },
+      { key: "made_1", label: "1PM", value: (s) => (s && s.made_1) || 0 },
+      { key: "made_2", label: "2PM", value: (s) => (s && s.made_2) || 0 },
+      { key: "made_3", label: "3PM", value: (s) => (s && s.made_3) || 0 },
+    ];
+    const ownExtraStatCols = EXTRA_STAT_DEFS.filter((c) => visibleCallupColumns.includes(c.key));
+    const oppExtraStatCols = EXTRA_STAT_DEFS.filter((c) => visibleOpponentColumns.includes(c.key));
+    const SUMMABLE_PDF_KEYS = new Set(["minutes", "points", "rebounds", "assists", "fouls", "periods_played", "made_1", "made_2", "made_3"]);
 
-    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(...ink);
-    const rowPlayers = blank ? teamPlayers : teamPlayers.filter((p) => statsByPlayer[p.id] && statsByPlayer[p.id].called_up);
-    rowPlayers.forEach((p) => {
-      const s = statsByPlayer[p.id] || {};
-      const row = blank
-        ? [p.jersey_number || "", `${p.first_name} ${p.last_name}`, "", "", "", "", "", ...extraStatCols.map(() => ""), ...matchFields.map(() => "")]
-        : [p.jersey_number || "", `${p.first_name} ${p.last_name}`, s.minutes ?? "—", s.points ?? 0, s.rebounds ?? 0, s.assists ?? 0, s.fouls ?? 0, ...extraStatCols.map((c) => c.value(s)), ...matchFields.map((f) => (s.custom_stats && s.custom_stats[f.key]) ?? 0)];
-      row.forEach((v, i) => doc.text(String(v), marginX + i * colW, y));
-      if (blank) { doc.setDrawColor(225, 225, 225); doc.line(marginX, y + 5, pageW - marginX, y + 5); }
-      y += blank ? 22 : 16;
+    // Dibuja un bloque de equipo completo (título + cabecera + filas +
+    // TOTAL) a partir de `y`, con salto de página automático si no entra
+    // entera en lo que queda de la hoja. Devuelve el `y` siguiente.
+    function drawTeamSection(title, extraStatCols, dataRows, getCells, needsPageBreak) {
+      const headers = ["#", "Player", "Min", "Pts", "Reb", "Ast", "Fouls", ...extraStatCols.map((c) => c.label), ...matchFields.map((f) => f.label)];
+      const colW = (pageW - marginX * 2) / headers.length;
+      const rowHeight = blank ? 22 : 16;
+      const neededHeight = 20 /* título */ + 28 /* cabecera */ + (dataRows.length + 1) * rowHeight + 20;
+      if (needsPageBreak && y + neededHeight > 595 - 40) { doc.addPage(); y = 40; }
+
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.setTextColor(...ink);
+      doc.text(title, marginX, y);
+      y += 16;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...muted);
+      headers.forEach((h, i) => doc.text(h.toUpperCase(), marginX + i * colW, y));
+      y += 14;
+      doc.setDrawColor(225, 225, 225); doc.line(marginX, y, pageW - marginX, y);
+      y += 14;
+
+      doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(...ink);
+      const totals = {};
+      SUMMABLE_PDF_KEYS.forEach((k) => (totals[k] = 0));
+      const customTotals = {};
+      matchFields.forEach((f) => (customTotals[f.key] = 0));
+      dataRows.forEach((d) => {
+        const row = getCells(d, extraStatCols);
+        row.forEach((v, i) => doc.text(String(v), marginX + i * colW, y));
+        if (blank) { doc.setDrawColor(225, 225, 225); doc.line(marginX, y + 5, pageW - marginX, y + 5); }
+        y += rowHeight;
+        if (!blank) {
+          const s = d.stats || {};
+          SUMMABLE_PDF_KEYS.forEach((k) => { totals[k] += Number(s[k]) || 0; });
+          matchFields.forEach((f) => { customTotals[f.key] += Number(s.custom_stats && s.custom_stats[f.key]) || 0; });
+        }
+      });
+
+      // Fila TOTAL -- en blanco (print antes del partido) va vacía, para
+      // completar a mano junto con el resto de la hoja; con datos reales
+      // suma cada columna por separado (Dani: "cada cosa si son puntos,
+      // puntos... cada linea su total").
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...ink);
+      const totalRow = blank
+        ? ["", "TOTAL", "", "", "", "", "", ...extraStatCols.map(() => ""), ...matchFields.map(() => "")]
+        : ["", "TOTAL", "", totals.points, totals.rebounds, totals.assists, totals.fouls,
+            ...extraStatCols.map((c) => (c.key === "periods_played" ? totals.periods_played : totals[c.key])),
+            ...matchFields.map((f) => customTotals[f.key])];
+      totalRow.forEach((v, i) => doc.text(String(v), marginX + i * colW, y));
+      y += rowHeight + 10;
+      return y;
+    }
+
+    const sortByJersey = (arr, getJersey) => [...arr].sort((a, b) => {
+      const an = parseInt(getJersey(a), 10), bn = parseInt(getJersey(b), 10);
+      if (!isNaN(an) && !isNaN(bn)) return an - bn;
+      return String(getJersey(a) || "").localeCompare(String(getJersey(b) || ""));
     });
+
+    const rowPlayers = blank ? teamPlayers : teamPlayers.filter((p) => statsByPlayer[p.id] && statsByPlayer[p.id].called_up);
+    y = drawTeamSection(
+      `${currentTeam || "This team"}`.toUpperCase(),
+      ownExtraStatCols,
+      rowPlayers.map((p) => ({ p, stats: statsByPlayer[p.id] || {} })),
+      ({ p, stats: s }, extraCols) => blank
+        ? [p.jersey_number || "", `${p.first_name} ${p.last_name}`, "", "", "", "", "", ...extraCols.map(() => ""), ...matchFields.map(() => "")]
+        : [p.jersey_number || "", `${p.first_name} ${p.last_name}`, s.minutes ?? "—", s.points ?? 0, s.rebounds ?? 0, s.assists ?? 0, s.fouls ?? 0, ...extraCols.map((c) => c.value(s)), ...matchFields.map((f) => (s.custom_stats && s.custom_stats[f.key]) ?? 0)],
+      false
+    );
+
+    const oppRowsSorted = blank ? [] : sortByJersey(opponentStats || [], (r) => r.jersey_number);
+    const oppDataRows = blank
+      ? new Array(14).fill(null).map(() => ({ blankRow: true, stats: {} }))
+      : oppRowsSorted.map((r) => ({ r, stats: r }));
+    y = drawTeamSection(
+      (els.matchOpponent.value || "OPPONENT").toUpperCase(),
+      oppExtraStatCols,
+      oppDataRows,
+      (d, extraCols) => blank
+        ? ["", "", "", "", "", "", "", ...extraCols.map(() => ""), ...matchFields.map(() => "")]
+        : [d.r.jersey_number || "", d.r.player_name || "", d.r.minutes ?? "—", d.r.points ?? 0, d.r.rebounds ?? 0, d.r.assists ?? 0, d.r.fouls ?? 0, ...extraCols.map((c) => c.value(d.r)), ...matchFields.map((f) => (d.r.custom_stats && d.r.custom_stats[f.key]) ?? 0)],
+      true
+    );
 
     doc.setFontSize(8); doc.setTextColor(...muted);
     doc.text(`Generated by PlayPivot on ${new Date().toISOString().slice(0, 10)}`, marginX, 595 - 14);
@@ -2713,9 +3419,9 @@
       <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
         <li><strong>General info</strong> — date, opponent, location, home/away, match number, referee, up to 3 coaches, score. Use <strong>Comments</strong> for a short note like "Final", "Semifinal", or "Friendly" — handy for tournaments; it also shows next to the match in the list above.</li>
         <li><strong>Call-up &amp; stats</strong> — a small legend above the table explains each column at a glance. Tick <strong>"Called up"</strong> for who's on the roster for this match (the "all" button next to that column heading selects or clears everyone in one click), and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
-        <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole club.</li>
-        <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
-        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, minutes/points/rebounds/assists/fouls, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away. A successful import also sets <strong>"Present"</strong> for the whole roster: players found in the file are marked Present, everyone else on the roster is marked Absent (overwriting whatever was there before) — and, when the file has a general-info block (competition, date, location, referee, teams, final score), it fills in any empty fields up at the top too, without touching anything you already typed by hand (except the date, which always gets updated). <strong>"Print blank sheet"</strong> gives you an empty box score with your columns, ready to fill in by hand during the game.</li>
+        <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole club. The TOTAL row at the bottom of the table adds up each visible numeric column for the whole team.</li>
+        <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names (and jersey numbers) by hand if you want to track them. It now has the same columns as your own team's table (Starter, #, minutes, points, rebounds, assists, fouls, periods played, 1PM/2PM/3PM, and your club's own custom stats), its own <strong>"Columns ▾"</strong> to show/hide/reorder them for the rival without touching your own table, and its own TOTAL row at the bottom.</li>
+        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, jersey number, minutes/points/rebounds/assists/fouls, periods played, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away, including their jersey numbers. A successful import also sets <strong>"Present"</strong> for the whole roster: players found in the file are marked Present, everyone else on the roster is marked Absent (overwriting whatever was there before) — and, when the file has a general-info block (competition, date, location, referee, teams, final score), it fills in any empty fields up at the top too, without touching anything you already typed by hand (except the date, which always gets updated). <strong>"Download Excel template"</strong> gives you a ready-to-fill .xlsx built from this team's actual roster (names and jersey numbers already in place), with the SAME full set of columns for both your team and the rival's (plus your club's custom stats) and a TOTAL row with live formulas for each — fill it in during the game (or send it to whoever's keeping score) and import it straight after. <strong>"Print blank sheet"</strong> gives you an empty box score with your columns (now including the rival, with a TOTAL row), ready to fill in by hand during the game. <strong>"Fill in with AI"</strong> is an alternative to "Import from a photo" for a hard photo (handwriting, a busy table): it gives you a ready-made prompt to copy into any AI chat that reads images (ChatGPT, Claude…) — attach your photo there, paste the reply back, and it's read through the exact same engine as an Excel file. PlayPivot never calls any AI itself; you do the copy-pasting between the two tabs.</li>
       </ol>`;
     box.style.display = "block";
   });
