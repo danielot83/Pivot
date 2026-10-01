@@ -513,7 +513,7 @@
           <button class="btn btn-primary" id="save-match-btn">Save match details</button>
           <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
           <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
-          <button class="btn btn-secondary" id="import-stats-btn">Import stats from Excel</button>
+          <button class="btn btn-secondary" id="import-stats-btn" title="Reads player stats (yours and the opponent's, if the sheet has both) and, if the file has a general-info block (competition, date, location, referee, teams, final score), fills in empty General info fields too -- never overwrites something already filled in, except the date.">Import stats from Excel</button>
           <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
           <button class="btn btn-secondary" id="import-photo-btn">📷 Import from a photo</button>
           <select id="import-photo-lang-select" title="Sheet text is mostly in" style="padding:8px 6px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
@@ -679,6 +679,10 @@
     // petición de Dani; mismo campo que Roster, solo lectura aquí.
     { key: "number", label: "#", default: true },
     { key: "player", label: "Player", default: true },
+    // Dani, ronda 32: lo pediste como columna de verdad, no como etiqueta
+    // pegada al nombre -- ver callupCellHtml más abajo. Vacía ("—") hasta
+    // el primer import de la sesión actual para este partido.
+    { key: "in_file", label: "File", default: true },
     { key: "minutes", label: "Min", default: true },
     { key: "points", label: "Pts", default: true },
     { key: "rebounds", label: "Reb", default: true },
@@ -701,7 +705,18 @@
   }
   function loadVisibleCallupColumns() {
     const saved = localStorage.getItem("pivot_match_columns");
-    if (saved) { try { return JSON.parse(saved); } catch (e) {} }
+    if (saved) {
+      try {
+        const keys = JSON.parse(saved);
+        // Dani, ronda 32: "in_file" es nueva y tiene que verse sí o sí,
+        // aunque ya tuvieras una preferencia de columnas guardada de antes
+        // -- si no, para quien ya tenía esta pantalla configurada, la
+        // columna quedaría invisible hasta activarla a mano en "Columns
+        // ▾", y lo que pediste fue justo lo contrario (verla directamente).
+        if (!keys.includes("in_file")) keys.push("in_file");
+        return keys;
+      } catch (e) {}
+    }
     return callupColumnDefs().filter((c) => c.default).map((c) => c.key);
   }
   function saveVisibleCallupColumns(keys) { localStorage.setItem("pivot_match_columns", JSON.stringify(keys)); }
@@ -1333,19 +1348,21 @@
       }
       case "started": return `<td><input type="checkbox" data-player="${p.id}" data-field="started" ${s.started ? "checked" : ""}></td>`;
       case "number": return `<td>${escapeHtml(p.jersey_number || "")}</td>`;
-      case "player": {
-        const name = `${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}`;
-        // Dani, ronda 32: solo se muestra justo después de un import, y
-        // solo para el partido que se importó -- si abrís otro partido, o
-        // recargáis la página, desaparece (vuelve a la fila de siempre).
-        if (currentMatchId && lastImportMatchId === currentMatchId && lastImportPlayerIds) {
-          const inFile = lastImportPlayerIds.has(p.id);
-          const badge = inFile
-            ? `<span class="present-badge present-yes" style="width:18px; height:18px; font-size:9.5px; margin-left:6px;" title="Found in the file you just imported">P</span>`
-            : `<span class="present-badge present-unknown" style="width:18px; height:18px; font-size:9.5px; margin-left:6px;" title="Not in the file you just imported -- these numbers are whatever was already saved before">A</span>`;
-          return `<td>${name}${badge}</td>`;
+      case "player": return `<td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>`;
+      // Dani, ronda 32: a petición tuya, columna propia en vez de una
+      // etiqueta pegada al nombre -- "P" (verde) si ese jugador estaba en
+      // el archivo que acabás de importar, "A" (gris) si no estaba (sus
+      // números son de antes, no de este import). Solo para el partido
+      // recién importado, en esta sesión del navegador -- "—" en
+      // cualquier otro caso (nada importado todavía, u otro partido).
+      case "in_file": {
+        if (!currentMatchId || lastImportMatchId !== currentMatchId || !lastImportPlayerIds) {
+          return `<td><span class="present-badge present-unknown" style="width:20px; height:20px;" title="Nothing imported yet this session for this match">—</span></td>`;
         }
-        return `<td>${name}</td>`;
+        const inFile = lastImportPlayerIds.has(p.id);
+        return inFile
+          ? `<td><span class="present-badge present-yes" style="width:20px; height:20px;" title="Found in the file you just imported">P</span></td>`
+          : `<td><span class="present-badge present-unknown" style="width:20px; height:20px;" title="Not in the file you just imported -- these numbers are whatever was already saved before">A</span></td>`;
       }
       case "minutes": return `<td class="editable" data-player="${p.id}" data-field="minutes">${s.minutes ?? ""}</td>`;
       case "points": return `<td class="editable" data-player="${p.id}" data-field="points">${s.points ?? 0}</td>`;
@@ -1768,13 +1785,22 @@
     const playerRows = [];
     const opponentRows = [];
     let unmatchedCount = 0;
+    // Dani, ronda 32: posición (0 = primer bloque de la hoja, 1 = segundo...)
+    // del bloque que resultó ser "nuestro equipo" -- para poder relacionarlo
+    // con "Équipe A"/"Équipe B" del bloque de información general más
+    // arriba en la hoja (ver parseGeneralInfoFromSheet). null si hay más
+    // de un bloque "nuestro" (ambiguo, no se adivina) o si ninguno lo es.
+    let ownBlockPosition = null;
+    let ownBlockCount = 0;
 
-    perBlock.forEach((b) => {
+    perBlock.forEach((b, idx) => {
       if (isSingleBlock || b.rate >= OWN_TEAM_MATCH_RATE) {
         // Único bloque de la hoja (de siempre, nada nuevo aquí), o
         // claramente nuestro equipo (nombre + dorsal juntos).
         playerRows.push(...b.matchedRows);
         unmatchedCount += b.stillUnmatched.length;
+        ownBlockPosition = idx;
+        ownBlockCount++;
       } else if (hasConfidentBlock) {
         // Otro bloque de la misma hoja SÍ es claramente nuestro equipo --
         // éste es de otro equipo. Entero a estadísticas del rival, por
@@ -1792,7 +1818,77 @@
       }
     });
 
-    return { playerRows, opponentRows, unmatchedCount };
+    return { playerRows, opponentRows, unmatchedCount, ownBlockPosition: ownBlockCount === 1 ? ownBlockPosition : null };
+  }
+
+  // Dani, ronda 32: a petición tuya -- la hoja que generó ChatGPT trae,
+  // ANTES de las tablas de jugadores, un bloque de "información general"
+  // del partido (Compétition, Date, Heure, Lieu, Équipe A/B, Arbitre,
+  // Score final). Se lee como pares "etiqueta: valor" en las dos primeras
+  // columnas de cada fila, desde el principio de la hoja hasta la primera
+  // cabecera de tabla encontrada -- así nunca se mete dentro del bloque
+  // de un informe estructurado distinto al de este archivo en concreto.
+  const GENERAL_INFO_ALIASES = {
+    competition: ["compétition", "competencia", "competicion", "competition"],
+    date: ["date", "fecha"],
+    location: ["lieu", "lugar", "location", "venue"],
+    referee: ["arbitre", "árbitro", "arbitro", "referee"],
+    team_a: ["équipe a", "equipo a", "team a"],
+    team_b: ["équipe b", "equipo b", "team b"],
+    final_score: ["score final", "resultado final", "final score"],
+  };
+  function parseGeneralInfoFromSheet(sheetRows, firstHeaderIdx) {
+    const info = {};
+    for (let i = 0; i < firstHeaderIdx && i < sheetRows.length; i++) {
+      const row = sheetRows[i];
+      const label = normalizeMatchHeader(row[0]);
+      const value = String(row[1] || "").trim();
+      if (!label || !value) continue;
+      for (const field in GENERAL_INFO_ALIASES) {
+        if (GENERAL_INFO_ALIASES[field].some((alias) => normalizeMatchHeader(alias) === label)) { info[field] = value; break; }
+      }
+    }
+    return info;
+  }
+
+  // "30.09.2026" / "30/09/2026" / "2026-09-30" -- lo que trae la hoja --
+  // a "2026-09-30", lo único que entiende el campo de fecha de la app.
+  function parseGeneralInfoDate(raw) {
+    if (!raw) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const dmy = raw.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
+    if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+    return null;
+  }
+
+  // "75 - 50" / "75-50" / "75 – 50" -- siempre en el mismo orden que
+  // "Équipe A" / "Équipe B" de ese mismo bloque de información general.
+  function parseFinalScorePair(raw) {
+    if (!raw) return null;
+    const m = raw.match(/(\d+)\s*[-–—]\s*(\d+)/);
+    return m ? [parseInt(m[1], 10), parseInt(m[2], 10)] : null;
+  }
+
+  // A partir de lo que acaba de leer parseGeneralInfoFromSheet + de qué
+  // posición (0/1) resultó ser nuestro equipo, arma lo que hay que
+  // escribir en "General info" -- o null si la hoja no trae ese bloque,
+  // o si quedó ambiguo quién es cada equipo.
+  function buildGeneralInfoFromSheet(sheetRows, headerIdxs, ownBlockPosition) {
+    if (headerIdxs.length === 0 || ownBlockPosition === null) return null;
+    const raw = parseGeneralInfoFromSheet(sheetRows, headerIdxs[0]);
+    if (!raw.team_a || !raw.team_b) return null;
+    const ownIsA = ownBlockPosition === 0;
+    const opponent = ownIsA ? raw.team_b : raw.team_a;
+    const scorePair = parseFinalScorePair(raw.final_score);
+    return {
+      opponent,
+      location: raw.location || null,
+      referee: raw.referee || null,
+      date: parseGeneralInfoDate(raw.date),
+      comments: raw.competition || null,
+      team_score: scorePair ? (ownIsA ? scorePair[0] : scorePair[1]) : null,
+      opponent_score: scorePair ? (ownIsA ? scorePair[1] : scorePair[0]) : null,
+    };
   }
 
   // Dani, ronda 31: este guardado ya pasa por la misma RPC atómica
@@ -1806,7 +1902,40 @@
   // nombre cuando el import trae un bloque del rival -- antes esa tabla
   // nunca se tocaba desde ningún import, solo se pasaba igual que ya
   // estaba.
-  async function importParsedStatsIntoMatch(playerRows, opponentRows) {
+  // Dani, ronda 32: completa "General info" del partido elegido a partir
+  // de lo que traiga la hoja (ver buildGeneralInfoFromSheet) -- opuesto,
+  // adrede, al criterio de los campos de stats: aquí NO se pisa nada que
+  // ya tenga un valor (nunca se sabe si lo escribiste a mano a propósito
+  // distinto de lo que dice la hoja), EXCEPTO la fecha, que siempre tiene
+  // un valor por defecto (el día de hoy, puesto solo por crear el
+  // partido) y por eso nunca cuenta como "vacía" -- ahí si la hoja trae
+  // una fecha de verdad, manda ella.
+  async function applyGeneralInfoFromImport(matchId, generalInfo) {
+    if (!generalInfo) return false;
+    try {
+      const { data: match } = await supabaseClient.from("matches").select("*").eq("id", matchId).single();
+      if (!match) return false;
+      const patch = {};
+      if (generalInfo.date) patch.date = generalInfo.date;
+      if (generalInfo.opponent && !match.opponent) patch.opponent = generalInfo.opponent;
+      if (generalInfo.location && !match.location) patch.location = generalInfo.location;
+      if (generalInfo.referee && !match.referee) patch.referee = generalInfo.referee;
+      if (generalInfo.comments && !match.comments) patch.comments = generalInfo.comments;
+      if (generalInfo.team_score != null && match.team_score == null) patch.team_score = generalInfo.team_score;
+      if (generalInfo.opponent_score != null && match.opponent_score == null) patch.opponent_score = generalInfo.opponent_score;
+      if (Object.keys(patch).length === 0) return false;
+      const { error } = await supabaseClient.from("matches").update(patch).eq("id", matchId);
+      return !error;
+    } catch (err) {
+      // Dani, ronda 32: si esto falla, no bloquea el import de las stats
+      // (lo importante) -- se ve igual en el aviso de éxito, sin el "y la
+      // información general" al final.
+      console.error(err);
+      return false;
+    }
+  }
+
+  async function importParsedStatsIntoMatch(playerRows, opponentRows, generalInfo) {
     opponentRows = opponentRows || [];
     const matchId = await promptMatchTarget(allMatchesCache, playerRows.length + opponentRows.length);
     if (!matchId) return false;
@@ -1847,10 +1976,19 @@
       // marcado desde el primer render.
       lastImportMatchId = matchId;
       lastImportPlayerIds = new Set(playerRows.map((r) => r.player_id));
+      // Dani, ronda 32: "y tienes tb que meter Gernal info" -- si la hoja
+      // traía el bloque de información general (competición, fecha,
+      // lugar, árbitro, equipos, marcador), se completa aquí mismo. Solo
+      // se escribe encima de campos que estén vacíos (para no pisar nada
+      // escrito a mano), salvo la fecha, que nunca está realmente vacía
+      // (el partido ya trae la fecha de hoy por defecto).
+      const generalInfoApplied = await applyGeneralInfoFromImport(matchId, generalInfo);
       const parts = [];
       if (playerRows.length) parts.push(`${playerRows.length} of your player(s)`);
       if (opponentRows.length) parts.push(`${opponentRows.length} opponent player(s)`);
-      showMessage(`Imported stats for ${parts.join(" and ")}.`, "success");
+      let message = parts.length ? `Imported stats for ${parts.join(" and ")}.` : "Import complete.";
+      if (generalInfoApplied) message += " Also filled in general info.";
+      showMessage(message, "success");
       if (currentMatchId === matchId) await openMatch(matchId);
       await loadMatchesList();
       await loadSeasonSummary();
@@ -1871,7 +2009,7 @@
     e.target.value = "";
     if (!file) return;
 
-    let playerRows, opponentRows;
+    let playerRows, opponentRows, generalInfo;
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
@@ -1882,11 +2020,17 @@
       const sheetRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
       if (sheetRows.length === 0) { showMessage("That file doesn't have any rows.", "error"); return; }
 
+      const headerIdxs = findHeaderRowIndexes(sheetRows);
       const blocks = buildBlocksFromSheet(sheetRows);
       if (blocks.length === 0) { showMessage("Couldn't find a usable player name column.", "error"); return; }
       const result = classifyAndBuildMatchRows(blocks);
       playerRows = result.playerRows;
       opponentRows = result.opponentRows;
+      // Dani, ronda 32, a petición tuya: si la hoja trae también el bloque
+      // de "información general" del partido (competición, fecha, lugar,
+      // árbitro, equipos, marcador final -- como la que genera ChatGPT),
+      // se usa para completar "General info" del partido elegido más abajo.
+      generalInfo = buildGeneralInfoFromSheet(sheetRows, headerIdxs, result.ownBlockPosition);
 
       if (playerRows.length === 0 && opponentRows.length === 0) {
         showMessage(result.unmatchedCount > 0 ? `Found ${result.unmatchedCount} row(s), but none matched a name in ${currentTeam}'s roster.` : "Couldn't find a usable player name column.", "error");
@@ -1897,7 +2041,7 @@
       return;
     }
 
-    await importParsedStatsIntoMatch(playerRows, opponentRows);
+    await importParsedStatsIntoMatch(playerRows, opponentRows, generalInfo);
   });
 
   // -----------------------------------------------------------------------
@@ -2516,7 +2660,7 @@
         <li><strong>Call-up &amp; stats</strong> — a small legend above the table explains each column at a glance. Tick <strong>"Called up"</strong> for who's on the roster for this match (the "all" button next to that column heading selects or clears everyone in one click), and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
         <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole club.</li>
         <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names by hand if you want to track them.</li>
-        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, minutes/points/rebounds/assists/fouls, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away. Right after an import, each of your players' names gets a small "P"/"A" tag — "P" (green) means that player was found in the file you just imported, "A" (grey) means they weren't, so their numbers are whatever was already saved before — this tag disappears if you reload the page or open a different match. <strong>"Print blank sheet"</strong> gives you an empty box score with your columns, ready to fill in by hand during the game.</li>
+        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, minutes/points/rebounds/assists/fouls, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away. The <strong>"File"</strong> column shows "—" until you import something; right after an import it shows "P" (green) for players found in the file you just imported, and "A" (grey) for players who weren't — so their numbers are whatever was already saved before. It goes back to "—" if you reload the page or open a different match. <strong>"Print blank sheet"</strong> gives you an empty box score with your columns, ready to fill in by hand during the game.</li>
       </ol>`;
     box.style.display = "block";
   });
