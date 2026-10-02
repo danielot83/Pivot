@@ -3256,10 +3256,29 @@
   async function buildMatchPdfDoc(blank) {
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+    // Dani (voz, ronda 37): "y quiza en vertical" -- una hoja de partido se
+    // suele llevar en una carpeta/portafolios vertical, no horizontal.
+    // Con 10 columnas por tabla por defecto (Called up/Present/Starter/#/
+    // Player/Min/Pts/Reb/Ast/Fouls) el ancho útil baja de ~770pt a ~523pt,
+    // así que la cabecera y las celdas usan letra más chica (y se recortan
+    // con "…" si de verdad no entran) para que no se superpongan.
+    const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
     const accent = [210, 20, 20], ink = [26, 26, 26], muted = [130, 130, 136];
-    const marginX = 36, pageW = 842;
+    const marginX = 36, pageW = 595, pageH = 842;
     if (logoDataUrl) { try { doc.addImage(logoDataUrl, "PNG", pageW - marginX - 36, 22, 36, 36); } catch (e) {} }
+
+    // Recorta un texto con "…" si no entra en `maxWidth` con la fuente
+    // actual del doc -- evita que una cabecera larga ("Called up") o un
+    // nombre largo invadan la columna de al lado en vertical, donde cada
+    // columna tiene bastante menos ancho que en horizontal.
+    function fitText(text, maxWidth) {
+      text = String(text);
+      if (typeof doc.getTextWidth !== "function") return text;
+      if (doc.getTextWidth(text) <= maxWidth) return text;
+      let t = text;
+      while (t.length > 1 && doc.getTextWidth(t + "…") > maxWidth) t = t.slice(0, -1);
+      return t.length < text.length ? t + "…" : text;
+    }
 
     let y = 40;
     doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(...ink);
@@ -3274,71 +3293,118 @@
     doc.line(marginX, y, pageW - marginX, y);
     y += 20;
 
-    // Dani, ronda 31: "Periods"/"1PM"/"2PM"/"3PM" solo se imprimen si el
-    // club las tiene activadas en "Columns ▾" -- igual que las columnas
-    // personalizadas de siempre, para no cambiar el aspecto de la ficha
-    // impresa de nadie que no las use. Dani (voz, ronda 35): "El PDF hay
-    // que meter tb el otro equipo y los totales" -- ahora se dibujan DOS
-    // bloques (propio equipo + rival, cada uno con la visibilidad de SU
-    // propio "Columns ▾") y una fila TOTAL al final de cada uno, con el
-    // mismo motor (`drawTeamSection`) para los dos.
-    const EXTRA_STAT_DEFS = [
-      { key: "periods_played", label: "Per", value: (s) => s && s.periods_played != null ? s.periods_played : "" },
-      { key: "made_1", label: "1PM", value: (s) => (s && s.made_1) || 0 },
-      { key: "made_2", label: "2PM", value: (s) => (s && s.made_2) || 0 },
-      { key: "made_3", label: "3PM", value: (s) => (s && s.made_3) || 0 },
-    ];
-    const ownExtraStatCols = EXTRA_STAT_DEFS.filter((c) => visibleCallupColumns.includes(c.key));
-    const oppExtraStatCols = EXTRA_STAT_DEFS.filter((c) => visibleOpponentColumns.includes(c.key));
+    // Dani (voz, ronda 36): "El PDF debe de exportar exactamente las
+    // columnas" -- antes esta función tenía su propia lista fija de
+    // columnas (#/Player/Min/Pts/Reb/Ast/Fouls + Periods/1PM/2PM/3PM si
+    // estaban activas), que no era la misma lista que "Columns ▾" de
+    // cada tabla (por ejemplo, "Called up"/"Present"/"Starter" nunca se
+    // imprimían, aunque estuvieran visibles en pantalla). Ahora el PDF
+    // usa EXACTAMENTE `orderedVisibleCallupColumns()`/
+    // `orderedVisibleOpponentColumns()` -- las mismas columnas, en el
+    // mismo orden, que cada tabla muestra en Match day en ese momento.
     const SUMMABLE_PDF_KEYS = new Set(["minutes", "points", "rebounds", "assists", "fouls", "periods_played", "made_1", "made_2", "made_3"]);
+
+    // Une el registro de un jugador propio (roster + stats + asistencia) o
+    // de un jugador rival (una sola fila libre) en la misma forma, para
+    // que `pdfCellValue`/`pdfTotalsRowValues` no tengan que saber de cuál
+    // de los dos equipos viene cada fila.
+    function normalizeOwnRec(p, s, attRec) {
+      const badge = attRec && attRec.status ? ATTENDANCE_BADGE[attRec.status] : null;
+      return {
+        jersey_number: p.jersey_number || "", player_name: `${p.first_name} ${p.last_name}`.trim(),
+        called_up: !!s.called_up, presentLabel: badge ? badge.label : "", started: !!s.started,
+        minutes: s.minutes, points: s.points, rebounds: s.rebounds, assists: s.assists, fouls: s.fouls,
+        periods_played: s.periods_played, made_1: s.made_1, made_2: s.made_2, made_3: s.made_3, custom_stats: s.custom_stats,
+      };
+    }
+    function normalizeOpponentRec(r) {
+      r = r || {};
+      return {
+        jersey_number: r.jersey_number || "", player_name: r.player_name || "",
+        called_up: false, presentLabel: "", started: !!r.started,
+        minutes: r.minutes, points: r.points, rebounds: r.rebounds, assists: r.assists, fouls: r.fouls,
+        periods_played: r.periods_played, made_1: r.made_1, made_2: r.made_2, made_3: r.made_3, custom_stats: r.custom_stats,
+      };
+    }
+
+    // En la hoja en blanco (para imprimir antes del partido) toda celda de
+    // stat queda vacía para completar a mano -- el número/nombre del
+    // propio equipo sí se precarga (viene del roster real), igual que
+    // antes de este cambio.
+    function pdfCellValue(col, rec) {
+      if (blank && col.key !== "number" && col.key !== "player") return "";
+      switch (col.key) {
+        case "called_up": return rec.called_up ? "✓" : "";
+        case "present": return rec.presentLabel || "";
+        case "started": return rec.started ? "✓" : "";
+        case "number": return rec.jersey_number || "";
+        case "player": return rec.player_name || "";
+        case "minutes": return rec.minutes ?? "—";
+        case "points": return rec.points ?? 0;
+        case "rebounds": return rec.rebounds ?? 0;
+        case "assists": return rec.assists ?? 0;
+        case "fouls": return rec.fouls ?? 0;
+        case "periods_played": return rec.periods_played ?? "";
+        case "made_1": return rec.made_1 ?? 0;
+        case "made_2": return rec.made_2 ?? 0;
+        case "made_3": return rec.made_3 ?? 0;
+        default:
+          if (col.custom) return (rec.custom_stats && rec.custom_stats[col.fieldKey]) ?? 0;
+          return "";
+      }
+    }
+
+    // Misma idea que `buildTotalRowCells` (la fila TOTAL de las tablas en
+    // pantalla): suma cada columna numérica por separado -- nunca puntos
+    // con faltas -- con la etiqueta "TOTAL" en la primera columna
+    // "Player" visible (o en la primera columna si "Player" está oculta).
+    // En blanco, todas las celdas quedan vacías para sumar a mano.
+    function pdfTotalsRowValues(cols, recs) {
+      let labelPlaced = false;
+      const vals = cols.map((col) => {
+        if (!labelPlaced && col.key === "player") { labelPlaced = true; return "TOTAL"; }
+        if (blank) return "";
+        if (SUMMABLE_PDF_KEYS.has(col.key)) return recs.reduce((acc, r) => acc + (Number(r[col.key]) || 0), 0);
+        if (col.custom) return recs.reduce((acc, r) => acc + (Number(r.custom_stats && r.custom_stats[col.fieldKey]) || 0), 0);
+        return "";
+      });
+      if (!labelPlaced && vals.length) vals[0] = "TOTAL";
+      return vals;
+    }
 
     // Dibuja un bloque de equipo completo (título + cabecera + filas +
     // TOTAL) a partir de `y`, con salto de página automático si no entra
     // entera en lo que queda de la hoja. Devuelve el `y` siguiente.
-    function drawTeamSection(title, extraStatCols, dataRows, getCells, needsPageBreak) {
-      const headers = ["#", "Player", "Min", "Pts", "Reb", "Ast", "Fouls", ...extraStatCols.map((c) => c.label), ...matchFields.map((f) => f.label)];
+    function drawTeamSection(title, cols, recs, needsPageBreak) {
+      const headers = cols.map((c) => c.label);
       const colW = (pageW - marginX * 2) / headers.length;
+      const cellPad = 4;
       const rowHeight = blank ? 22 : 16;
-      const neededHeight = 20 /* título */ + 28 /* cabecera */ + (dataRows.length + 1) * rowHeight + 20;
-      if (needsPageBreak && y + neededHeight > 595 - 40) { doc.addPage(); y = 40; }
+      const neededHeight = 20 /* título */ + 28 /* cabecera */ + (recs.length + 1) * rowHeight + 20;
+      if (needsPageBreak && y + neededHeight > pageH - 40) { doc.addPage(); y = 40; }
 
       doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.setTextColor(...ink);
       doc.text(title, marginX, y);
       y += 16;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...muted);
-      headers.forEach((h, i) => doc.text(h.toUpperCase(), marginX + i * colW, y));
+      doc.setFont("helvetica", "bold"); doc.setFontSize(7.3); doc.setTextColor(...muted);
+      headers.forEach((h, i) => doc.text(fitText(String(h).toUpperCase(), colW - cellPad), marginX + i * colW, y));
       y += 14;
       doc.setDrawColor(225, 225, 225); doc.line(marginX, y, pageW - marginX, y);
       y += 14;
 
-      doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(...ink);
-      const totals = {};
-      SUMMABLE_PDF_KEYS.forEach((k) => (totals[k] = 0));
-      const customTotals = {};
-      matchFields.forEach((f) => (customTotals[f.key] = 0));
-      dataRows.forEach((d) => {
-        const row = getCells(d, extraStatCols);
-        row.forEach((v, i) => doc.text(String(v), marginX + i * colW, y));
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...ink);
+      recs.forEach((rec) => {
+        cols.forEach((col, i) => doc.text(fitText(pdfCellValue(col, rec), colW - cellPad), marginX + i * colW, y));
         if (blank) { doc.setDrawColor(225, 225, 225); doc.line(marginX, y + 5, pageW - marginX, y + 5); }
         y += rowHeight;
-        if (!blank) {
-          const s = d.stats || {};
-          SUMMABLE_PDF_KEYS.forEach((k) => { totals[k] += Number(s[k]) || 0; });
-          matchFields.forEach((f) => { customTotals[f.key] += Number(s.custom_stats && s.custom_stats[f.key]) || 0; });
-        }
       });
 
       // Fila TOTAL -- en blanco (print antes del partido) va vacía, para
       // completar a mano junto con el resto de la hoja; con datos reales
       // suma cada columna por separado (Dani: "cada cosa si son puntos,
       // puntos... cada linea su total").
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...ink);
-      const totalRow = blank
-        ? ["", "TOTAL", "", "", "", "", "", ...extraStatCols.map(() => ""), ...matchFields.map(() => "")]
-        : ["", "TOTAL", "", totals.points, totals.rebounds, totals.assists, totals.fouls,
-            ...extraStatCols.map((c) => (c.key === "periods_played" ? totals.periods_played : totals[c.key])),
-            ...matchFields.map((f) => customTotals[f.key])];
-      totalRow.forEach((v, i) => doc.text(String(v), marginX + i * colW, y));
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...ink);
+      pdfTotalsRowValues(cols, recs).forEach((v, i) => doc.text(fitText(v, colW - cellPad), marginX + i * colW, y));
       y += rowHeight + 10;
       return y;
     }
@@ -3349,33 +3415,48 @@
       return String(getJersey(a) || "").localeCompare(String(getJersey(b) || ""));
     });
 
+    const ownCols = orderedVisibleCallupColumns();
     const rowPlayers = blank ? teamPlayers : teamPlayers.filter((p) => statsByPlayer[p.id] && statsByPlayer[p.id].called_up);
     y = drawTeamSection(
       `${currentTeam || "This team"}`.toUpperCase(),
-      ownExtraStatCols,
-      rowPlayers.map((p) => ({ p, stats: statsByPlayer[p.id] || {} })),
-      ({ p, stats: s }, extraCols) => blank
-        ? [p.jersey_number || "", `${p.first_name} ${p.last_name}`, "", "", "", "", "", ...extraCols.map(() => ""), ...matchFields.map(() => "")]
-        : [p.jersey_number || "", `${p.first_name} ${p.last_name}`, s.minutes ?? "—", s.points ?? 0, s.rebounds ?? 0, s.assists ?? 0, s.fouls ?? 0, ...extraCols.map((c) => c.value(s)), ...matchFields.map((f) => (s.custom_stats && s.custom_stats[f.key]) ?? 0)],
+      ownCols,
+      rowPlayers.map((p) => normalizeOwnRec(p, statsByPlayer[p.id] || {}, attendanceByPlayer[p.id])),
       false
     );
 
-    const oppRowsSorted = blank ? [] : sortByJersey(opponentStats || [], (r) => r.jersey_number);
-    const oppDataRows = blank
-      ? new Array(14).fill(null).map(() => ({ blankRow: true, stats: {} }))
-      : oppRowsSorted.map((r) => ({ r, stats: r }));
+    const oppCols = orderedVisibleOpponentColumns();
+    const oppRecs = blank
+      ? new Array(14).fill(null).map(() => normalizeOpponentRec({}))
+      : sortByJersey(opponentStats || [], (r) => r.jersey_number).map((r) => normalizeOpponentRec(r));
     y = drawTeamSection(
       (els.matchOpponent.value || "OPPONENT").toUpperCase(),
-      oppExtraStatCols,
-      oppDataRows,
-      (d, extraCols) => blank
-        ? ["", "", "", "", "", "", "", ...extraCols.map(() => ""), ...matchFields.map(() => "")]
-        : [d.r.jersey_number || "", d.r.player_name || "", d.r.minutes ?? "—", d.r.points ?? 0, d.r.rebounds ?? 0, d.r.assists ?? 0, d.r.fouls ?? 0, ...extraCols.map((c) => c.value(d.r)), ...matchFields.map((f) => (d.r.custom_stats && d.r.custom_stats[f.key]) ?? 0)],
+      oppCols,
+      oppRecs,
       true
     );
 
+    // Dani (voz, ronda 36): "deberiamos de meter un cuadrado de
+    // comentarios libre por si hay comentarios que hacer" -- un recuadro
+    // en blanco al final de la hoja, en los dos PDF (lleno y en blanco).
+    // Si "Comments" ya tiene algo escrito en General info, se precarga
+    // ahí, pero el recuadro deja igual lugar libre para anotar a mano.
+    const commentsBoxHeight = 72;
+    if (y + commentsBoxHeight + 24 > pageH - 40) { doc.addPage(); y = 40; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(...ink);
+    doc.text("COMMENTS", marginX, y);
+    y += 8;
+    doc.setDrawColor(200, 200, 200); doc.setLineWidth(1);
+    doc.rect(marginX, y, pageW - marginX * 2, commentsBoxHeight);
+    const existingComments = (els.matchComments && els.matchComments.value || "").trim();
+    if (existingComments) {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...ink);
+      const lines = doc.splitTextToSize(existingComments, pageW - marginX * 2 - 16);
+      doc.text(lines, marginX + 8, y + 14);
+    }
+    y += commentsBoxHeight + 10;
+
     doc.setFontSize(8); doc.setTextColor(...muted);
-    doc.text(`Generated by PlayPivot on ${new Date().toISOString().slice(0, 10)}`, marginX, 595 - 14);
+    doc.text(`Generated by PlayPivot on ${new Date().toISOString().slice(0, 10)}`, marginX, pageH - 14);
     return doc;
   }
 
@@ -3421,7 +3502,7 @@
         <li><strong>Call-up &amp; stats</strong> — a small legend above the table explains each column at a glance. Tick <strong>"Called up"</strong> for who's on the roster for this match (the "all" button next to that column heading selects or clears everyone in one click), and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
         <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole club. The TOTAL row at the bottom of the table adds up each visible numeric column for the whole team.</li>
         <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names (and jersey numbers) by hand if you want to track them. It now has the same columns as your own team's table (Starter, #, minutes, points, rebounds, assists, fouls, periods played, 1PM/2PM/3PM, and your club's own custom stats), its own <strong>"Columns ▾"</strong> to show/hide/reorder them for the rival without touching your own table, and its own TOTAL row at the bottom.</li>
-        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, jersey number, minutes/points/rebounds/assists/fouls, periods played, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away, including their jersey numbers. A successful import also sets <strong>"Present"</strong> for the whole roster: players found in the file are marked Present, everyone else on the roster is marked Absent (overwriting whatever was there before) — and, when the file has a general-info block (competition, date, location, referee, teams, final score), it fills in any empty fields up at the top too, without touching anything you already typed by hand (except the date, which always gets updated). <strong>"Download Excel template"</strong> gives you a ready-to-fill .xlsx built from this team's actual roster (names and jersey numbers already in place), with the SAME full set of columns for both your team and the rival's (plus your club's custom stats) and a TOTAL row with live formulas for each — fill it in during the game (or send it to whoever's keeping score) and import it straight after. <strong>"Print blank sheet"</strong> gives you an empty box score with your columns (now including the rival, with a TOTAL row), ready to fill in by hand during the game. <strong>"Fill in with AI"</strong> is an alternative to "Import from a photo" for a hard photo (handwriting, a busy table): it gives you a ready-made prompt to copy into any AI chat that reads images (ChatGPT, Claude…) — attach your photo there, paste the reply back, and it's read through the exact same engine as an Excel file. PlayPivot never calls any AI itself; you do the copy-pasting between the two tabs.</li>
+        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, jersey number, minutes/points/rebounds/assists/fouls, periods played, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away, including their jersey numbers. A successful import also sets <strong>"Present"</strong> for the whole roster: players found in the file are marked Present, everyone else on the roster is marked Absent (overwriting whatever was there before) — and, when the file has a general-info block (competition, date, location, referee, teams, final score), it fills in any empty fields up at the top too, without touching anything you already typed by hand (except the date, which always gets updated). <strong>"Download Excel template"</strong> gives you a ready-to-fill .xlsx built from this team's actual roster (names and jersey numbers already in place), with the SAME full set of columns for both your team and the rival's (plus your club's custom stats) and a TOTAL row with live formulas for each — fill it in during the game (or send it to whoever's keeping score) and import it straight after. <strong>"Fill in with AI"</strong> is an alternative to "Import from a photo" for a hard photo (handwriting, a busy table): it gives you a ready-made prompt to copy into any AI chat that reads images (ChatGPT, Claude…) — attach your photo there, paste the reply back, and it's read through the exact same engine as an Excel file. PlayPivot never calls any AI itself; you do the copy-pasting between the two tabs. <strong>"Export to PDF"</strong> and <strong>"Print blank sheet"</strong> (filled and empty versions of the same sheet) now print exactly the columns each table is showing — whatever you've got ticked on in "Columns ▾" for your team and for the rival, including "Called up"/"Present"/"Starter" if those are on, in the same order, with both TOTAL rows — nothing more, nothing hidden. The sheet prints in portrait (vertical), so it's easier to hold on a clipboard during the game; with a lot of columns on at once, text that doesn't fit shrinks or gets trimmed with "…" rather than overlapping the next column — if a table feels too packed on paper, hide a column or two from "Columns ▾" first. Both also end with a <strong>"Comments"</strong> box to write on by hand — pre-filled with whatever's in the "Comments" field up in General info, if anything.</li>
       </ol>`;
     box.style.display = "block";
   });
