@@ -551,13 +551,33 @@
                with AI" de Exercise creator: PlayPivot NO llama a ninguna
                IA por su cuenta (sin servidor propio, sin coste, sin
                límite de cuenta) -- copiás este prompt a un chat de IA que
-               lea imágenes (ChatGPT, Claude...), le adjuntás la foto ahí,
-               y pegás la respuesta acá. La respuesta pasa por EXACTAMENTE
-               el mismo motor que ya lee un Excel (mismas cabeceras,
-               mismos alias) -- mucho más fiable que el OCR de "Import
-               from a photo" con una foto difícil (letra a mano, tabla
-               compleja), porque la IA SÍ entiende lo que está mirando, no
-               solo reconoce letras sueltas. -->
+               lea imágenes y PDFs (ChatGPT, Claude...), le adjuntás la
+               foto O el PDF ahí, y pegás la respuesta acá. La respuesta
+               pasa por EXACTAMENTE el mismo motor que ya lee un Excel
+               (mismas cabeceras, mismos alias) -- mucho más fiable que el
+               OCR de "Import from a photo" con una foto difícil (letra a
+               mano, tabla compleja), porque la IA SÍ entiende lo que está
+               mirando, no solo reconoce letras sueltas.
+               Ronda 37 (Dani, voz): "esta es la oficial de u14... se
+               podria poner algo para explicar a la IA como hacerlo y un
+               modelo. para que se rellene directamente... asi vale para
+               todos" -- un PDF real de una hoja OFICIAL de federación (no
+               foto, no Excel) no trae puntos/rebotes/asistencias en una
+               columna como las fotos normales: en vez de eso trae una
+               cuadrícula de "running score" (una casilla por punto, por
+               equipo) que un árbitro de mesa llena con un código estándar
+               FIBA (raya = 2 puntos, punto relleno = tiro libre, dorsal
+               rodeado con un círculo = triple). En vez de construir un
+               lector dedicado solo para ESTE formato de ESTA federación
+               (no generalizaría a otras ligas/países), se le explica ese
+               código a la IA directamente en el prompt de abajo -- así
+               cualquier chat de IA que sepa leer esa convención (es un
+               estándar real, no inventado para PlayPivot) puede
+               traducirla a la misma tabla de siempre, sin tocar el motor
+               de import. Incluye un autochequeo: se le pide a la IA que
+               sume los puntos que leyó y los compare contra el marcador
+               final impreso en la hoja, y que avise en "NOTES:" si no
+               cuadra, en vez de inventar un número que sí cuadre. -->
           <button type="button" class="btn btn-secondary" id="ai-match-toggle-btn">🤖 Fill in with AI</button>
           <div class="spacer"></div>
           <button class="btn btn-secondary" id="delete-match-btn" style="display:none; color:#991b1b;">Delete this match</button>
@@ -568,7 +588,7 @@
             <p class="tsc-step-label" style="margin:0;">Fill in with AI</p>
             <a href="#" id="ai-match-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap;">❔ What this does</a>
           </div>
-          <p class="hint" style="margin:10px 0;">Copy this prompt into any AI chat that can read images (ChatGPT, Claude…), attach your photo of the scoresheet there, then paste its reply below. PlayPivot doesn't send anything anywhere by itself — you copy and paste between the two tabs, same as "Fill in with AI" in Exercise creator.</p>
+          <p class="hint" style="margin:10px 0;">Copy this prompt into any AI chat that can read images and PDFs (ChatGPT, Claude…), attach your photo or PDF of the scoresheet there — including an official federation match sheet, like the ones with a "running score" grid instead of a simple table, the prompt explains how to read those too — then paste its reply below. PlayPivot doesn't send anything anywhere by itself — you copy and paste between the two tabs, same as "Fill in with AI" in Exercise creator.</p>
           <textarea id="ai-match-prompt-template" readonly style="width:100%; min-height:130px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12px; font-family:inherit; color:var(--muted); margin-bottom:8px;"></textarea>
           <button class="btn btn-secondary" id="copy-ai-match-prompt-btn" style="margin-bottom:10px;">📋 Copy this prompt</button>
           <textarea id="ai-match-reply-input" placeholder="Paste the AI's reply here…" style="width:100%; min-height:110px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit;"></textarea>
@@ -2595,9 +2615,9 @@
     const sepLine = "|" + cols.map(() => " --- ").join("|") + "|";
     const ownLabel = teamFileLabel() || "my team";
     return [
-      "You're helping a basketball coach digitize a paper match box score (feuille de marque) from a photo I'm about to attach in this chat.",
+      "You're helping a basketball coach digitize a paper match box score (feuille de marque) from a photo or PDF I'm about to attach in this chat.",
       "",
-      "Read the photo carefully -- it usually has two tables (one per team) plus some general info (competition, date, place, referee, team names, final score) written somewhere on the page. Reply with ONLY the following, in EXACTLY this format (plain text, real markdown tables with pipes, no bold, nothing before or after):",
+      "Read it carefully -- it usually has two tables (one per team) plus some general info (competition, date, place, referee, team names, final score) written somewhere on the page. Reply with ONLY the following, in EXACTLY this format (plain text, real markdown tables with pipes, no bold, nothing before or after):",
       "",
       "Compétition: [competition name, or leave blank]",
       "Date: [DD.MM.YYYY, or leave blank]",
@@ -2618,6 +2638,8 @@
       "[one row per player of team B, same column order]",
       "",
       "Rules: \"N°\" is the jersey number. \"1 pt\"/\"2 pts\"/\"3 pts\" are shots MADE of each value (not attempts) -- fill them in whenever the sheet tracks them separately. ALWAYS fill in \"Points total\" too, with the real total for that player (add up 1 pt/2 pts/3 pts yourself if you filled those in, or your best read of a running score if that's all the sheet has) -- never leave \"Points total\" blank just because you filled in the breakdown, a blank cell there is read as zero. One player per row, don't merge or skip rows, keep the header row as given. If you're unsure about a specific number, still give your best guess rather than leaving it empty, but you can add a short confidence note in a line starting with \"NOTES:\" at the very end, outside both tables.",
+      "",
+      "Some official federation sheets don't have a simple per-player points column at all -- instead they have a \"running score\" grid: one column of small numbered boxes PER TEAM, filled in order as the game goes, one box per point scored (not per basket). If you see one of these, read it using the standard FIBA scorer convention: a diagonal slash through a box = a 2-point field goal; a small filled dot (•) = a free throw (1 point); a circled jersey number next to the slash = a 3-point field goal instead of a 2. The ink color often alternates by quarter (e.g. red for Q1/Q3, blue or black for Q2/Q4) -- that's only for the human scorer's own reference, ignore it, it doesn't change the stats. For each player, count how many points their marked boxes add up to (1 per dot, 2 per plain slash, 3 per slash-with-circle) to get \"1 pt\"/\"2 pts\"/\"3 pts\"/\"Points total\" -- same columns as above, this is just a different way of reading the same information, not a different table. Afterwards, double-check your own reading: add up all of Team A's player points and compare to Team A's final score (same for Team B) -- if your count doesn't match the final score printed on the sheet, don't silently force it to match; say so in the \"NOTES:\" line instead so it gets double-checked by hand.",
     ].join("\n");
   }
 
@@ -2697,9 +2719,9 @@
     overlay.innerHTML = `
       <div style="background:var(--card); border-radius:12px; max-width:460px; width:100%; padding:24px 26px; max-height:85vh; overflow-y:auto;">
         <h3 style="margin:0 0 6px; font-size:17px;">Fill in with AI — what it actually does</h3>
-        <p class="hint" style="margin:0 0 14px;">PlayPivot doesn't send your photo anywhere, and doesn't call any AI itself — no account, no setup, no cost on our side. You do the reading with an AI chat you already have (ChatGPT, Claude…), in another tab.</p>
-        <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>Steps:</strong> click "📋 Copy this prompt", open any AI chat that can read images, paste the prompt, attach your photo of the scoresheet, and send it. Then copy the AI's whole reply and paste it into the box below "Fill in with AI" here, and click "Fill from AI reply".</p>
-        <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>Why this instead of "Import from a photo"?</strong> that one reads letters off the image (OCR) without understanding what it's looking at — it struggles with handwriting and busy tables. An AI chat actually understands a box score, so it's usually much more reliable on a hard photo. Review its reply before pasting it in, the same way you'd check anyone else's work.</p>
+        <p class="hint" style="margin:0 0 14px;">PlayPivot doesn't send your photo or PDF anywhere, and doesn't call any AI itself — no account, no setup, no cost on our side. You do the reading with an AI chat you already have (ChatGPT, Claude…), in another tab.</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>Steps:</strong> click "📋 Copy this prompt", open any AI chat that can read images and PDFs, paste the prompt, attach your photo or PDF of the scoresheet, and send it. Then copy the AI's whole reply and paste it into the box below "Fill in with AI" here, and click "Fill from AI reply".</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>Why this instead of "Import from a photo"?</strong> that one reads letters off the image (OCR) without understanding what it's looking at — it struggles with handwriting and busy tables. An AI chat actually understands a box score, so it's usually much more reliable on a hard photo, and it can also read an official federation PDF straight from the file, including the "running score" grid some of those use instead of a simple table (the prompt tells it exactly how to read that grid, point by point). Review its reply before pasting it in, the same way you'd check anyone else's work — if the sheet had a running-score grid, check the "NOTES:" line at the end too, the AI is told to flag it there if its count doesn't add up to the final score.</p>
         <p class="hint" style="margin:0 0 16px;">You can reopen this anytime with "❔ What this does", next to "Fill in with AI".</p>
         <button class="btn btn-primary" id="ai-match-guide-close-btn" style="width:100%;">Got it</button>
       </div>`;
