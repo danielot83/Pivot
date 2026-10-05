@@ -1072,9 +1072,22 @@
     // + pivotFilterVisibleRows, en vez de pedir la tabla entera y confiar en
     // que RLS ya la filtre bien (no lo hace para un platform controller, ni
     // para alguien con varios clubes -- ver org-switcher.js).
+    // BUG arreglado (Dani, 2026-10-05, captura: "Add from library (8 of
+    // 8)" en Training vs. "64 exercises found" en Library, mismo club):
+    // esta lista de columnas (a diferencia de exercises.html/library.html,
+    // que piden "*") se olvidaba `visibility` -- y pivotFilterVisibleRows
+    // (org-switcher.js) decide si un ejercicio de OTRO club (como los 56
+    // "Pivot Templates" compartidos, o cualquier ejercicio Community de
+    // otro club) se enseña mirando justo ese campo
+    // (`r.visibility === "community"`). Sin pedirlo, llegaba undefined,
+    // nunca === "community", así que CUALQUIER ejercicio que no fuera
+    // literalmente del club activo se descartaba en silencio -- sin
+    // romper nada visualmente, solo enseñando muchos menos de los que
+    // debería (8 propios, en vez de 8 propios + 56 plantillas
+    // compartidas = 64, como sí mostraba Library con "*").
     const { data } = await supabaseClient
       .rpc("visible_exercises")
-      .select("id, name, number, categories, material, objectives, description, variants, diagram, difficulty, language, favorite, age, created_by, organization_id")
+      .select("id, name, number, categories, material, objectives, description, variants, diagram, difficulty, language, favorite, age, created_by, organization_id, visibility")
       .order("name");
     allExercises = pivotFilterVisibleRows(data || [], currentOrgId, myOrgIds);
     const { data: usageRows } = await supabaseClient.from("training_exercises").select("exercise_id");
