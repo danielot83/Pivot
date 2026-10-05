@@ -692,6 +692,20 @@
             <label for="add-exercise-language-filter">Language</label>
             <select id="add-exercise-language-filter"><option value="">All</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select>
           </div>
+          <!-- A petición de Dani (ronda 42, voz): "el filtro de creado por"
+               -- además de las categorías de siempre (yo / mi club / mi
+               asociación / todo el mundo), también se puede elegir una
+               persona CONCRETA ("la persona") entre quienes han creado
+               algo visible aquí -- esas opciones se rellenan solas según
+               lo que haya (populateCreatedByFilterOptions). "Mi equipo"
+               (un equipo concreto DENTRO del club, no el club entero) se
+               queda fuera a propósito -- Dani lo pidió así: hoy ningún
+               ejercicio sabe a qué equipo pertenece, sería un cambio
+               aparte. -->
+          <div class="field">
+            <label for="add-exercise-createdby-filter">Created by</label>
+            <select id="add-exercise-createdby-filter"><option value="">Everyone</option></select>
+          </div>
           <div class="field">
             <label class="field-label">Category</label>
             <div class="filter-dropdown">
@@ -738,6 +752,13 @@
                  la pausa (mismo hueco de tiempo, sin enlazar con Match day),
                  con el formato (5v5/4v4/3v3) elegible en la propia fila. -->
             <button class="btn btn-secondary" id="add-match-btn" title="Add a scrimmage/match segment">Add match</button>
+            <!-- A petición de Dani, ronda 42 ("al lado de pause y match"):
+                 un tercer bloque para cualquier cosa que no sea un ejercicio
+                 de la librería ni una pausa/partido -- texto libre que el
+                 coach escribe directamente en la fila ("Team talk", "Video
+                 analysis", "Water break"...). Mismo hueco de tiempo que los
+                 otros dos, sin enlazar con nada de la librería. -->
+            <button class="btn btn-secondary" id="add-freetext-btn" title="Add a free-text note (anything not in the exercise library)">📝 Add free text</button>
           </div>
           <!-- A petición de Dani, 2026-09-29 ("longitud parecida de ambas
                columnas"): esta columna crecía sin límite con la tabla
@@ -921,6 +942,7 @@
     language: document.getElementById("tr-language"),
     durationBanner: document.getElementById("duration-banner"),
     notebookFilter: document.getElementById("notebook-filter"),
+    createdByFilter: document.getElementById("add-exercise-createdby-filter"),
     addExerciseListCard: document.getElementById("add-exercise-list-card"),
     addExerciseListEmpty: document.getElementById("add-exercise-list-empty"),
     sessionBody: document.getElementById("session-exercises-body"),
@@ -962,6 +984,7 @@
   let currentTranslationGroupId = null;
   let teamPlayers = [];
   let allExercises = [];
+  let creatorNames = {}; // user_id -> full_name, para el filtro "Created by" y el "by <nombre>" de cada fila (mismo patrón que library.html/exercises.html)
   let sessionExercises = []; // { exercise_id, name, duration_minutes, key_points, session_variants }
   // player_id -> { id, status } | undefined -- misma tabla "attendance" que Match day y Attendance
   // (antes era player_id -> boolean, tabla aparte "training_attendance"; ver ronda 18).
@@ -1093,7 +1116,55 @@
     const { data: usageRows } = await supabaseClient.from("training_exercises").select("exercise_id");
     usageCounts = {};
     (usageRows || []).forEach((r) => { if (r.exercise_id) usageCounts[r.exercise_id] = (usageCounts[r.exercise_id] || 0) + 1; });
+
+    // "Created by" (ronda 42, Dani por voz: "el filtro de creado por... y
+    // añadir los que están disponibles para todo el mundo... y gente en
+    // concreto") -- mismo patrón que library.html/exercises.html: una
+    // consulta aparte a profiles (no hay relación de clave foránea
+    // garantizada desde exercises.created_by). Para alguien de OTRO club
+    // (un ejercicio de mi asociación o de la Community), la política de
+    // profiles solo deja ver el perfil si es compañero de club, admin de
+    // plataforma o validador -- esos casos simplemente no añaden nombre
+    // aquí (creatorNames[id] queda sin definir) y el filtro/etiqueta los
+    // omite sin romper nada, igual que ya hacen esas otras páginas.
+    const creatorIds = Array.from(new Set(allExercises.map((e) => e.created_by).filter(Boolean)));
+    creatorNames = {};
+    if (creatorIds.length) {
+      const { data: creators } = await supabaseClient.from("profiles").select("id, full_name").in("id", creatorIds);
+      (creators || []).forEach((p) => { creatorNames[p.id] = p.full_name; });
+    }
+    populateCreatedByFilterOptions();
     populateExerciseSelect();
+  }
+
+  // Opciones del desplegable "Created by": los 4 ámbitos de siempre (Me /
+  // Whole club / My association / Everyone) -- solo los que de verdad
+  // tienen algún ejercicio detrás, para no enseñar un hueco vacío -- más,
+  // debajo de una línea separadora, una entrada por cada persona concreta
+  // de la que se ve el nombre (creatorNames), pedido explícito de Dani
+  // ("la persona... en concreto").
+  function populateCreatedByFilterOptions() {
+    const sel = els.createdByFilter;
+    const prevValue = sel.value;
+    const hasMine = allExercises.some((e) => e.created_by === currentUserId);
+    const hasClub = allExercises.some((e) => e.organization_id === currentOrgId && e.created_by !== currentUserId);
+    const hasAssociation = allExercises.some((e) => e.organization_id !== currentOrgId && e.visibility === "association");
+    const hasCommunity = allExercises.some((e) => e.visibility === "community");
+    let html = `<option value="">Everyone</option>`;
+    if (hasMine) html += `<option value="mine">👤 Me</option>`;
+    if (hasClub) html += `<option value="club">👥 My club</option>`;
+    if (hasAssociation) html += `<option value="association">🤝 My association</option>`;
+    if (hasCommunity) html += `<option value="community">🌐 Everyone (Community)</option>`;
+    const people = Array.from(new Set(allExercises.map((e) => e.created_by).filter((id) => id && creatorNames[id])))
+      .sort((a, b) => creatorNames[a].localeCompare(creatorNames[b]));
+    if (people.length) {
+      html += `<optgroup label="Specific person">` + people.map((id) => `<option value="person:${id}">${escapeHtml(creatorNames[id])}</option>`).join("") + `</optgroup>`;
+    }
+    sel.innerHTML = html;
+    // Si lo elegido sigue existiendo entre las opciones nuevas, se
+    // mantiene (p.ej. al cambiar de notebook) -- si no, vuelve a "Everyone"
+    // en vez de quedarse en un valor que ya no está en la lista.
+    sel.value = Array.from(sel.options).some((o) => o.value === prevValue) ? prevValue : "";
   }
 
   // Remplit "Add from library" -- filtré par notebook si un est choisi dans
@@ -1114,6 +1185,10 @@
     const cats = addExerciseFilterCheckedValues("add-exercise-category-filter");
     const ages = addExerciseFilterCheckedValues("add-exercise-age-filter");
     const favOnly = document.getElementById("add-exercise-favorites-filter").checked;
+    // "Created by" (ronda 42) -- "mine"/"club"/"association"/"community"
+    // son los mismos 4 ámbitos que ya usa pivotFilterVisibleRows, más
+    // "person:<id>" para una persona concreta (ver populateCreatedByFilterOptions).
+    const createdBy = els.createdByFilter.value;
     const shown = allExercises
       .filter((e) => !allowedIds || allowedIds.has(e.id))
       .filter((e) => {
@@ -1125,7 +1200,12 @@
       .filter((e) => !lang || (e.language || "en") === lang)
       .filter((e) => cats.length === 0 || cats.every((c) => (e.categories || []).includes(c)))
       .filter((e) => ages.length === 0 || ages.every((a) => (e.age || []).includes(a)))
-      .filter((e) => !favOnly || e.favorite);
+      .filter((e) => !favOnly || e.favorite)
+      .filter((e) => !createdBy || createdBy !== "mine" || e.created_by === currentUserId)
+      .filter((e) => !createdBy || createdBy !== "club" || (e.organization_id === currentOrgId && e.created_by !== currentUserId))
+      .filter((e) => !createdBy || createdBy !== "association" || (e.organization_id !== currentOrgId && e.visibility === "association"))
+      .filter((e) => !createdBy || createdBy !== "community" || e.visibility === "community")
+      .filter((e) => !createdBy || !createdBy.startsWith("person:") || e.created_by === createdBy.slice("person:".length));
 
     els.addExerciseListCard.innerHTML = "";
     els.addExerciseListEmpty.style.display = shown.length === 0 ? "block" : "none";
@@ -1136,10 +1216,12 @@
       const ageText = (e.age || []).join(", ");
       const langCode = (e.language || "en").toUpperCase();
       const used = usageCounts[e.id] || 0;
+      const creatorName = e.created_by ? creatorNames[e.created_by] : null;
       row.innerHTML = `
         <div style="min-width:0;">
           <div class="name">${escapeHtml(e.name)}</div>
           <div class="meta">${catIcons ? `<span class="category-icon">${catIcons}</span>` : ""}${escapeHtml((e.categories || []).join(", "))}${ageText ? ` · ${escapeHtml(ageText)}` : ""}</div>
+          ${creatorName ? `<div class="meta" style="color:var(--muted); font-size:11px; margin-top:2px;">by ${escapeHtml(creatorName)}</div>` : ""}
         </div>
         <div class="lang-badge-slot"><span class="lang-pill-single">${langCode}</span></div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
@@ -1165,7 +1247,7 @@
   els.notebookFilter.addEventListener("change", populateExerciseSelect);
   buildMultiselect("add-exercise-category-filter", CATEGORIES, populateExerciseSelect);
   buildMultiselect("add-exercise-age-filter", AGE_GROUPS, populateExerciseSelect);
-  ["add-exercise-difficulty-filter", "add-exercise-language-filter", "add-exercise-favorites-filter"].forEach((id) => {
+  ["add-exercise-difficulty-filter", "add-exercise-language-filter", "add-exercise-favorites-filter", "add-exercise-createdby-filter"].forEach((id) => {
     document.getElementById(id).addEventListener("change", populateExerciseSelect);
   });
   document.getElementById("add-exercise-search").addEventListener("input", populateExerciseSelect);
@@ -1176,6 +1258,7 @@
     // Library, para no volver a mezclar los idiomas de golpe.
     document.querySelectorAll("#add-exercise-category-filter input, #add-exercise-age-filter input").forEach((cb) => (cb.checked = false));
     document.getElementById("add-exercise-favorites-filter").checked = false;
+    els.createdByFilter.value = "";
     populateExerciseSelect();
   });
 
@@ -1637,11 +1720,12 @@
     document.getElementById("feedback-toggle-link").textContent = hasFeedback ? "▾ Post-session feedback (fill in after it happened)" : "▸ Post-session feedback (fill in after it happened)";
 
     const { data: exRows } = await supabaseClient
-      .from("training_exercises").select("id, exercise_id, order_index, duration_minutes, key_points, session_variants, is_pause, is_match, match_format, exercises(name)")
+      .from("training_exercises").select("id, exercise_id, order_index, duration_minutes, key_points, session_variants, is_pause, is_match, match_format, is_freetext, notes, exercises(name)")
       .eq("training_id", id).order("order_index");
     sessionExercises = (exRows || []).map((r) => ({
       id: r.id, exercise_id: r.exercise_id, is_pause: !!r.is_pause, is_match: !!r.is_match, match_format: r.match_format || "5v5",
-      name: r.is_pause ? "Pause" : r.is_match ? "Match" : ((r.exercises && r.exercises.name) || "(deleted exercise)"),
+      is_freetext: !!r.is_freetext,
+      name: r.is_pause ? "Pause" : r.is_match ? "Match" : r.is_freetext ? (r.notes || "") : ((r.exercises && r.exercises.name) || "(deleted exercise)"),
       duration_minutes: r.duration_minutes, key_points: r.key_points || [], session_variants: r.session_variants || "",
     }));
 
@@ -1813,6 +1897,7 @@
       const tr = document.createElement("tr");
       const isPause = !!se.is_pause;
       const isMatch = !!se.is_match;
+      const isFreetext = !!se.is_freetext;
       const moveButtons = `
         <button data-action="up" data-idx="${i}" title="Move up" ${i === 0 ? "disabled" : ""} style="border:none; background:none; cursor:pointer; color:var(--muted);">↑</button>
         <button data-action="down" data-idx="${i}" title="Move down" ${i === sessionExercises.length - 1 ? "disabled" : ""} style="border:none; background:none; cursor:pointer; color:var(--muted);">↓</button>
@@ -1841,6 +1926,20 @@
               <option value="3v3" ${se.match_format === "3v3" ? "selected" : ""}>3v3</option>
             </select>
           </td>
+          <td><input type="number" value="${se.duration_minutes}" data-idx="${i}"></td>
+          <td></td>
+          <td><button data-action="remove" data-idx="${i}">Remove</button></td>
+        `;
+      } else if (isFreetext) {
+        // A petición de Dani, ronda 42: igual de simple que pausa/partido --
+        // el texto se escribe directamente en la fila, sin panel de edición
+        // aparte. Se guarda en training_exercises.notes (columna ya
+        // existente, sin uso hasta ahora -- ver step91).
+        tr.style.background = "var(--paper)";
+        tr.innerHTML = `
+          <td>${moveButtons}</td>
+          <td>${i + 1}</td>
+          <td><input type="text" class="freetext-label-input" data-idx="${i}" placeholder="e.g. Team talk, video analysis, water break…" value="${escapeHtml(se.name || "")}" style="width:100%; font-size:13px; padding:3px 6px; border:1px solid var(--line); border-radius:4px;"></td>
           <td><input type="number" value="${se.duration_minutes}" data-idx="${i}"></td>
           <td></td>
           <td><button data-action="remove" data-idx="${i}">Remove</button></td>
@@ -1874,6 +1973,10 @@
       if (formatSelect) formatSelect.addEventListener("change", (e) => {
         sessionExercises[i].match_format = e.target.value;
       });
+      const freetextInput = tr.querySelector(".freetext-label-input");
+      if (freetextInput) freetextInput.addEventListener("change", (e) => {
+        sessionExercises[i].name = e.target.value.trim();
+      });
       const editBtn = tr.querySelector('[data-action="edit"]');
       if (editBtn) editBtn.addEventListener("click", () => {
         expandedRowIdx = expandedRowIdx === i ? null : i;
@@ -1900,7 +2003,7 @@
       });
       els.sessionBody.appendChild(tr);
 
-      if (!isPause && !isMatch && expandedRowIdx === i) {
+      if (!isPause && !isMatch && !isFreetext && expandedRowIdx === i) {
         const detailTr = document.createElement("tr");
         const detailTd = document.createElement("td");
         detailTd.colSpan = 6;
@@ -1933,6 +2036,15 @@
   document.getElementById("add-match-btn").addEventListener("click", () => {
     sessionExercises.push({ is_match: true, name: "Match", match_format: "5v5", duration_minutes: 10 });
     renderSessionTable(); updateDurationBanner();
+  });
+
+  document.getElementById("add-freetext-btn").addEventListener("click", () => {
+    sessionExercises.push({ is_freetext: true, name: "", duration_minutes: 5 });
+    renderSessionTable(); updateDurationBanner();
+    // Foco directo en el campo recién creado, para no tener que buscarlo.
+    const inputs = document.querySelectorAll(".freetext-label-input");
+    const last = inputs[inputs.length - 1];
+    if (last) last.focus();
   });
 
   const ATTENDANCE_BADGE = {
@@ -2146,9 +2258,10 @@
       }
 
       const exerciseRows = sessionExercises.map((se, i) => ({
-        exercise_id: (se.is_pause || se.is_match) ? null : se.exercise_id, order_index: i, duration_minutes: se.duration_minutes,
+        exercise_id: (se.is_pause || se.is_match || se.is_freetext) ? null : se.exercise_id, order_index: i, duration_minutes: se.duration_minutes,
         key_points: se.key_points || [], session_variants: se.session_variants || null, is_pause: !!se.is_pause,
         is_match: !!se.is_match, match_format: se.is_match ? (se.match_format || "5v5") : null,
+        is_freetext: !!se.is_freetext, notes: se.is_freetext ? (se.name || "").trim() : null,
       }));
       const { error: rpcError } = await supabaseClient.rpc("replace_training_exercises", { p_training_id: trainingId, p_rows: exerciseRows });
       if (rpcError) throw rpcError;
@@ -2937,7 +3050,7 @@
     const includeSheetsCheckbox = document.getElementById("export-pdf-include-sheets");
     if (includeSheetsCheckbox && includeSheetsCheckbox.checked) {
       const L = await loadPdfLabels();
-      const realExercises = sessionExercises.filter((se) => !se.is_pause && !se.is_match && se.exercise_id);
+      const realExercises = sessionExercises.filter((se) => !se.is_pause && !se.is_match && !se.is_freetext && se.exercise_id);
       realExercises.forEach((se) => {
         const full = allExercises.find((ex) => ex.id === se.exercise_id);
         if (full) drawExercisePageOnNewPage(doc, full, logoDataUrl, clubName, L);
@@ -2998,11 +3111,12 @@
       const { data: training } = await supabaseClient.from("trainings").select("*").eq("id", t.id).single();
       if (!training) continue;
       const { data: exRows } = await supabaseClient
-        .from("training_exercises").select("exercise_id, order_index, duration_minutes, key_points, session_variants, is_pause, is_match, match_format, exercises(name)")
+        .from("training_exercises").select("exercise_id, order_index, duration_minutes, key_points, session_variants, is_pause, is_match, match_format, is_freetext, notes, exercises(name)")
         .eq("training_id", t.id).order("order_index");
       const exercises = (exRows || []).map((r) => ({
         exercise_id: r.exercise_id, is_pause: !!r.is_pause, is_match: !!r.is_match, match_format: r.match_format || "5v5",
-        name: r.is_pause ? "Pause" : r.is_match ? "Match" : ((r.exercises && r.exercises.name) || "(deleted exercise)"),
+        is_freetext: !!r.is_freetext,
+        name: r.is_pause ? "Pause" : r.is_match ? "Match" : r.is_freetext ? (r.notes || "") : ((r.exercises && r.exercises.name) || "(deleted exercise)"),
         duration_minutes: r.duration_minutes, key_points: r.key_points || [], session_variants: r.session_variants || "",
       }));
       const { data: attRows } = await supabaseClient.from("attendance").select("player_id, status").eq("training_id", t.id);
@@ -3072,8 +3186,8 @@
         <li><strong>Teams &amp; Seasons</strong>, at the top, is where you pick who you're planning for — then <strong>Sessions</strong> below it lists that team's sessions as a table; click a row or hit <strong>"+ New session"</strong> to open the session builder underneath it.</li>
         <li>No teams showing up? Click <strong>"+ New season/team"</strong> to create one on the spot — no need to add players first.</li>
         <li><strong>Main objective</strong> is a quick one-line summary of what the session is mainly about (Warm-up, Shooting, Defense…) — same list the exercises themselves use.</li>
-        <li>Filters above <strong>"Add from library"</strong> (difficulty, language, category, age, favorites) narrow that dropdown down so you can actually find something in a big library — <strong>Filter by notebook</strong> does the same but by a whole ready-made list at once. Reset them anytime with "Reset filters".</li>
-        <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, <strong>⏸ Add pause</strong> to drop in a rest period between exercises, and <strong>Add match</strong> to drop in a scrimmage (choose 5v5, 4v4, or 3v3 right in the row) — both count toward the total time same as anything else.</li>
+        <li>Filters above <strong>"Add from library"</strong> (difficulty, language, category, age, favorites) narrow that dropdown down so you can actually find something in a big library — <strong>Filter by notebook</strong> does the same but by a whole ready-made list at once. <strong>Created by</strong> narrows it to just your own exercises, just your club's, just your association's, just the PlayPivot Community ones, or one specific person's (every exercise shows "by &lt;name&gt;" underneath it so you know who made it, when that's known). Reset them anytime with "Reset filters".</li>
+        <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, <strong>⏸ Add pause</strong> to drop in a rest period between exercises, <strong>Add match</strong> to drop in a scrimmage (choose 5v5, 4v4, or 3v3 right in the row), and <strong>📝 Add free text</strong> for anything else that isn't in the exercise library (a team talk, video analysis, water break…) — all three count toward the total time same as anything else.</li>
         <li>The banner above the exercise list tracks your running total against the planned length, and turns red if you go over.</li>
         <li><strong>Auto-summary</strong> fills itself in from the exercises you add (categories, material, up to 4 objectives) — edit it by hand any time.</li>
         <li><strong>Attendance</strong> starts blank for every session — click a player's badge to cycle Present → Absent → Excused → Late → blank. It's saved instantly (once the session itself has been saved once) and shared live with Match day and the Attendance page — mark it in any of the three and it shows the same everywhere.</li>
