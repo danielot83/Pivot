@@ -39,7 +39,15 @@
   h1 { font-size: 23px; margin: 8px 0 4px; }
   p.sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
 
-  .msg { margin-bottom: 14px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  /* Dani (voz, 2026-10-04): "cuando des a salvar, que te vuelve para
+     arriba" -- antes .msg vivia arriba del todo de la pagina y
+     showMessage() hacia scrollIntoView, asi que CUALQUIER mensaje (hasta
+     "Guardado correctamente") arrastraba el scroll entero hacia arriba,
+     lejos de donde estabas (p.ej. el boton Save, al final de un
+     formulario largo). Ahora .msg flota fijo cerca de abajo de la
+     pantalla -- se ve sin mover el scroll para nada, asi que
+     showMessage() ya no necesita (ni hace) scrollIntoView. */
+  .msg { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); margin: 0; padding: 12px 18px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; z-index: 400; max-width: min(460px, calc(100vw - 32px)); box-shadow: 0 10px 28px rgba(0,0,0,.18); }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
 
@@ -733,7 +741,7 @@
   let trackingEntries = [];
   let editingId = null;
 
-  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; }
   function clearMessage() { els.msg.className = "msg"; els.msg.textContent = ""; }
 
   // ---------------------------------------------------------------------

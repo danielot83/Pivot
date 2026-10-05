@@ -47,7 +47,15 @@
      petición de Dani ("no tienen el mismo formato"). Mismo valor que usan
      match.html/roster.html/attendance.html/play_design.html para ".hint". */
   .hint { font-size: 14px; color: var(--muted); }
-  .msg { margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  /* Dani (voz, 2026-10-04): "cuando des a salvar, que te vuelve para
+     arriba" -- antes .msg vivia arriba del todo de la pagina y
+     showMessage() hacia scrollIntoView, asi que CUALQUIER mensaje (hasta
+     "Guardado correctamente") arrastraba el scroll entero hacia arriba,
+     lejos de donde estabas (p.ej. el boton Save, al final de un
+     formulario largo). Ahora .msg flota fijo cerca de abajo de la
+     pantalla -- se ve sin mover el scroll para nada, asi que
+     showMessage() ya no necesita (ni hace) scrollIntoView. */
+  .msg { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); margin: 0; padding: 12px 18px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; z-index: 400; max-width: min(460px, calc(100vw - 32px)); box-shadow: 0 10px 28px rgba(0,0,0,.18); }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
   .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 14px; color: var(--ink); margin-bottom: 12px; }
@@ -98,6 +106,8 @@
   .btn-primary:hover { background: var(--accent-deep); }
   .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
   .btn-secondary:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn:disabled:hover { border-color: var(--line); }
   .spacer { flex: 1; }
   .tool-group { display: flex; flex-wrap: wrap; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px; margin-bottom: 6px; }
   .tool-btn { padding: 5px 9px; border: none; background: none; border-radius: 6px; cursor: pointer; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
@@ -479,6 +489,25 @@
 
       <div id="tab-diagram">
         <div class="step-tabs" id="step-tabs"></div>
+        <!-- Dani (voz, 2026-10-04): "hay usuarios que dicen que no está
+             muy bien" que los 5 diagramas tuvieran un tipo de pista FIJO
+             (3 media pista, 1 vertical, 1 completa, siempre igual, sin
+             poder elegir). Ahora cada diagrama tiene su propio desplegable
+             -- por defecto trae el mismo reparto de siempre (para no
+             cambiar el aspecto de los ejercicios ya guardados), pero se
+             puede poner los 5 en "Full court" (o cualquier combinación)
+             si así se prefiere. El PDF ya sabía encajar cualquier forma
+             dentro del hueco de cada diagrama sin estirarla (centra la
+             imagen y deja margen gris si no coincide la proporción) --
+             no hizo falta tocar nada ahí. -->
+        <div class="field" style="flex-direction:row; align-items:center; gap:6px; margin:8px 0;">
+          <label for="step-court-type" style="margin:0;">This diagram's court</label>
+          <select id="step-court-type" style="width:120px;">
+            <option value="half">Half court</option>
+            <option value="vertical">Vertical</option>
+            <option value="full">Full court</option>
+          </select>
+        </div>
         <div class="tool-group" id="tools-row1"></div>
         <div class="tool-group" id="tools-row2"></div>
         <div class="tool-group" id="tools-row3"></div>
@@ -500,7 +529,7 @@
         <div class="court-card">
           <canvas id="court-canvas" width="300" height="300"></canvas>
         </div>
-        <p class="hint-text">Double-click a player/defender to label them. Click an element with "Move/Select", then "🗑 Delete element" (or Del/Backspace) to remove just that one. "Copy to next diagram" is for drawing a sequence: draw diagram 1, copy it forward — any player or the ball lands wherever its movement/dribble/pass/shot arrow pointed to, ready for you to draw what happens next.</p>
+        <p class="hint-text">Placing a player/defender asks for its number right away (double-click one afterwards to change it). Click an element with "Move/Select", then "🗑 Delete element" (or Del/Backspace) to remove just that one — click anywhere inside a highlighted zone to select it, not just its corner. "Copy to next diagram" is for drawing a sequence: draw diagram 1, copy it forward (it also copies that diagram's court type, so the sequence stays the same shape) — any player or the ball lands wherever its movement/dribble/pass/shot arrow pointed to, ready for you to draw what happens next. It's greyed out on "Diagram 5" — there's no next one to copy into.</p>
       </div>
 
       <div class="toolbar" style="margin-top:16px;">
@@ -569,9 +598,20 @@
     language: document.getElementById("ex-language"),
     canvas: document.getElementById("court-canvas"),
     colorSelect: document.getElementById("color-select"),
+    stepCourtType: document.getElementById("step-court-type"),
+    copyStepBtn: document.getElementById("copy-step-btn"),
   };
   let ctx = els.canvas.getContext("2d");
   let cssW = 300, cssH = 280;
+  // Dani (voz, 2026-10-04): antes el tipo de cada uno de los 5 diagramas
+  // era fijo (COURT_TYPES, court-diagram.js) -- ahora es de verdad por
+  // ejercicio, elegible con el desplegable "This diagram's court". Se
+  // inicializa SIEMPRE con una copia de COURT_TYPES (el mismo reparto de
+  // siempre: 3 media pista, 1 vertical, 1 completa) para que un ejercicio
+  // guardado ANTES de este cambio (sin su propio court_types guardado)
+  // se siga viendo exactamente igual que antes.
+  function defaultDiagramCourtTypes() { return Object.assign({}, COURT_TYPES); }
+  let diagramCourtTypes = defaultDiagramCourtTypes();
 
   let currentOrgId = null;
   let myOrgIds = new Set(); // 2026-09-30: todos mis clubes activos, ver pivotFilterVisibleRows en org-switcher.js
@@ -588,6 +628,14 @@
   let currentStep = "court_1";
   let diagram = {}; // { court_1: [...elements], court_2: [...], ... }
   let dragging = null, drawingFrom = null;
+  // Desfase entre el punto donde se hizo clic y la esquina guardada de la
+  // zone (el.x/el.y) -- sin esto, arrastrar una zone agarrándola por el
+  // CENTRO (ahora posible, ver elementAt) haría que su esquina saltara de
+  // golpe al cursor en vez de moverse con él. Para los demás elementos
+  // (jugador, cono...) queda en {0,0}: ahí el.x/el.y YA ES el punto que
+  // se agarra, así que no hace falta ningún desfase -- mismo comportamiento
+  // de siempre.
+  let dragOffset = { dx: 0, dy: 0 };
   // Dani, test funcional ronda 30 (hallazgo MEDIO nº7): el hint-text dice
   // "Del/Backspace clears the selection", pero no existía ningún
   // listener de teclado en este archivo -- esa combinación no hacía
@@ -599,7 +647,7 @@
   // Backspace lo quita de verdad.
   let selectedElement = null;
 
-  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; }
 
   // -----------------------------------------------------------------------
   // Bloque IA -- même format que l'app de bureau : un prompt fixe à
@@ -1036,8 +1084,9 @@
       description: source.description, variants: source.variants,
     });
     diagram = JSON.parse(JSON.stringify(source.diagram || {}));
+    diagramCourtTypes = Object.assign(defaultDiagramCourtTypes(), source.court_types || {});
     currentStep = "court_1";
-    buildStepTabs(); resizeCanvasForStep(); render();
+    buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
     document.getElementById("start-from-select").value = "";
     showMessage(`Started from "${source.name}" — review everything, then save as your own.`, "success");
   });
@@ -1095,20 +1144,51 @@
   // -----------------------------------------------------------------------
   buildSharedToolbar(["tools-row1", "tools-row2", "tools-row3"], (key) => { activeTool = key; });
 
+  // Antes el nombre de la pestaña incluía el tipo FIJO ("Diagram 4
+  // (vertical)") porque nunca podía cambiar. Ahora que sí puede, se
+  // calcula en vivo a partir de diagramCourtTypes -- así la pestaña
+  // siempre dice la verdad, sea cual sea el tipo elegido para ese
+  // diagrama en concreto.
+  const COURT_TYPE_SHORT_LABEL = { half: "half court", vertical: "vertical", full: "full court" };
+  function stepTabLabel(i, cid) {
+    return `Diagram ${i + 1} (${COURT_TYPE_SHORT_LABEL[diagramCourtTypes[cid]] || "half court"})`;
+  }
+
   function buildStepTabs() {
     const row = document.getElementById("step-tabs");
     row.innerHTML = "";
     COURT_IDS.forEach((cid, i) => {
       const btn = document.createElement("button");
       btn.className = "step-tab" + (cid === currentStep ? " active" : "");
-      btn.textContent = COURT_LABELS[i];
-      btn.addEventListener("click", () => { currentStep = cid; buildStepTabs(); resizeCanvasForStep(); render(); });
+      btn.textContent = stepTabLabel(i, cid);
+      btn.addEventListener("click", () => { currentStep = cid; buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render(); });
       row.appendChild(btn);
     });
+    // BUG arreglado (Dani, voz, 2026-10-04: "cuando haces la siguiente
+    // etapa no siempre funciona bien el de ejercicios"): "Copy to next
+    // diagram" no tiene a dónde copiar estando ya en "Diagram 5" (el
+    // último de los 5, no hay un "Diagram 6") -- el click no hacía NADA,
+    // sin ningún aviso ni mensaje, así que parecía que el botón estaba
+    // roto en vez de que simplemente no hubiera un "siguiente" a donde ir.
+    // Ahora se deshabilita visualmente (atenuado + tooltip) en ese caso,
+    // en vez de fingir que funciona y quedarse callado.
+    if (els.copyStepBtn) {
+      const isLast = currentStep === COURT_IDS[COURT_IDS.length - 1];
+      els.copyStepBtn.disabled = isLast;
+      els.copyStepBtn.title = isLast ? "This is already the last diagram — there's no \"next\" one to copy into." : "";
+    }
   }
 
+  function syncCourtTypeSelect() {
+    els.stepCourtType.value = diagramCourtTypes[currentStep] || "half";
+  }
+  els.stepCourtType.addEventListener("change", () => {
+    diagramCourtTypes[currentStep] = els.stepCourtType.value;
+    buildStepTabs(); resizeCanvasForStep(); render();
+  });
+
   function resizeCanvasForStep() {
-    [cssW, cssH] = CANVAS_SIZES[COURT_TYPES[currentStep]];
+    [cssW, cssH] = CANVAS_SIZES[diagramCourtTypes[currentStep] || "half"];
     ctx = setupHiDPICanvas(els.canvas, cssW, cssH);
   }
 
@@ -1116,7 +1196,7 @@
   // Fonds de terrain (visuels seulement, jamais exportés)
   // -----------------------------------------------------------------------
   function drawBackground() {
-    drawCourtBackground(ctx, els.canvas, COURT_TYPES[currentStep], cssW, cssH);
+    drawCourtBackground(ctx, els.canvas, diagramCourtTypes[currentStep] || "half", cssW, cssH);
   }
 
   function toPx(x, y) { return [x * cssW, y * cssH]; }
@@ -1190,8 +1270,26 @@
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
   }
+  // BUG arreglado (Dani, voz, 2026-10-04: "el botón de borrar elemento no
+  // funciona"): una "zone" (rectángulo resaltado) guarda su ESQUINA
+  // superior-izquierda en `el.x`/`el.y`, no su centro -- esta función
+  // trataba esa esquina como si fuera un punto normal (jugador, cono...)
+  // y solo la "seleccionaba" si se hacía clic a menos de 0.06 de esa
+  // esquina EXACTA. Hacer clic en cualquier otro punto del rectángulo
+  // (lo normal: el centro, o cualquier sitio dentro) no encontraba nada
+  // que seleccionar -- así que "🗑 Delete element" no tenía nada que
+  // borrar y parecía que el botón simplemente no funcionaba, para una
+  // zone en concreto. Ahora, para una zone, se comprueba si (x,y) cae
+  // DENTRO del rectángulo (con un pequeño margen); el resto de elementos
+  // (jugador, cono, balón...) sigue igual que siempre.
   function elementAt(x, y) {
-    return currentElements().find((el) => el.x !== undefined && Math.hypot(el.x - x, el.y - y) < 0.06);
+    return currentElements().find((el) => {
+      if (el.type === "zone") {
+        const pad = 0.015;
+        return x >= el.x - pad && x <= el.x + el.w + pad && y >= el.y - pad && y <= el.y + el.h + pad;
+      }
+      return el.x !== undefined && Math.hypot(el.x - x, el.y - y) < 0.06;
+    });
   }
   // Distancia de un punto al segmento [x1,y1]-[x2,y2] -- para poder
   // seleccionar una flecha/pase/pantalla haciendo clic CERCA de la
@@ -1225,15 +1323,28 @@
       // selecciona (para poder borrarla) pero no se arrastra de un
       // clic, sus dos extremos no tienen una sola posición que mover.
       dragging = hit && hit.x !== undefined ? hit : null;
+      dragOffset = dragging && dragging.type === "zone" ? { dx: dragging.x - x, dy: dragging.y - y } : { dx: 0, dy: 0 };
       render();
       return;
     }
     if (["player","defender","coach","cone","ball","post","handoff"].includes(activeTool)) {
       const el = { type: activeTool, x, y, color: els.colorSelect.value };
-      // Même auto-numérotation que dans Play design : attaque et défense
-      // comptent chacune à partir de 1, séparément.
-      if (activeTool === "player") { el.label = String(pointCounters.nextPlayerNum); pointCounters.nextPlayerNum++; }
-      else if (activeTool === "defender") { el.label = String(pointCounters.nextDefenderNum); pointCounters.nextDefenderNum++; }
+      // BUG arreglado (Dani, voz, 2026-10-04: "cuando clicas jugadores...
+      // uno te dice el jugador o el número y el otro no te dice nada"):
+      // Play design SÍ preguntaba el número al colocar un jugador/defensor
+      // (prompt con el siguiente número como valor por defecto, editable
+      // ahí mismo); aquí se asignaba el siguiente número en silencio, sin
+      // preguntar nada -- la auto-numeración era la MISMA, solo que un
+      // editor avisaba y el otro no. Ahora pregunta igual que en Play
+      // design; cancelar el prompt cancela la colocación (no se añade
+      // nada), igual que allí.
+      if (activeTool === "player" || activeTool === "defender") {
+        const counterKey = activeTool === "player" ? "nextPlayerNum" : "nextDefenderNum";
+        const label = prompt("Number/label for this " + activeTool + ":", String(pointCounters[counterKey]));
+        if (label === null) return; // cancelado -- no se coloca nada
+        el.label = label.trim();
+        pointCounters[counterKey]++;
+      }
       currentElements().push(el);
       render();
       return;
@@ -1246,7 +1357,7 @@
     if (!dragging && !drawingFrom) return;
     e.preventDefault();
     const { x, y } = eventToFraction(e);
-    if (dragging) { dragging.x = Math.min(0.97, Math.max(0.03, x)); dragging.y = Math.min(0.97, Math.max(0.03, y)); render(); }
+    if (dragging) { dragging.x = Math.min(0.97, Math.max(0.03, x + dragOffset.dx)); dragging.y = Math.min(0.97, Math.max(0.03, y + dragOffset.dy)); render(); }
     else if (activeTool === "zone") {
       render();
       drawZoneElement(ctx, toPx, els.canvas, { x: Math.min(drawingFrom.x, x), y: Math.min(drawingFrom.y, y), w: Math.abs(x - drawingFrom.x), h: Math.abs(y - drawingFrom.y), color: els.colorSelect.value });
@@ -1371,11 +1482,21 @@
     // en silencio (así quedó decidido en la ronda 30, para que usar el
     // botón dos veces no acumulara duplicados), pero sustituir sin avisar
     // significa que un diagrama ya trabajado se puede perder sin querer.
-    if ((diagram[nextStep] || []).length > 0 && !confirm(`${COURT_LABELS[COURT_IDS.indexOf(nextStep)]} already has something drawn on it. Replace it with a copy of ${COURT_LABELS[idx]}?`)) return;
+    if ((diagram[nextStep] || []).length > 0 && !confirm(`${stepTabLabel(COURT_IDS.indexOf(nextStep), nextStep)} already has something drawn on it. Replace it with a copy of ${stepTabLabel(idx, currentStep)}?`)) return;
     const cloned = JSON.parse(JSON.stringify(currentElements()));
     diagram[nextStep] = resolveMovementForCopy(cloned);
+    // Dani (voz, 2026-10-04): si vas a copiar lo dibujado a la siguiente
+    // pista, lo lógico es que la siguiente tenga el MISMO tipo de pista --
+    // si no, las posiciones (guardadas como fracción 0-1 del ancho/alto)
+    // se reinterpretan sobre una forma distinta y el dibujo copiado queda
+    // descolocado. Mismo criterio que "+ Add step" en Jugadas (play_design.html),
+    // que ya hace esto. Si el usuario había elegido OTRO tipo a propósito
+    // para la siguiente pista, esto se lo pisa -- pero es lo más seguro
+    // por defecto al encadenar una secuencia, que es justo para lo que
+    // existe este botón.
+    diagramCourtTypes[nextStep] = diagramCourtTypes[currentStep];
     currentStep = nextStep;
-    buildStepTabs(); resizeCanvasForStep(); render();
+    buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
   });
 
   // -----------------------------------------------------------------------
@@ -1451,6 +1572,7 @@
     els.language.value = "en"; currentTranslationGroupId = null;
     setCheckedValues("age", []); setCheckedValues("categories", []); setCheckedValues("material", []);
     diagram = {}; currentStep = "court_1";
+    diagramCourtTypes = defaultDiagramCourtTypes();
     pointCounters.nextPlayerNum = 1; pointCounters.nextDefenderNum = 1;
   }
 
@@ -1486,7 +1608,7 @@
     currentExId = null;
     resetForm();
     els.number.value = nextNumber();
-    buildStepTabs(); resizeCanvasForStep(); render();
+    buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
     els.editorArea.style.display = "block";
     document.getElementById("delete-ex-btn").style.display = "none";
     document.getElementById("save-ex-btn").style.display = "inline-block";
@@ -1514,6 +1636,7 @@
     else { createdByEl.style.display = "none"; }
     setCheckedValues("age", e.age); setCheckedValues("categories", e.categories); setCheckedValues("material", e.material);
     diagram = e.diagram || {};
+    diagramCourtTypes = Object.assign(defaultDiagramCourtTypes(), e.court_types || {});
     currentStep = "court_1";
     // Continue la numérotation là où l'ejercicio l'avait laissée --
     // même logique que Play design.
@@ -1524,7 +1647,7 @@
       if (el.type === "player" && n >= pointCounters.nextPlayerNum) pointCounters.nextPlayerNum = n + 1;
       if (el.type === "defender" && n >= pointCounters.nextDefenderNum) pointCounters.nextDefenderNum = n + 1;
     }));
-    buildStepTabs(); resizeCanvasForStep(); render();
+    buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
     els.editorArea.style.display = "block";
     resetPdfPreview();
     const owned = e.organization_id === currentOrgId;
@@ -1572,6 +1695,10 @@
       visibility: els.visibility.value,
       language: els.language.value,
       diagram,
+      // Dani (voz, 2026-10-04): el tipo de pista de cada uno de los 5
+      // diagramas (antes fijo, ver court-diagram.js COURT_TYPES) ahora se
+      // guarda por ejercicio -- columna nueva, step90_exercise_diagram_court_types.sql.
+      court_types: diagramCourtTypes,
     };
     // Un ejercicio nuevo, escrito desde cero, empieza su propio grupo de
     // traducción (de momento con un solo idioma dentro). Solo cuando se
@@ -2032,7 +2159,7 @@
         <li>Every one of the 3 buttons above shows a short explainer the first time anyone at your club clicks it — reopen any of them anytime with the "❔" link next to it.</li>
         <li>Placing a player or defender on the diagram numbers them automatically (1, 2, 3…) — attack and defense count separately, same as Play design. Double-click one to change its label by hand.</li>
         <li>Anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.</li>
-        <li><strong>Court diagram section</strong> — 5 diagrams (3 half-court, 1 vertical, 1 full horizontal), each independent — they're not steps you have to fill in order. Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
+        <li><strong>Court diagram section</strong> — 5 diagrams, each independent — they're not steps you have to fill in order. Each one has its own "This diagram's court" dropdown (half court / vertical / full court) — they start half/half/half/vertical/full by default, but pick whatever you need for each, including all 5 the same, if that's clearer for what you're drawing. Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
         <li><strong>Color</strong> picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).</li>
         <li><strong>Copy to next diagram</strong> duplicates everything into the next diagram — handy when you ARE drawing a sequence: draw diagram 1, copy it forward, then just move a couple of things for diagram 2, instead of starting from scratch each time. Any movement/dribble/pass/shot arrow is applied first (the player or ball lands where the arrow pointed) and doesn't carry over itself, so diagram 2 starts from the result, ready for its own arrows.</li>
         <li><strong>🗑 Delete element</strong> — pick "Move/Select", click the player/arrow/zone/etc. you want gone, then this button (or Del/Backspace on a keyboard) removes just that one.</li>

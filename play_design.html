@@ -107,7 +107,15 @@
   h1 { font-size: 23px; margin: 8px 0 4px; display:flex; align-items:center; justify-content:space-between; }
   p.sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
 
-  .msg { margin-bottom: 14px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  /* Dani (voz, 2026-10-04): "cuando des a salvar, que te vuelve para
+     arriba" -- antes .msg vivia arriba del todo de la pagina y
+     showMessage() hacia scrollIntoView, asi que CUALQUIER mensaje (hasta
+     "Guardado correctamente") arrastraba el scroll entero hacia arriba,
+     lejos de donde estabas (p.ej. el boton Save, al final de un
+     formulario largo). Ahora .msg flota fijo cerca de abajo de la
+     pantalla -- se ve sin mover el scroll para nada, asi que
+     showMessage() ya no necesita (ni hace) scrollIntoView. */
+  .msg { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); margin: 0; padding: 12px 18px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; z-index: 400; max-width: min(460px, calc(100vw - 32px)); box-shadow: 0 10px 28px rgba(0,0,0,.18); }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
   .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 14.5px; color: var(--ink); margin-bottom: 12px; }
@@ -599,7 +607,7 @@
   // qué array (step.points o step.actions) borrarlo.
   let selectedElement = null;
 
-  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; els.msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; }
 
   function newStep() { return { courtType: "half", note: "", points: [], actions: [] }; }
   function currentStep() { return steps[currentStepIndex]; }
@@ -849,7 +857,20 @@
   // podido), solo seleccionar.
   function actionAt(x, y) {
     const step = currentStep();
-    const zoneHit = step.actions.find((a) => a.type === "zone" && Math.hypot(a.x - x, a.y - y) < 0.06);
+    // BUG arreglado (Dani, voz, 2026-10-04: "el botón de borrar elemento
+    // no funciona"): una zone guarda su esquina superior-izquierda en
+    // a.x/a.y, no su centro -- esto solo la "encontraba" si el clic caía
+    // a menos de 0.06 de esa esquina EXACTA. Clic en el centro (lo
+    // normal) o en cualquier otro punto del rectángulo no encontraba
+    // nada, así que "Delete element" no tenía nada que borrar para una
+    // zone, salvo clicando casi encima de su esquina. Ahora se comprueba
+    // si (x,y) cae DENTRO del rectángulo (con un pequeño margen). Mismo
+    // fix en exercises.html (elementAt).
+    const zoneHit = step.actions.find((a) => {
+      if (a.type !== "zone") return false;
+      const pad = 0.015;
+      return x >= a.x - pad && x <= a.x + a.w + pad && y >= a.y - pad && y <= a.y + a.h + pad;
+    });
     if (zoneHit) return zoneHit;
     return step.actions.find((a) => {
       if (!a.points || a.points.length < 2) return false;

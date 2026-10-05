@@ -50,7 +50,15 @@
      entre sí. Esto es solo una base -- donde ya había un font-size puesto
      a mano, ese sigue mandando (más específico que la clase). */
   .hint { font-size: 14px; color: var(--muted); }
-  .msg { margin-bottom: 14px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; }
+  /* Dani (voz, 2026-10-04): "cuando des a salvar, que te vuelve para
+     arriba" -- antes .msg vivia arriba del todo de la pagina y
+     showMessage() hacia scrollIntoView, asi que CUALQUIER mensaje (hasta
+     "Guardado correctamente") arrastraba el scroll entero hacia arriba,
+     lejos de donde estabas (p.ej. el boton Save, al final de un
+     formulario largo). Ahora .msg flota fijo cerca de abajo de la
+     pantalla -- se ve sin mover el scroll para nada, asi que
+     showMessage() ya no necesita (ni hace) scrollIntoView. */
+  .msg { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); margin: 0; padding: 12px 18px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; z-index: 400; max-width: min(460px, calc(100vw - 32px)); box-shadow: 0 10px 28px rgba(0,0,0,.18); }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
   .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--ink); margin-bottom: 12px; }
@@ -963,14 +971,19 @@
   let sessionRating = 0;
   let expandedRowIdx = null; // quelle ligne du plan a son éditeur time/points/variants ouvert
 
-  // A petición de Dani: añadir un ejercicio desde "Add from library" no
-  // debería saltar arriba del todo a enseñar el mensaje -- ya se ve al
-  // momento en la propia tabla "Exercises in this session", justo debajo.
-  // El resto de mensajes (guardar, errores...) se siguen desplazando a la
-  // vista como siempre; solo este caso concreto pasa `{ scroll: false }`.
+  // A petición de Dani (2026-09): añadir un ejercicio desde "Add from
+  // library" no debería saltar arriba del todo a enseñar el mensaje --
+  // ya se ve al momento en la propia tabla "Exercises in this session",
+  // justo debajo. Ese fix de entonces solo cubría ESE caso (`{ scroll:
+  // false }`), dejando "el resto de mensajes (guardar, errores...)" con
+  // el salto de siempre -- justo lo que Dani volvió a pedir arreglar
+  // ahora (2026-10-04, voz): "cuando des a salvar, que te vuelve para
+  // arriba". Con .msg ya flotando fijo (ver su CSS más arriba), ningún
+  // mensaje necesita scrollIntoView nunca más -- se deja `opts` en la
+  // firma (y se sigue aceptando `{ scroll: false }` sin romper nada) por
+  // si algún día hace falta, pero ya no hace nada por sí solo.
   function showMessage(text, type, opts) {
     els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type;
-    if (!opts || opts.scroll !== false) els.msg.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   SESSION_CATEGORIES.forEach((c) => {
