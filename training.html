@@ -3059,7 +3059,19 @@
       });
     }
 
-    doc.save(`${(els.title.value || teamFileLabel() || "session")}_${els.date.value}.pdf`);
+    // BUG arreglado (Dani, captura: dos PDFs llamados "Week 6_2026-10-05.pdf"
+    // -- el navegador le añadió "(1)" al segundo para no pisar el primero):
+    // dos equipos distintos, el mismo día, con el mismo título de sesión
+    // (algo frecuente -- "Week 6" es un título normal que cualquier coach
+    // pondría igual en cualquier equipo) daban el MISMO nombre de archivo,
+    // porque antes solo se usaba title O team, nunca los dos -- si había
+    // título, el equipo se descartaba del todo. Ahora el equipo (con
+    // categoría/género si los tiene, vía teamFileLabel() -- misma función
+    // que ya usa "Export whole notebook" para esto mismo) va siempre
+    // delante, y el título detrás si lo hay -- "U10 Boys_Week 6_2026-10-05.pdf"
+    // nunca choca con "U12 Girls_Week 6_2026-10-05.pdf".
+    const fileLabel = [teamFileLabel(), els.title.value.trim()].filter(Boolean).join("_") || "session";
+    doc.save(`${fileLabel}_${els.date.value}.pdf`);
   }
 
   // -----------------------------------------------------------------------
