@@ -544,7 +544,7 @@
                roster real del equipo que tengas abierto (siempre al día,
                no un archivo fijo que se desactualiza), lista para
                rellenar a mano y volver a subir con el botón de arriba. -->
-          <button class="btn btn-secondary" id="download-template-btn" title="Descarga una plantilla .xlsx ya armada con el roster de este equipo -- rellenala durante el partido y subila con 'Import stats from Excel'.">⬇️ Download Excel template</button>
+          <button class="btn btn-secondary" id="download-template-btn" title="Descarga una plantilla .xlsx ya armada con el roster de este equipo -- rellenala durante el partido y subila con 'Import stats from Excel'. Un jugador que no juegue: dejá su fila en blanco, así no se marca como que jugó.">⬇️ Download Excel template</button>
           <button class="btn btn-secondary" id="import-photo-btn">📷 Import from a photo</button>
           <select id="import-photo-lang-select" title="Sheet text is mostly in" style="padding:8px 6px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
             <option value="eng">EN</option>
@@ -2006,6 +2006,24 @@
       if (!presentFields.has("points") && (presentFields.has("made_1") || presentFields.has("made_2") || presentFields.has("made_3"))) {
         row.points = (row.made_1 || 0) * 1 + (row.made_2 || 0) * 2 + (row.made_3 || 0) * 3;
       }
+      // Dani (ronda 44): "el excel... si lo adapta me gustaria que no diera
+      // por hecho que si esta juega el partido" -- "Download Excel
+      // template" precarga TODO el roster en ÉQUIPE A (ronda 34), nombre y
+      // dorsal, para no escribirlos a mano. Pero eso significa que un
+      // jugador que NO jugó ese partido en concreto sigue apareciendo en
+      // el archivo igual que uno que sí jugó -- la única diferencia es que
+      // su fila de stats está vacía de verdad. Sin esto, classifyAndBuildMatchRows
+      // lo contaba igual que a cualquier otro "encontrado en el archivo" y
+      // lo marcaba Present solo por estar precargado, no por haber jugado.
+      // `has_stat_data` distingue las dos cosas: true si ALGUNA columna de
+      // stats de verdad tiene algo escrito (incluido un "0" a propósito --
+      // eso SÍ cuenta, es una señal real de "jugó pero no sumó nada"),
+      // false si la fila sigue exactamente como la dejó la plantilla
+      // (nombre + dorsal, nada más). Se usa más abajo para no contar esas
+      // filas como "jugó" -- ver classifyAndBuildMatchRows.
+      const STAT_DATA_KEYS = ["minutes", "points", "rebounds", "assists", "fouls", "periods_played", "made_1", "made_2", "made_3"];
+      row.has_stat_data = STAT_DATA_KEYS.some((k) => presentFields.has(k) && String(r[k] || "").trim() !== "")
+        || Object.keys(rCustom).some((k) => String(rCustom[k] || "").trim() !== "");
       rows.push(row);
     });
     return rows;
@@ -2055,7 +2073,12 @@
   // ya NO usa stripRawMatchFields (que tira jersey_number) -- solo saca
   // raw_name, que se reemplaza por player_name.
   function toOpponentRow(row) {
-    const { raw_name, ...rest } = row;
+    // has_stat_data (ronda 44) es solo una marca interna para decidir si
+    // una fila de NUESTRO roster precargado cuenta como "jugó" -- el
+    // rival nunca viene precargado en la plantilla (14 filas en blanco,
+    // sin nombres), así que esto no le aplica; se descarta aquí para que
+    // no se cuele como columna suelta en match_opponent_stats.
+    const { raw_name, has_stat_data, ...rest } = row;
     return { player_name: raw_name, ...rest };
   }
 
@@ -2170,6 +2193,12 @@
     const playerRows = [];
     const opponentRows = [];
     let unmatchedCount = 0;
+    // Dani, ronda 44: cuántas filas matcheadas por nombre/dorsal se
+    // descartaron por no tener ningún dato de stats real (ver
+    // has_stat_data más arriba) -- solo para poder dar un mensaje de error
+    // más preciso si TODAS las filas de "nuestro" bloque resultan vacías
+    // (plantilla recién descargada, reimportada sin tocar nada).
+    let blankMatchedCount = 0;
     // Dani, ronda 32: posición (0 = primer bloque de la hoja, 1 = segundo...)
     // del bloque que resultó ser "nuestro equipo" -- para poder relacionarlo
     // con "Équipe A"/"Équipe B" del bloque de información general más
@@ -2182,7 +2211,19 @@
       if (isSingleBlock || b.rate >= OWN_TEAM_MATCH_RATE) {
         // Único bloque de la hoja (de siempre, nada nuevo aquí), o
         // claramente nuestro equipo (nombre + dorsal juntos).
-        playerRows.push(...b.matchedRows);
+        // Dani, ronda 44: de las filas que SÍ matchearon con el roster,
+        // solo las que tienen algún dato real de stats se cuentan como
+        // "jugó" -- una fila que sigue exactamente como la dejó la
+        // plantilla (nombre + dorsal precargados, nada más escrito) se
+        // descarta aquí, ANTES de llegar a importParsedStatsIntoMatch:
+        // así ni se le escribe una fila de stats a 0 (si ya tenía algo
+        // guardado de antes, se queda como estaba) ni cuenta para
+        // "Present" (applyPresentFromImport la deja fuera del archivo,
+        // es decir Absent -- igual que si el jugador no apareciera en la
+        // hoja en absoluto).
+        const withData = b.matchedRows.filter((r) => r.has_stat_data);
+        blankMatchedCount += b.matchedRows.length - withData.length;
+        playerRows.push(...withData.map(({ has_stat_data, ...rest }) => rest));
         unmatchedCount += b.stillUnmatched.length;
         ownBlockPosition = idx;
         ownBlockCount++;
@@ -2208,7 +2249,7 @@
       }
     });
 
-    return { playerRows, opponentRows, unmatchedCount, ownBlockPosition: ownBlockCount === 1 ? ownBlockPosition : null };
+    return { playerRows, opponentRows, unmatchedCount, blankMatchedCount, ownBlockPosition: ownBlockCount === 1 ? ownBlockPosition : null };
   }
 
   // Dani, ronda 32: a petición tuya -- la hoja que generó ChatGPT trae,
@@ -2542,7 +2583,10 @@
       "Celdas vacías: completá durante el partido. \"Points total\" se calcula solo a partir de " +
       "1 pt/2 pts/3 pts (o escribí el número directo ahí, también funciona). No hace falta que los " +
       "nombres coincidan letra por letra -- apodos también funcionan, y el dorsal (\"N°\") sirve de " +
-      "respaldo. La fila TOTAL de cada equipo se suma sola. Después: Match day → \"Import stats from Excel\".",
+      "respaldo. La fila TOTAL de cada equipo se suma sola. ÉQUIPE A ya trae a todo tu roster -- un " +
+      "jugador que NO jugó este partido: dejá su fila completamente en blanco (nombre y dorsal nada " +
+      "más) y no se marcará como que jugó al importar; si jugó pero no sumó nada, escribí al menos un " +
+      "\"0\" en alguna columna suya (Periods played, por ejemplo) para que SÍ cuente. Después: Match day → \"Import stats from Excel\".",
     ]);
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -2598,6 +2642,14 @@
     const { playerRows, opponentRows } = result;
     const generalInfo = buildGeneralInfoFromSheet(sheetRows, headerIdxs, result.ownBlockPosition);
     if (playerRows.length === 0 && opponentRows.length === 0) {
+      // Dani, ronda 44: caso aparte -- si TODAS las filas de tu equipo
+      // matchearon por nombre/dorsal pero ninguna tiene ningún dato real
+      // (plantilla descargada y reimportada sin rellenar nada todavía),
+      // el error de "ninguna coincide con el roster" sería falso -- sí
+      // coinciden, solo están vacías. Mensaje aparte para ese caso.
+      if (result.blankMatchedCount > 0) {
+        throw new Error(`Found ${result.blankMatchedCount} player(s) matching ${currentTeam}'s roster, but none has any stats filled in yet -- fill in at least one column (even a "0") for whoever actually played, then import again.`);
+      }
       throw new Error(result.unmatchedCount > 0 ? `Found ${result.unmatchedCount} row(s), but none matched a name in ${currentTeam}'s roster.` : "Couldn't find a usable player name column.");
     }
     return { playerRows, opponentRows, generalInfo };
@@ -2661,7 +2713,7 @@
       // fiable que pedirle que arme una tabla de texto desde cero: solo
       // tiene que llenar celdas de una plantilla que YA tiene la
       // estructura correcta, no inventar el formato.
-      "If I also attached a spreadsheet (.xlsx) -- the \"Download Excel template\" file from this same page, blank or with this team's roster already in it -- that's my PREFERRED way to get this back: fill its cells in directly from what you read on the photo/PDF (same idea as above: my team always in the block already labelled with my team's name, whichever side of the original sheet it came from), keep its structure exactly as given (both team blocks, the header row, any formulas already there), and reply with that completed file as a downloadable .xlsx attachment instead of the text table below -- I'll re-upload it here with \"Import stats from Excel\", I don't need you to also type out the text table in that case. Only use the text-table format below if you can't return files (free plan, or a chat without file creation), or if I didn't attach that template.",
+      "If I also attached a spreadsheet (.xlsx) -- the \"Download Excel template\" file from this same page, blank or with this team's roster already in it -- that's my PREFERRED way to get this back: fill its cells in directly from what you read on the photo/PDF (same idea as above: my team always in the block already labelled with my team's name, whichever side of the original sheet it came from), keep its structure exactly as given (both team blocks, the header row, any formulas already there), and reply with that completed file as a downloadable .xlsx attachment instead of the text table below -- I'll re-upload it here with \"Import stats from Excel\", I don't need you to also type out the text table in that case. Only use the text-table format below if you can't return files (free plan, or a chat without file creation), or if I didn't attach that template. Important: that template's own team block already comes with my ENTIRE roster pre-filled (every player's name and jersey number, whether or not they played this particular game) -- for anyone who did NOT play, leave their row exactly as you found it (name/number only, every stat cell still blank), don't fill in zeros just to \"complete\" it. See the stats rule below for why that matters.",
       "",
       "For the text-table format: read it carefully -- it usually has two tables (one per team) plus some general info (competition, date, place, referee, team names, final score) written somewhere on the page. Reply with ONLY the following, in EXACTLY this format (plain text, real markdown tables with pipes, no bold, nothing before or after):",
       "",
@@ -2683,7 +2735,7 @@
       sepLine,
       "[one row per player of team B, same column order]",
       "",
-      "Rules: \"N°\" is the jersey number. \"1 pt\"/\"2 pts\"/\"3 pts\" are shots MADE of each value (not attempts) -- fill them in whenever the sheet tracks them separately. ALWAYS fill in \"Points total\" too, with the real total for that player (add up 1 pt/2 pts/3 pts yourself if you filled those in, or your best read of a running score if that's all the sheet has) -- never leave \"Points total\" blank just because you filled in the breakdown, a blank cell there is read as zero. One player per row, don't merge or skip rows, keep the header row as given. If you're unsure about a specific number, still give your best guess rather than leaving it empty, but you can add a short confidence note in a line starting with \"NOTES:\" at the very end, outside both tables.",
+      "Rules: \"N°\" is the jersey number. \"1 pt\"/\"2 pts\"/\"3 pts\" are shots MADE of each value (not attempts) -- fill them in whenever the sheet tracks them separately. For any player who actually took part in the game, ALWAYS fill in \"Points total\" too, with the real total for that player (add up 1 pt/2 pts/3 pts yourself if you filled those in, or your best read of a running score if that's all the sheet has) -- never leave \"Points total\" blank just because you filled in the breakdown, a blank cell there is read as zero. The one exception: if a player is listed (name/jersey number) but never actually entered the game -- every stat column genuinely blank on the sheet itself, or pre-filled from my roster but untouched -- leave EVERY stat cell in their row blank, including \"Points total\": don't invent a \"0\" just to fill it in. A row with every stat cell blank is read as \"didn't play\"; a row with at least one real number, even a deliberate 0, is read as \"played\" -- so a made-up zero would wrongly mark someone as having played when they didn't. One player per row, don't merge or skip rows, keep the header row as given. If you're unsure about a specific number for someone who DID play, still give your best guess rather than leaving it empty, but you can add a short confidence note in a line starting with \"NOTES:\" at the very end, outside both tables.",
       "",
       "Some official federation sheets don't have a simple per-player points column at all -- instead they have a \"running score\" grid: one column of small numbered boxes PER TEAM, filled in order as the game goes, one box per point scored (not per basket). If you see one of these, read it using the standard FIBA scorer convention: a diagonal slash through a box = a 2-point field goal; a small filled dot (•) = a free throw (1 point); a circled jersey number next to the slash = a 3-point field goal instead of a 2. The ink color often alternates by quarter (e.g. red for Q1/Q3, blue or black for Q2/Q4) -- that's only for the human scorer's own reference, ignore it, it doesn't change the stats. For each player, count how many points their marked boxes add up to (1 per dot, 2 per plain slash, 3 per slash-with-circle) to get \"1 pt\"/\"2 pts\"/\"3 pts\"/\"Points total\" -- same columns as above, this is just a different way of reading the same information, not a different table. Afterwards, double-check your own reading: add up all of Team A's player points and compare to Team A's final score (same for Team B) -- if your count doesn't match the final score printed on the sheet, don't silently force it to match; say so in the \"NOTES:\" line instead so it gets double-checked by hand.",
     ].join("\n");
@@ -3571,7 +3623,7 @@
         <li><strong>Call-up &amp; stats</strong> — a small legend above the table explains each column at a glance. Tick <strong>"Called up"</strong> for who's on the roster for this match (the "all" button next to that column heading selects or clears everyone in one click), and "Starter" for the five who start. Click <strong>"Present"</strong> to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.</li>
         <li><strong>"Columns ▾"</strong>, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole club. The TOTAL row at the bottom of the table adds up each visible numeric column for the whole team.</li>
         <li><strong>Opponent stats</strong>, further down, is optional — there's no roster for the other team, so you type their names (and jersey numbers) by hand if you want to track them. It now has the same columns as your own team's table (Starter, #, minutes, points, rebounds, assists, fouls, periods played, 1PM/2PM/3PM, and your club's own custom stats), its own <strong>"Columns ▾"</strong> to show/hide/reorder them for the rival without touching your own table, and its own TOTAL row at the bottom.</li>
-        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, jersey number, minutes/points/rebounds/assists/fouls, periods played, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away, including their jersey numbers. A successful import also sets <strong>"Present"</strong> for the whole roster: players found in the file are marked Present, everyone else on the roster is marked Absent (overwriting whatever was there before) — and, when the file has a general-info block (competition, date, location, referee, teams, final score), it fills in any empty fields up at the top too, without touching anything you already typed by hand (except the date, which always gets updated). <strong>"Download Excel template"</strong> gives you a ready-to-fill .xlsx built from this team's actual roster (names and jersey numbers already in place), with the SAME full set of columns for both your team and the rival's (plus your club's custom stats) and a TOTAL row with live formulas for each — fill it in during the game (or send it to whoever's keeping score) and import it straight after. <strong>"Fill in with AI"</strong> is an alternative to "Import from a photo" for a hard photo or PDF (handwriting, a busy table, or an official federation sheet with a "running score" point grid instead of a simple column — the prompt explains how to read that grid too, and it figures out which team on the sheet is yours by name rather than assuming it's always listed first): it gives you a ready-made prompt to copy into any AI chat that reads images and PDFs (ChatGPT, Claude…) — attach your photo or PDF there, paste the reply back, and it's read through the exact same engine as an Excel file. If that AI chat can also create/edit files (paid ChatGPT or Claude), you can instead also attach the file from "⬇️ Download Excel template", have the AI fill it in directly, and just re-upload the finished .xlsx with "Import stats from Excel" — no pasting needed. PlayPivot never calls any AI itself; you do the copy-pasting (or file up/download) between the two tabs. <strong>"Export to PDF"</strong> and <strong>"Print blank sheet"</strong> (filled and empty versions of the same sheet) now print exactly the columns each table is showing — whatever you've got ticked on in "Columns ▾" for your team and for the rival, including "Called up"/"Present"/"Starter" if those are on, in the same order, with both TOTAL rows — nothing more, nothing hidden. The sheet prints in portrait (vertical), so it's easier to hold on a clipboard during the game; with a lot of columns on at once, text that doesn't fit shrinks or gets trimmed with "…" rather than overlapping the next column — if a table feels too packed on paper, hide a column or two from "Columns ▾" first. Both also end with a <strong>"Comments"</strong> box to write on by hand — pre-filled with whatever's in the "Comments" field up in General info, if anything.</li>
+        <li>Fill in everything above, then <strong>"Save match details"</strong> at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together. <strong>"Import stats from Excel"</strong>, next to it, reads a file (name, jersey number, minutes/points/rebounds/assists/fouls, periods played, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away, including their jersey numbers. A successful import also sets <strong>"Present"</strong> for the whole roster: players found in the file <em>with at least one real stat filled in</em> are marked Present, everyone else on the roster is marked Absent (overwriting whatever was there before) — and, when the file has a general-info block (competition, date, location, referee, teams, final score), it fills in any empty fields up at the top too, without touching anything you already typed by hand (except the date, which always gets updated). <strong>"Download Excel template"</strong> gives you a ready-to-fill .xlsx built from this team's actual roster (names and jersey numbers already in place), with the SAME full set of columns for both your team and the rival's (plus your club's custom stats) and a TOTAL row with live formulas for each — fill it in during the game (or send it to whoever's keeping score) and import it straight after. Since that template pre-fills your whole roster whether or not each player actually plays that match, a row you leave completely untouched (name/number only, no stats) is read as "didn't play" on import, not "played with nothing to show" — so someone who sits the game out the whole time doesn't get wrongly marked Present just for being listed. If a player did play but genuinely has zero of everything, jot a deliberate "0" somewhere in their row (Periods played works well) so it counts as real data. <strong>"Fill in with AI"</strong> is an alternative to "Import from a photo" for a hard photo or PDF (handwriting, a busy table, or an official federation sheet with a "running score" point grid instead of a simple column — the prompt explains how to read that grid too, and it figures out which team on the sheet is yours by name rather than assuming it's always listed first): it gives you a ready-made prompt to copy into any AI chat that reads images and PDFs (ChatGPT, Claude…) — attach your photo or PDF there, paste the reply back, and it's read through the exact same engine as an Excel file. If that AI chat can also create/edit files (paid ChatGPT or Claude), you can instead also attach the file from "⬇️ Download Excel template", have the AI fill it in directly, and just re-upload the finished .xlsx with "Import stats from Excel" — no pasting needed. PlayPivot never calls any AI itself; you do the copy-pasting (or file up/download) between the two tabs. <strong>"Export to PDF"</strong> and <strong>"Print blank sheet"</strong> (filled and empty versions of the same sheet) now print exactly the columns each table is showing — whatever you've got ticked on in "Columns ▾" for your team and for the rival, including "Called up"/"Present"/"Starter" if those are on, in the same order, with both TOTAL rows — nothing more, nothing hidden. The sheet prints in portrait (vertical), so it's easier to hold on a clipboard during the game; with a lot of columns on at once, text that doesn't fit shrinks or gets trimmed with "…" rather than overlapping the next column — if a table feels too packed on paper, hide a column or two from "Columns ▾" first. Both also end with a <strong>"Comments"</strong> box to write on by hand — pre-filled with whatever's in the "Comments" field up in General info, if anything.</li>
       </ol>`;
     box.style.display = "block";
   });
