@@ -1166,10 +1166,28 @@
     }
   }
 
+  // -----------------------------------------------------------------------
+  // Dani (2026-10-12): borrar un jugador que ya jugó partidos le hacía
+  // desaparecer de esos partidos -- la causa real es que, en la base de
+  // datos, sus estadísticas/asistencia/evaluaciones dependían de que su
+  // fila en "players" existiera ("on delete cascade"): borrar al jugador
+  // borraba TODO su historial con él, sin aviso. database/step92 cambia
+  // esa relación a RESTRICT, así que ahora Postgres rechaza el delete
+  // (error de clave foránea, código 23503) si el jugador tiene cualquier
+  // partido/entreno/asistencia/evaluación detrás -- en vez de dejar que
+  // ese historial desaparezca en silencio.
+  // -----------------------------------------------------------------------
   async function deletePlayer(p) {
     if (!confirm(`Delete ${p.first_name} ${p.last_name}?`)) return;
     const { error } = await supabaseClient.from("players").delete().eq("id", p.id);
-    if (error) { showMessage(error.message, "error"); return; }
+    if (error) {
+      if (error.code === "23503") {
+        showMessage(`${p.first_name} ${p.last_name} has match, training, attendance or assessment history — deleting them would break those records. Uncheck "Active" instead to take them off the current roster while keeping their history.`, "error");
+      } else {
+        showMessage(error.message, "error");
+      }
+      return;
+    }
     await loadPlayers();
   }
 
