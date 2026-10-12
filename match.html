@@ -503,6 +503,8 @@
             <tbody id="callup-body"></tbody>
             <tfoot><tr id="callup-total-row"></tr></tfoot>
           </table>
+          <button class="btn btn-secondary" id="add-own-player-btn" style="margin-top:-12px;">+ Add player</button>
+          <p class="hint" style="margin-top:6px;">For someone not on this team's roster — a guest, or a call-up for just this match. Won't show up in your normal Roster list, but their stats here still count.</p>
         </div>
 
         <!-- Dani (voz, ronda 35): "hay que meter el numero de los oponentes...
@@ -1623,6 +1625,7 @@
     document.getElementById("save-match-btn").style.display = owned ? "inline-block" : "none";
     document.getElementById("delete-match-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
     document.getElementById("add-opponent-row-btn").style.display = owned ? "inline-block" : "none";
+    document.getElementById("add-own-player-btn").style.display = owned ? "inline-block" : "none";
     [els.matchDate, els.matchOpponent, els.matchLocation, els.matchComments, els.matchHomeAway, els.matchNumber, els.matchReferee, els.matchCoach1, els.matchCoach2, els.matchCoach3, els.matchTeamScore, els.matchOpponentScore, els.matchVisibility, els.matchLanguage]
       .forEach((el) => (el.disabled = !owned));
     if (!owned) showMessage("This match belongs to another club — you can look, but not edit or save changes.", "success");
@@ -1892,6 +1895,45 @@
     if (!currentMatchId && !els.matchArea.classList.contains("open")) { showMessage("Open or start a match first.", "error"); return; }
     opponentStats.push({ player_name: "", jersey_number: "", started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} });
     renderOpponentStats();
+  });
+
+  // -----------------------------------------------------------------------
+  // Dani (voz, 2026-10-12): "¿puedes poner un botón en Match day para
+  // añadir jugador a la mano? Como en el oponente" -- a diferencia del
+  // rival (texto libre, sin roster), un jugador PROPIO siempre necesita
+  // una fila real en "players" (match_player_stats.player_id es una
+  // clave foránea, no puede ser texto suelto). Para que de verdad se
+  // sienta "como el rival" -- de un solo partido, sin ensuciar el roster
+  // -- se le pregunta nombre/dorsal con prompt() (mismo patrón ya usado
+  // en Roster para renombrar un equipo), se crea esa fila marcada
+  // guest=true + active=false (step93 -- Roster.html la excluye de su
+  // lista por completo, a diferencia de un jugador simplemente dado de
+  // baja), y se agrega a matchGhostPlayers -- reusa tal cual toda la
+  // lógica de "jugador fuera del roster actual" que ya pinta la tabla de
+  // convocatoria, la fila TOTAL y el PDF del partido (ver
+  // matchGhostPlayers más arriba).
+  // -----------------------------------------------------------------------
+  document.getElementById("add-own-player-btn").addEventListener("click", async () => {
+    if (!currentMatchId && !els.matchArea.classList.contains("open")) { showMessage("Open or start a match first.", "error"); return; }
+    if (currentMatchId && !currentMatchOwned) { showMessage("This match belongs to another club — you can't add players to it.", "error"); return; }
+    if (!currentOrgId || !currentSeason || !currentTeam) { showMessage("Pick a season/team above first.", "error"); return; }
+    const first_name = (prompt("First name (for a guest or call-up playing just this match -- won't show up in your normal Roster list):") || "").trim();
+    if (!first_name) return;
+    const last_name = (prompt(`Last name for ${first_name}:`) || "").trim();
+    if (!last_name) return;
+    const jersey_number = (prompt(`Jersey number for ${first_name} ${last_name} (optional -- leave blank if unknown):`) || "").trim() || null;
+    const { data, error } = await supabaseClient.from("players").insert({
+      organization_id: currentOrgId, season: currentSeason, team: currentTeam,
+      team_category: currentTeamCategory || null, team_gender: currentTeamGender || null,
+      first_name, last_name, jersey_number, active: false, guest: true,
+    }).select("id, first_name, last_name, jersey_number").single();
+    if (error) { showMessage(error.message, "error"); return; }
+    matchGhostPlayers = matchGhostPlayers
+      .concat([{ ...data, __ghost: true }])
+      .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`));
+    statsByPlayer[data.id] = { called_up: true, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} };
+    renderCallupTable();
+    showMessage(`${first_name} ${last_name} added for this match.`, "success");
   });
 
   // -----------------------------------------------------------------------

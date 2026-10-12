@@ -1001,10 +1001,14 @@
   // ---------------------------------------------------------------------
   async function loadPlayers() {
     if (!currentOrgId || !currentSeason || !currentTeam) return;
+    // Dani (2026-10-12, step93): "guest" = alguien agregado desde Match day
+    // para un solo partido suelto, nunca realmente del equipo -- se excluye
+    // de esta lista a propósito (distinto de "active=false", que SÍ sigue
+    // apareciendo acá en gris -- ver el comentario de step93_guest_players.sql).
     const { data, error } = await filterByGender(filterByCategory(
       supabaseClient
         .from("players").select("*")
-        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
+        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam).eq("guest", false),
       currentTeamCategory
     ), currentTeamGender).order("last_name");
     if (error) { showMessage(error.message, "error"); return; }
