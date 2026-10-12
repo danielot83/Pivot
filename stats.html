@@ -220,8 +220,16 @@
   .chart-legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
   .chart-legend-item { display: flex; align-items: center; gap: 6px; }
   .chart-legend-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
-  text.chart-axis-y, text.chart-axis-x { font-size: 4px; fill: var(--muted); font-family: inherit; }
   .chart-gridline { stroke: var(--line); stroke-width: 0.3; }
+  /* Etiquetas de los ejes del gráfico de tendencia: HTML normal puesto
+     ENCIMA del SVG (no <text> dentro de él) -- ver el comentario largo en
+     renderTrendChart() sobre por qué el texto dentro de un viewBox con
+     preserveAspectRatio="none" salía con un tamaño real impredecible. */
+  .trend-axis-label { position: absolute; font-size: 11px; color: var(--muted); white-space: nowrap; line-height: 1; pointer-events: none; }
+  .trend-axis-y { transform: translate(-100%, -50%); }
+  .trend-axis-x-left { transform: translate(0, 0); }
+  .trend-axis-x-center { transform: translate(-50%, 0); }
+  .trend-axis-x-right { transform: translate(-100%, 0); }
   .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
   .bar-row:last-child { margin-bottom: 0; }
   .bar-row-label { width: 128px; flex-shrink: 0; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1101,6 +1109,9 @@
     const maxVal = niceCeil(Math.max(...allVals, 1));
     const W = 120, H = 42;
     const plotL = 18, plotR = 118, plotT = 4, plotB = 26;
+    // Alto real en px del envoltorio -- el SVG y las etiquetas HTML
+    // comparten este mismo número para que sus coordenadas coincidan.
+    const CHART_PX_HEIGHT = 220;
     const n = games.length;
     const xStep = n > 1 ? (plotR - plotL) / (n - 1) : 0;
     const xFor = (i) => plotL + xStep * i;
@@ -1108,10 +1119,33 @@
     const pathFor = (key) => games.map((g, i) => `${i === 0 ? "M" : "L"} ${xFor(i).toFixed(2)} ${yFor(g[key]).toFixed(2)}`).join(" ");
     const dotsFor = (key, color) => games.map((g, i) => (g[key] == null ? "" : `<circle cx="${xFor(i).toFixed(2)}" cy="${yFor(g[key]).toFixed(2)}" r="1" fill="${color}"><title>${escapeHtml(g.title)}: ${g[key]}</title></circle>`)).join("");
 
+    // Las etiquetas de los ejes (números/fechas) NO se dibujan dentro del
+    // SVG -- un <text> dentro de un viewBox con preserveAspectRatio="none"
+    // se escala distinto en X que en Y (el ancho real del gráfico no tiene
+    // nada que ver con sus 120x42 unidades internas), así que un
+    // font-size fijo ahí adentro sale con un tamaño real impredecible
+    // según el ancho de la pantalla -- quedaba gigante en la tuya. En vez
+    // de eso, son <span> de HTML normal puestos ENCIMA del SVG, con un
+    // font-size de verdad en píxeles (11px, fijo siempre, sin importar el
+    // ancho de la tarjeta) -- posicionados en el mismo sitio con
+    // porcentajes (eje X, relativo al ancho) y píxeles (eje Y, relativo a
+    // CHART_PX_HEIGHT, el mismo alto fijo que ya tenía el SVG).
+    const xPct = (x) => (x / W * 100).toFixed(2) + "%";
+    const yPx = (y) => (y / H * CHART_PX_HEIGHT).toFixed(1) + "px";
+
     const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => maxVal * f);
-    const gridlines = yTicks.map((v) => `<line class="chart-gridline" x1="${plotL}" x2="${plotR}" y1="${yFor(v).toFixed(2)}" y2="${yFor(v).toFixed(2)}"/><text class="chart-axis-y" x="${plotL - 2}" y="${(yFor(v) + 1.3).toFixed(2)}" text-anchor="end" font-size="4">${v % 1 === 0 ? v : v.toFixed(1)}</text>`).join("");
+    const gridlines = yTicks.map((v) => `<line class="chart-gridline" x1="${plotL}" x2="${plotR}" y1="${yFor(v).toFixed(2)}" y2="${yFor(v).toFixed(2)}"/>`).join("");
+    const yLabelsHtml = yTicks.map((v) => `<span class="trend-axis-label trend-axis-y" style="top:${yPx(yFor(v))}; left:${xPct(plotL - 2)};">${v % 1 === 0 ? v : v.toFixed(1)}</span>`).join("");
+
     const xLabelStep = Math.max(1, Math.ceil(n / 6));
-    const xLabels = games.map((g, i) => (i % xLabelStep === 0 || i === n - 1) ? `<text class="chart-axis-x" x="${xFor(i).toFixed(2)}" y="${plotB + 5}" text-anchor="middle" font-size="4">${escapeHtml(g.label)}</text>` : "").join("");
+    // El primer/último rótulo se anclan hacia adentro (izquierda/derecha)
+    // en vez de centrados, para que no se salgan del gráfico y se corten
+    // -- los del medio sí quedan centrados sobre su punto.
+    const xLabelsHtml = games.map((g, i) => {
+      if (!(i % xLabelStep === 0 || i === n - 1)) return "";
+      const align = i === 0 ? "left" : i === n - 1 ? "right" : "center";
+      return `<span class="trend-axis-label trend-axis-x trend-axis-x-${align}" style="left:${xPct(xFor(i))}; top:${yPx(plotB + 4)};">${escapeHtml(g.label)}</span>`;
+    }).join("");
 
     els.trendChartArea.innerHTML = `
       ${series.hasOpp ? `
@@ -1119,14 +1153,17 @@
         <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:var(--accent)"></span>${escapeHtml(series.ownLabel)}</span>
         <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:#2a2456"></span>${escapeHtml(series.oppLabel)}</span>
       </div>` : ""}
-      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:220px; display:block;">
-        ${gridlines}
-        <path d="${pathFor("own")}" fill="none" stroke="var(--accent)" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>
-        ${series.hasOpp ? `<path d="${pathFor("opp")}" fill="none" stroke="#2a2456" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
-        ${dotsFor("own", "var(--accent)")}
-        ${series.hasOpp ? dotsFor("opp", "#2a2456") : ""}
-        ${xLabels}
-      </svg>
+      <div style="position:relative; width:100%; height:${CHART_PX_HEIGHT}px;">
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%; display:block;">
+          ${gridlines}
+          <path d="${pathFor("own")}" fill="none" stroke="var(--accent)" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>
+          ${series.hasOpp ? `<path d="${pathFor("opp")}" fill="none" stroke="#2a2456" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
+          ${dotsFor("own", "var(--accent)")}
+          ${series.hasOpp ? dotsFor("opp", "#2a2456") : ""}
+        </svg>
+        ${yLabelsHtml}
+        ${xLabelsHtml}
+      </div>
       <p class="hint" style="margin-top:6px;">Hover a dot to see which match it is. Left = earliest, right = most recent.${series.hasOpp ? "" : " No opponent data logged for this stat yet, so only your own team is shown."}</p>
     `;
   }
