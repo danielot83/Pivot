@@ -220,7 +220,7 @@
   .chart-legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
   .chart-legend-item { display: flex; align-items: center; gap: 6px; }
   .chart-legend-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
-  .chart-axis-y text, .chart-axis-x text { font-size: 4px; fill: var(--muted); }
+  text.chart-axis-y, text.chart-axis-x { font-size: 4px; fill: var(--muted); font-family: inherit; }
   .chart-gridline { stroke: var(--line); stroke-width: 0.3; }
   .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
   .bar-row:last-child { margin-bottom: 0; }
@@ -1109,9 +1109,9 @@
     const dotsFor = (key, color) => games.map((g, i) => (g[key] == null ? "" : `<circle cx="${xFor(i).toFixed(2)}" cy="${yFor(g[key]).toFixed(2)}" r="1" fill="${color}"><title>${escapeHtml(g.title)}: ${g[key]}</title></circle>`)).join("");
 
     const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => maxVal * f);
-    const gridlines = yTicks.map((v) => `<line class="chart-gridline" x1="${plotL}" x2="${plotR}" y1="${yFor(v).toFixed(2)}" y2="${yFor(v).toFixed(2)}"/><text class="chart-axis-y" x="${plotL - 2}" y="${(yFor(v) + 1.3).toFixed(2)}" text-anchor="end">${v % 1 === 0 ? v : v.toFixed(1)}</text>`).join("");
+    const gridlines = yTicks.map((v) => `<line class="chart-gridline" x1="${plotL}" x2="${plotR}" y1="${yFor(v).toFixed(2)}" y2="${yFor(v).toFixed(2)}"/><text class="chart-axis-y" x="${plotL - 2}" y="${(yFor(v) + 1.3).toFixed(2)}" text-anchor="end" font-size="4">${v % 1 === 0 ? v : v.toFixed(1)}</text>`).join("");
     const xLabelStep = Math.max(1, Math.ceil(n / 6));
-    const xLabels = games.map((g, i) => (i % xLabelStep === 0 || i === n - 1) ? `<text class="chart-axis-x" x="${xFor(i).toFixed(2)}" y="${plotB + 5}" text-anchor="middle">${escapeHtml(g.label)}</text>` : "").join("");
+    const xLabels = games.map((g, i) => (i % xLabelStep === 0 || i === n - 1) ? `<text class="chart-axis-x" x="${xFor(i).toFixed(2)}" y="${plotB + 5}" text-anchor="middle" font-size="4">${escapeHtml(g.label)}</text>` : "").join("");
 
     els.trendChartArea.innerHTML = `
       ${series.hasOpp ? `
