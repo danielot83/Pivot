@@ -107,6 +107,8 @@
 
   .team-bar-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
   .team-bar-card h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 12px; }
+  .card-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .card-head-row h2 { margin: 0; }
 
   /* -------- selector de equipo/temporada, mismo look que Match day/Roster pero sin crear/editar -------- */
   .tsc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -131,6 +133,58 @@
   .season-pill.active span { color: var(--accent-deep); font-weight: 600; }
   .tsc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
   @media (max-width: 700px) { .tsc-cols { grid-template-columns: 1fr; } }
+
+  /* -------- tarjeta "equipo elegido" -- mismo estilo que Match day/Roster -------- */
+  .tsc-selected-card {
+    background: var(--accent-tint); border-radius: 10px; padding: 14px 18px; margin-top: 18px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .tsc-selected-card > .icon { width: 56px; height: 56px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--card); color: var(--accent-deep); }
+  .tsc-selected-card > .icon svg { width: 28px; height: 28px; }
+  .tsc-selected-name { font-weight: 700; font-size: 16px; color: var(--ink); }
+  .tsc-selected-sub { font-size: 13px; color: var(--accent-deep); margin-top: 2px; margin-bottom: 10px; }
+  .tsc-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px 16px; }
+  .tsc-chip { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+  .tsc-chip .icon { color: var(--accent-deep); flex-shrink: 0; }
+  .tsc-chip strong { display: block; font-size: 14.5px; }
+  .tsc-chip span { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  /* -------- qué partidos entran en las cuentas -------- */
+  .match-picker-summary-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .match-picker-toggle { cursor: pointer; color: var(--accent-deep); font-weight: 600; font-size: 13.5px; }
+  .match-picker-toggle summary { list-style: none; cursor: pointer; color: var(--accent-deep); font-weight: 600; font-size: 13.5px; }
+  .match-picker-toggle summary::-webkit-details-marker { display: none; }
+  .match-picker-actions { display: flex; gap: 14px; padding: 10px 2px 6px; font-size: 12.5px; }
+  .match-picker-actions button { background: none; border: none; color: var(--accent-deep); font-weight: 600; cursor: pointer; padding: 0; }
+  .match-picker-actions button:hover { text-decoration: underline; }
+  .match-picker-list { border: 1px solid var(--line); border-radius: 8px; max-height: 240px; overflow-y: auto; }
+  .match-picker-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
+  .match-picker-row:last-child { border-bottom: none; }
+  .match-picker-row:hover { background: var(--paper); }
+  .match-picker-row .mp-opp { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .match-picker-row .mp-score { color: var(--muted); font-size: 12.5px; flex-shrink: 0; }
+
+  /* -------- menú de columnas (qué stats se muestran) -------- */
+  .columns-menu { position: relative; }
+  .columns-panel {
+    display: none; position: absolute; top: 100%; right: 0; margin-top: 6px; z-index: 5;
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08); min-width: 220px; max-height: 360px; overflow-y: auto;
+  }
+  .columns-panel.open { display: block; }
+  .columns-panel label { display: flex; align-items: center; gap: 8px; font-size: 14.5px; padding: 4px 0; cursor: pointer; white-space: nowrap; }
+
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  /* -------- selector de qué estadística se grafica/rankea -------- */
+  .pill-choice-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pill-choice { padding: 6px 12px; border-radius: 100px; border: 1px solid var(--line); background: var(--card); font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+  .pill-choice:hover { border-color: var(--accent); }
+  .pill-choice.active { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-deep); }
 
   table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 14px; margin-bottom: 0; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -166,6 +220,8 @@
   .chart-legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
   .chart-legend-item { display: flex; align-items: center; gap: 6px; }
   .chart-legend-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+  .chart-axis-y text, .chart-axis-x text { font-size: 4px; fill: var(--muted); }
+  .chart-gridline { stroke: var(--line); stroke-width: 0.3; }
   .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
   .bar-row:last-child { margin-bottom: 0; }
   .bar-row-label { width: 128px; flex-shrink: 0; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -297,24 +353,61 @@
         <div id="season-picker"></div>
       </div>
     </div>
+
+    <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
+      <div class="icon"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
+      <div style="flex:1; min-width:0;">
+        <div class="tsc-selected-name" id="tsc-selected-name"></div>
+        <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
+        <div class="tsc-chips">
+          <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><div><strong id="tsc-chip-matches">0</strong><span>Matches</span></div></div>
+          <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.3 4 4.8"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.3-4 4.8"/></svg></span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
+          <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg></span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="match-picker-summary-row" id="match-picker-area" style="display:none;">
+      <details class="match-picker-toggle" id="match-picker-details" style="flex:1; min-width:100%;">
+        <summary id="match-picker-summary">Matches included: all</summary>
+        <div class="match-picker-actions">
+          <button type="button" id="match-picker-select-all">Select all</button>
+          <button type="button" id="match-picker-select-none">Select none</button>
+        </div>
+        <div class="match-picker-list" id="match-picker-list"></div>
+      </details>
+    </div>
   </div>
 
   <div id="stats-content" style="display:none;">
 
     <div class="team-bar-card">
-      <h2>Team summary — <span id="summary-team-label"></span></h2>
+      <div class="card-head-row">
+        <h2>Team summary — <span id="summary-team-label"></span></h2>
+        <div class="columns-menu">
+          <button type="button" class="btn btn-secondary" id="team-columns-btn">Columns ▾</button>
+          <div class="columns-panel" id="team-columns-panel"></div>
+        </div>
+      </div>
       <div id="team-record-area"></div>
     </div>
 
     <div class="team-bar-card">
       <h2>Trends over the season</h2>
-      <p class="hint" style="margin:0 0 14px;">Points scored vs. points allowed, match by match.</p>
+      <p class="hint" style="margin:0 0 10px;">Pick a stat to see it match by match. "Points" uses the official score; the others are the sum of what was logged per player (and per opponent player, if any was logged).</p>
+      <div class="pill-choice-row" id="trend-stat-picker"></div>
       <div id="trend-chart-area"></div>
     </div>
 
     <div class="team-bar-card">
-      <h2>Player averages — <span id="player-team-label"></span></h2>
-      <p class="hint" style="margin:0 0 14px;">Click a column header to sort. Only matches you can see count towards these numbers.</p>
+      <div class="card-head-row">
+        <h2>Player averages — <span id="player-team-label"></span></h2>
+        <div class="columns-menu">
+          <button type="button" class="btn btn-secondary" id="player-columns-btn">Columns ▾</button>
+          <div class="columns-panel" id="player-columns-panel"></div>
+        </div>
+      </div>
+      <p class="hint" style="margin:0 0 14px;">Click a column header to sort. GP only counts matches the player actually got on the court for (called up alone doesn't count).</p>
       <div class="table-scroll">
         <table id="player-table">
           <thead><tr id="player-table-head"></tr></thead>
@@ -325,13 +418,14 @@
     </div>
 
     <div class="team-bar-card">
-      <h2>Top scorers (points per game)</h2>
+      <h2 id="leaders-heading">Leaders</h2>
+      <div class="pill-choice-row" id="leader-stat-picker"></div>
       <div id="player-bar-chart-area"></div>
     </div>
 
     <div class="team-bar-card">
       <h2>By opponent</h2>
-      <p class="hint" style="margin:0 0 14px;">Record and scoring average against each rival this season.</p>
+      <p class="hint" style="margin:0 0 14px;">Record and scoring average against each rival this season — "PA/G" is how many points, on average, that rival has scored against you.</p>
       <div class="table-scroll">
         <table id="opponent-table">
           <thead><tr id="opponent-table-head"></tr></thead>
@@ -390,13 +484,29 @@
     playerTeamLabel: document.getElementById("player-team-label"),
     teamRecordArea: document.getElementById("team-record-area"),
     trendChartArea: document.getElementById("trend-chart-area"),
+    trendStatPicker: document.getElementById("trend-stat-picker"),
     playerTableHead: document.getElementById("player-table-head"),
     playerTableBody: document.getElementById("player-table-body"),
     playerTableEmpty: document.getElementById("player-table-empty"),
     playerBarChartArea: document.getElementById("player-bar-chart-area"),
+    leaderStatPicker: document.getElementById("leader-stat-picker"),
+    leadersHeading: document.getElementById("leaders-heading"),
     opponentTableHead: document.getElementById("opponent-table-head"),
     opponentTableBody: document.getElementById("opponent-table-body"),
     opponentTableEmpty: document.getElementById("opponent-table-empty"),
+    selectedCard: document.getElementById("tsc-selected-card"),
+    selectedName: document.getElementById("tsc-selected-name"),
+    selectedSub: document.getElementById("tsc-selected-sub"),
+    chipMatches: document.getElementById("tsc-chip-matches"),
+    chipCategory: document.getElementById("tsc-chip-category"),
+    chipGender: document.getElementById("tsc-chip-gender"),
+    matchPickerArea: document.getElementById("match-picker-area"),
+    matchPickerSummary: document.getElementById("match-picker-summary"),
+    matchPickerList: document.getElementById("match-picker-list"),
+    teamColumnsBtn: document.getElementById("team-columns-btn"),
+    teamColumnsPanel: document.getElementById("team-columns-panel"),
+    playerColumnsBtn: document.getElementById("player-columns-btn"),
+    playerColumnsPanel: document.getElementById("player-columns-panel"),
   };
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; }
@@ -413,12 +523,31 @@
   let matchFields = []; // columnas de stats personalizadas del club (match_stat_fields)
   let lastTreeRows = [];
 
-  // Último cómputo, guardado para poder re-ordenar la tabla de jugadores
-  // sin tener que volver a pedir nada a Supabase.
+  // Último fetch completo (sin filtrar por partido), guardado para poder
+  // re-aplicar el filtro de partidos / cambiar de stat en los gráficos sin
+  // volver a pedir nada a Supabase.
+  let allMatchesCache = [];
+  let allPlayerStatsCache = [];
+  let allOpponentStatsCache = [];
+  let playersByIdCache = {};
+
+  // Qué partidos entran en las cuentas -- null = todos (el caso de
+  // siempre); un Set = solo esos ids. Dani: "que sean todos los partidos,
+  // como es ahora, o solo algunos".
+  let selectedMatchIds = null;
+
+  // Qué columnas/estadísticas se muestran -- null = todas (por defecto
+  // comprensivo); un Set = solo esas. Persistido por club, porque "no
+  // tiene sentido que ponga minutos o periodos si no se loguea".
+  let visibleTeamStatKeys = null;
+  let visiblePlayerStatKeys = null;
+
   let lastPlayerRows = [];
   let playerSort = { key: "points_avg", dir: "desc" };
   let lastOpponentRows = [];
   let opponentSort = { key: "gp", dir: "desc" };
+  let trendStatKey = "points";
+  let leaderStatKey = "points";
 
   async function loadMyOrganization() {
     const { data: userData } = await supabaseClient.auth.getUser();
@@ -451,6 +580,69 @@
       .from("match_stat_fields").select("*").eq("organization_id", currentOrgId).eq("enabled", true).order("position");
     if (error) { console.error("loadMatchFields error:", error); return; }
     matchFields = data || [];
+  }
+
+  // =========================================================================
+  // Catálogo único de estadísticas -- de aquí salen las columnas de la
+  // tabla de jugadores, los tiles del resumen de equipo, y las opciones de
+  // los selectores de gráfico/leaders. Un solo sitio para añadir una
+  // estadística nueva el día de mañana.
+  // =========================================================================
+  const STAT_DEFS = [
+    { id: "points", label: "Points", short: "Pts" },
+    { id: "rebounds", label: "Rebounds", short: "Reb" },
+    { id: "assists", label: "Assists", short: "Ast" },
+    { id: "fouls", label: "Fouls", short: "Fouls" },
+    { id: "minutes", label: "Minutes", short: "Min" },
+    { id: "made_1", label: "1PM", short: "1PM" },
+    { id: "made_2", label: "2PM", short: "2PM" },
+    { id: "made_3", label: "3PM", short: "3PM" },
+    { id: "periods_played", label: "Periods played", short: "Per" },
+  ];
+  // "points/rebounds/assists/fouls" siempre traen 0 por defecto en la BD
+  // (nunca null) -- los demás son opcionales de verdad (pueden faltar en
+  // hojas viejas), así que se promedian solo sobre los partidos donde sí
+  // se registró ese dato en concreto.
+  const ALWAYS_ZERO_FIELDS = ["points", "rebounds", "assists", "fouls"];
+  const OPTIONAL_FIELDS = ["minutes", "made_1", "made_2", "made_3", "periods_played"];
+
+  function allStatDefs() {
+    return STAT_DEFS.concat(matchFields.map((f) => ({ id: "custom:" + f.key, label: f.label, short: f.label, customKey: f.key })));
+  }
+  function playerAvgField(def) { return def.customKey ? "custom_" + def.customKey : def.id + "_avg"; }
+
+  document.addEventListener("click", () => { document.querySelectorAll(".columns-panel.open").forEach((p) => p.classList.remove("open")); });
+
+  function loadVisibleSet(storageKey, allIds) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+      if (Array.isArray(saved)) { const s = new Set(saved.filter((id) => allIds.includes(id))); return s.size ? s : new Set(allIds); }
+    } catch (e) { /* almacenamiento ilegible -- no pasa nada */ }
+    return new Set(allIds); // por defecto, todo visible (lo más amplio)
+  }
+
+  function setupColumnsMenu(btnId, panelId, storageKey, getVisibleSet, setVisibleSet, onChange) {
+    const btn = document.getElementById(btnId), panel = document.getElementById(panelId);
+    const defs = allStatDefs();
+    const visible = getVisibleSet();
+    panel.innerHTML = defs.map((d) => `<label><input type="checkbox" data-key="${escapeHtml(d.id)}" ${visible.has(d.id) ? "checked" : ""}> ${escapeHtml(d.label)}</label>`).join("");
+    btn.onclick = (e) => { e.stopPropagation(); panel.classList.toggle("open"); };
+    panel.onclick = (e) => e.stopPropagation();
+    panel.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+      cb.addEventListener("change", () => {
+        const v = getVisibleSet();
+        if (cb.checked) v.add(cb.dataset.key); else v.delete(cb.dataset.key);
+        setVisibleSet(v);
+        try { localStorage.setItem(storageKey, JSON.stringify([...v])); } catch (e) { /* no pasa nada */ }
+        onChange();
+      });
+    });
+  }
+
+  function renderStatPickerRow(container, currentKey, onPick) {
+    const defs = allStatDefs();
+    container.innerHTML = defs.map((d) => `<button type="button" class="pill-choice${d.id === currentKey ? " active" : ""}" data-key="${escapeHtml(d.id)}">${escapeHtml(d.short || d.label)}</button>`).join("");
+    container.querySelectorAll(".pill-choice").forEach((btn) => btn.addEventListener("click", () => onPick(btn.dataset.key)));
   }
 
   // -----------------------------------------------------------------------
@@ -509,6 +701,11 @@
     els.currentSelection.textContent = label;
     els.summaryTeamLabel.textContent = label;
     els.playerTeamLabel.textContent = label;
+    els.selectedCard.style.display = "flex";
+    els.selectedName.textContent = team;
+    els.selectedSub.textContent = `Season ${season}`;
+    els.chipCategory.textContent = currentTeamCategory || "—";
+    els.chipGender.textContent = currentTeamGender || "—";
     if (!skipRerenderPickers) {
       const seasonsForThis = [...new Set(lastTreeRows.filter((r) => r.team === team && (r.team_category || "") === (currentTeamCategory || "") && (r.team_gender || "") === (currentTeamGender || "")).map((r) => r.season))].sort().reverse();
       renderSeasonPicker("season-picker", seasonsForThis, currentSeason, (s) => selectSeasonTeam(s, team));
@@ -520,6 +717,10 @@
 
   // =========================================================================
   // Carga de datos: partidos de la temporada/equipo elegido + sus stats.
+  // Se pide todo una vez (allMatchesCache/allPlayerStatsCache/...) y de ahí
+  // en adelante, cambiar el filtro de partidos o la estadística de un
+  // gráfico solo vuelve a calcular en el navegador, sin volver a pedir
+  // nada a Supabase.
   // =========================================================================
   async function loadAndRenderStats() {
     els.msg.className = "msg";
@@ -530,8 +731,8 @@
     ), currentTeamGender).order("date", { ascending: true });
     if (error) { showMessage("Couldn't load matches: " + (error.message || "unknown error"), "error"); console.error(error); return; }
 
-    const allMatches = matches || [];
-    const matchIds = allMatches.map((m) => m.id);
+    allMatchesCache = matches || [];
+    const matchIds = allMatchesCache.map((m) => m.id);
 
     let playerStats = [], opponentStats = [];
     if (matchIds.length) {
@@ -544,20 +745,86 @@
       playerStats = psRes.data || [];
       opponentStats = osRes.data || [];
     }
+    allPlayerStatsCache = playerStats;
+    allOpponentStatsCache = opponentStats;
 
     const playerIds = [...new Set(playerStats.map((r) => r.player_id))];
-    let playersById = {};
+    playersByIdCache = {};
     if (playerIds.length) {
       const { data: players } = await supabaseClient.from("players").select("id, first_name, last_name, jersey_number").in("id", playerIds);
-      (players || []).forEach((p) => { playersById[p.id] = p; });
+      (players || []).forEach((p) => { playersByIdCache[p.id] = p; });
     }
 
-    renderTeamSummary(allMatches, playerStats);
-    renderTrendChart(allMatches);
-    lastPlayerRows = computePlayerAverages(playerStats, playersById);
+    // Cada vez que se cambia de equipo/temporada, el filtro de partidos
+    // vuelve a "todos" -- no tendría sentido heredar una selección hecha
+    // para otro equipo.
+    selectedMatchIds = null;
+    renderMatchPicker();
+    applyFiltersAndRender();
+  }
+
+  // -----------------------------------------------------------------------
+  // Qué partidos entran en las cuentas de ahora en adelante -- "todos" por
+  // defecto (Dani: "que sean todos los partidos, como es ahora, o solo
+  // algunos"). El checklist vive colapsado detrás de un <details> para no
+  // ensuciar la pantalla en el caso de siempre ("todos").
+  // -----------------------------------------------------------------------
+  function renderMatchPicker() {
+    els.matchPickerArea.style.display = allMatchesCache.length ? "block" : "none";
+    const selected = selectedMatchIds || new Set(allMatchesCache.map((m) => m.id));
+    const n = allMatchesCache.length, k = selected.size;
+    els.matchPickerSummary.textContent = k === n ? `Matches included: all (${n})` : `Matches included: ${k} of ${n} — choose specific matches ▾`;
+    els.matchPickerList.innerHTML = allMatchesCache.map((m) => `
+      <label class="match-picker-row">
+        <input type="checkbox" data-id="${escapeHtml(m.id)}" ${selected.has(m.id) ? "checked" : ""}>
+        <span class="mp-opp">${formatDateDisplay(m.date)} — ${escapeHtml(m.opponent || "(no opponent set)")}</span>
+        <span class="mp-score">${m.team_score != null && m.opponent_score != null ? `${m.team_score}–${m.opponent_score}` : "—"}</span>
+      </label>
+    `).join("");
+    els.matchPickerList.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+      cb.addEventListener("change", () => {
+        const current = selectedMatchIds ? new Set(selectedMatchIds) : new Set(allMatchesCache.map((m) => m.id));
+        if (cb.checked) current.add(cb.dataset.id); else current.delete(cb.dataset.id);
+        selectedMatchIds = current.size === allMatchesCache.length ? null : current;
+        renderMatchPicker();
+        applyFiltersAndRender();
+      });
+    });
+    document.getElementById("match-picker-select-all").onclick = () => { selectedMatchIds = null; renderMatchPicker(); applyFiltersAndRender(); };
+    document.getElementById("match-picker-select-none").onclick = () => { selectedMatchIds = new Set(); renderMatchPicker(); applyFiltersAndRender(); };
+  }
+
+  // -----------------------------------------------------------------------
+  // Aplica el filtro de partidos a los 3 datasets en caché y vuelve a
+  // dibujar todo. Esto es lo único que corre cuando cambia el filtro de
+  // partidos, el stat del gráfico de tendencia, o el stat de leaders --
+  // nunca vuelve a pedir nada a Supabase.
+  // -----------------------------------------------------------------------
+  function applyFiltersAndRender() {
+    const visibleMatches = selectedMatchIds ? allMatchesCache.filter((m) => selectedMatchIds.has(m.id)) : allMatchesCache;
+    const visibleIds = new Set(visibleMatches.map((m) => m.id));
+    const visiblePlayerStats = allPlayerStatsCache.filter((r) => visibleIds.has(r.match_id));
+    const visibleOpponentStats = allOpponentStatsCache.filter((r) => visibleIds.has(r.match_id));
+
+    if (visibleTeamStatKeys === null) visibleTeamStatKeys = loadVisibleSet(`pivot_stats_team_cols_${currentOrgId}`, allStatDefs().map((d) => d.id));
+    if (visiblePlayerStatKeys === null) visiblePlayerStatKeys = loadVisibleSet(`pivot_stats_player_cols_${currentOrgId}`, allStatDefs().map((d) => d.id));
+
+    els.chipMatches.textContent = String(visibleMatches.length);
+
+    renderTeamSummary(visibleMatches, visiblePlayerStats);
+    setupColumnsMenu("team-columns-btn", "team-columns-panel", `pivot_stats_team_cols_${currentOrgId}`, () => visibleTeamStatKeys, (v) => { visibleTeamStatKeys = v; }, () => renderTeamSummary(visibleMatches, visiblePlayerStats));
+
+    renderStatPickerRow(els.trendStatPicker, trendStatKey, (key) => { trendStatKey = key; applyFiltersAndRender(); });
+    renderTrendChart(visibleMatches, visiblePlayerStats, visibleOpponentStats);
+
+    lastPlayerRows = computePlayerAverages(visiblePlayerStats, playersByIdCache);
     renderPlayerTable();
+    setupColumnsMenu("player-columns-btn", "player-columns-panel", `pivot_stats_player_cols_${currentOrgId}`, () => visiblePlayerStatKeys, (v) => { visiblePlayerStatKeys = v; }, renderPlayerTable);
+
+    renderStatPickerRow(els.leaderStatPicker, leaderStatKey, (key) => { leaderStatKey = key; applyFiltersAndRender(); });
     renderPlayerBarChart();
-    lastOpponentRows = computeOpponentBreakdown(allMatches);
+
+    lastOpponentRows = computeOpponentBreakdown(visibleMatches);
     renderOpponentTable();
   }
 
@@ -573,13 +840,26 @@
 
   function average(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
 
-  // Columnas base de match_player_stats que se pueden promediar.
-  // "points/rebounds/assists/fouls" siempre traen 0 por defecto (nunca
-  // null) -- los demás son opcionales de verdad (pueden faltar en hojas
-  // viejas), así que se promedian solo sobre los partidos donde sí se
-  // registró ese dato en concreto.
-  const ALWAYS_ZERO_FIELDS = ["points", "rebounds", "assists", "fouls"];
-  const OPTIONAL_FIELDS = ["minutes", "made_1", "made_2", "made_3", "periods_played"];
+  // -----------------------------------------------------------------------
+  // "¿Esta fila cuenta como que el jugador JUGÓ este partido?" -- no basta
+  // con que exista la fila en match_player_stats: "called up" (convocado)
+  // no es lo mismo que "jugó". Mismo criterio que ronda44 (has_stat_data)
+  // para el import de Excel, aplicado aquí también al guardado manual de
+  // Match day -- un jugador convocado pero sin minutos/stats/participación
+  // real no debe contar como un partido jugado en el promedio de temporada
+  // (Dani: "Amadou solo tiene un partido, no tiene dos").
+  // -----------------------------------------------------------------------
+  function hasRealPlayData(r) {
+    if (r.started) return true;
+    if ((r.points || 0) !== 0 || (r.rebounds || 0) !== 0 || (r.assists || 0) !== 0 || (r.fouls || 0) !== 0) return true;
+    if (r.minutes !== null && r.minutes !== undefined) return true;
+    if (r.periods_played !== null && r.periods_played !== undefined) return true;
+    if (r.made_1 !== null && r.made_1 !== undefined) return true;
+    if (r.made_2 !== null && r.made_2 !== undefined) return true;
+    if (r.made_3 !== null && r.made_3 !== undefined) return true;
+    if (r.custom_stats && Object.keys(r.custom_stats).length > 0) return true;
+    return false;
+  }
 
   function renderTeamSummary(matches, playerStats) {
     const decided = matches.filter((m) => m.team_score != null && m.opponent_score != null);
@@ -614,9 +894,12 @@
       });
       return average(perGame);
     }
+    function teamAvgForDef(def) { return def.customKey ? teamAvgCustom(def.customKey) : teamAvgFor(def.id); }
 
     const diffClass = avgDiff == null ? "" : (avgDiff > 0 ? "pos" : (avgDiff < 0 ? "neg" : ""));
     const diffSign = avgDiff == null ? "" : (avgDiff > 0 ? "+" : "");
+    const visible = visibleTeamStatKeys || new Set(allStatDefs().map((d) => d.id));
+    const tiles = allStatDefs().filter((d) => visible.has(d.id)).map((d) => `<div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgForDef(d))}</div><div class="stat-tile-label">${escapeHtml(d.label)}</div></div>`).join("");
 
     let html = `
       <div class="record-line">
@@ -628,19 +911,8 @@
         <div class="stat-tile"><div class="stat-tile-value">${fmtAvg(avgPA)}</div><div class="stat-tile-label">Points allowed / game</div></div>
         <div class="stat-tile"><div class="stat-tile-value ${diffClass}">${diffSign}${fmtAvg(avgDiff)}</div><div class="stat-tile-label">Point differential</div></div>
       </div>
-      <p class="section-label">Team box-score totals per game (sum of all players' tracked stats — may be lower than the official score above if some matches are missing stats)</p>
-      <div class="stat-tile-grid">
-        <div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgFor("points"))}</div><div class="stat-tile-label">Points</div></div>
-        <div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgFor("rebounds"))}</div><div class="stat-tile-label">Rebounds</div></div>
-        <div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgFor("assists"))}</div><div class="stat-tile-label">Assists</div></div>
-        <div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgFor("fouls"))}</div><div class="stat-tile-label">Fouls</div></div>
-        <div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgFor("minutes"))}</div><div class="stat-tile-label">Minutes logged</div></div>
-        <div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgFor("made_1"))}</div><div class="stat-tile-label">1PM</div></div>
-        <div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgFor("made_2"))}</div><div class="stat-tile-label">2PM</div></div>
-        <div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgFor("made_3"))}</div><div class="stat-tile-label">3PM</div></div>
-        <div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgFor("periods_played"))}</div><div class="stat-tile-label">Periods played</div></div>
-        ${matchFields.map((f) => `<div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgCustom(f.key))}</div><div class="stat-tile-label">${escapeHtml(f.label)}</div></div>`).join("")}
-      </div>
+      <p class="section-label">Team box-score totals per game (sum of all players' tracked stats — may be lower than the official score above if some matches are missing stats). Use "Columns ▾" above to hide stats you don't log.</p>
+      <div class="stat-tile-grid">${tiles || `<p class="hint">No columns selected — pick at least one from "Columns ▾".</p>`}</div>
       <p class="hint" style="margin-top:12px;">No shooting percentage yet — the app only tracks shots <em>made</em> (1PM/2PM/3PM), not attempts. Averages above are makes, not accuracy.</p>
     `;
     els.teamRecordArea.innerHTML = html;
@@ -648,13 +920,15 @@
 
   // -----------------------------------------------------------------------
   // Jugador por jugador -- mismo criterio que la (oculta) "Season summary"
-  // de Match day, ampliado con minutos/tiros/periodos y con el nombre
+  // de Match day, ampliado con minutos/tiros/periodos, filtrado a filas que
+  // de verdad reflejan haber jugado (ver hasRealPlayData), y con el nombre
   // sacado de players (no solo del roster actual: un jugador que ya no
   // está en el equipo pero jugó partidos esta temporada sigue contando).
   // -----------------------------------------------------------------------
   function computePlayerAverages(playerStats, playersById) {
+    const realRows = playerStats.filter(hasRealPlayData);
     const byPlayer = {};
-    playerStats.forEach((r) => {
+    realRows.forEach((r) => {
       byPlayer[r.player_id] = byPlayer[r.player_id] || { gp: 0, gs: 0, sums: {}, counts: {}, custom: {}, customCounts: {} };
       const b = byPlayer[r.player_id];
       b.gp++;
@@ -686,24 +960,16 @@
     });
   }
 
-  const PLAYER_COLUMNS = [
-    { key: "jersey_number", label: "#", sortable: true, align: "left" },
-    { key: "name", label: "Player", sortable: true, align: "left" },
+  const PLAYER_FIXED_COLUMNS = [
+    { key: "jersey_number", label: "#", sortable: true },
+    { key: "name", label: "Player", sortable: true },
     { key: "gp", label: "GP", sortable: true },
     { key: "gs", label: "GS", sortable: true },
-    { key: "minutes_avg", label: "Min", sortable: true },
-    { key: "points_avg", label: "Pts", sortable: true },
-    { key: "rebounds_avg", label: "Reb", sortable: true },
-    { key: "assists_avg", label: "Ast", sortable: true },
-    { key: "fouls_avg", label: "Fouls", sortable: true },
-    { key: "made_1_avg", label: "1PM", sortable: true },
-    { key: "made_2_avg", label: "2PM", sortable: true },
-    { key: "made_3_avg", label: "3PM", sortable: true },
-    { key: "periods_played_avg", label: "Per", sortable: true },
   ];
 
   function playerColumns() {
-    return PLAYER_COLUMNS.concat(matchFields.map((f) => ({ key: "custom_" + f.key, label: f.label, sortable: true })));
+    const visible = visiblePlayerStatKeys || new Set(allStatDefs().map((d) => d.id));
+    return PLAYER_FIXED_COLUMNS.concat(allStatDefs().filter((d) => visible.has(d.id)).map((d) => ({ key: playerAvgField(d), label: d.short || d.label, sortable: true })));
   }
 
   function renderSortArrow(key, sortState) {
@@ -741,71 +1007,127 @@
     els.playerTableEmpty.style.display = "none";
     els.playerTableBody.innerHTML = sorted.map((r) => `
       <tr>
-        <td>${escapeHtml(r.jersey_number || "—")}</td>
-        <td>${escapeHtml(r.name)}</td>
-        <td>${r.gp}</td>
-        <td>${r.gs}</td>
-        <td>${fmtAvg(r.minutes_avg)}</td>
-        <td>${fmtAvg(r.points_avg)}</td>
-        <td>${fmtAvg(r.rebounds_avg)}</td>
-        <td>${fmtAvg(r.assists_avg)}</td>
-        <td>${fmtAvg(r.fouls_avg)}</td>
-        <td>${fmtAvg(r.made_1_avg)}</td>
-        <td>${fmtAvg(r.made_2_avg)}</td>
-        <td>${fmtAvg(r.made_3_avg)}</td>
-        <td>${fmtAvg(r.periods_played_avg)}</td>
-        ${matchFields.map((f) => `<td>${fmtAvg(r["custom_" + f.key])}</td>`).join("")}
+        ${cols.map((c) => {
+          if (c.key === "jersey_number") return `<td>${escapeHtml(r.jersey_number || "—")}</td>`;
+          if (c.key === "name") return `<td>${escapeHtml(r.name)}</td>`;
+          if (c.key === "gp" || c.key === "gs") return `<td>${r[c.key]}</td>`;
+          return `<td>${fmtAvg(r[c.key])}</td>`;
+        }).join("")}
       </tr>
     `).join("");
   }
 
   function renderPlayerBarChart() {
-    const top = lastPlayerRows.filter((p) => p.gp > 0 && p.points_avg != null).sort((a, b) => b.points_avg - a.points_avg).slice(0, 10);
-    if (!top.length) { els.playerBarChartArea.innerHTML = `<div class="empty-state">No points logged yet.</div>`; return; }
-    const max = Math.max(...top.map((p) => p.points_avg), 1);
+    const def = allStatDefs().find((d) => d.id === leaderStatKey) || STAT_DEFS[0];
+    const field = playerAvgField(def);
+    els.leadersHeading.textContent = `Leaders — ${def.label} per game`;
+    const top = lastPlayerRows.filter((p) => p.gp > 0 && p[field] != null).sort((a, b) => b[field] - a[field]).slice(0, 10);
+    if (!top.length) { els.playerBarChartArea.innerHTML = `<div class="empty-state">No "${escapeHtml(def.label)}" logged yet.</div>`; return; }
+    const max = Math.max(...top.map((p) => p[field]), 1);
     els.playerBarChartArea.innerHTML = top.map((p) => `
       <div class="bar-row">
         <div class="bar-row-label" title="${escapeHtml(p.name)}">${escapeHtml(p.jersey_number ? `#${p.jersey_number} ` : "")}${escapeHtml(p.name)}</div>
-        <div class="bar-row-track"><div class="bar-row-fill" style="width:${Math.max(4, (p.points_avg / max * 100)).toFixed(1)}%;"></div></div>
-        <div class="bar-row-value">${fmtAvg(p.points_avg)}</div>
+        <div class="bar-row-track"><div class="bar-row-fill" style="width:${Math.max(4, (p[field] / max * 100)).toFixed(1)}%;"></div></div>
+        <div class="bar-row-value">${fmtAvg(p[field])}</div>
       </div>
     `).join("");
   }
 
+  // Redondea hacia arriba a un número "bonito" para los ticks del eje Y
+  // (1/2/5 × una potencia de 10) -- evita ejes con "37.4" de máximo.
+  function niceCeil(v) {
+    if (!(v > 0)) return 1;
+    const pow = Math.pow(10, Math.floor(Math.log10(v)));
+    const n = v / pow;
+    const niceN = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+    return niceN * pow;
+  }
+
   // -----------------------------------------------------------------------
-  // Gráfico de tendencia: puntos a favor vs. en contra, partido a partido.
-  // SVG a mano (sin librería) -- liviano y suficiente para esta primera
-  // versión; con viewBox normalizado y los ejes calculados en JS.
+  // Serie de datos del gráfico de tendencia según la estadística elegida.
+  // "points" usa el marcador oficial (siempre fiable); el resto suma lo
+  // registrado por jugador (y por jugador rival, si hay algo registrado
+  // del rival) en cada partido -- solo se incluyen los partidos que
+  // tengan AL MENOS una fila de stats (si nadie anotó nada, no hay nada
+  // que dibujar para ese partido).
   // -----------------------------------------------------------------------
-  function renderTrendChart(matches) {
-    const games = matches
-      .filter((m) => m.team_score != null && m.opponent_score != null)
-      .map((m) => ({ label: `${formatDateDisplay(m.date)} vs ${m.opponent || "?"}`, pf: m.team_score, pa: m.opponent_score }));
-    if (!games.length) { els.trendChartArea.innerHTML = `<div class="empty-state">No matches with a final score yet this season.</div>`; return; }
+  function buildTrendSeries(statKey, matches, playerStats, opponentStats) {
+    const def = allStatDefs().find((d) => d.id === statKey) || STAT_DEFS[0];
+    if (statKey === "points") {
+      const decided = matches.filter((m) => m.team_score != null && m.opponent_score != null);
+      return {
+        hasOpp: true,
+        ownLabel: "Points for", oppLabel: "Points allowed",
+        games: decided.map((m) => ({ label: formatDateDisplay(m.date), title: `${formatDateDisplay(m.date)} vs ${m.opponent || "?"}`, own: m.team_score, opp: m.opponent_score })),
+      };
+    }
+    const byMatch = {};
+    playerStats.forEach((r) => { (byMatch[r.match_id] = byMatch[r.match_id] || []).push(r); });
+    const byMatchOpp = {};
+    opponentStats.forEach((r) => { (byMatchOpp[r.match_id] = byMatchOpp[r.match_id] || []).push(r); });
+    const hasOpp = opponentStats.length > 0;
+    function sumFor(rows) {
+      if (!rows) return 0;
+      if (def.customKey) return rows.reduce((a, r) => a + ((r.custom_stats && Number(r.custom_stats[def.customKey])) || 0), 0);
+      return rows.reduce((a, r) => a + (r[def.id] == null ? 0 : Number(r[def.id])), 0);
+    }
+    const gamesWithStats = matches.filter((m) => byMatch[m.id]); // conserva el orden cronológico de `matches`
+    return {
+      hasOpp,
+      ownLabel: hasOpp ? `${def.label} (own team)` : def.label, oppLabel: `${def.label} (opponent)`,
+      games: gamesWithStats.map((m) => ({
+        label: formatDateDisplay(m.date), title: `${formatDateDisplay(m.date)} vs ${m.opponent || "?"}`,
+        own: sumFor(byMatch[m.id]), opp: hasOpp ? sumFor(byMatchOpp[m.id]) : null,
+      })),
+    };
+  }
+
+  // -----------------------------------------------------------------------
+  // Gráfico de tendencia -- SVG a mano (sin librería), con ejes de verdad
+  // (Dani: "no hay ejes, en los ejes se debería poner los días o los
+  // partidos"): eje Y con 5 marcas numéricas + líneas de cuadrícula, eje X
+  // con la fecha de cada partido (recortado a ~6 etiquetas si hay muchos
+  // partidos, para que no se amontonen).
+  // -----------------------------------------------------------------------
+  function renderTrendChart(matches, playerStats, opponentStats) {
+    const series = buildTrendSeries(trendStatKey, matches, playerStats, opponentStats);
+    const games = series.games;
+    if (!games.length) { els.trendChartArea.innerHTML = `<div class="empty-state">Nothing logged for this stat yet this season.</div>`; return; }
     if (games.length === 1) {
-      els.trendChartArea.innerHTML = `<p class="hint">Only one match with a score so far — the trend chart needs at least two to draw a line. (${escapeHtml(games[0].label)}: ${games[0].pf}–${games[0].pa})</p>`;
+      els.trendChartArea.innerHTML = `<p class="hint">Only one match so far — the trend chart needs at least two to draw a line. (${escapeHtml(games[0].title)}: ${games[0].own}${series.hasOpp ? "–" + games[0].opp : ""})</p>`;
       return;
     }
-    const allVals = games.flatMap((g) => [g.pf, g.pa]);
-    const max = Math.max(...allVals, 1);
-    const W = 100, H = 36, padTop = 4, padBottom = 4;
+    const allVals = games.flatMap((g) => (series.hasOpp && g.opp != null) ? [g.own, g.opp] : [g.own]);
+    const maxVal = niceCeil(Math.max(...allVals, 1));
+    const W = 120, H = 42;
+    const plotL = 18, plotR = 118, plotT = 4, plotB = 26;
     const n = games.length;
-    const xStep = W / (n - 1);
-    const yFor = (v) => padTop + (H - padTop - padBottom) * (1 - v / max);
-    const pathFor = (key) => games.map((g, i) => `${i === 0 ? "M" : "L"} ${(xStep * i).toFixed(2)} ${yFor(g[key]).toFixed(2)}`).join(" ");
-    const dotsFor = (key, color) => games.map((g, i) => `<circle cx="${(xStep * i).toFixed(2)}" cy="${yFor(g[key]).toFixed(2)}" r="0.9" fill="${color}"><title>${escapeHtml(g.label)}: ${g[key]}</title></circle>`).join("");
+    const xStep = n > 1 ? (plotR - plotL) / (n - 1) : 0;
+    const xFor = (i) => plotL + xStep * i;
+    const yFor = (v) => plotT + (plotB - plotT) * (1 - v / maxVal);
+    const pathFor = (key) => games.map((g, i) => `${i === 0 ? "M" : "L"} ${xFor(i).toFixed(2)} ${yFor(g[key]).toFixed(2)}`).join(" ");
+    const dotsFor = (key, color) => games.map((g, i) => (g[key] == null ? "" : `<circle cx="${xFor(i).toFixed(2)}" cy="${yFor(g[key]).toFixed(2)}" r="1" fill="${color}"><title>${escapeHtml(g.title)}: ${g[key]}</title></circle>`)).join("");
+
+    const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => maxVal * f);
+    const gridlines = yTicks.map((v) => `<line class="chart-gridline" x1="${plotL}" x2="${plotR}" y1="${yFor(v).toFixed(2)}" y2="${yFor(v).toFixed(2)}"/><text class="chart-axis-y" x="${plotL - 2}" y="${(yFor(v) + 1.3).toFixed(2)}" text-anchor="end">${v % 1 === 0 ? v : v.toFixed(1)}</text>`).join("");
+    const xLabelStep = Math.max(1, Math.ceil(n / 6));
+    const xLabels = games.map((g, i) => (i % xLabelStep === 0 || i === n - 1) ? `<text class="chart-axis-x" x="${xFor(i).toFixed(2)}" y="${plotB + 5}" text-anchor="middle">${escapeHtml(g.label)}</text>` : "").join("");
+
     els.trendChartArea.innerHTML = `
+      ${series.hasOpp ? `
       <div class="chart-legend">
-        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:var(--accent)"></span>Points for</span>
-        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:#2a2456"></span>Points allowed</span>
-      </div>
-      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:200px; display:block;">
-        <path d="${pathFor("pf")}" fill="none" stroke="var(--accent)" stroke-width="0.55" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="${pathFor("pa")}" fill="none" stroke="#2a2456" stroke-width="0.55" stroke-linecap="round" stroke-linejoin="round"/>
-        ${dotsFor("pf", "var(--accent)")}
-        ${dotsFor("pa", "#2a2456")}
+        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:var(--accent)"></span>${escapeHtml(series.ownLabel)}</span>
+        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:#2a2456"></span>${escapeHtml(series.oppLabel)}</span>
+      </div>` : ""}
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:220px; display:block;">
+        ${gridlines}
+        <path d="${pathFor("own")}" fill="none" stroke="var(--accent)" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>
+        ${series.hasOpp ? `<path d="${pathFor("opp")}" fill="none" stroke="#2a2456" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
+        ${dotsFor("own", "var(--accent)")}
+        ${series.hasOpp ? dotsFor("opp", "#2a2456") : ""}
+        ${xLabels}
       </svg>
-      <p class="hint" style="margin-top:6px;">Hover a dot to see which match it is. Left = earliest match this season, right = most recent.</p>
+      <p class="hint" style="margin-top:6px;">Hover a dot to see which match it is. Left = earliest, right = most recent.${series.hasOpp ? "" : " No opponent data logged for this stat yet, so only your own team is shown."}</p>
     `;
   }
 
@@ -897,10 +1219,16 @@
       <strong>How to read Match stats</strong>
       <p style="margin:10px 0 4px; font-weight:600;">1–2. Pick a team and season</p>
       <p style="margin:0 0 10px;">Same teams/seasons as Match day and Roster. This page only reads matches you can already see there — it doesn't create or change anything.</p>
+      <p style="margin:0 0 4px; font-weight:600;">Matches included</p>
+      <p style="margin:0 0 10px;">By default every match of the season counts. Open "choose specific matches" to untick any you want left out of every number and chart on this page (e.g. a friendly that shouldn't count).</p>
       <p style="margin:0 0 4px; font-weight:600;">Team summary</p>
-      <p style="margin:0 0 10px;">Win/loss record and scoring average come from the official score of each match. The "box-score totals" further down are the sum of whatever you entered per player in Match day's "Call-up &amp; stats" — if a match is missing stats for some players, those totals will run a bit below the official score.</p>
+      <p style="margin:0 0 10px;">Win/loss record and scoring average come from the official score of each match. The "box-score totals" further down are the sum of whatever you entered per player in Match day's "Call-up &amp; stats" — if a match is missing stats for some players, those totals will run a bit below the official score. Use "Columns ▾" to only show the stats you actually log.</p>
+      <p style="margin:0 0 4px; font-weight:600;">Trends</p>
+      <p style="margin:0 0 10px;">Pick any stat to see it match by match, for your team and (when logged) the opponent too.</p>
       <p style="margin:0 0 4px; font-weight:600;">Player averages</p>
-      <p style="margin:0 0 10px;">One row per player who has at least one match with stats this season, even if they're no longer on the current roster. GP = games with stats logged, GS = games started. Click any column header to sort.</p>
+      <p style="margin:0 0 10px;">One row per player with at least one match actually played this season (called up alone doesn't count), even if they're no longer on the current roster. GP = games played, GS = games started. Click any column header to sort, use "Columns ▾" to pick which stats show.</p>
+      <p style="margin:0 0 4px; font-weight:600;">Leaders</p>
+      <p style="margin:0 0 10px;">Top 10 players for whichever stat you pick.</p>
       <p style="margin:0 0 4px; font-weight:600;">By opponent</p>
       <p style="margin:0 0 10px;">Grouped by the opponent name exactly as typed in each match — if the same rival was spelled two different ways across matches, they'll show as two separate rows.</p>
       <p style="margin:0;">Only matches you're allowed to see count towards any of this — a match a teammate marked "Only me" won't show up in your numbers, even for your own club.</p>
