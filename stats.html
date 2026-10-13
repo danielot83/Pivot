@@ -244,6 +244,30 @@
   .trend-x-label { flex: 1 1 0; min-width: 0; display: block; font-size: 11px; color: var(--muted); white-space: nowrap; text-align: center; }
   .trend-x-label-left { text-align: left; }
   .trend-x-label-right { text-align: right; }
+  /* Controles de arriba del gráfico de tendencia: elegir varios stats a la
+     vez, incluir o no al rival, y Total vs Differential (margen partido a
+     partido). */
+  .trend-controls-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; }
+  .trend-opp-toggle { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink); cursor: pointer; user-select: none; }
+  .trend-opp-toggle input[type="checkbox"]:disabled + span { color: var(--muted); }
+  /* Un stat elegido = un mini-gráfico, apilados -- cada uno con su propia
+     escala (puntos y triples no caben en el mismo eje sin que uno aplaste
+     al otro), así que nunca se mezclan en un solo gráfico. */
+  .trend-mini-chart { margin-bottom: 26px; }
+  .trend-mini-chart:last-child { margin-bottom: 0; }
+  .trend-mini-title { font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  /* Modo "Differential": barra que crece hacia arriba (ganaste ese stat
+     ese partido) o hacia abajo (lo perdiste) desde una línea de cero en el
+     medio, en vez de dos barras lado a lado -- .trend-bar-group ya pone
+     align-items:flex-end + una sola fila, así que para este modo se
+     necesita el selector compuesto para pisarlo sin depender del orden en
+     la hoja de estilos. */
+  .trend-bar-group.trend-diff-group { flex-direction: column; align-items: stretch; height: 100%; gap: 0; }
+  .trend-diff-half { flex: 1 1 0; min-height: 0; display: flex; justify-content: center; width: 100%; }
+  .trend-diff-half-top { align-items: flex-end; }
+  .trend-diff-half-bottom { align-items: flex-start; }
+  .trend-bar-value-below { bottom: auto; top: 100%; margin-bottom: 0; margin-top: 3px; }
+  .trend-gridline-zero { border-top-color: var(--ink); border-top-width: 1.5px; }
   .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
   .bar-row:last-child { margin-bottom: 0; }
   .bar-row-label { width: 128px; flex-shrink: 0; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -416,8 +440,12 @@
 
     <div class="team-bar-card">
       <h2>Trends over the season</h2>
-      <p class="hint" style="margin:0 0 10px;">Pick a stat to see it match by match. "Points" uses the official score; the others are the sum of what was logged per player (and per opponent player, if any was logged).</p>
+      <p class="hint" style="margin:0 0 10px;">Pick one or more stats to see them match by match — each gets its own mini-chart below, since they don't share a scale. "Points" uses the official score; the others are the sum of what was logged per player (and per opponent player, if any was logged).</p>
       <div class="pill-choice-row" id="trend-stat-picker"></div>
+      <div class="trend-controls-row">
+        <label class="trend-opp-toggle"><input type="checkbox" id="trend-include-opponent" checked><span>Include opponent</span></label>
+        <div class="pill-choice-row" id="trend-view-mode-toggle" style="margin-bottom:0;"></div>
+      </div>
       <div id="trend-chart-area"></div>
     </div>
 
@@ -514,6 +542,8 @@
     teamRecordArea: document.getElementById("team-record-area"),
     trendChartArea: document.getElementById("trend-chart-area"),
     trendStatPicker: document.getElementById("trend-stat-picker"),
+    trendIncludeOpponentCheckbox: document.getElementById("trend-include-opponent"),
+    trendViewModeToggle: document.getElementById("trend-view-mode-toggle"),
     playerTableHead: document.getElementById("player-table-head"),
     playerTableBody: document.getElementById("player-table-body"),
     playerTableEmpty: document.getElementById("player-table-empty"),
@@ -578,7 +608,25 @@
   let playerSort = { key: "points", dir: "desc" };
   let lastOpponentRows = [];
   let opponentSort = { key: "gp", dir: "desc" };
-  let trendStatKey = "points";
+  // Varios stats a la vez en "Trends over the season" (Dani: poder elegir
+  // "puntos y dos puntos" juntos) -- cada uno se dibuja como su propio
+  // mini-gráfico, nunca mezclados en una sola escala. null = todavía no
+  // se cargó la preferencia guardada (se inicializa a {"points"} por
+  // defecto en applyFiltersAndRender, igual que visiblePlayerStatKeys).
+  let trendStatKeys = null;
+  // Si se incluye al rival en el gráfico de tendencia (checkbox) -- se
+  // ignora/deshabilita mientras trendViewMode === "diff", porque un
+  // diferencial siempre necesita los dos lados por definición.
+  let trendIncludeOpponent = null;
+  // "total" (el valor de cada partido, como antes) o "diff" (tu valor
+  // menos el del rival ese partido, con signo -- lo que pidió Dani:
+  // "-25" el primer partido, "-2" el segundo).
+  let trendViewMode = null;
+  // Último (matches, playerStats, opponentStats) ya filtrados que se
+  // pasó a renderTrendChart() -- así los controles (picker/checkbox/
+  // toggle) pueden volver a dibujar el gráfico sin recalcular el filtro
+  // de partidos ni releer nada de Supabase.
+  let lastVisibleMatches = [], lastVisiblePlayerStats = [], lastVisibleOpponentStats = [];
   let leaderStatKey = "points";
   // "avg" (media por partido) o "total" (suma de la temporada) -- afecta a
   // la tabla "Player averages" y a "Leaders" por igual (un solo switch,
@@ -701,6 +749,78 @@
     const defs = defsOverride || allStatDefs();
     container.innerHTML = defs.map((d) => `<button type="button" class="pill-choice${d.id === currentKey ? " active" : ""}" data-key="${escapeHtml(d.id)}">${escapeHtml(d.short || d.label)}</button>`).join("");
     container.querySelectorAll(".pill-choice").forEach((btn) => btn.addEventListener("click", () => onPick(btn.dataset.key)));
+  }
+
+  // "Trends over the season" sin guardado de preferencia -> arranca con
+  // solo "Puntos" marcado (no con TODO marcado, que sería un montón de
+  // mini-gráficos de entrada) -- distinto del resto de los "Columns ▾",
+  // que sí arrancan con todo visible.
+  function loadTrendStatKeys(storageKey) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+      const validIds = new Set(allStatDefs().map((d) => d.id));
+      if (Array.isArray(saved)) {
+        const s = new Set(saved.filter((id) => validIds.has(id)));
+        if (s.size) return s;
+      }
+    } catch (e) { /* almacenamiento ilegible -- no pasa nada */ }
+    return new Set(["points"]);
+  }
+
+  // Picker de MÚLTIPLES stats a la vez para "Trends over the season"
+  // (Dani: poder elegir "puntos y dos puntos" juntos) -- a diferencia de
+  // renderStatPickerRow() (un solo elegido), acá cada pill se prende/
+  // apaga independientemente, y siempre se deja al menos uno marcado (si
+  // no, no habría nada que dibujar).
+  function renderTrendStatMultiPicker(container) {
+    const defs = allStatDefs();
+    container.innerHTML = defs.map((d) => `<button type="button" class="pill-choice${trendStatKeys.has(d.id) ? " active" : ""}" data-key="${escapeHtml(d.id)}">${escapeHtml(d.short || d.label)}</button>`).join("");
+    container.querySelectorAll(".pill-choice").forEach((btn) => btn.addEventListener("click", () => {
+      const key = btn.dataset.key;
+      const next = new Set(trendStatKeys);
+      if (next.has(key)) { if (next.size > 1) next.delete(key); } else next.add(key);
+      trendStatKeys = next;
+      try { localStorage.setItem(`pivot_stats_trend_keys_${currentOrgId}`, JSON.stringify([...next])); } catch (e) { /* no pasa nada */ }
+      renderTrendSection();
+    }));
+  }
+
+  // Switch "Total" / "Differential" del gráfico de tendencia -- "Total" es
+  // el valor de cada partido (como antes); "Differential" es tu valor
+  // MENOS el del rival ese partido, con signo (lo que pidió Dani:
+  // "-25" el primer partido, "-2" el segundo -- ver renderTrendChart()).
+  function renderTrendViewModeToggle(container) {
+    const opts = [{ key: "total", label: "Total" }, { key: "diff", label: "Differential" }];
+    container.innerHTML = opts.map((o) => `<button type="button" class="pill-choice${o.key === trendViewMode ? " active" : ""}" data-mode="${o.key}">${escapeHtml(o.label)}</button>`).join("");
+    container.querySelectorAll(".pill-choice").forEach((btn) => btn.addEventListener("click", () => {
+      if (btn.dataset.mode === trendViewMode) return;
+      trendViewMode = btn.dataset.mode;
+      try { localStorage.setItem(`pivot_stats_trend_mode_${currentOrgId}`, trendViewMode); } catch (e) { /* no pasa nada */ }
+      renderTrendSection(); // no solo el gráfico -- el checkbox de "Include opponent" también cambia de estado (disabled) según el modo
+    }));
+  }
+
+  // Un diferencial siempre necesita los dos lados -- mientras
+  // trendViewMode === "diff" el checkbox de "Include opponent" se
+  // deshabilita (queda sin efecto) en vez de escondido, para no mover el
+  // layout de golpe.
+  els.trendIncludeOpponentCheckbox.addEventListener("change", () => {
+    trendIncludeOpponent = els.trendIncludeOpponentCheckbox.checked;
+    try { localStorage.setItem(`pivot_stats_trend_include_opp_${currentOrgId}`, String(trendIncludeOpponent)); } catch (e) { /* no pasa nada */ }
+    renderTrendChart(lastVisibleMatches, lastVisiblePlayerStats, lastVisibleOpponentStats);
+  });
+
+  // Vuelve a dibujar todo lo de "Trends over the season" (picker + checkbox
+  // + switch + los mini-gráficos) sin recalcular el filtro de partidos --
+  // si se pasan (matches, playerStats, opponentStats) se cachean para que
+  // los controles de arriba puedan volver a llamar a esto sin argumentos.
+  function renderTrendSection(matches, playerStats, opponentStats) {
+    if (matches !== undefined) { lastVisibleMatches = matches; lastVisiblePlayerStats = playerStats; lastVisibleOpponentStats = opponentStats; }
+    renderTrendStatMultiPicker(els.trendStatPicker);
+    els.trendIncludeOpponentCheckbox.checked = trendIncludeOpponent;
+    els.trendIncludeOpponentCheckbox.disabled = trendViewMode === "diff";
+    renderTrendViewModeToggle(els.trendViewModeToggle);
+    renderTrendChart(lastVisibleMatches, lastVisiblePlayerStats, lastVisibleOpponentStats);
   }
 
   // Switch "Average"/"Totals" -- un solo estado (playerStatsMode) con dos
@@ -897,14 +1017,20 @@
     if (playerStatsMode === null) {
       try { playerStatsMode = localStorage.getItem(`pivot_stats_player_mode_${currentOrgId}`) === "total" ? "total" : "avg"; } catch (e) { playerStatsMode = "avg"; }
     }
+    if (trendStatKeys === null) trendStatKeys = loadTrendStatKeys(`pivot_stats_trend_keys_${currentOrgId}`);
+    if (trendIncludeOpponent === null) {
+      try { trendIncludeOpponent = localStorage.getItem(`pivot_stats_trend_include_opp_${currentOrgId}`) !== "false"; } catch (e) { trendIncludeOpponent = true; }
+    }
+    if (trendViewMode === null) {
+      try { trendViewMode = localStorage.getItem(`pivot_stats_trend_mode_${currentOrgId}`) === "diff" ? "diff" : "total"; } catch (e) { trendViewMode = "total"; }
+    }
 
     els.chipMatches.textContent = String(visibleMatches.length);
 
     renderTeamSummary(visibleMatches, visiblePlayerStats);
     setupColumnsMenu("team-columns-btn", "team-columns-panel", `pivot_stats_team_cols_${currentOrgId}`, () => visibleTeamStatKeys, (v) => { visibleTeamStatKeys = v; }, () => renderTeamSummary(visibleMatches, visiblePlayerStats));
 
-    renderStatPickerRow(els.trendStatPicker, trendStatKey, (key) => { trendStatKey = key; applyFiltersAndRender(); });
-    renderTrendChart(visibleMatches, visiblePlayerStats, visibleOpponentStats);
+    renderTrendSection(visibleMatches, visiblePlayerStats, visibleOpponentStats);
 
     lastPlayerRows = computePlayerAverages(visiblePlayerStats, playersByIdCache);
     renderPlayerSection();
@@ -1239,63 +1365,140 @@
   // preserveAspectRatio="none" se escala distinto en X que en Y) -- acá
   // las alturas son simples porcentajes de CSS, nada que se pueda
   // distorsionar según el ancho real de la tarjeta.
-  function renderTrendChart(matches, playerStats, opponentStats) {
-    const series = buildTrendSeries(trendStatKey, matches, playerStats, opponentStats);
+  // Un número con 1 decimal como mucho, nunca ".0" de más en un entero --
+  // compartido por los dos modos (total/diff) del gráfico de tendencia.
+  function fmtTrendVal(v) { return v % 1 === 0 ? String(v) : v.toFixed(1); }
+
+  // Mini-gráfico en modo "Total": una barra por partido (dos si se
+  // incluye al rival) -- es el gráfico de barras agrupadas de la vuelta
+  // anterior, ahora reutilizado una vez por cada stat elegido.
+  function renderTrendTotalBars(def, series, showOpp) {
     const games = series.games;
-    if (!games.length) { els.trendChartArea.innerHTML = `<div class="empty-state">Nothing logged for this stat yet this season.</div>`; return; }
-
-    const allVals = games.flatMap((g) => (series.hasOpp ? [g.own, g.opp] : [g.own]));
+    const allVals = games.flatMap((g) => (showOpp ? [g.own, g.opp] : [g.own]));
     const maxVal = niceCeil(Math.max(...allVals, 1));
-    const CHART_PX_HEIGHT = 190;
     const n = games.length;
-    const fmtVal = (v) => (v % 1 === 0 ? String(v) : v.toFixed(1));
     const pctFor = (v) => Math.max(0, Math.min(100, (v / maxVal) * 100)).toFixed(2) + "%";
-
-    const yTicks = [1, 0.75, 0.5, 0.25, 0].map((f) => maxVal * f); // de arriba a abajo, así coincide con column-reverse
-    const yLabelsHtml = yTicks.map((v) => `<span class="trend-axis-label">${fmtVal(v)}</span>`).join("");
+    const yTicks = [1, 0.75, 0.5, 0.25, 0].map((f) => maxVal * f);
+    const yLabelsHtml = yTicks.map((v) => `<span class="trend-axis-label">${fmtTrendVal(v)}</span>`).join("");
     const gridlinesHtml = yTicks.map(() => `<div class="trend-gridline"></div>`).join("");
-
-    // Con pocos partidos entran números arriba de cada barra sin que se
-    // amontonen (Dani: "se ve muy vacío") -- a partir de 8 se deja de
-    // etiquetar cada barra (quedaría ilegible) y el valor sigue disponible
-    // al pasar el mouse.
     const showValueLabels = n <= 8;
 
-    const barsHtml = games.map((g, i) => {
-      const ownBar = `<div class="trend-bar" style="height:${pctFor(g.own)}; background:var(--accent);" title="${escapeHtml(g.title)}: ${escapeHtml(series.ownLabel)} ${fmtVal(g.own)}" tabindex="0">${showValueLabels ? `<span class="trend-bar-value">${fmtVal(g.own)}</span>` : ""}</div>`;
-      const oppBar = series.hasOpp ? `<div class="trend-bar" style="height:${pctFor(g.opp)}; background:#2a2456;" title="${escapeHtml(g.title)}: ${escapeHtml(series.oppLabel)} ${fmtVal(g.opp)}" tabindex="0">${showValueLabels ? `<span class="trend-bar-value">${fmtVal(g.opp)}</span>` : ""}</div>` : "";
+    const barsHtml = games.map((g) => {
+      const ownBar = `<div class="trend-bar" style="height:${pctFor(g.own)}; background:var(--accent);" title="${escapeHtml(g.title)}: ${escapeHtml(series.ownLabel)} ${fmtTrendVal(g.own)}" tabindex="0">${showValueLabels ? `<span class="trend-bar-value">${fmtTrendVal(g.own)}</span>` : ""}</div>`;
+      const oppBar = showOpp ? `<div class="trend-bar" style="height:${pctFor(g.opp)}; background:#2a2456;" title="${escapeHtml(g.title)}: ${escapeHtml(series.oppLabel)} ${fmtTrendVal(g.opp)}" tabindex="0">${showValueLabels ? `<span class="trend-bar-value">${fmtTrendVal(g.opp)}</span>` : ""}</div>` : "";
       return `<div class="trend-bar-group">${ownBar}${oppBar}</div>`;
     }).join("");
+
+    const legendHtml = showOpp ? `
+      <div class="chart-legend">
+        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:var(--accent)"></span>${escapeHtml(series.ownLabel)}</span>
+        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:#2a2456"></span>${escapeHtml(series.oppLabel)}</span>
+      </div>` : "";
+    let note = "";
+    if (!series.hasOpp) note = " No opponent data logged for this stat yet, so only your own team is shown.";
+    else if (!showOpp) note = " Opponent hidden — check \"Include opponent\" above to compare.";
+
+    return { legendHtml, gridlinesHtml, yLabelsHtml, barsHtml, note, games };
+  }
+
+  // Mini-gráfico en modo "Differential": una barra por partido que crece
+  // hacia ARRIBA desde una línea de cero si ganaste ese stat ese partido,
+  // o hacia ABAJO si lo perdiste -- lo que pidió Dani con su ejemplo
+  // ("-25" el primer partido, "-2" el segundo): tu valor menos el del
+  // rival, no el valor total de cada uno.
+  function renderTrendDiffBars(def, series) {
+    const games = series.games;
+    const diffs = games.map((g) => ({ ...g, diff: g.own - g.opp }));
+    const maxAbs = niceCeil(Math.max(...diffs.map((g) => Math.abs(g.diff)), 1));
+    const n = diffs.length;
+    const pctFor = (v) => Math.max(0, Math.min(100, (Math.abs(v) / maxAbs) * 100)).toFixed(2) + "%";
+    const fmtSigned = (v) => (v > 0 ? "+" + fmtTrendVal(v) : fmtTrendVal(v));
+    const yTicks = [maxAbs, maxAbs / 2, 0, -maxAbs / 2, -maxAbs];
+    const yLabelsHtml = yTicks.map((v) => `<span class="trend-axis-label">${v > 0 ? "+" : ""}${fmtTrendVal(v)}</span>`).join("");
+    const gridlinesHtml = yTicks.map((v) => `<div class="trend-gridline${v === 0 ? " trend-gridline-zero" : ""}"></div>`).join("");
+    const showValueLabels = n <= 8;
+
+    const barsHtml = diffs.map((g) => {
+      const positive = g.diff >= 0;
+      const color = positive ? "var(--accent)" : "#2a2456";
+      const labelHtml = showValueLabels ? `<span class="trend-bar-value${positive ? "" : " trend-bar-value-below"}">${fmtSigned(g.diff)}</span>` : "";
+      const bar = `<div class="trend-bar" style="height:${pctFor(g.diff)}; background:${color};" title="${escapeHtml(g.title)}: ${escapeHtml(series.ownLabel)} ${fmtTrendVal(g.own)} vs ${escapeHtml(series.oppLabel)} ${fmtTrendVal(g.opp)} (${fmtSigned(g.diff)})" tabindex="0">${labelHtml}</div>`;
+      return `<div class="trend-bar-group trend-diff-group">
+        <div class="trend-diff-half trend-diff-half-top">${positive ? bar : ""}</div>
+        <div class="trend-diff-half trend-diff-half-bottom">${positive ? "" : bar}</div>
+      </div>`;
+    }).join("");
+
+    const legendHtml = `
+      <div class="chart-legend">
+        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:var(--accent)"></span>You ahead</span>
+        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:#2a2456"></span>Opponent ahead</span>
+      </div>`;
+
+    return { legendHtml, gridlinesHtml, yLabelsHtml, barsHtml, note: "", games };
+  }
+
+  // Un mini-gráfico completo (título + leyenda + ejes + barras + fechas)
+  // para UN stat -- renderTrendChart() llama a esto una vez por cada stat
+  // elegido en el picker, así nunca se mezclan dos escalas distintas
+  // (puntos y triples, por ejemplo) en el mismo gráfico.
+  function renderTrendMiniChart(def, matches, playerStats, opponentStats) {
+    const series = buildTrendSeries(def.id, matches, playerStats, opponentStats);
+    const CHART_PX_HEIGHT = 190;
+    const titleSuffix = trendViewMode === "diff" ? " — differential (you − opponent)" : "";
+
+    if (!series.games.length) {
+      return `<div class="trend-mini-chart"><div class="trend-mini-title">${escapeHtml(def.label)}</div><div class="empty-state">Nothing logged for this stat yet this season.</div></div>`;
+    }
+    if (trendViewMode === "diff" && !series.hasOpp) {
+      return `<div class="trend-mini-chart"><div class="trend-mini-title">${escapeHtml(def.label)}${titleSuffix}</div><div class="empty-state">No opponent data logged for ${escapeHtml(def.label).toLowerCase()} yet, so a differential can't be calculated. Switch to "Total" to see your own numbers, or log opponent stats for this field.</div></div>`;
+    }
+
+    const showOpp = trendIncludeOpponent && series.hasOpp;
+    const chart = trendViewMode === "diff" ? renderTrendDiffBars(def, series) : renderTrendTotalBars(def, series, showOpp);
+    const n = chart.games.length;
 
     // Primer/último rótulo de fecha anclados hacia adentro (no centrados)
     // para que no se salgan del borde de la tarjeta y se corten; si hay
     // muchos partidos se recortan a ~8 para que no se amontonen.
     const xLabelStep = Math.max(1, Math.ceil(n / 8));
-    const xLabelsHtml = games.map((g, i) => {
+    const xLabelsHtml = chart.games.map((g, i) => {
       const show = i % xLabelStep === 0 || i === n - 1;
       const align = i === 0 ? "left" : i === n - 1 ? "right" : "center";
       return `<span class="trend-x-label trend-x-label-${align}">${show ? escapeHtml(g.label) : ""}</span>`;
     }).join("");
 
-    els.trendChartArea.innerHTML = `
-      ${series.hasOpp ? `
-      <div class="chart-legend">
-        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:var(--accent)"></span>${escapeHtml(series.ownLabel)}</span>
-        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:#2a2456"></span>${escapeHtml(series.oppLabel)}</span>
-      </div>` : ""}
-      <div class="trend-chart-grid" style="height:${CHART_PX_HEIGHT}px;">
-        <div class="trend-y-axis">${yLabelsHtml}</div>
-        <div class="trend-plot">
-          <div class="trend-gridlines">${gridlinesHtml}</div>
-          <div class="trend-bars-row">${barsHtml}</div>
+    return `
+      <div class="trend-mini-chart">
+        <div class="trend-mini-title">${escapeHtml(def.label)}${titleSuffix}</div>
+        ${chart.legendHtml}
+        <div class="trend-chart-grid" style="height:${CHART_PX_HEIGHT}px;">
+          <div class="trend-y-axis">${chart.yLabelsHtml}</div>
+          <div class="trend-plot">
+            <div class="trend-gridlines">${chart.gridlinesHtml}</div>
+            <div class="trend-bars-row">${chart.barsHtml}</div>
+          </div>
         </div>
+        <div class="trend-x-axis">
+          <div></div>
+          <div class="trend-x-labels">${xLabelsHtml}</div>
+        </div>
+        ${chart.note ? `<p class="hint" style="margin-top:8px;">${chart.note}</p>` : ""}
       </div>
-      <div class="trend-x-axis">
-        <div></div>
-        <div class="trend-x-labels">${xLabelsHtml}</div>
-      </div>
-      <p class="hint" style="margin-top:10px;">Hover (or tab to) a bar to see the exact match and value. Left = earliest, right = most recent.${series.hasOpp ? "" : " No opponent data logged for this stat yet, so only your own team is shown."}</p>
     `;
+  }
+
+  // Dibuja un mini-gráfico por cada stat elegido (apilados), en vez de un
+  // solo gráfico -- Dani pidió poder elegir varios a la vez (p.ej. puntos
+  // Y triples), y mezclarlos en una sola escala aplastaría al que tenga
+  // números más chicos (triples llega a ~15, puntos a ~100).
+  function renderTrendChart(matches, playerStats, opponentStats) {
+    lastVisibleMatches = matches; lastVisiblePlayerStats = playerStats; lastVisibleOpponentStats = opponentStats;
+    const defs = allStatDefs().filter((d) => trendStatKeys.has(d.id)); // orden estable (el de allStatDefs()), no el de cuándo se tocó cada pill
+    if (!defs.length) { els.trendChartArea.innerHTML = `<div class="empty-state">Pick at least one stat above.</div>`; return; }
+
+    const chartsHtml = defs.map((def) => renderTrendMiniChart(def, matches, playerStats, opponentStats)).join("");
+    els.trendChartArea.innerHTML = chartsHtml + `<p class="hint" style="margin-top:2px;">Hover (or tab to) a bar to see the exact match and value. Left = earliest, right = most recent.</p>`;
   }
 
   // -----------------------------------------------------------------------
