@@ -1065,15 +1065,31 @@
   // Match day -- un jugador convocado pero sin minutos/stats/participación
   // real no debe contar como un partido jugado en el promedio de temporada
   // (Dani: "Amadou solo tiene un partido, no tiene dos").
+  //
+  // Fix posterior (Dani, captura de Player averages: "hay gente que no ha
+  // jugado partidos y pone 1"): made_1/made_2/made_3 NO son como
+  // minutes/periods_played -- en match.html, el guardado de Match day les
+  // pone 0 por DEFECTO a TODOS los jugadores convocados (jueguen o no;
+  // ver statsByPlayer[...] = {..., made_1: 0, made_2: 0, made_3: 0}), así
+  // que casi nunca están realmente en null en la base de datos. Antes,
+  // "no es null" se trataba como señal de que jugó -- pero un 0 puesto
+  // por defecto no es una señal de nada, y por eso un jugador convocado
+  // pero que nunca pisó la cancha (Mathieu Collet, Leti Spasojevic-Knapp,
+  // etc. en la captura de Dani) salía con GP=1 igual. made_1/2/3 van
+  // ahora en el mismo grupo que points/rebounds/assists/fouls: solo un
+  // valor DISTINTO DE CERO cuenta como señal real de haber jugado (igual
+  // que ya hacía `has_stat_data` del import de Excel en ronda44, que
+  // siempre trató a estos tres igual que a points/rebounds/assists/
+  // fouls). minutes/periods_played sí se quedan en el otro grupo: esos
+  // dos de verdad quedan en null salvo que alguien escriba un número a
+  // mano, así que "no es null" sigue siendo una señal real ahí.
   // -----------------------------------------------------------------------
   function hasRealPlayData(r) {
     if (r.started) return true;
     if ((r.points || 0) !== 0 || (r.rebounds || 0) !== 0 || (r.assists || 0) !== 0 || (r.fouls || 0) !== 0) return true;
+    if ((r.made_1 || 0) !== 0 || (r.made_2 || 0) !== 0 || (r.made_3 || 0) !== 0) return true;
     if (r.minutes !== null && r.minutes !== undefined) return true;
     if (r.periods_played !== null && r.periods_played !== undefined) return true;
-    if (r.made_1 !== null && r.made_1 !== undefined) return true;
-    if (r.made_2 !== null && r.made_2 !== undefined) return true;
-    if (r.made_3 !== null && r.made_3 !== undefined) return true;
     if (r.custom_stats && Object.keys(r.custom_stats).length > 0) return true;
     return false;
   }
