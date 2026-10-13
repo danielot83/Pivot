@@ -240,10 +240,15 @@
   .trend-bar:hover, .trend-bar:focus-visible { filter: brightness(1.12); outline: none; }
   .trend-bar-value { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 3px; font-size: 10.5px; font-weight: 600; color: var(--ink); white-space: nowrap; }
   .trend-x-axis { display: grid; grid-template-columns: 30px 1fr; column-gap: 8px; margin-top: 6px; }
-  .trend-x-labels { display: flex; }
-  .trend-x-label { flex: 1 1 0; min-width: 0; display: block; font-size: 11px; color: var(--muted); white-space: nowrap; text-align: center; }
-  .trend-x-label-left { text-align: left; }
-  .trend-x-label-right { text-align: right; }
+  /* Eje X: nombre del RIVAL en vertical (Dani: "que aparezca el equipo en
+     el eje X en vertical") en vez de la fecha -- la fecha sigue disponible
+     al pasar el mouse/tocar la barra (atributo title, sin cambios). El
+     texto rotado necesita poco ancho, así que ya no hace falta recortar
+     etiquetas ni anclarlas a izquierda/derecha como con las fechas
+     horizontales de antes -- cada una entra en su propia columna. */
+  .trend-x-labels { display: flex; align-items: flex-start; min-height: 92px; }
+  .trend-x-label { flex: 1 1 0; min-width: 0; display: flex; justify-content: center; }
+  .trend-x-label-text { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; color: var(--muted); white-space: nowrap; max-height: 92px; overflow: hidden; text-overflow: ellipsis; }
   /* Controles de arriba del gráfico de tendencia: elegir varios stats a la
      vez, incluir o no al rival, y Total vs Differential (margen partido a
      partido). */
@@ -1326,7 +1331,7 @@
       return {
         hasOpp: true,
         ownLabel: "Points for", oppLabel: "Points allowed",
-        games: decided.map((m) => ({ label: formatDateDisplay(m.date), title: `${formatDateDisplay(m.date)} vs ${m.opponent || "?"}`, own: m.team_score, opp: m.opponent_score })),
+        games: decided.map((m) => ({ label: formatDateDisplay(m.date), opponent: m.opponent || "?", title: `${formatDateDisplay(m.date)} vs ${m.opponent || "?"}`, own: m.team_score, opp: m.opponent_score })),
       };
     }
     const byMatch = {};
@@ -1344,7 +1349,7 @@
       hasOpp,
       ownLabel: hasOpp ? `${def.label} (own team)` : def.label, oppLabel: `${def.label} (opponent)`,
       games: gamesWithStats.map((m) => ({
-        label: formatDateDisplay(m.date), title: `${formatDateDisplay(m.date)} vs ${m.opponent || "?"}`,
+        label: formatDateDisplay(m.date), opponent: m.opponent || "?", title: `${formatDateDisplay(m.date)} vs ${m.opponent || "?"}`,
         own: sumFor(byMatch[m.id]), opp: hasOpp ? sumFor(byMatchOpp[m.id]) : null,
       })),
     };
@@ -1369,11 +1374,36 @@
   // compartido por los dos modos (total/diff) del gráfico de tendencia.
   function fmtTrendVal(v) { return v % 1 === 0 ? String(v) : v.toFixed(1); }
 
+  // Color por stat en modo "Total" (Dani: "cada vez que hay un nuevo
+  // graph hay un color diferente") -- orden FIJO, nunca cíclico al azar
+  // (regla de la skill de dataviz), asignado por la posición de cada stat
+  // en allStatDefs() para que sea siempre la misma combinación. "Points"
+  // se queda con el mismo naranja de marca que ya usa el resto de la app
+  // (es el stat por defecto -- así no cambia nada para quien no toca el
+  // picker); el resto usa 6 tonos más del set categórico de la skill
+  // (validados con scripts/validate_palette.js: todos los checks pasan
+  // en el fondo claro de la app). El rojo puro queda afuera de este set
+  // a propósito -- Dani pidió reservarlo para "vas perdiendo" en modo
+  // Differential, sin que se confunda con la identidad de un stat.
+  const TREND_OWN_PALETTE = ["#ec6718", "#2a78d6", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6"];
+  function trendOwnColor(def) {
+    const idx = allStatDefs().findIndex((d) => d.id === def.id);
+    return TREND_OWN_PALETTE[(idx < 0 ? 0 : idx) % TREND_OWN_PALETTE.length];
+  }
+  // Modo "Differential": el color SIEMPRE significa lo mismo (vas
+  // ganando / vas perdiendo esa estadística ese partido) sin importar el
+  // stat elegido -- Dani lo pidió explícitamente ("ganar verde, perder
+  // rojo"), así que a diferencia del color por stat de arriba, estos dos
+  // NO varían.
+  const TREND_DIFF_AHEAD_COLOR = "#0ca30c";
+  const TREND_DIFF_BEHIND_COLOR = "#d03b3b";
+
   // Mini-gráfico en modo "Total": una barra por partido (dos si se
   // incluye al rival) -- es el gráfico de barras agrupadas de la vuelta
   // anterior, ahora reutilizado una vez por cada stat elegido.
   function renderTrendTotalBars(def, series, showOpp) {
     const games = series.games;
+    const ownColor = trendOwnColor(def);
     const allVals = games.flatMap((g) => (showOpp ? [g.own, g.opp] : [g.own]));
     const maxVal = niceCeil(Math.max(...allVals, 1));
     const n = games.length;
@@ -1384,14 +1414,14 @@
     const showValueLabels = n <= 8;
 
     const barsHtml = games.map((g) => {
-      const ownBar = `<div class="trend-bar" style="height:${pctFor(g.own)}; background:var(--accent);" title="${escapeHtml(g.title)}: ${escapeHtml(series.ownLabel)} ${fmtTrendVal(g.own)}" tabindex="0">${showValueLabels ? `<span class="trend-bar-value">${fmtTrendVal(g.own)}</span>` : ""}</div>`;
+      const ownBar = `<div class="trend-bar" style="height:${pctFor(g.own)}; background:${ownColor};" title="${escapeHtml(g.title)}: ${escapeHtml(series.ownLabel)} ${fmtTrendVal(g.own)}" tabindex="0">${showValueLabels ? `<span class="trend-bar-value">${fmtTrendVal(g.own)}</span>` : ""}</div>`;
       const oppBar = showOpp ? `<div class="trend-bar" style="height:${pctFor(g.opp)}; background:#2a2456;" title="${escapeHtml(g.title)}: ${escapeHtml(series.oppLabel)} ${fmtTrendVal(g.opp)}" tabindex="0">${showValueLabels ? `<span class="trend-bar-value">${fmtTrendVal(g.opp)}</span>` : ""}</div>` : "";
       return `<div class="trend-bar-group">${ownBar}${oppBar}</div>`;
     }).join("");
 
     const legendHtml = showOpp ? `
       <div class="chart-legend">
-        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:var(--accent)"></span>${escapeHtml(series.ownLabel)}</span>
+        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:${ownColor}"></span>${escapeHtml(series.ownLabel)}</span>
         <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:#2a2456"></span>${escapeHtml(series.oppLabel)}</span>
       </div>` : "";
     let note = "";
@@ -1405,7 +1435,8 @@
   // hacia ARRIBA desde una línea de cero si ganaste ese stat ese partido,
   // o hacia ABAJO si lo perdiste -- lo que pidió Dani con su ejemplo
   // ("-25" el primer partido, "-2" el segundo): tu valor menos el del
-  // rival, no el valor total de cada uno.
+  // rival, no el valor total de cada uno. Verde/rojo fijos (ver
+  // TREND_DIFF_*_COLOR) -- no cambian según el stat elegido, a propósito.
   function renderTrendDiffBars(def, series) {
     const games = series.games;
     const diffs = games.map((g) => ({ ...g, diff: g.own - g.opp }));
@@ -1420,7 +1451,7 @@
 
     const barsHtml = diffs.map((g) => {
       const positive = g.diff >= 0;
-      const color = positive ? "var(--accent)" : "#2a2456";
+      const color = positive ? TREND_DIFF_AHEAD_COLOR : TREND_DIFF_BEHIND_COLOR;
       const labelHtml = showValueLabels ? `<span class="trend-bar-value${positive ? "" : " trend-bar-value-below"}">${fmtSigned(g.diff)}</span>` : "";
       const bar = `<div class="trend-bar" style="height:${pctFor(g.diff)}; background:${color};" title="${escapeHtml(g.title)}: ${escapeHtml(series.ownLabel)} ${fmtTrendVal(g.own)} vs ${escapeHtml(series.oppLabel)} ${fmtTrendVal(g.opp)} (${fmtSigned(g.diff)})" tabindex="0">${labelHtml}</div>`;
       return `<div class="trend-bar-group trend-diff-group">
@@ -1431,8 +1462,8 @@
 
     const legendHtml = `
       <div class="chart-legend">
-        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:var(--accent)"></span>You ahead</span>
-        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:#2a2456"></span>Opponent ahead</span>
+        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:${TREND_DIFF_AHEAD_COLOR}"></span>You ahead</span>
+        <span class="chart-legend-item"><span class="chart-legend-swatch" style="background:${TREND_DIFF_BEHIND_COLOR}"></span>Opponent ahead</span>
       </div>`;
 
     return { legendHtml, gridlinesHtml, yLabelsHtml, barsHtml, note: "", games };
@@ -1456,17 +1487,13 @@
 
     const showOpp = trendIncludeOpponent && series.hasOpp;
     const chart = trendViewMode === "diff" ? renderTrendDiffBars(def, series) : renderTrendTotalBars(def, series, showOpp);
-    const n = chart.games.length;
 
-    // Primer/último rótulo de fecha anclados hacia adentro (no centrados)
-    // para que no se salgan del borde de la tarjeta y se corten; si hay
-    // muchos partidos se recortan a ~8 para que no se amontonen.
-    const xLabelStep = Math.max(1, Math.ceil(n / 8));
-    const xLabelsHtml = chart.games.map((g, i) => {
-      const show = i % xLabelStep === 0 || i === n - 1;
-      const align = i === 0 ? "left" : i === n - 1 ? "right" : "center";
-      return `<span class="trend-x-label trend-x-label-${align}">${show ? escapeHtml(g.label) : ""}</span>`;
-    }).join("");
+    // Eje X: nombre del rival en vertical, uno por partido -- a diferencia
+    // de la fecha horizontal de antes, el texto rotado ocupa poco ancho,
+    // así que entran todos sin recortar ni amontonarse (la fecha sigue
+    // disponible al pasar el mouse/tocar la barra, vía el `title` de
+    // arriba, sin cambios).
+    const xLabelsHtml = chart.games.map((g) => `<span class="trend-x-label"><span class="trend-x-label-text" title="${escapeHtml(g.title)}">${escapeHtml(g.opponent)}</span></span>`).join("");
 
     return `
       <div class="trend-mini-chart">
