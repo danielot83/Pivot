@@ -1059,7 +1059,7 @@
     const parentColor = currentBranchColor();
     const branch = {
       id: genBranchId(),
-      name: "Option " + String.fromCharCode(65 + forkStep.branches.length),
+      name: "Variante " + String.fromCharCode(65 + forkStep.branches.length),
       color: colorForNewBranch(forkStep.branches.length, parentColor),
       steps: [{ courtType: forkStep.courtType, note: "", points: carried, actions: [], branches: null }],
     };
@@ -1411,19 +1411,32 @@
   //
   // collectLeafSequences() recorre el árbol steps -> step.branches ->
   // branch.steps -> ... y devuelve un "camino completo" por cada opción
-  // final (hoja): { labelParts: ["Option A", ...], entries: [{step,
+  // final (hoja): { labelParts: ["Variante A", ...], entries: [{step,
   // color}, ...] }. Cada entry ya sabe con qué color (el de SU opción, o
-  // null si es un step compartido antes de cualquier bifurcación) se debe
-  // dibujar -- esto también lo usa buildPdfPageList() para el PDF.
+  // null si es el step donde se bifurca, compartido) se debe dibujar.
+  //
+  // Dani (2026-10-19): "cuando se genera los gif mejor no empezar de 0 con
+  // la opción si no donde se ramifica" -- antes cada GIF/animación de una
+  // opción arrancaba desde el PRIMER step de toda la jugada (todo el
+  // tronco completo, repetido para cada opción). Ahora solo se incluye el
+  // step donde ocurre la bifurcación (`forkEntry` -- el último step antes
+  // de que esa opción empiece, para tener contexto de dónde arranca) más
+  // los steps propios de esa opción -- se salta el resto del tronco
+  // anterior. En una jugada con subopciones, esto aplica nivel por nivel:
+  // el GIF de una subopción arranca en el step donde SU padre se bifurcó
+  // (no desde el principio de la jugada ni desde el primer step del
+  // padre).
   // -----------------------------------------------------------------------
-  function collectLeafSequences(seq, labelParts, seqColor) {
-    const entries = seq.map((s) => ({ step: s, color: seqColor }));
+  function collectLeafSequences(seq, labelParts, seqColor, forkEntry) {
+    const ownEntries = seq.map((s) => ({ step: s, color: seqColor }));
+    const entries = forkEntry ? [forkEntry].concat(ownEntries) : ownEntries;
     const last = seq[seq.length - 1];
     if (last && last.branches && last.branches.length) {
+      const nextForkEntry = { step: last, color: seqColor };
       let results = [];
       last.branches.forEach((b) => {
-        collectLeafSequences(b.steps, labelParts.concat([b.name]), b.color).forEach((child) => {
-          results.push({ labelParts: child.labelParts, entries: entries.concat(child.entries) });
+        collectLeafSequences(b.steps, labelParts.concat([b.name]), b.color, nextForkEntry).forEach((child) => {
+          results.push(child);
         });
       });
       return results;
@@ -1431,21 +1444,34 @@
     return [{ labelParts, entries }];
   }
 
-  // Pequeña etiqueta quemada en la esquina de cada frame del GIF/preview
-  // de una opción -- para poder distinguir "Option A" de "Option B" aunque
+  // Pequeña etiqueta quemada arriba de cada frame del GIF/preview de una
+  // opción -- para poder distinguir "Variante A" de "Variante B" aunque
   // el archivo se mire suelto, fuera de PlayPivot.
-  function drawBranchLabelBadge(ctx2, label, color) {
+  // Dani (2026-10-19): "que se vea más al medio, ahora está cortado" --
+  // antes el cartel quedaba pegado a la esquina izquierda (x=8 fijo), y
+  // con un nombre largo (sobre todo en el canvas vertical, que mide solo
+  // 220px de ancho) o un breadcrumb anidado ("Variante A → Sub A1") se
+  // salía por el borde derecho. Ahora se centra horizontalmente según el
+  // ancho real del canvas (`canvasWidth`); si de verdad no entra ni
+  // centrado, se deja pegado al margen izquierdo en vez de salirse por
+  // el lado contrario.
+  function drawBranchLabelBadge(ctx2, label, color, canvasWidth) {
     ctx2.save();
     ctx2.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-    const paddingX = 8, boxH = 20;
+    const paddingX = 8, boxH = 20, margin = 8;
     const textW = ctx2.measureText(label).width;
     const boxW = textW + paddingX * 2;
+    let boxX = margin;
+    if (canvasWidth) {
+      boxX = (canvasWidth - boxW) / 2;
+      boxX = Math.max(margin, Math.min(boxX, canvasWidth - boxW - margin));
+    }
     ctx2.fillStyle = color || "#1a1a1a";
-    if (ctx2.roundRect) { ctx2.beginPath(); ctx2.roundRect(8, 8, boxW, boxH, 5); ctx2.fill(); }
-    else ctx2.fillRect(8, 8, boxW, boxH);
+    if (ctx2.roundRect) { ctx2.beginPath(); ctx2.roundRect(boxX, 8, boxW, boxH, 5); ctx2.fill(); }
+    else ctx2.fillRect(boxX, 8, boxW, boxH);
     ctx2.fillStyle = "#ffffff";
     ctx2.textBaseline = "middle";
-    ctx2.fillText(label, 8 + paddingX, 8 + boxH / 2 + 1);
+    ctx2.fillText(label, boxX + paddingX, 8 + boxH / 2 + 1);
     ctx2.restore();
   }
 
@@ -1570,7 +1596,7 @@
         } else {
           els.stepNoteDisplay.style.display = "none";
         }
-        if (cornerLabel) drawBranchLabelBadge(ctx, cornerLabel, colorOverride);
+        if (cornerLabel) drawBranchLabelBadge(ctx, cornerLabel, colorOverride, cssW);
         if (gif && now - lastFrameTime > 80) { gif.addFrame(els.canvas, { copy: true, delay: 90 }); lastFrameTime = now; }
         if (t < 1) requestAnimationFrame(frame);
         else resolve();
@@ -1992,7 +2018,7 @@
       branches: (Array.isArray(s.branches) && s.branches.length)
         ? s.branches.map((b) => ({
             id: b.id || genBranchId(),
-            name: b.name || "Option",
+            name: b.name || "Variante",
             color: b.color || BRANCH_PALETTE[0],
             steps: normalizeSteps(b.steps),
           }))
@@ -2384,7 +2410,7 @@
   // GIF, el PDF no necesita repetir los steps compartidos antes de la
   // bifurcación en cada opción -- el lector ya los vio en las páginas
   // anteriores) y devuelve, en orden, una página por step con su
-  // subtítulo ("Option A → step 2 of 3") y el color fijo de la opción (si
+  // subtítulo ("Variante A → step 2 of 3") y el color fijo de la opción (si
   // corresponde) para pintar sus flechas/pantallas/zonas. Función pura,
   // sin tocar jsPDF -- así se puede probar sola.
   function buildPdfPageList(seq, breadcrumbPrefix, colorOverride) {
@@ -2450,7 +2476,7 @@
         <li>A new play starts <strong>completely empty</strong> — nothing is pre-placed. Pick "Attacker", "Defender", "Ball", "Cone", "Coach", "Post", or "Handoff" and click the court to add one; you'll be asked for a number/label for attackers and defenders.</li>
         <li><strong>Move/select</strong> — drag any point you've placed. Double-click a player/defender to rename it, or double-click any other point to remove it. Clicking a line/screen/zone (or a point) selects it — then <strong>🗑 Delete element</strong> (or Delete/Backspace on a keyboard) removes just that one, without touching anything else on the step. Drawing a new line leaves that drawing tool active (so you can draw several in a row) — switch back to <strong>Move/Select</strong> first if you want to click and delete something you just drew; "Delete element" tells you if nothing is selected yet instead of doing nothing.</li>
         <li><strong>Steps</strong> — click "+ Add step" as many times as the play needs. Each new step starts with points positioned exactly where the previous step's cuts/dribbles/screens ended — draw a pass from 1 to 2 and step 2 opens with the ball already at 2; draw a screen and the screener carries over positioned right where they set it, not where they started.</li>
-        <li><strong>Options (branches)</strong> — when a play can go one way or another depending on what the defense does, click "🔀 Split into options here" on the play's last step. Each option gets its own color and its own mini-sequence of steps (reusing everything above), reached through the tabs that appear — its lines/screens/zones are drawn in that option's color automatically. An option can branch again into its own sub-options (a "variant of the variant") the same way, from ITS last step — a sub-option shades its parent's own color (lighter/darker) instead of a brand new one, so you can tell at a glance which family it belongs to. Once a play has options, "Download animation (GIF)" turns into two buttons: one GIF per option (each labelled in its corner), or a single combined GIF with every option played in full, one after another, each labelled as it starts; "Export to PDF" prints every step of every option on its own page, breadcrumbed so you can tell which option you're reading.</li>
+        <li><strong>Options (branches)</strong> — when a play can go one way or another depending on what the defense does, click "🔀 Split into options here" on the play's last step. Each option gets its own color and its own mini-sequence of steps (reusing everything above), reached through the tabs that appear — its lines/screens/zones are drawn in that option's color automatically. An option can branch again into its own sub-options (a "variant of the variant") the same way, from ITS last step — a sub-option shades its parent's own color (lighter/darker) instead of a brand new one, so you can tell at a glance which family it belongs to. Once a play has options, "Download animation (GIF)" turns into two buttons: one GIF per option (each labelled, centered, in its corner), or a single combined GIF with every option played in full, one after another, each labelled as it starts; both start right at the step where that option branches off, not from the very first step of the play, so each file stays short and focused on that option. "Export to PDF" prints every step of every option on its own page, breadcrumbed so you can tell which option you're reading.</li>
         <li><strong>Note for this step</strong> — a short caption (e.g. "1 passes to 2 and cuts backdoor") that appears on screen while that step plays during "Animate", and under the diagram in the exported PDF.</li>
         <li><strong>This step's court</strong> — half or full, chosen independently for every step.</li>
         <li><strong>Speed</strong> — slows down or speeds up "Animate whole sequence"; the same speed also gets baked into the downloaded GIF.</li>
