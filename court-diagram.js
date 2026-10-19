@@ -186,19 +186,35 @@ function drawLineElement(ctx, toPx, el, progress) {
   }
 }
 
-/** Dessine une pantalla (écran) : trait + barre en T à la fin. */
-function drawScreenElement(ctx, toPx, el) {
+/** Dessine une pantalla (écran) : trait + barre en T à la fin.
+    `progress` (0-1) pour l'animation, 1 par défaut -- même convention que
+    drawLineElement(). Avant, une pantalla se dessinait TOUJOURS en entier
+    d'un coup, même pendant l'animation/le GIF : le trait et la barre en T
+    apparaissaient instantanément à la position finale dès la 1ère frame,
+    pendant que le joueur (lui) avançait progressivement image par image --
+    donnant l'impression que "la pantalla aparece y el jugador se mueve o
+    no se mueve, pero no hay movimiento" (Dani, 2026-10-19). Maintenant le
+    trait grandit en même temps que le joueur avance, comme une flèche. */
+function drawScreenElement(ctx, toPx, el, progress) {
+  progress = progress === undefined ? 1 : progress;
   const pts = el.points || [[el.fromX, el.fromY], [el.toX, el.toY]];
   const color = el.color || "#141414";
   const [fx, fy] = toPx(pts[0][0], pts[0][1]);
-  const [tx, ty] = toPx(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+  const [tx0, ty0] = toPx(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+  const tx = fx + (tx0 - fx) * progress, ty = fy + (ty0 - fy) * progress;
   ctx.strokeStyle = color; ctx.lineWidth = 1.8;
   ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(tx, ty); ctx.stroke();
-  const angle = Math.atan2(ty - fy, tx - fx), perp = angle + Math.PI / 2, cap = 7;
-  ctx.beginPath();
-  ctx.moveTo(tx + Math.cos(perp) * cap, ty + Math.sin(perp) * cap);
-  ctx.lineTo(tx - Math.cos(perp) * cap, ty - Math.sin(perp) * cap);
-  ctx.stroke();
+  // La barra en T (donde se pone de verdad la pantalla) solo tiene
+  // sentido una vez que el trazo ya llegó prácticamente al final -- igual
+  // que la punta de flecha de drawLineElement, que tampoco se dibuja
+  // desde el primer frame.
+  if (progress > 0.05) {
+    const angle = Math.atan2(ty - fy, tx - fx), perp = angle + Math.PI / 2, cap = 7;
+    ctx.beginPath();
+    ctx.moveTo(tx + Math.cos(perp) * cap, ty + Math.sin(perp) * cap);
+    ctx.lineTo(tx - Math.cos(perp) * cap, ty - Math.sin(perp) * cap);
+    ctx.stroke();
+  }
 }
 
 /** Dessine une zone surlignée (rectangle semi-transparent). */
@@ -243,7 +259,7 @@ const POINT_KINDS = ["player", "defender", "coach", "cone", "ball", "post", "han
 /** Dessine n'importe quel élément selon son type -- point, ligne, écran, ou zone. */
 function drawDiagramElement(ctx, toPx, canvas, el, progress) {
   if (el.type === "zone") drawZoneElement(ctx, toPx, canvas, el);
-  else if (el.type === "screen") drawScreenElement(ctx, toPx, el);
+  else if (el.type === "screen") drawScreenElement(ctx, toPx, el, progress);
   else if (LINE_KINDS.includes(el.type)) drawLineElement(ctx, toPx, el, progress);
   else if (POINT_KINDS.includes(el.type)) drawPointElement(ctx, toPx, el);
 }
