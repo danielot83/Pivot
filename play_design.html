@@ -691,9 +691,22 @@
   // paleta si se está bifurcando en la secuencia principal (parentColor
   // null); un tono del color del padre si se está bifurcando DENTRO de
   // otra opción (subopción).
+  //
+  // Dani (voz, 2026-10-19): "la version 1... deberia de no cambiar de
+  // color... empezamos con el negro... cuando empieza una nueva version,
+  // debe de cambiar de color TODO." -- la primera opción creada a nivel
+  // raíz (V1) ya no toma el primer color de la paleta: se queda en el
+  // negro de base de la jugada (#141414, el mismo que usan las flechas
+  // sin ninguna opción), así que "V1" se ve exactamente igual que la
+  // jugada sin ramificar. Recién desde la SEGUNDA opción (V2) se empieza
+  // a usar la paleta de colores (ahora corrida una posición: V2 toma lo
+  // que antes era el color de V1, V3 lo que era el de V2, etc.) -- así
+  // cuando arranca una variante nueva, el cambio de color es total y
+  // obvio, en vez de "la primera variante también viene coloreada".
   function colorForNewBranch(existingCount, parentColor) {
     if (parentColor) return shadeColor(parentColor, BRANCH_SHADE_DELTAS[existingCount % BRANCH_SHADE_DELTAS.length]);
-    return BRANCH_PALETTE[existingCount % BRANCH_PALETTE.length];
+    if (existingCount === 0) return "#141414";
+    return BRANCH_PALETTE[(existingCount - 1) % BRANCH_PALETTE.length];
   }
 
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; }
@@ -1389,6 +1402,24 @@
   document.getElementById("animate-btn").addEventListener("click", () => runAnimation(false));
   document.getElementById("download-gif-btn").addEventListener("click", () => runAnimation(true));
 
+  // Dani (2026-10-19): "llevo esperando como 5 minutos, no creo que sea
+  // normal, puede ser un fallo." No es un fallo -- un GIF combinado (o
+  // uno por opción, con tronco largo) puede tener varios cientos de
+  // frames, y codificarlos en el navegador lleva su tiempo -- pero antes
+  // el único mensaje era "esto puede llevar un momento…", fijo, sin
+  // ningún avance durante todo ese rato, así que no había forma de saber
+  // si de verdad seguía trabajando o se había colgado. gif.js emite un
+  // evento "progress" (0 a 1) mientras codifica -- esto lo conecta a
+  // showMessage() para que el texto se vaya actualizando con el
+  // porcentaje real, en vez de quedarse callado.
+  function wireGifProgress(gif, label) {
+    let lastPct = -1;
+    gif.on("progress", (p) => {
+      const pct = Math.round(p * 100);
+      if (pct !== lastPct) { lastPct = pct; showMessage(`${label}… ${pct}%`, "success"); }
+    });
+  }
+
   let cachedGifWorkerUrl = null;
   async function getGifWorkerUrl() {
     // Un Worker ne peut pas être créé directement depuis un script d'un
@@ -1502,6 +1533,7 @@
       render();
       if (gif) {
         showMessage("Rendering the GIF, this can take a moment…", "success");
+        wireGifProgress(gif, "Rendering the GIF");
         gif.on("finished", (blob) => {
           const a = document.createElement("a");
           a.href = URL.createObjectURL(blob);
@@ -1546,6 +1578,7 @@
       }
       if (gif) {
         showMessage(`Rendering the GIF for "${label}"…`, "success");
+        wireGifProgress(gif, `Rendering the GIF for "${label}"`);
         await new Promise((resolve) => {
           gif.on("finished", (blob) => {
             const a = document.createElement("a");
@@ -1643,6 +1676,7 @@
     animating = false;
     resizeCanvasForStep(); render();
     showMessage("Rendering the combined GIF, this can take a moment…", "success");
+    wireGifProgress(gif, "Rendering the combined GIF");
     gif.on("finished", (blob) => {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -1904,6 +1938,18 @@
   async function selectSeasonTeam(season, team) {
     currentSeason = season;
     currentTeam = team;
+    // Dani (2026-10-19): "sigue sin aparecer... sigue apareciendo [No
+    // team]" -- el primer arreglo (sincronizar justo después de
+    // loadTree() en init()) solo cubre la carga inicial de la página.
+    // Si el usuario cambia el selector de equipo/temporada ARRIBA
+    // mientras todavía está en la jugada en blanco sin guardar (no
+    // volvió a tocar "+ New play"), editingPlayTeam/editingPlaySeason se
+    // quedaban con lo que fuera que había cuando se cargó la página por
+    // primera vez. Este es el otro único sitio donde currentTeam/
+    // currentSeason cambian -- así que sincronizar aquí también cubre
+    // ese caso, sin tocar una jugada YA guardada y abierta (ver el
+    // comentario de syncEditingTeamSeasonIfBlank()).
+    syncEditingTeamSeasonIfBlank();
     try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team, category: currentTeamCategory || "", gender: currentTeamGender || "" })); } catch (e) { /* no pasa nada si el storage está lleno/bloqueado */ }
     await loadTree();
     await loadTeamPlayersCount();
@@ -2508,7 +2554,7 @@
         <li>A new play starts <strong>completely empty</strong> — nothing is pre-placed. Pick "Attacker", "Defender", "Ball", "Cone", "Coach", "Post", or "Handoff" and click the court to add one; you'll be asked for a number/label for attackers and defenders.</li>
         <li><strong>Move/select</strong> — drag any point you've placed. Double-click a player/defender to rename it, or double-click any other point to remove it. Clicking a line/screen/zone (or a point) selects it — then <strong>🗑 Delete element</strong> (or Delete/Backspace on a keyboard) removes just that one, without touching anything else on the step. Drawing a new line leaves that drawing tool active (so you can draw several in a row) — switch back to <strong>Move/Select</strong> first if you want to click and delete something you just drew; "Delete element" tells you if nothing is selected yet instead of doing nothing.</li>
         <li><strong>Steps</strong> — click "+ Add step" as many times as the play needs. Each new step starts with points positioned exactly where the previous step's cuts/dribbles/screens ended — draw a pass from 1 to 2 and step 2 opens with the ball already at 2; draw a screen and the screener carries over positioned right where they set it, not where they started.</li>
-        <li><strong>Options (branches)</strong> — when a play can go one way or another depending on what the defense does, click "🔀 Split into options here" on the play's last step. Each option gets its own color and its own mini-sequence of steps (reusing everything above), reached through the tabs that appear — its lines/screens/zones are drawn in that option's color automatically. An option can branch again into its own sub-options (a "variant of the variant") the same way, from ITS last step — a sub-option shades its parent's own color (lighter/darker) instead of a brand new one, so you can tell at a glance which family it belongs to. Once a play has options, "Download animation (GIF)" turns into two buttons: one GIF per option (each labelled "V1"/"V2"… in its own color, centered, with the play's name right underneath), or a single combined GIF with every option played in full, one after another, each labelled as it starts; "Export to PDF" prints every step of every option on its own page, breadcrumbed so you can tell which option you're reading.</li>
+        <li><strong>Options (branches)</strong> — when a play can go one way or another depending on what the defense does, click "🔀 Split into options here" on the play's last step. The first option (V1) keeps the play's usual black — nothing changes color yet; the second option (V2) onward each gets its own distinct color, so the moment a play actually forks into something different, the color change is obvious. Each option has its own mini-sequence of steps (reusing everything above), reached through the tabs that appear — its lines/screens/zones are drawn in that option's color automatically. An option can branch again into its own sub-options (a "variant of the variant") the same way, from ITS last step — a sub-option shades its parent's own color (lighter/darker) instead of a brand new one, so you can tell at a glance which family it belongs to. Once a play has options, "Download animation (GIF)" turns into two buttons: one GIF per option (each labelled "V1"/"V2"… in its own color, centered, with the play's name right underneath), or a single combined GIF with every option played in full, one after another, each labelled as it starts; "Export to PDF" prints every step of every option on its own page, breadcrumbed so you can tell which option you're reading.</li>
         <li><strong>Note for this step</strong> — a short caption (e.g. "1 passes to 2 and cuts backdoor") that appears on screen while that step plays during "Animate", and under the diagram in the exported PDF.</li>
         <li><strong>This step's court</strong> — half or full, chosen independently for every step.</li>
         <li><strong>Speed</strong> — slows down or speeds up "Animate whole sequence"; the same speed also gets baked into the downloaded GIF.</li>
