@@ -199,6 +199,30 @@
   .step-tab .del-step:hover { opacity: 1; }
   .add-step-btn { padding: 6px 10px; border: 1px dashed var(--line); background: none; border-radius: 6px; font-size: 13.5px; cursor: pointer; color: var(--accent-deep); font-weight: 600; }
   .add-step-btn:hover { border-color: var(--accent); }
+  .add-step-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* -----------------------------------------------------------------------
+     Jugadas con opciones ("ramificaciones") -- a pedido de Dani (2026-10-19):
+     cuando una jugada tiene varias continuaciones posibles según lo que
+     haga la defensa, cada opción es su propia mini-secuencia de steps (con
+     su propio color fijo), igual que FastDraw/Coaches Clipboard lo hacen
+     con diagramas separados por opción -- NO superponiendo flechas de
+     varios colores en un mismo diagrama (eso se vuelve ilegible). El color
+     de la opción se usa en su pestaña Y en las flechas/líneas que se
+     dibujan dentro de esa opción (pedido explícito de Dani), para que se
+     note de un vistazo en qué rama estás, incluso mirando el diagrama
+     suelto o un GIF exportado.
+     --------------------------------------------------------------------- */
+  .branch-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+  .branch-crumb-btn { background: none; border: none; padding: 3px 6px; border-radius: 5px; font-size: 13px; color: var(--accent-deep); font-weight: 600; cursor: pointer; }
+  .branch-crumb-btn:hover { background: var(--accent-tint); }
+  .branch-crumb-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .branch-tabs-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; align-items: center; }
+  .branch-tab { display: flex; align-items: center; gap: 5px; padding: 5px 9px; border: 2px solid transparent; background: var(--paper); border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 600; }
+  .branch-tab.active { background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.05) inset; }
+  .branch-tab .del-branch { font-size: 10px; opacity: 0.6; margin-left: 2px; }
+  .branch-tab .del-branch:hover { opacity: 1; }
+  .branch-hint { font-size: 12px; color: var(--muted); margin: -4px 0 10px; }
 
   .court-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; text-align: center; }
   #court-canvas { display: block; margin: 0 auto; cursor: crosshair; touch-action: none; }
@@ -458,7 +482,9 @@
 
     <div class="side-card">
       <h2 style="margin-bottom:10px; text-transform:none; font-size:14.5px; letter-spacing:0; color:var(--ink); font-weight:700;">Steps &amp; drawing tools</h2>
+      <div class="branch-crumbs" id="branch-crumbs"></div>
       <div class="step-tabs" id="step-tabs"></div>
+      <div class="branch-tabs-row" id="branch-tabs"></div>
       <div class="field-row">
         <div class="field" style="flex-direction:row; align-items:center; gap:6px;">
           <label for="step-court-type" style="margin:0;">This step's court</label>
@@ -475,6 +501,14 @@
         </div>
         <button class="btn btn-secondary" id="animate-btn">▶ Animate whole sequence</button>
         <button class="btn btn-secondary" id="download-gif-btn">⬇ Download animation (GIF)</button>
+        <!-- Solo visible cuando la jugada tiene opciones (Dani, 2026-10-19:
+             "que te diera la opción de descargar variante 1, [...] variante
+             2, variante 3, o descargar una al completo") -- un único GIF
+             con TODAS las opciones en fila, cada una completa de principio
+             a fin, con su propio rótulo ("Variante 1"/"Variante 2"...) que
+             cambia justo cuando empieza la siguiente. updateGifButtonsForBranching()
+             la muestra/oculta. -->
+        <button class="btn btn-secondary" id="download-gif-combined-btn" style="display:none;">⬇ Download ALL options in one GIF</button>
       </div>
 
       <div class="tool-group" id="tools-row1"></div>
@@ -608,10 +642,90 @@
   // qué array (step.points o step.actions) borrarlo.
   let selectedElement = null;
 
+  // -----------------------------------------------------------------------
+  // Jugadas con opciones (Dani, 2026-10-19): "cuando ocurren cosas en el
+  // juego que es o una cosa o la otra" -- una jugada puede bifurcarse en N
+  // opciones a partir de CUALQUIER step que sea el último de su secuencia.
+  // Cada opción es su propia mini-secuencia de steps (branch.steps, mismo
+  // formato que el array `steps` de siempre), así que todo el editor de
+  // steps/dibujo se reutiliza sin cambios dentro de una opción.
+  //
+  // branchPath = desde la raíz (`steps`), la cadena de "en qué step me
+  // bifurqué y a qué opción entré" que describe en qué nivel está
+  // editando ahora mismo el usuario. [] = editando la secuencia principal.
+  // Un step solo puede tener `branches` si es el ÚLTIMO de su secuencia --
+  // así nunca hay ambigüedad entre "sigue un step más" y "aquí se
+  // bifurca"; una vez que un step tiene branches, "+ Add step" se oculta
+  // para esa secuencia y en vez de eso se sigue por una de las opciones.
+  // -----------------------------------------------------------------------
+  let branchPath = []; // [{ stepIndex, branchId }, ...]
+  // Mismo set de 6 colores validado (dataviz skill) que ya usa stats.html
+  // para "Trends over the season", arrancando en el 2º color -- el 1º
+  // (#ec6718, el naranja de marca) se deja libre porque ya lo usa el
+  // resaltado de "elemento seleccionado" (drawSelectionHighlight), y
+  // superpuesto sobre una flecha del mismo naranja perdía contraste.
+  const BRANCH_PALETTE = ["#2a78d6", "#1baf7a", "#eda100", "#e87ba4", "#6250d6", "#008300"];
+  function genBranchId() { return "b" + Date.now() + Math.floor(Math.random() * 1000); }
+  // Dani (voz, 2026-10-19): "puede ser que las cosas se compliquen y que
+  // haya variantes de variantes [...] quizás cuando haya subvariantes
+  // puede hacer una degradación del color que da la variante. Por
+  // ejemplo, del rojo a rojo oscuro, a rojo oscuro... blanco, etc." --
+  // una SUBopción (una opción creada mientras ya se está dentro de otra
+  // opción) no toma el siguiente color de BRANCH_PALETTE (eso sería un
+  // tono sin relación con el padre); toma un tono más claro/oscuro del
+  // color DE SU PADRE, para que de un vistazo se note que es "parte de"
+  // esa opción. Los deltas alternan más oscuro/más claro para que dos
+  // subopciones consecutivas del mismo padre no queden casi iguales.
+  const BRANCH_SHADE_DELTAS = [-35, 35, -60, 60, -15, 15, -80, 80];
+  function shadeColor(hex, percent) {
+    const n = parseInt(hex.replace("#", ""), 16);
+    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const target = percent < 0 ? 0 : 255;
+    const p = Math.min(1, Math.abs(percent) / 100);
+    r = Math.round(r + (target - r) * p);
+    g = Math.round(g + (target - g) * p);
+    b = Math.round(b + (target - b) * p);
+    return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+  }
+  // El color para la N-ésima opción nueva de un step: color plano de la
+  // paleta si se está bifurcando en la secuencia principal (parentColor
+  // null); un tono del color del padre si se está bifurcando DENTRO de
+  // otra opción (subopción).
+  function colorForNewBranch(existingCount, parentColor) {
+    if (parentColor) return shadeColor(parentColor, BRANCH_SHADE_DELTAS[existingCount % BRANCH_SHADE_DELTAS.length]);
+    return BRANCH_PALETTE[existingCount % BRANCH_PALETTE.length];
+  }
+
   function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; }
 
-  function newStep() { return { courtType: "half", note: "", points: [], actions: [] }; }
-  function currentStep() { return steps[currentStepIndex]; }
+  function newStep() { return { courtType: "half", note: "", points: [], actions: [], branches: null }; }
+  // Dado un camino de bifurcaciones (p.ej. branchPath, o branchPath.slice(0,-1)),
+  // devuelve el array de steps real (no una copia) al que apunta -- [] devuelve
+  // directamente `steps`, así que todo el código de edición puede llamar siempre
+  // a activeSequence() en vez de usar el global `steps` a mano, y funciona igual
+  // tanto en la secuencia principal como dentro de cualquier opción.
+  function sequenceAtPath(path) {
+    let seq = steps;
+    for (const seg of path) {
+      const step = seq[seg.stepIndex];
+      const branch = step && step.branches && step.branches.find((b) => b.id === seg.branchId);
+      seq = branch ? branch.steps : [];
+    }
+    return seq;
+  }
+  function activeSequence() { return sequenceAtPath(branchPath); }
+  // El color fijo de la opción en la que se está editando AHORA (la más
+  // interna si hay varias bifurcaciones anidadas), o null si se está en la
+  // secuencia principal -- ninguna opción, sin color especial.
+  function currentBranchColor() {
+    if (!branchPath.length) return null;
+    const parentSeq = sequenceAtPath(branchPath.slice(0, -1));
+    const seg = branchPath[branchPath.length - 1];
+    const step = parentSeq[seg.stepIndex];
+    const branch = step && step.branches && step.branches.find((b) => b.id === seg.branchId);
+    return branch ? branch.color : null;
+  }
+  function currentStep() { return activeSequence()[currentStepIndex]; }
 
   // -----------------------------------------------------------------------
   // Continuité logique : applique les mouvements (coupe/dribble) d'une
@@ -690,7 +804,12 @@
     const step = currentStep();
     if (!step) return;
     drawCourtBackground(ctx, els.canvas, step.courtType, cssW, cssH);
-    step.actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, a));
+    // Dentro de una opción, las flechas/pantallas/zonas de ese step se
+    // pintan con el color fijo de la opción (pedido de Dani: "color
+    // también en las flechas de esa rama") -- los puntos (jugadores/
+    // balón/etc.) NO cambian de color, se dibujan igual que siempre.
+    const branchColor = currentBranchColor();
+    step.actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, branchColor ? { ...a, color: branchColor } : a));
     step.points.forEach((p) => drawPointElement(ctx, toPx, p));
     drawSelectionHighlight();
     els.stepNote.value = step.note || "";
@@ -728,27 +847,36 @@
     ctx.restore();
   }
 
+  // Separado de resizeCanvasForStep() para poder redimensionar a partir de
+  // un step cualquiera (p.ej. de otra rama, durante la animación/GIF de
+  // una opción) sin depender de currentStep()/activeSequence().
+  function resizeCanvasFor(courtType) {
+    [cssW, cssH] = CANVAS_SIZES[courtType];
+    ctx = setupHiDPICanvas(els.canvas, cssW, cssH);
+  }
   function resizeCanvasForStep() {
     const step = currentStep();
     if (!step) return;
-    [cssW, cssH] = CANVAS_SIZES[step.courtType];
-    ctx = setupHiDPICanvas(els.canvas, cssW, cssH);
+    resizeCanvasFor(step.courtType);
   }
 
   // -----------------------------------------------------------------------
   // Onglets d'étapes -- nombre libre. "+ Add step" crée la suite logique.
   // -----------------------------------------------------------------------
   function buildStepTabs() {
-    els.stepHint.textContent = (steps.length > 1
-      ? `Step ${currentStepIndex + 1} of ${steps.length} — points start where the previous step's moves ended.`
+    const seq = activeSequence();
+    const isForked = seq.length > 0 && seq[seq.length - 1].branches && seq[seq.length - 1].branches.length > 0;
+    els.stepHint.textContent = (seq.length > 1
+      ? `Step ${currentStepIndex + 1} of ${seq.length} — points start where the previous step's moves ended.`
       : "Add more steps to build out the full sequence of the play.")
-      + ' Click anything with "Move/Select", then "🗑 Delete element" (or Backspace) to remove just that one.';
+      + ' Click anything with "Move/Select", then "🗑 Delete element" (or Backspace) to remove just that one.'
+      + (isForked ? " This step branches into options below — add steps inside an option instead." : "");
     const row = document.getElementById("step-tabs");
     row.innerHTML = "";
-    steps.forEach((s, i) => {
+    seq.forEach((s, i) => {
       const btn = document.createElement("button");
       btn.className = "step-tab" + (i === currentStepIndex ? " active" : "");
-      btn.innerHTML = `Step ${i + 1}` + (steps.length > 1 ? ` <span class="del-step" data-idx="${i}">✕</span>` : "");
+      btn.innerHTML = `Step ${i + 1}` + (seq.length > 1 ? ` <span class="del-step" data-idx="${i}">✕</span>` : "");
       btn.addEventListener("click", (e) => {
         if (e.target.classList.contains("del-step")) return;
         commitNoteField();
@@ -761,8 +889,9 @@
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         const idx = parseInt(el.dataset.idx, 10);
-        if (steps.length <= 1) return;
-        steps.splice(idx, 1);
+        const seq2 = activeSequence();
+        if (seq2.length <= 1) return;
+        seq2.splice(idx, 1);
         // Dani, test funcional ronda 30 (hallazgo MEDIO nº8): esto solo
         // recortaba currentStepIndex para que siguiera siendo un índice
         // válido, pero no lo desplazaba cuando el step borrado estaba
@@ -774,25 +903,185 @@
         // muestre la numeración correcta ("Step 3 of 3") -- parecía que
         // seguías en el mismo paso y en realidad estabas editando otro.
         if (idx < currentStepIndex) currentStepIndex -= 1;
-        currentStepIndex = Math.max(0, Math.min(currentStepIndex, steps.length - 1));
+        currentStepIndex = Math.max(0, Math.min(currentStepIndex, seq2.length - 1));
         buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
       });
     });
-    const addBtn = document.createElement("button");
-    addBtn.className = "add-step-btn";
-    addBtn.textContent = "+ Add step";
-    addBtn.addEventListener("click", () => {
-      commitNoteField();
-      const prev = currentStep();
-      const carried = resolvedPoints(prev);
-      const next = newStep();
-      next.points = carried;
-      next.courtType = prev.courtType;
-      steps.push(next);
-      currentStepIndex = steps.length - 1;
-      buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
-    });
-    row.appendChild(addBtn);
+    if (!isForked) {
+      const addBtn = document.createElement("button");
+      addBtn.className = "add-step-btn";
+      addBtn.textContent = "+ Add step";
+      addBtn.addEventListener("click", () => {
+        commitNoteField();
+        const seq3 = activeSequence();
+        const prev = seq3[currentStepIndex];
+        const carried = resolvedPoints(prev);
+        const next = newStep();
+        next.points = carried;
+        next.courtType = prev.courtType;
+        seq3.push(next);
+        currentStepIndex = seq3.length - 1;
+        buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
+      });
+      row.appendChild(addBtn);
+    }
+    buildBranchUI();
+    updateGifButtonsForBranching();
+  }
+
+  // Dani (2026-10-19): además de "un GIF por opción" (ya implementado),
+  // quiso poder elegir también descargar TODAS las opciones en un solo
+  // archivo -- así que, solo cuando la jugada de verdad tiene opciones,
+  // aparece un segundo botón al lado del de siempre (que pasa a dejar
+  // claro que descarga por separado). Sin opciones, todo queda igual que
+  // antes de este cambio: un solo botón, un solo GIF.
+  function updateGifButtonsForBranching() {
+    const downloadBtn = document.getElementById("download-gif-btn");
+    const combinedBtn = document.getElementById("download-gif-combined-btn");
+    if (!downloadBtn || !combinedBtn) return;
+    const hasOptions = collectLeafSequences(steps, [], null).length > 1;
+    downloadBtn.textContent = hasOptions ? "⬇ Download separate GIFs (one per option)" : "⬇ Download animation (GIF)";
+    combinedBtn.style.display = hasOptions ? "inline-block" : "none";
+  }
+
+  // -----------------------------------------------------------------------
+  // Breadcrumb ("⬅ volver") + pestañas de opciones -- se reconstruyen
+  // cada vez que buildStepTabs() corre, así que quedan al día sin tener
+  // que tocar cada uno de sus puntos de llamada por separado.
+  // -----------------------------------------------------------------------
+  function buildBranchUI() {
+    const crumbsRow = document.getElementById("branch-crumbs");
+    crumbsRow.innerHTML = "";
+    if (branchPath.length > 0) {
+      branchPath.forEach((seg, depth) => {
+        const parentSeq = sequenceAtPath(branchPath.slice(0, depth));
+        const step = parentSeq[seg.stepIndex];
+        const branch = step && step.branches && step.branches.find((b) => b.id === seg.branchId);
+        if (!branch) return;
+        const btn = document.createElement("button");
+        btn.className = "branch-crumb-btn";
+        btn.innerHTML = `<span class="branch-crumb-dot" style="background:${branch.color}"></span>${depth === 0 ? "" : "› "}${escapeHtml(branch.name)}`;
+        btn.title = "Go back to this option's parent";
+        btn.addEventListener("click", () => {
+          commitNoteField();
+          branchPath = branchPath.slice(0, depth);
+          currentStepIndex = seg.stepIndex;
+          buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
+        });
+        crumbsRow.appendChild(btn);
+      });
+      const backBtn = document.createElement("button");
+      backBtn.className = "branch-crumb-btn";
+      backBtn.textContent = "⬅ Back";
+      backBtn.addEventListener("click", () => {
+        commitNoteField();
+        const lastSeg = branchPath[branchPath.length - 1];
+        branchPath = branchPath.slice(0, -1);
+        currentStepIndex = lastSeg.stepIndex;
+        buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
+      });
+      crumbsRow.insertBefore(backBtn, crumbsRow.firstChild);
+    }
+
+    const seq = activeSequence();
+    const forkStepIndex = seq.length - 1;
+    const forkStep = seq[forkStepIndex];
+    const branchRow = document.getElementById("branch-tabs");
+    branchRow.innerHTML = "";
+    const hasBranches = forkStep && forkStep.branches && forkStep.branches.length > 0;
+
+    if (hasBranches) {
+      forkStep.branches.forEach((branch) => {
+        const isActive = branchPath.length > 0 && branchPath[branchPath.length - 1].stepIndex === forkStepIndex && branchPath[branchPath.length - 1].branchId === branch.id;
+        const tab = document.createElement("button");
+        tab.className = "branch-tab" + (isActive ? " active" : "");
+        tab.style.borderColor = branch.color;
+        tab.innerHTML = `<span class="branch-crumb-dot" style="background:${branch.color}"></span>${escapeHtml(branch.name)} <span class="del-branch" data-id="${branch.id}">✕</span>`;
+        tab.addEventListener("click", (e) => {
+          if (e.target.classList.contains("del-branch")) return;
+          commitNoteField();
+          branchPath = branchPath.concat([{ stepIndex: forkStepIndex, branchId: branch.id }]);
+          currentStepIndex = 0;
+          buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
+        });
+        tab.addEventListener("dblclick", (e) => {
+          e.stopPropagation();
+          const label = prompt("Name for this option:", branch.name);
+          if (label !== null && label.trim()) { branch.name = label.trim(); buildStepTabs(); }
+        });
+        branchRow.appendChild(tab);
+      });
+      branchRow.querySelectorAll(".del-branch").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          deleteBranch(forkStepIndex, el.dataset.id);
+        });
+      });
+    }
+
+    const addBranchBtn = document.createElement("button");
+    addBranchBtn.className = "add-step-btn";
+    addBranchBtn.textContent = hasBranches ? "🔀 + Add another option" : "🔀 Split into options here";
+    addBranchBtn.addEventListener("click", () => addBranchOption(forkStepIndex));
+    branchRow.appendChild(addBranchBtn);
+
+    let hint = document.getElementById("branch-hint");
+    if (!hint) {
+      hint = document.createElement("p");
+      hint.id = "branch-hint";
+      hint.className = "branch-hint";
+      branchRow.parentNode.insertBefore(hint, branchRow.nextSibling);
+    }
+    hint.textContent = currentBranchColor()
+      ? "You're inside an option — its lines/screens/zones are drawn in this option's own color automatically."
+      : (hasBranches ? "This play branches into the options above — pick one to keep drawing it, or add another." : "");
+  }
+
+  // Crea (si hace falta) branches en el step indicado y agrega una opción
+  // nueva, arrancando con los puntos donde el step bifurcado los dejó
+  // (misma continuidad que "+ Add step") -- y entra directo a editarla.
+  function addBranchOption(forkStepIndex) {
+    commitNoteField();
+    const seq = activeSequence();
+    const forkStep = seq[forkStepIndex];
+    if (!forkStep) return;
+    if (!forkStep.branches) forkStep.branches = [];
+    const carried = resolvedPoints(forkStep);
+    // currentBranchColor() es el color de la opción en la que ya se
+    // está editando ahora mismo (null si se está en la secuencia
+    // principal) -- una subopción hereda un tono de ESE color en vez de
+    // tomar el siguiente de la paleta plana.
+    const parentColor = currentBranchColor();
+    const branch = {
+      id: genBranchId(),
+      name: "Option " + String.fromCharCode(65 + forkStep.branches.length),
+      color: colorForNewBranch(forkStep.branches.length, parentColor),
+      steps: [{ courtType: forkStep.courtType, note: "", points: carried, actions: [], branches: null }],
+    };
+    forkStep.branches.push(branch);
+    branchPath = branchPath.concat([{ stepIndex: forkStepIndex, branchId: branch.id }]);
+    currentStepIndex = 0;
+    buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
+  }
+
+  // Borra una opción entera (con confirmación, como el resto de borrados
+  // destructivos de esta página). Si no queda ninguna opción, el step
+  // vuelve a ser un step normal ("+ Add step" reaparece). Su botón ✕ solo
+  // aparece en las pestañas de la secuencia PADRE (buildBranchUI siempre
+  // las dibuja a partir de activeSequence(), la secuencia que se está
+  // editando AHORA) -- nunca estando ya dentro de la opción que se borra,
+  // así que forkStepIndex siempre es válido contra activeSequence() en el
+  // momento del click.
+  function deleteBranch(forkStepIndex, branchId) {
+    const seq = activeSequence();
+    const forkStep = seq[forkStepIndex];
+    if (!forkStep || !forkStep.branches) return;
+    const branch = forkStep.branches.find((b) => b.id === branchId);
+    if (!branch) return;
+    if (!confirm(`Delete option "${branch.name}"? This can't be undone.`)) return;
+    forkStep.branches = forkStep.branches.filter((b) => b.id !== branchId);
+    if (forkStep.branches.length === 0) forkStep.branches = null;
+    buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
   }
 
   function commitNoteField() {
@@ -882,7 +1171,21 @@
   // Quita del step el elemento actualmente seleccionado (un punto o una
   // acción) -- desde el botón "🗑 Delete element" o Delete/Backspace.
   function deleteSelectedElement() {
-    if (!selectedElement) return;
+    // Dani (2026-10-19): "no estoy seguro que se pueda eliminar un solo
+    // elemento [...] creo que no funcionaba bien". Revisado a fondo: la
+    // selección y el borrado en sí funcionan (y ya estaban probados en
+    // la ronda del 28/9) -- lo que de verdad podía pasar es esto: después
+    // de DIBUJAR algo (con "Arrow", "Pass", etc. activa), la herramienta
+    // activa se queda en esa, NO vuelve sola a "Move/Select". Si en ese
+    // momento se hace clic sobre lo recién dibujado para borrarlo, no se
+    // selecciona nada (el clic se interpreta como "empezar otra línea
+    // nueva", no como "seleccionar"), y el botón "🗑 Delete element" no
+    // hacía nada -- EN SILENCIO, sin ningún aviso, así que parecía que el
+    // botón estaba roto. Ahora avisa qué hacer en vez de no hacer nada.
+    if (!selectedElement) {
+      showMessage('Nothing selected to delete yet — click "Move/Select" above, then click the point/line/screen/zone you want to remove, then try again.', "error");
+      return;
+    }
     const step = currentStep();
     if (selectedElement.kind === "point") {
       const idx = step.points.indexOf(selectedElement.item);
@@ -1089,44 +1392,139 @@
     return cachedGifWorkerUrl;
   }
 
-  async function runAnimation(recordGif) {
-    if (animating || steps.length === 0) return;
-    animating = true;
-    const speed = parseFloat(els.animSpeed.value) || 1;
-    let gif = null;
-    if (recordGif) {
-      const workerUrl = await getGifWorkerUrl();
-      gif = new GIF({ workers: 2, quality: 8, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
-      gif.on("abort", () => showMessage("Couldn't render the GIF.", "error"));
-    }
-    for (let i = 0; i < steps.length; i++) {
-      currentStepIndex = i;
-      buildStepTabs(); resizeCanvasForStep(); syncControls();
-      await animateStep(steps[i], speed, gif);
-      await new Promise((r) => setTimeout(r, 350 * speed));
-    }
-    animating = false;
-    render();
-    if (gif) {
-      showMessage("Rendering the GIF, this can take a moment…", "success");
-      gif.on("finished", (blob) => {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = `${(els.playName.value || "play").replace(/\s+/g, "_")}.gif`;
-        // Un lien qui n'est pas dans le document est parfois ignoré par
-        // le navigateur, surtout ici où le clic arrive de façon
-        // asynchrone (après le rendu du GIF) et non pas au moment même
-        // du clic de l'utilisateur -- il faut l'attacher au DOM.
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        showMessage("GIF downloaded.", "success");
+  // -----------------------------------------------------------------------
+  // Jugadas con opciones: un GIF no puede "bifurcarse" según lo que pase
+  // en la cancha -- es una animación fija. Así que, igual que las
+  // herramientas reales de básquet (FastDraw, Coaches Clipboard), cada
+  // opción se exporta como su PROPIO GIF completo (desde el principio de
+  // la jugada), con una etiqueta de qué opción es quemada en la esquina.
+  //
+  // collectLeafSequences() recorre el árbol steps -> step.branches ->
+  // branch.steps -> ... y devuelve un "camino completo" por cada opción
+  // final (hoja): { labelParts: ["Option A", ...], entries: [{step,
+  // color}, ...] }. Cada entry ya sabe con qué color (el de SU opción, o
+  // null si es un step compartido antes de cualquier bifurcación) se debe
+  // dibujar -- esto también lo usa buildPdfPageList() para el PDF.
+  // -----------------------------------------------------------------------
+  function collectLeafSequences(seq, labelParts, seqColor) {
+    const entries = seq.map((s) => ({ step: s, color: seqColor }));
+    const last = seq[seq.length - 1];
+    if (last && last.branches && last.branches.length) {
+      let results = [];
+      last.branches.forEach((b) => {
+        collectLeafSequences(b.steps, labelParts.concat([b.name]), b.color).forEach((child) => {
+          results.push({ labelParts: child.labelParts, entries: entries.concat(child.entries) });
+        });
       });
-      gif.render();
+      return results;
     }
+    return [{ labelParts, entries }];
   }
 
-  function animateStep(step, speed, gif) {
+  // Pequeña etiqueta quemada en la esquina de cada frame del GIF/preview
+  // de una opción -- para poder distinguir "Option A" de "Option B" aunque
+  // el archivo se mire suelto, fuera de PlayPivot.
+  function drawBranchLabelBadge(ctx2, label, color) {
+    ctx2.save();
+    ctx2.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    const paddingX = 8, boxH = 20;
+    const textW = ctx2.measureText(label).width;
+    const boxW = textW + paddingX * 2;
+    ctx2.fillStyle = color || "#1a1a1a";
+    if (ctx2.roundRect) { ctx2.beginPath(); ctx2.roundRect(8, 8, boxW, boxH, 5); ctx2.fill(); }
+    else ctx2.fillRect(8, 8, boxW, boxH);
+    ctx2.fillStyle = "#ffffff";
+    ctx2.textBaseline = "middle";
+    ctx2.fillText(label, 8 + paddingX, 8 + boxH / 2 + 1);
+    ctx2.restore();
+  }
+
+  async function runAnimation(recordGif) {
+    if (animating || steps.length === 0) return;
+    const leaves = collectLeafSequences(steps, [], null);
+    animating = true;
+    const speed = parseFloat(els.animSpeed.value) || 1;
+
+    if (leaves.length <= 1) {
+      // Sin opciones -- comportamiento de siempre, sin tocar nada.
+      let gif = null;
+      if (recordGif) {
+        const workerUrl = await getGifWorkerUrl();
+        gif = new GIF({ workers: 2, quality: 8, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
+        gif.on("abort", () => showMessage("Couldn't render the GIF.", "error"));
+      }
+      for (let i = 0; i < steps.length; i++) {
+        currentStepIndex = i;
+        buildStepTabs(); resizeCanvasForStep(); syncControls();
+        await animateStep(steps[i], speed, gif);
+        await new Promise((r) => setTimeout(r, 350 * speed));
+      }
+      animating = false;
+      render();
+      if (gif) {
+        showMessage("Rendering the GIF, this can take a moment…", "success");
+        gif.on("finished", (blob) => {
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = `${(els.playName.value || "play").replace(/\s+/g, "_")}.gif`;
+          // Un lien qui n'est pas dans le document est parfois ignoré par
+          // le navigateur, surtout ici où le clic arrive de façon
+          // asynchrone (après le rendu du GIF) et non pas au moment même
+          // du clic de l'utilisateur -- il faut l'attacher au DOM.
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          showMessage("GIF downloaded.", "success");
+        });
+        gif.render();
+      }
+      return;
+    }
+
+    // Jugada con opciones: una pasada completa por opción, cada una con
+    // su propia etiqueta quemada en la esquina; si se está descargando,
+    // un archivo .gif por opción (pedido de Dani: "un GIF separado por
+    // cada opción").
+    for (const leaf of leaves) {
+      const label = leaf.labelParts.join(" → ");
+      let gif = null;
+      if (recordGif) {
+        const workerUrl = await getGifWorkerUrl();
+        gif = new GIF({ workers: 2, quality: 8, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
+        gif.on("abort", () => showMessage(`Couldn't render the GIF for "${label}".`, "error"));
+      } else {
+        showMessage(`Playing: ${label}`, "success");
+      }
+      for (const entry of leaf.entries) {
+        resizeCanvasFor(entry.step.courtType);
+        await animateStep(entry.step, speed, gif, entry.color, label);
+        await new Promise((r) => setTimeout(r, 350 * speed));
+      }
+      if (gif) {
+        showMessage(`Rendering the GIF for "${label}"…`, "success");
+        await new Promise((resolve) => {
+          gif.on("finished", (blob) => {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            const safeLabel = label.replace(/[^a-z0-9]+/gi, "_");
+            a.download = `${(els.playName.value || "play").replace(/\s+/g, "_")}_${safeLabel}.gif`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            resolve();
+          });
+          gif.render();
+        });
+      } else {
+        await new Promise((r) => setTimeout(r, 650));
+      }
+    }
+    animating = false;
+    resizeCanvasForStep(); render();
+    if (recordGif) showMessage(`${leaves.length} GIFs downloaded — one per option.`, "success");
+  }
+
+  function animateStep(step, speed, gif, colorOverride, cornerLabel) {
     return new Promise((resolve) => {
       const start = performance.now();
       const duration = 1300 * speed;
@@ -1134,7 +1532,7 @@
       function frame(now) {
         const t = Math.min(1, (now - start) / duration);
         drawCourtBackground(ctx, els.canvas, step.courtType, cssW, cssH);
-        step.actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, a, t));
+        step.actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, colorOverride ? { ...a, color: colorOverride } : a, t));
         const moved = step.points.map((p) => ({ ...p }));
         step.actions.forEach((a) => {
           if ((a.type === "arrow" || a.type === "dribble" || a.type === "pass" || a.type === "shot") && a.pointId && a.points) {
@@ -1158,6 +1556,7 @@
         } else {
           els.stepNoteDisplay.style.display = "none";
         }
+        if (cornerLabel) drawBranchLabelBadge(ctx, cornerLabel, colorOverride);
         if (gif && now - lastFrameTime > 80) { gif.addFrame(els.canvas, { copy: true, delay: 90 }); lastFrameTime = now; }
         if (t < 1) requestAnimationFrame(frame);
         else resolve();
@@ -1165,6 +1564,45 @@
       requestAnimationFrame(frame);
     });
   }
+
+  // Dani (2026-10-19): "o descargar una al completo [...] en la que cada
+  // vez que hay un cambio de variante te pone variante 1, variante 2,
+  // variante 3". Un solo archivo con TODAS las opciones completas, una
+  // detrás de otra (el tramo compartido se repite al principio de cada
+  // una -- cada opción queda autoexplicada de punta a punta), con su
+  // propio rótulo quemado en la esquina que cambia justo al pasar a la
+  // siguiente opción.
+  async function runCombinedGifExport() {
+    if (animating || steps.length === 0) return;
+    const leaves = collectLeafSequences(steps, [], null);
+    animating = true;
+    const speed = parseFloat(els.animSpeed.value) || 1;
+    const workerUrl = await getGifWorkerUrl();
+    const gif = new GIF({ workers: 2, quality: 8, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
+    gif.on("abort", () => showMessage("Couldn't render the combined GIF.", "error"));
+    for (const leaf of leaves) {
+      const label = leaf.labelParts.join(" → ");
+      for (const entry of leaf.entries) {
+        resizeCanvasFor(entry.step.courtType);
+        await animateStep(entry.step, speed, gif, entry.color, label || null);
+        await new Promise((r) => setTimeout(r, 350 * speed));
+      }
+    }
+    animating = false;
+    resizeCanvasForStep(); render();
+    showMessage("Rendering the combined GIF, this can take a moment…", "success");
+    gif.on("finished", (blob) => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(els.playName.value || "play").replace(/\s+/g, "_")}_all_options.gif`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showMessage("Combined GIF downloaded — all options in one file.", "success");
+    });
+    gif.render();
+  }
+  document.getElementById("download-gif-combined-btn").addEventListener("click", () => runCombinedGifExport());
 
   // -----------------------------------------------------------------------
   // Club + logo + saisons/équipes réelles du Roster
@@ -1527,6 +1965,40 @@
     });
   }
 
+  // Normaliza un step cargado de la base de datos (o de un play viejo
+  // guardado antes de que existieran las opciones) a la forma que espera
+  // el resto del código -- recorriendo también sus branches, si tiene,
+  // para no perderlas al reabrir una jugada ramificada.
+  function normalizeStep(s) {
+    return {
+      courtType: s.courtType || "half",
+      note: s.note || "",
+      points: s.points || [],
+      actions: s.actions || [],
+      branches: (Array.isArray(s.branches) && s.branches.length)
+        ? s.branches.map((b) => ({
+            id: b.id || genBranchId(),
+            name: b.name || "Option",
+            color: b.color || BRANCH_PALETTE[0],
+            steps: normalizeSteps(b.steps),
+          }))
+        : null,
+    };
+  }
+  function normalizeSteps(arr) {
+    return (Array.isArray(arr) && arr.length) ? arr.map(normalizeStep) : [newStep()];
+  }
+  // Recorre TODOS los steps de la jugada, incluidos los de cualquier
+  // opción (a cualquier profundidad) -- usado para la numeración de
+  // jugadores/defensores, que debe seguir siendo única en toda la jugada,
+  // no solo en la secuencia principal.
+  function walkAllSteps(seq, cb) {
+    seq.forEach((s) => {
+      cb(s);
+      if (s.branches) s.branches.forEach((b) => walkAllSteps(b.steps, cb));
+    });
+  }
+
   function newPlay() {
     currentPlayId = null;
     els.playName.value = "";
@@ -1537,6 +2009,7 @@
     els.playLanguage.value = "en"; currentTranslationGroupId = null;
     steps = [newStep()];
     currentStepIndex = 0;
+    branchPath = [];
     pointCounters.nextPlayerNum = 1;
     pointCounters.nextDefenderNum = 1;
     buildStepTabs(); resizeCanvasForStep(); syncControls(); render();
@@ -1557,17 +2030,19 @@
     els.playCategory.value = data.category || "";
     els.playVisibility.value = data.visibility || "team";
     els.playLanguage.value = data.language || "en"; currentTranslationGroupId = data.translation_group_id || null;
-    steps = (data.diagram && Array.isArray(data.diagram.steps) && data.diagram.steps.length > 0)
-      ? data.diagram.steps.map((s) => ({ courtType: s.courtType || "half", note: s.note || "", points: s.points || [], actions: s.actions || [] }))
-      : [newStep()];
+    steps = normalizeSteps(data.diagram && data.diagram.steps);
     currentStepIndex = 0;
+    branchPath = [];
     // Reprend la numérotation là où la jugada l'avait laissée -- sinon,
     // ouvrir une jugada qui a déjà les joueurs 1 à 5 et en ajouter un
-    // nouveau proposait à nouveau "1", au lieu de "6".
+    // nouveau proposait à nouveau "1", au lieu de "6". walkAllSteps()
+    // también mira dentro de cualquier opción, no solo la secuencia
+    // principal -- un jugador numerado solo dentro de una opción no debía
+    // hacer que el próximo jugador afuera repitiera su número.
     ["player", "defender"].forEach((kind) => {
       const key = kind === "player" ? "nextPlayerNum" : "nextDefenderNum";
       let max = 0;
-      steps.forEach((s) => s.points.forEach((p) => {
+      walkAllSteps(steps, (s) => s.points.forEach((p) => {
         if (p.type === kind) { const n = parseInt(p.label, 10); if (!isNaN(n) && n > max) max = n; }
       }));
       pointCounters[key] = max + 1;
@@ -1600,14 +2075,13 @@
     els.playCategory.value = data.category || "";
     els.playVisibility.value = data.visibility || "team";
     els.playLanguage.value = data.language || "en"; currentTranslationGroupId = null;
-    steps = (data.diagram && Array.isArray(data.diagram.steps) && data.diagram.steps.length > 0)
-      ? data.diagram.steps.map((s) => ({ courtType: s.courtType || "half", note: s.note || "", points: s.points || [], actions: s.actions || [] }))
-      : [newStep()];
+    steps = normalizeSteps(data.diagram && data.diagram.steps);
     currentStepIndex = 0;
+    branchPath = [];
     ["player", "defender"].forEach((kind) => {
       const key = kind === "player" ? "nextPlayerNum" : "nextDefenderNum";
       let max = 0;
-      steps.forEach((s) => s.points.forEach((p) => {
+      walkAllSteps(steps, (s) => s.points.forEach((p) => {
         if (p.type === kind) { const n = parseInt(p.label, 10); if (!isNaN(n) && n > max) max = n; }
       }));
       pointCounters[key] = max + 1;
@@ -1822,7 +2296,7 @@
     }
   }
 
-  function drawStepOnPdf(doc, step, marginX, top) {
+  function drawStepOnPdf(doc, step, marginX, top, colorOverride) {
     const isHalf = step.courtType === "half";
     const courtW = isHalf ? 300 : 460;
     const courtH = isHalf ? 280 : 240;
@@ -1849,7 +2323,11 @@
       if (pts.length < 2) return;
       const [fx, fy] = toPdfXY(pts[0][0], pts[0][1]);
       const [tx, ty] = toPdfXY(pts[pts.length - 1][0], pts[pts.length - 1][1]);
-      const [r, g, b] = a.color ? hexToRgb(a.color) : [26, 26, 26];
+      // Dentro de una opción, las líneas/pantallas/zonas también salen en
+      // el PDF con el color fijo de esa opción (colorOverride) -- misma
+      // idea que en pantalla/GIF, para que una página suelta del PDF ya
+      // deje claro de qué opción es.
+      const [r, g, b] = hexToRgb(colorOverride || a.color || "#1a1a1a");
       doc.setDrawColor(r, g, b); doc.setFillColor(r, g, b);
       if (a.type === "pass" || a.type === "fake_pass") doc.setLineDash([3, 2]); else doc.setLineDash([]);
       doc.line(fx, fy, tx, ty);
@@ -1888,13 +2366,34 @@
     return top + courtH;
   }
 
+  // Recorre todo el árbol de steps/opciones UNA SOLA VEZ (a diferencia del
+  // GIF, el PDF no necesita repetir los steps compartidos antes de la
+  // bifurcación en cada opción -- el lector ya los vio en las páginas
+  // anteriores) y devuelve, en orden, una página por step con su
+  // subtítulo ("Option A → step 2 of 3") y el color fijo de la opción (si
+  // corresponde) para pintar sus flechas/pantallas/zonas. Función pura,
+  // sin tocar jsPDF -- así se puede probar sola.
+  function buildPdfPageList(seq, breadcrumbPrefix, colorOverride) {
+    let pages = [];
+    seq.forEach((step, i) => {
+      pages.push({ step, subtitle: `${breadcrumbPrefix}step ${i + 1} of ${seq.length}`, colorOverride });
+      if (step.branches && step.branches.length) {
+        step.branches.forEach((b) => {
+          pages = pages.concat(buildPdfPageList(b.steps, `${breadcrumbPrefix}${b.name} → `, b.color));
+        });
+      }
+    });
+    return pages;
+  }
+
   async function exportToPdf() {
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const marginX = 50;
+    const pages = buildPdfPageList(steps, "", null);
 
-    steps.forEach((step, i) => {
+    pages.forEach((page, i) => {
       if (i > 0) doc.addPage();
       let top = 50;
       if (logoDataUrl) { try { doc.addImage(logoDataUrl, "PNG", 495, 30, 40, 40); } catch (e) {} }
@@ -1902,15 +2401,15 @@
       doc.text(els.orgName.textContent || "PlayPivot", marginX, top);
       top += 18;
       doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(130, 130, 136);
-      doc.text(`${els.playName.value || "Untitled play"} — step ${i + 1} of ${steps.length}`, marginX, top);
+      doc.text(`${els.playName.value || "Untitled play"} — ${page.subtitle}`, marginX, top);
       top += 10;
       doc.setDrawColor(210, 20, 20); doc.setLineWidth(1);
       doc.line(marginX, top, 545, top);
       top += 26;
-      const bottom = drawStepOnPdf(doc, step, marginX, top);
-      if (step.note) {
+      const bottom = drawStepOnPdf(doc, page.step, marginX, top, page.colorOverride);
+      if (page.step.note) {
         doc.setFont("helvetica", "italic"); doc.setFontSize(10); doc.setTextColor(60, 60, 60);
-        doc.text(step.note, marginX, bottom + 20, { maxWidth: 495 });
+        doc.text(page.step.note, marginX, bottom + 20, { maxWidth: 495 });
       }
       doc.setTextColor(130, 130, 136); doc.setFontSize(8); doc.setFont("helvetica", "normal");
       doc.text(`Generated by PlayPivot on ${new Date().toISOString().slice(0, 10)}`, marginX, 810);
@@ -1935,8 +2434,9 @@
         <li><strong>Category = the "subfolder"</strong> — free text, typed by you (e.g. "Half-court offense", "Out of bounds", "Press break", "Zone offense"). There's no separate screen to "create" one — just type a name here and save; the next play you give the same name will automatically group with it. Typos create a new, separate folder, so keep the wording consistent (e.g. always "Out of bounds", not sometimes "OOB").</li>
         <li>Looking for a play from another team, another season, or shared by another club? Use <strong>🌐 Browse Playbook</strong>, below your saved plays — it has its own filters (team, category, language, and who made it) and can open any play straight into this editor.</li>
         <li>A new play starts <strong>completely empty</strong> — nothing is pre-placed. Pick "Attacker", "Defender", "Ball", "Cone", "Coach", "Post", or "Handoff" and click the court to add one; you'll be asked for a number/label for attackers and defenders.</li>
-        <li><strong>Move/select</strong> — drag any point you've placed. Double-click a player/defender to rename it, or double-click any other point to remove it. Clicking a line/screen/zone (or a point) selects it — then <strong>🗑 Delete element</strong> (or Delete/Backspace on a keyboard) removes just that one, without touching anything else on the step.</li>
+        <li><strong>Move/select</strong> — drag any point you've placed. Double-click a player/defender to rename it, or double-click any other point to remove it. Clicking a line/screen/zone (or a point) selects it — then <strong>🗑 Delete element</strong> (or Delete/Backspace on a keyboard) removes just that one, without touching anything else on the step. Drawing a new line leaves that drawing tool active (so you can draw several in a row) — switch back to <strong>Move/Select</strong> first if you want to click and delete something you just drew; "Delete element" tells you if nothing is selected yet instead of doing nothing.</li>
         <li><strong>Steps</strong> — click "+ Add step" as many times as the play needs. Each new step starts with points positioned exactly where the previous step's cuts/dribbles ended — draw a pass from 1 to 2 and step 2 opens with the ball already at 2.</li>
+        <li><strong>Options (branches)</strong> — when a play can go one way or another depending on what the defense does, click "🔀 Split into options here" on the play's last step. Each option gets its own color and its own mini-sequence of steps (reusing everything above), reached through the tabs that appear — its lines/screens/zones are drawn in that option's color automatically. An option can branch again into its own sub-options (a "variant of the variant") the same way, from ITS last step — a sub-option shades its parent's own color (lighter/darker) instead of a brand new one, so you can tell at a glance which family it belongs to. Once a play has options, "Download animation (GIF)" turns into two buttons: one GIF per option (each labelled in its corner), or a single combined GIF with every option played in full, one after another, each labelled as it starts; "Export to PDF" prints every step of every option on its own page, breadcrumbed so you can tell which option you're reading.</li>
         <li><strong>Note for this step</strong> — a short caption (e.g. "1 passes to 2 and cuts backdoor") that appears on screen while that step plays during "Animate", and under the diagram in the exported PDF.</li>
         <li><strong>This step's court</strong> — half or full, chosen independently for every step.</li>
         <li><strong>Speed</strong> — slows down or speeds up "Animate whole sequence"; the same speed also gets baked into the downloaded GIF.</li>
