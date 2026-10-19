@@ -1413,30 +1413,26 @@
   // branch.steps -> ... y devuelve un "camino completo" por cada opción
   // final (hoja): { labelParts: ["Variante A", ...], entries: [{step,
   // color}, ...] }. Cada entry ya sabe con qué color (el de SU opción, o
-  // null si es el step donde se bifurca, compartido) se debe dibujar.
+  // null si es un step compartido antes de cualquier bifurcación) se debe
+  // dibujar -- esto también lo usa buildPdfPageList() para el PDF.
   //
-  // Dani (2026-10-19): "cuando se genera los gif mejor no empezar de 0 con
-  // la opción si no donde se ramifica" -- antes cada GIF/animación de una
-  // opción arrancaba desde el PRIMER step de toda la jugada (todo el
-  // tronco completo, repetido para cada opción). Ahora solo se incluye el
-  // step donde ocurre la bifurcación (`forkEntry` -- el último step antes
-  // de que esa opción empiece, para tener contexto de dónde arranca) más
-  // los steps propios de esa opción -- se salta el resto del tronco
-  // anterior. En una jugada con subopciones, esto aplica nivel por nivel:
-  // el GIF de una subopción arranca en el step donde SU padre se bifurcó
-  // (no desde el principio de la jugada ni desde el primer step del
-  // padre).
+  // Dani probó, el mismo día (2026-10-19), una versión que arrancaba cada
+  // opción en el step donde se ramifica en vez de desde el principio de
+  // toda la jugada ("no empezar de 0... sino donde se ramifica") -- pero
+  // al usarla notó que entonces "Animate"/el GIF ya NO mostraba nada de lo
+  // que pasa ANTES de la bifurcación ("no pone lo de antes"), ni siquiera
+  // al reproducir la jugada completa. Confirmado con él (AskUserQuestion):
+  // vuelve a mostrarse TODO desde el primer step, como aquí -- cada opción
+  // se reproduce de principio a fin, tronco completo incluido.
   // -----------------------------------------------------------------------
-  function collectLeafSequences(seq, labelParts, seqColor, forkEntry) {
-    const ownEntries = seq.map((s) => ({ step: s, color: seqColor }));
-    const entries = forkEntry ? [forkEntry].concat(ownEntries) : ownEntries;
+  function collectLeafSequences(seq, labelParts, seqColor) {
+    const entries = seq.map((s) => ({ step: s, color: seqColor }));
     const last = seq[seq.length - 1];
     if (last && last.branches && last.branches.length) {
-      const nextForkEntry = { step: last, color: seqColor };
       let results = [];
       last.branches.forEach((b) => {
-        collectLeafSequences(b.steps, labelParts.concat([b.name]), b.color, nextForkEntry).forEach((child) => {
-          results.push(child);
+        collectLeafSequences(b.steps, labelParts.concat([b.name]), b.color).forEach((child) => {
+          results.push({ labelParts: child.labelParts, entries: entries.concat(child.entries) });
         });
       });
       return results;
@@ -2476,7 +2472,7 @@
         <li>A new play starts <strong>completely empty</strong> — nothing is pre-placed. Pick "Attacker", "Defender", "Ball", "Cone", "Coach", "Post", or "Handoff" and click the court to add one; you'll be asked for a number/label for attackers and defenders.</li>
         <li><strong>Move/select</strong> — drag any point you've placed. Double-click a player/defender to rename it, or double-click any other point to remove it. Clicking a line/screen/zone (or a point) selects it — then <strong>🗑 Delete element</strong> (or Delete/Backspace on a keyboard) removes just that one, without touching anything else on the step. Drawing a new line leaves that drawing tool active (so you can draw several in a row) — switch back to <strong>Move/Select</strong> first if you want to click and delete something you just drew; "Delete element" tells you if nothing is selected yet instead of doing nothing.</li>
         <li><strong>Steps</strong> — click "+ Add step" as many times as the play needs. Each new step starts with points positioned exactly where the previous step's cuts/dribbles/screens ended — draw a pass from 1 to 2 and step 2 opens with the ball already at 2; draw a screen and the screener carries over positioned right where they set it, not where they started.</li>
-        <li><strong>Options (branches)</strong> — when a play can go one way or another depending on what the defense does, click "🔀 Split into options here" on the play's last step. Each option gets its own color and its own mini-sequence of steps (reusing everything above), reached through the tabs that appear — its lines/screens/zones are drawn in that option's color automatically. An option can branch again into its own sub-options (a "variant of the variant") the same way, from ITS last step — a sub-option shades its parent's own color (lighter/darker) instead of a brand new one, so you can tell at a glance which family it belongs to. Once a play has options, "Download animation (GIF)" turns into two buttons: one GIF per option (each labelled, centered, in its corner), or a single combined GIF with every option played in full, one after another, each labelled as it starts; both start right at the step where that option branches off, not from the very first step of the play, so each file stays short and focused on that option. "Export to PDF" prints every step of every option on its own page, breadcrumbed so you can tell which option you're reading.</li>
+        <li><strong>Options (branches)</strong> — when a play can go one way or another depending on what the defense does, click "🔀 Split into options here" on the play's last step. Each option gets its own color and its own mini-sequence of steps (reusing everything above), reached through the tabs that appear — its lines/screens/zones are drawn in that option's color automatically. An option can branch again into its own sub-options (a "variant of the variant") the same way, from ITS last step — a sub-option shades its parent's own color (lighter/darker) instead of a brand new one, so you can tell at a glance which family it belongs to. Once a play has options, "Download animation (GIF)" turns into two buttons: one GIF per option (each labelled, centered, in its corner), or a single combined GIF with every option played in full, one after another, each labelled as it starts; "Export to PDF" prints every step of every option on its own page, breadcrumbed so you can tell which option you're reading.</li>
         <li><strong>Note for this step</strong> — a short caption (e.g. "1 passes to 2 and cuts backdoor") that appears on screen while that step plays during "Animate", and under the diagram in the exported PDF.</li>
         <li><strong>This step's court</strong> — half or full, chosen independently for every step.</li>
         <li><strong>Speed</strong> — slows down or speeds up "Animate whole sequence"; the same speed also gets baked into the downloaded GIF.</li>
