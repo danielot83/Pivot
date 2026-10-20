@@ -12,6 +12,7 @@
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https://eeucbnhqsnfitzwzghtg.supabase.co;
   connect-src 'self' https://eeucbnhqsnfitzwzghtg.supabase.co https://cdn.jsdelivr.net;
+  worker-src blob:;
   object-src 'none'; base-uri 'none'; form-action 'none'" />
 <title>PlayPivot | Basketball Play Design Tool</title>
 <meta name="description" content="Draw basketball plays, offensive sets, defensive schemes and out-of-bounds plays to build and share your team's saved plays." />
@@ -1453,8 +1454,10 @@
       watchdog = setTimeout(() => {
         if (stopped) return;
         stopped = true;
-        showMessage(`${label}: no avanza desde hace un buen rato — probablemente esta jugada tiene demasiados cuadros para generar el GIF en este dispositivo. Probá exportando los GIF por separado (uno por opción) en vez del combinado, o con menos variantes/pasos.`, "error");
+        // Primero abort() (sus manejadores ponen un mensaje genérico) y
+        // DESPUÉS el aviso del watchdog, para que éste no quede pisado.
         try { gif.abort(); } catch (e) { /* ya estaba terminado/abortado */ }
+        showMessage(`${label}: no avanza desde hace un buen rato — el GIF no se pudo generar. Prueba exportando los GIF por separado (uno por opción) en vez del combinado, recarga la página con Ctrl/Cmd+Shift+R y, si sigue igual, avísame.`, "error");
       }, ms);
     }
     armWatchdog();
@@ -1497,6 +1500,17 @@
     return `Recording the GIF${label ? " (" + label + ")" : ""} — step ${done} of ${total}. Next comes the encoding; ${GIF_WAIT_NOTE}.`;
   }
 
+  // CAUSA REAL del "0% para siempre" / "Couldn't render the combined GIF"
+  // (Dani, 2026-10-20): la Content-Security-Policy de esta página no tenía
+  // `worker-src`, así que el navegador la tomaba de `script-src` ('self'
+  // 'unsafe-inline' cdn.jsdelivr.net) -- que NO incluye blob: -- y BLOQUEABA
+  // en silencio el Web Worker que gif.js crea desde el blob de abajo
+  // ("Refused to create a worker from 'blob:...'"). Sin worker no se
+  // codifica ningún cuadro, nunca. Reproducido en Chromium real con esta
+  // misma CSP: sin `worker-src blob:` se queda en 0% para siempre; con
+  // ella termina el GIF. Arreglado añadiendo `worker-src blob:;` al <meta>
+  // CSP de arriba (solo permite workers creados desde blob: del propio
+  // sitio, no abre scripts externos nuevos).
   let cachedGifWorkerUrl = null;
   async function getGifWorkerUrl() {
     // Un Worker ne peut pas être créé directement depuis un script d'un
