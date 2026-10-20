@@ -677,6 +677,23 @@
   // esa opción. Los deltas alternan más oscuro/más claro para que dos
   // subopciones consecutivas del mismo padre no queden casi iguales.
   const BRANCH_SHADE_DELTAS = [-35, 35, -60, 60, -15, 15, -80, 80];
+  // Dani (2026-10-19): "llevo esperando como 5 minutos... puede ser un
+  // fallo" -- el GIF combinado se quedaba colgado de verdad (0% fijo) en
+  // jugadas de tamaño normal. Dos palancas para que haya menos trabajo
+  // que codificar: GIF_QUALITY más alto (gif.js: cuanto más alto, MENOS
+  // minucioso/más rápido es el muestreo de colores -- antes 8, ahora 16;
+  // para dibujos de líneas planas como estos la diferencia de calidad es
+  // imperceptible) y menos cuadros capturados por animación
+  // (GIF_FRAME_CAPTURE_INTERVAL_MS, antes 80ms -> ahora 130ms, igual para
+  // los 3 tipos de exportación). Solo afecta a lo que se graba en el
+  // GIF -- "Animate" en pantalla (sin grabar) sigue tan fluido como
+  // siempre, porque ese caso nunca pasa por este umbral.
+  const GIF_QUALITY = 16;
+  const GIF_FRAME_CAPTURE_INTERVAL_MS = 130;
+  // Si gif.js no manda ni un solo evento de progreso en este tiempo (ni
+  // para arrancar, ni durante la codificación), se asume que está
+  // colgado de verdad y se corta con un aviso -- ver wireGifProgress().
+  const GIF_PROGRESS_WATCHDOG_MS = 25000;
   function shadeColor(hex, percent) {
     const n = parseInt(hex.replace("#", ""), 16);
     let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
@@ -1403,21 +1420,51 @@
   document.getElementById("download-gif-btn").addEventListener("click", () => runAnimation(true));
 
   // Dani (2026-10-19): "llevo esperando como 5 minutos, no creo que sea
-  // normal, puede ser un fallo." No es un fallo -- un GIF combinado (o
-  // uno por opción, con tronco largo) puede tener varios cientos de
-  // frames, y codificarlos en el navegador lleva su tiempo -- pero antes
-  // el único mensaje era "esto puede llevar un momento…", fijo, sin
-  // ningún avance durante todo ese rato, así que no había forma de saber
-  // si de verdad seguía trabajando o se había colgado. gif.js emite un
-  // evento "progress" (0 a 1) mientras codifica -- esto lo conecta a
-  // showMessage() para que el texto se vaya actualizando con el
-  // porcentaje real, en vez de quedarse callado.
-  function wireGifProgress(gif, label) {
+  // normal, puede ser un fallo." Con el aviso de porcentaje puesto, Dani
+  // confirmó que no era solo lento: se quedaba FIJO en 0% para siempre,
+  // en una jugada de tamaño normal (3-5 variantes, 10-20 steps) -- un
+  // cuelgue de verdad, lo más probable por quedarse sin memoria en el
+  // navegador (cada cuadro capturado es una copia completa del canvas, y
+  // un GIF combinado repite el tronco por cada variante, así que el
+  // número de cuadros se multiplica rápido) o porque los Web Workers que
+  // codifican el GIF nunca llegaron a arrancar de verdad en ese
+  // dispositivo. Dos arreglos en conjunto:
+  //
+  // 1. GIF_QUALITY/GIF_FRAME_CAPTURE_INTERVAL_MS más livianos (ver más
+  //    abajo) para que haya menos trabajo que hacer, y así sea menos
+  //    probable llegar a colgarse en primer lugar.
+  // 2. Un "watchdog": si pasan GIF_PROGRESS_WATCHDOG_MS sin ni un solo
+  //    avance de progreso (ni para arrancar, ni en medio de la
+  //    codificación), se asume que de verdad está colgado -- se corta
+  //    con gif.abort() (para liberar la memoria/los workers en vez de
+  //    dejarlos tirados) y se avisa con un mensaje claro y accionable,
+  //    en vez de dejar el "0%" callado para siempre sin que Dani sepa si
+  //    seguir esperando o no. El tercer parámetro (watchdogMs) es solo
+  //    para poder probarlo con un tiempo corto en los tests -- en
+  //    producción se usa siempre GIF_PROGRESS_WATCHDOG_MS.
+  function wireGifProgress(gif, label, watchdogMs) {
+    const ms = watchdogMs || GIF_PROGRESS_WATCHDOG_MS;
     let lastPct = -1;
+    let stopped = false;
+    let watchdog = null;
+    function armWatchdog() {
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => {
+        if (stopped) return;
+        stopped = true;
+        showMessage(`${label}: no avanza desde hace un buen rato — probablemente esta jugada tiene demasiados cuadros para generar el GIF en este dispositivo. Probá exportando los GIF por separado (uno por opción) en vez del combinado, o con menos variantes/pasos.`, "error");
+        try { gif.abort(); } catch (e) { /* ya estaba terminado/abortado */ }
+      }, ms);
+    }
+    armWatchdog();
     gif.on("progress", (p) => {
+      if (stopped) return;
+      armWatchdog();
       const pct = Math.round(p * 100);
       if (pct !== lastPct) { lastPct = pct; showMessage(`${label}… ${pct}%`, "success"); }
     });
+    gif.on("finished", () => { stopped = true; clearTimeout(watchdog); });
+    gif.on("abort", () => { stopped = true; clearTimeout(watchdog); });
   }
 
   let cachedGifWorkerUrl = null;
@@ -1520,7 +1567,7 @@
       let gif = null;
       if (recordGif) {
         const workerUrl = await getGifWorkerUrl();
-        gif = new GIF({ workers: 2, quality: 8, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
+        gif = new GIF({ workers: 2, quality: GIF_QUALITY, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
         gif.on("abort", () => showMessage("Couldn't render the GIF.", "error"));
       }
       for (let i = 0; i < steps.length; i++) {
@@ -1566,7 +1613,7 @@
       let gif = null;
       if (recordGif) {
         const workerUrl = await getGifWorkerUrl();
-        gif = new GIF({ workers: 2, quality: 8, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
+        gif = new GIF({ workers: 2, quality: GIF_QUALITY, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
         gif.on("abort", () => showMessage(`Couldn't render the GIF for "${label}".`, "error"));
       } else {
         showMessage(`Playing: ${label}`, "success");
@@ -1638,7 +1685,7 @@
           els.stepNoteDisplay.style.display = "none";
         }
         if (cornerLabel) drawBranchLabelBadge(ctx, cornerLabel, colorOverride, cssW, els.playName.value.trim() || null);
-        if (gif && now - lastFrameTime > 80) { gif.addFrame(els.canvas, { copy: true, delay: 90 }); lastFrameTime = now; }
+        if (gif && now - lastFrameTime > GIF_FRAME_CAPTURE_INTERVAL_MS) { gif.addFrame(els.canvas, { copy: true, delay: 90 }); lastFrameTime = now; }
         if (t < 1) requestAnimationFrame(frame);
         else resolve();
       }
@@ -1659,7 +1706,7 @@
     animating = true;
     const speed = parseFloat(els.animSpeed.value) || 1;
     const workerUrl = await getGifWorkerUrl();
-    const gif = new GIF({ workers: 2, quality: 8, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
+    const gif = new GIF({ workers: 2, quality: GIF_QUALITY, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
     gif.on("abort", () => showMessage("Couldn't render the combined GIF.", "error"));
     for (let leafIndex = 0; leafIndex < leaves.length; leafIndex++) {
       const leaf = leaves[leafIndex];
