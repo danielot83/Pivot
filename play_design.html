@@ -1603,8 +1603,12 @@
       ctx2.textBaseline = "middle";
       ctx2.fillText(text, boxX + boxW / 2, y + boxH / 2 + 1);
     }
-    drawPill(topText, 8, color || "#1a1a1a");
-    if (bottomText) drawPill(bottomText, 8 + boxH + gapY, "rgba(20,20,20,0.75)");
+    // Dani (2026-10-20): "que aunque no tengan variantes aparezca el
+    // nombre" -- sin topText ("V1"...) solo se dibuja la caja con el nombre
+    // de la jugada, en la fila de arriba.
+    let nextY = 8;
+    if (topText) { drawPill(topText, nextY, color || "#1a1a1a"); nextY += boxH + gapY; }
+    if (bottomText) drawPill(bottomText, nextY, "rgba(20,20,20,0.75)");
     ctx2.restore();
   }
 
@@ -1784,7 +1788,8 @@
         } else {
           els.stepNoteDisplay.style.display = "none";
         }
-        if (cornerLabel) drawBranchLabelBadge(ctx, cornerLabel, colorOverride, cssW, els.playName.value.trim() || null);
+        const badgePlayName = els.playName.value.trim() || null;
+        if (cornerLabel || badgePlayName) drawBranchLabelBadge(ctx, cornerLabel || null, colorOverride, cssW, badgePlayName);
         if (gif && now - lastFrameTime > GIF_FRAME_CAPTURE_INTERVAL_MS) { gif.addFrame(els.canvas, { copy: true, delay: 90 }); lastFrameTime = now; }
         if (t < 1) requestAnimationFrame(frame);
         else resolve();
