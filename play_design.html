@@ -161,6 +161,7 @@
     font-size: 14px; color: var(--ink); cursor: pointer;
   }
   .tree-folder-leaf:hover { background: var(--paper); }
+  .tree-folder-leaf .leaf-meta { display: block; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 1px; line-height: 1.3; }
   .tree-folder-leaf.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
   .active-row { background: var(--accent-tint); border-radius: 8px; padding-right: 6px; }
   .active-row .tree-folder-leaf.active { background: none; }
@@ -975,7 +976,7 @@
     const combinedBtn = document.getElementById("download-gif-combined-btn");
     if (!downloadBtn || !combinedBtn) return;
     const hasOptions = collectLeafSequences(steps, [], null).length > 1;
-    downloadBtn.textContent = hasOptions ? "⬇ Download separate GIFs (one per option)" : "⬇ Download animation (GIF)";
+    if (!gifBusy) downloadBtn.textContent = hasOptions ? "⬇ Download separate GIFs (one per option)" : "⬇ Download animation (GIF)";
     combinedBtn.style.display = hasOptions ? "inline-block" : "none";
   }
 
@@ -1467,6 +1468,35 @@
     gif.on("abort", () => { stopped = true; clearTimeout(watchdog); });
   }
 
+  // Dani (2026-10-20): "cuando das a gif te debería decir que tarda un
+  // tiempo y lo que va haciendo no se sabe si funciona". Un GIF tiene DOS
+  // fases largas: (1) grabar -- la animación se reproduce en tiempo real,
+  // cuadro a cuadro, y antes no había ningún mensaje durante esto; y (2)
+  // codificar (porcentaje, ver wireGifProgress). Ahora: al pulsar se avisa
+  // de que tarda y que no hay que cerrar la página, durante la grabación se
+  // dice "Grabando paso X de N", y los botones de GIF quedan desactivados
+  // con "Generating GIF…" para que se vea que está en marcha y no se
+  // lance dos veces.
+  let gifBusy = false;
+  const GIF_WAIT_NOTE = "this takes a while — keep this page open";
+  function setGifBusy(busy) {
+    gifBusy = busy;
+    ["download-gif-btn", "download-gif-combined-btn"].forEach((id) => {
+      const b = document.getElementById(id);
+      if (b) b.disabled = busy;
+    });
+    if (busy) {
+      const b = document.getElementById("download-gif-btn");
+      if (b) b.textContent = "⏳ Generating GIF…";
+    } else {
+      updateGifButtonsForBranching();
+    }
+  }
+  function countGifEntries(leaves) { return leaves.reduce((n, l) => n + l.entries.length, 0); }
+  function gifRecordingMessage(done, total, label) {
+    return `Recording the GIF${label ? " (" + label + ")" : ""} — step ${done} of ${total}. Next comes the encoding; ${GIF_WAIT_NOTE}.`;
+  }
+
   let cachedGifWorkerUrl = null;
   async function getGifWorkerUrl() {
     // Un Worker ne peut pas être créé directement depuis un script d'un
@@ -1534,8 +1564,16 @@
   // seguro en vez de salirse por el lado contrario.
   function drawBranchLabelBadge(ctx2, topText, color, canvasWidth, bottomText) {
     ctx2.save();
-    ctx2.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-    const paddingX = 8, boxH = 20, margin = 8, gapY = 4;
+    // Dani (2026-10-20): "la letra de white... esta cortada y mas grande"
+    // -- causa: drawPointElement() (court-diagram.js) deja ctx.textAlign =
+    // "center" puesto, y el cartel dibujaba el texto en la x del borde
+    // izquierdo de la caja -> con alineación centrada la mitad izquierda
+    // del texto se salía de la caja y se cortaba. Ahora la alineación se
+    // fija explícitamente y el texto se centra en el medio de su caja.
+    // También más grande (16px, antes 12px).
+    ctx2.font = "bold 16px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx2.textAlign = "center";
+    const paddingX = 12, boxH = 26, margin = 8, gapY = 5;
     function drawPill(text, y, bg) {
       const textW = ctx2.measureText(text).width;
       const boxW = textW + paddingX * 2;
@@ -1549,7 +1587,7 @@
       else ctx2.fillRect(boxX, y, boxW, boxH);
       ctx2.fillStyle = "#ffffff";
       ctx2.textBaseline = "middle";
-      ctx2.fillText(text, boxX + paddingX, y + boxH / 2 + 1);
+      ctx2.fillText(text, boxX + boxW / 2, y + boxH / 2 + 1);
     }
     drawPill(topText, 8, color || "#1a1a1a");
     if (bottomText) drawPill(bottomText, 8 + boxH + gapY, "rgba(20,20,20,0.75)");
@@ -1557,7 +1595,20 @@
   }
 
   async function runAnimation(recordGif) {
-    if (animating || steps.length === 0) return;
+    if (animating || gifBusy || steps.length === 0) return;
+    if (recordGif) {
+      setGifBusy(true);
+      showMessage(`Starting the GIF — ${GIF_WAIT_NOTE}.`, "success");
+    }
+    try {
+      await runAnimationCore(recordGif);
+    } catch (err) {
+      console.error("GIF/animation error:", err);
+      animating = false;
+      if (recordGif) { setGifBusy(false); showMessage("Couldn't create the GIF: " + ((err && err.message) || "unknown error"), "error"); }
+    }
+  }
+  async function runAnimationCore(recordGif) {
     const leaves = collectLeafSequences(steps, [], null);
     animating = true;
     const speed = parseFloat(els.animSpeed.value) || 1;
@@ -1568,9 +1619,11 @@
       if (recordGif) {
         const workerUrl = await getGifWorkerUrl();
         gif = new GIF({ workers: 2, quality: GIF_QUALITY, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
-        gif.on("abort", () => showMessage("Couldn't render the GIF.", "error"));
+        gif.on("abort", () => { showMessage("Couldn't render the GIF.", "error"); setGifBusy(false); });
+        gif.on("finished", () => setGifBusy(false));
       }
       for (let i = 0; i < steps.length; i++) {
+        if (gif) showMessage(gifRecordingMessage(i + 1, steps.length), "success");
         currentStepIndex = i;
         buildStepTabs(); resizeCanvasForStep(); syncControls();
         await animateStep(steps[i], speed, gif);
@@ -1579,8 +1632,8 @@
       animating = false;
       render();
       if (gif) {
-        showMessage("Rendering the GIF, this can take a moment…", "success");
-        wireGifProgress(gif, "Rendering the GIF");
+        showMessage(`Encoding the GIF — ${GIF_WAIT_NOTE}.`, "success");
+        wireGifProgress(gif, "Encoding the GIF (keep this page open)");
         gif.on("finished", (blob) => {
           const a = document.createElement("a");
           a.href = URL.createObjectURL(blob);
@@ -1618,14 +1671,17 @@
       } else {
         showMessage(`Playing: ${label}`, "success");
       }
+      let recorded = 0;
       for (const entry of leaf.entries) {
+        recorded++;
+        if (gif) showMessage(gifRecordingMessage(recorded, leaf.entries.length, `option ${leafIndex + 1} of ${leaves.length}: ${label}`), "success");
         resizeCanvasFor(entry.step.courtType);
         await animateStep(entry.step, speed, gif, entry.color, shortLabel);
         await new Promise((r) => setTimeout(r, 350 * speed));
       }
       if (gif) {
-        showMessage(`Rendering the GIF for "${label}"…`, "success");
-        wireGifProgress(gif, `Rendering the GIF for "${label}"`);
+        showMessage(`Encoding the GIF for "${label}" (${leafIndex + 1} of ${leaves.length}) — ${GIF_WAIT_NOTE}.`, "success");
+        wireGifProgress(gif, `Encoding the GIF for "${label}" (keep this page open)`);
         await new Promise((resolve) => {
           gif.on("finished", (blob) => {
             const a = document.createElement("a");
@@ -1637,6 +1693,7 @@
             a.remove();
             resolve();
           });
+          gif.on("abort", () => resolve()); // el watchdog puede abortar: no dejar la exportación colgada
           gif.render();
         });
       } else {
@@ -1645,7 +1702,7 @@
     }
     animating = false;
     resizeCanvasForStep(); render();
-    if (recordGif) showMessage(`${leaves.length} GIFs downloaded — one per option.`, "success");
+    if (recordGif) { setGifBusy(false); showMessage(`${leaves.length} GIFs downloaded — one per option.`, "success"); }
   }
 
   function animateStep(step, speed, gif, colorOverride, cornerLabel) {
@@ -1701,13 +1758,26 @@
   // propio rótulo quemado en la esquina que cambia justo al pasar a la
   // siguiente opción.
   async function runCombinedGifExport() {
-    if (animating || steps.length === 0) return;
+    if (animating || gifBusy || steps.length === 0) return;
+    setGifBusy(true);
+    showMessage(`Starting the combined GIF — ${GIF_WAIT_NOTE}.`, "success");
+    try { await runCombinedGifExportCore(); }
+    catch (err) {
+      console.error("Combined GIF error:", err);
+      animating = false; setGifBusy(false);
+      showMessage("Couldn't create the combined GIF: " + ((err && err.message) || "unknown error"), "error");
+    }
+  }
+  async function runCombinedGifExportCore() {
     const leaves = collectLeafSequences(steps, [], null);
+    const totalEntries = countGifEntries(leaves);
+    let recorded = 0;
     animating = true;
     const speed = parseFloat(els.animSpeed.value) || 1;
     const workerUrl = await getGifWorkerUrl();
     const gif = new GIF({ workers: 2, quality: GIF_QUALITY, width: els.canvas.width, height: els.canvas.height, workerScript: workerUrl });
-    gif.on("abort", () => showMessage("Couldn't render the combined GIF.", "error"));
+    gif.on("abort", () => { showMessage("Couldn't render the combined GIF.", "error"); setGifBusy(false); });
+    gif.on("finished", () => setGifBusy(false));
     for (let leafIndex = 0; leafIndex < leaves.length; leafIndex++) {
       const leaf = leaves[leafIndex];
       // Mismo cartel corto "V1"/"V2"... que en el GIF separado por opción
@@ -1715,6 +1785,8 @@
       // quema en el frame, solo en los mensajes y el nombre del archivo.
       const shortLabel = "V" + (leafIndex + 1);
       for (const entry of leaf.entries) {
+        recorded++;
+        showMessage(gifRecordingMessage(recorded, totalEntries, `option ${leafIndex + 1} of ${leaves.length}`), "success");
         resizeCanvasFor(entry.step.courtType);
         await animateStep(entry.step, speed, gif, entry.color, shortLabel);
         await new Promise((r) => setTimeout(r, 350 * speed));
@@ -1722,8 +1794,8 @@
     }
     animating = false;
     resizeCanvasForStep(); render();
-    showMessage("Rendering the combined GIF, this can take a moment…", "success");
-    wireGifProgress(gif, "Rendering the combined GIF");
+    showMessage(`Encoding the combined GIF — ${GIF_WAIT_NOTE}.`, "success");
+    wireGifProgress(gif, "Encoding the combined GIF (keep this page open)");
     gif.on("finished", (blob) => {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -2021,6 +2093,32 @@
   // para eso está "Playbook" (play_library.html), enlazado debajo de esta
   // tarjeta.
   // -----------------------------------------------------------------------
+  // Línea gris bajo el nombre de cada jugada guardada: club · equipo ·
+  // by <creador> · categoría (se omiten las partes que no existen).
+  // Una jugada antigua sin equipo (dato de cuando "Team" era opcional) se
+  // muestra bajo el equipo seleccionado, igual que ya se listaba -- así
+  // ya no sale "no team"; se guarda de verdad la próxima vez que se
+  // guarde (ver savePlay()).
+  function buildPlayMetaLine(p, creatorName, clubName, selectedTeam) {
+    const parts = [];
+    if (clubName) parts.push(clubName);
+    const team = p.team || selectedTeam;
+    if (team) parts.push(team);
+    if (creatorName) parts.push("by " + creatorName);
+    if (p.category) parts.push(p.category);
+    return parts.join(" · ");
+  }
+  async function fetchCreatorNames(ids) {
+    const uniq = Array.from(new Set((ids || []).filter(Boolean)));
+    const names = {};
+    if (!uniq.length) return names;
+    try {
+      const { data } = await supabaseClient.from("profiles").select("id, full_name").in("id", uniq);
+      (data || []).forEach((r) => { names[r.id] = r.full_name; });
+    } catch (e) { /* sin nombres, la fila sigue mostrándose */ }
+    return names;
+  }
+
   async function loadPlaysList() {
     if (els.playbookTeamLabel) {
       els.playbookTeamLabel.textContent = currentTeam
@@ -2030,9 +2128,13 @@
     if (!currentTeam) { els.playsTree.innerHTML = ""; renderStartFromPlayList([]); return; }
 
     const { data, error } = await supabaseClient
-      .from("plays").select("id, name, season, team, category, visibility, organization_id").eq("organization_id", currentOrgId).order("name");
+      .from("plays").select("id, name, season, team, category, visibility, organization_id, created_by").eq("organization_id", currentOrgId).order("name");
     els.playsTree.innerHTML = "";
     if (error) { console.error("loadPlaysList error:", error); return; }
+    // Dani (2026-10-20): "deberia de salir club, equipo, creado, categoria"
+    // -- cada fila muestra ahora club · equipo · by <creador> · categoría
+    // (mismo patrón que play_library.html: nombres desde profiles).
+    const creatorNames = await fetchCreatorNames((data || []).map((p) => p.created_by));
 
     // Un play sin equipo asignado (dato antiguo, de cuando "Team" era un
     // campo opcional) se sigue mostrando aquí también -- para no
@@ -2068,7 +2170,11 @@
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "tree-folder-leaf" + (p.id === currentPlayId ? " active" : "");
-        btn.textContent = `${VISIBILITY_ICONS[p.visibility || "team"] || ""} ${p.name}${!p.team ? " — no team" : ""}`;
+        btn.appendChild(document.createTextNode(`${VISIBILITY_ICONS[p.visibility || "team"] || ""} ${p.name}`));
+        const metaEl = document.createElement("span");
+        metaEl.className = "leaf-meta";
+        metaEl.textContent = buildPlayMetaLine(p, creatorNames[p.created_by], els.orgName.textContent, currentTeam);
+        btn.appendChild(metaEl);
         btn.addEventListener("click", () => openPlay(p.id));
         leaf.appendChild(btn);
         const del = document.createElement("button");
@@ -2272,8 +2378,12 @@
     commitNoteField();
     const payload = {
       organization_id: currentOrgId,
-      season: editingPlaySeason || null,
-      team: editingPlayTeam || null,
+      // Dani (2026-10-20): "sigue saliendo no team". Red de seguridad
+      // final: si por la razón que sea editingPlayTeam/Season quedó vacío
+      // pero hay un equipo/temporada elegidos arriba, se guardan esos --
+      // nunca se guarda en blanco teniendo un equipo seleccionado.
+      season: editingPlaySeason || currentSeason || null,
+      team: editingPlayTeam || currentTeam || null,
       category: els.playCategory.value.trim() || null,
       visibility: els.playVisibility.value,
       // Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): visible_to_players era un campo muerto, siempre false, nunca leído en ningún sitio -- se deja de escribir.
