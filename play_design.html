@@ -562,7 +562,7 @@
 </main>
 </div><!-- /app-shell -->
 
-<script src="court-diagram.js?v=4"></script>
+<script src="court-diagram.js?v=5"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -1719,6 +1719,23 @@
     if (recordGif) { setGifBusy(false); showMessage(`${leaves.length} GIFs downloaded — one per option.`, "success"); }
   }
 
+  // Dani (2026-10-20): "en las animaciones se podrían borrar las líneas de
+  // desplazamiento (salvo los tiros y el final del bloqueo por ejemplo)".
+  // Durante "Animate"/GIF las líneas de desplazamiento (movimiento sin
+  // balón, con regate, y el trazo de la pantalla) no se dibujan: el jugador
+  // simplemente se mueve. Se siguen dibujando los pases, los tiros, las
+  // zonas y la barra en T del final del bloqueo (ver drawScreenElement).
+  // El editor (dibujo estático) NO cambia -- allí se siguen viendo todas.
+  // Poner ANIM_HIDE_MOVEMENT_LINES = false lo deja como antes.
+  const ANIM_HIDE_MOVEMENT_LINES = true;
+  function animationActionToDraw(a, colorOverride) {
+    const act = colorOverride ? { ...a, color: colorOverride } : a;
+    if (!ANIM_HIDE_MOVEMENT_LINES) return act;
+    if (a.type === "arrow" || a.type === "dribble") return null;
+    if (a.type === "screen") return { ...act, hideLine: true };
+    return act;
+  }
+
   function animateStep(step, speed, gif, colorOverride, cornerLabel) {
     return new Promise((resolve) => {
       const start = performance.now();
@@ -1727,8 +1744,20 @@
       function frame(now) {
         const t = Math.min(1, (now - start) / duration);
         drawCourtBackground(ctx, els.canvas, step.courtType, cssW, cssH);
-        step.actions.forEach((a) => drawDiagramElement(ctx, toPx, els.canvas, colorOverride ? { ...a, color: colorOverride } : a, t));
+        step.actions.forEach((a) => {
+          const shown = animationActionToDraw(a, colorOverride);
+          if (shown) drawDiagramElement(ctx, toPx, els.canvas, shown, t);
+        });
         const moved = step.points.map((p) => ({ ...p }));
+        // Dani (2026-10-20): "la trayectoria del balón no acababa en el buen
+        // punto". Un balón que VUELA en este step (pase o tiro) se coloca
+        // directamente sobre su trayectoria; no debe además arrastrarlo,
+        // como "compañero", el jugador que lo tenía cuando ESE jugador se
+        // mueve en el mismo step (pase y corte, regate y tiro dibujados en
+        // ese orden...) -- antes el movimiento del pasador se le sumaba al
+        // balón y acababa fuera del punto de llegada. resolvedPoints() ya
+        // lo trataba bien (por eso el siguiente step sí empezaba bien).
+        const flyingBalls = new Set(step.actions.filter((a) => (a.type === "pass" || a.type === "shot") && a.pointId).map((a) => a.pointId));
         step.actions.forEach((a) => {
           // "screen" incluido junto a arrow/dribble/pass/shot (ver
           // resolvedPoints() más arriba) -- mismo arreglo para que el
@@ -1742,7 +1771,7 @@
               const dx = newX - p.x, dy = newY - p.y;
               if (a.type !== "pass" && a.type !== "shot") {
                 const companion = findAttachedCompanion(moved, p);
-                if (companion) { companion.x += dx; companion.y += dy; }
+                if (companion && !flyingBalls.has(companion.id)) { companion.x += dx; companion.y += dy; }
               }
               p.x = newX; p.y = newY;
             }

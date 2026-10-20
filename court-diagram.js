@@ -203,12 +203,18 @@ function drawScreenElement(ctx, toPx, el, progress) {
   const [tx0, ty0] = toPx(pts[pts.length - 1][0], pts[pts.length - 1][1]);
   const tx = fx + (tx0 - fx) * progress, ty = fy + (ty0 - fy) * progress;
   ctx.strokeStyle = color; ctx.lineWidth = 1.8;
-  ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(tx, ty); ctx.stroke();
+  // Dani (2026-10-20): "en las animaciones se podrían borrar las líneas de
+  // desplazamiento (salvo los tiros y el final del bloqueo)". Con
+  // el.hideLine (solo lo pone la animación/GIF de play_design.html) NO se
+  // dibuja el trazo del desplazamiento -- el jugador se mueve solo -- pero
+  // sí la barra en T del final del bloqueo, que aparece cuando el jugador
+  // ya llegó (progress >= 0.9) en vez de desde el primer cuadro.
+  if (!el.hideLine) { ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(tx, ty); ctx.stroke(); }
   // La barra en T (donde se pone de verdad la pantalla) solo tiene
   // sentido una vez que el trazo ya llegó prácticamente al final -- igual
   // que la punta de flecha de drawLineElement, que tampoco se dibuja
   // desde el primer frame.
-  if (progress > 0.05) {
+  if (progress > (el.hideLine ? 0.9 : 0.05)) {
     const angle = Math.atan2(ty - fy, tx - fx), perp = angle + Math.PI / 2, cap = 7;
     ctx.beginPath();
     ctx.moveTo(tx + Math.cos(perp) * cap, ty + Math.sin(perp) * cap);
