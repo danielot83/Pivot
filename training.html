@@ -1966,10 +1966,23 @@
           renderSessionTable();
         });
       }
-      tr.querySelector("input").addEventListener("change", (e) => {
+      // Dani (2026-10-26): "cuando se añaden X minutos en el texto libre,
+      // luego eso no lo tiene en cuenta". Causa: aquí se usaba
+      // tr.querySelector("input") = el PRIMER <input> de la fila -- en una
+      // fila de texto libre ese es el campo de TEXTO (no el de minutos), así
+      // que (1) cambiar los minutos no actualizaba nada (se quedaba en los 5
+      // por defecto) y (2) escribir el texto ejecutaba parseInt("Team talk")
+      // -> NaN -> 0, ¡poniendo los minutos de esa fila a 0! Ahora se engancha
+      // explícitamente el campo numérico, y con "input" (no solo "change")
+      // para que el total se actualice al teclear, sin tener que salir del
+      // campo.
+      const minutesInput = tr.querySelector('input[type="number"]');
+      const syncMinutes = (e) => {
         sessionExercises[i].duration_minutes = parseInt(e.target.value, 10) || 0;
         updateDurationBanner();
-      });
+      };
+      minutesInput.addEventListener("input", syncMinutes);
+      minutesInput.addEventListener("change", syncMinutes);
       const formatSelect = tr.querySelector(".match-format-select");
       if (formatSelect) formatSelect.addEventListener("change", (e) => {
         sessionExercises[i].match_format = e.target.value;
