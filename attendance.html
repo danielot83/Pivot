@@ -184,7 +184,7 @@
   .team-pill-del { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; color: var(--muted); font-size: 12px; background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0; }
   .team-pill-del:hover { background: rgba(0,0,0,0.08); color: #991b1b; }
 
-  .attendance-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px; overflow-x: auto; }
+  .attendance-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 0; overflow-x: auto; }
   table.attendance-table { border-collapse: collapse; font-size: 14.5px; white-space: nowrap; }
   table.attendance-table th, table.attendance-table td { padding: 0; border-bottom: 1px solid var(--line); }
   .att-player-col { position: sticky; left: 0; background: var(--card); z-index: 2; padding: 10px 16px !important; text-align: left; border-right: 1px solid var(--line); min-width: 160px; }
@@ -207,6 +207,30 @@
   .att-status-absent { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
   .att-status-excused { background: #fef9c3; border-color: #fde047; color: #854d0e; }
   .att-status-late { background: var(--accent-tint); border-color: #fbbf7a; color: var(--accent-deep); }
+  /* Dani 2026-10-27: con muchas fechas la grilla se hacía enorme -> filtro por tipo,
+     modo compacto y flechas para desplazarse. */
+  .att-viewbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .att-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 100px; overflow: hidden; background: var(--card); }
+  .att-seg button { border: none; background: none; padding: 7px 13px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; }
+  .att-seg button + button { border-left: 1px solid var(--line); }
+  .att-seg button:hover { background: var(--paper); }
+  .att-seg button.active { background: var(--accent-tint); color: var(--accent-deep); }
+  .att-seg button .n { font-weight: 500; opacity: 0.8; margin-left: 3px; }
+  .att-nav { display: inline-flex; gap: 6px; margin-left: auto; align-items: center; }
+  .att-nav button { border: 1px solid var(--line); background: var(--card); border-radius: 8px; min-width: 34px; height: 32px; font-size: 15px; font-weight: 700; color: var(--ink); cursor: pointer; padding: 0 10px; }
+  .att-nav button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-deep); }
+  .att-nav button:disabled { opacity: 0.35; cursor: default; }
+  .att-nav .att-nav-txt { font-size: 13px; font-weight: 600; }
+  .att-compact-toggle { border: 1px solid var(--line); background: var(--card); border-radius: 8px; height: 32px; padding: 0 12px; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+  .att-compact-toggle.on { background: var(--accent-tint); color: var(--accent-deep); border-color: var(--accent); }
+  table.attendance-table.att-compact { font-size: 13px; }
+  table.attendance-table.att-compact .att-player-col { min-width: 120px; padding: 5px 10px !important; }
+  table.attendance-table.att-compact .att-date-head { min-width: 34px; padding: 5px 2px !important; }
+  table.attendance-table.att-compact .att-date-head .att-sub-label { display: none; }
+  table.attendance-table.att-compact .att-date-head .att-type-icon { font-size: 12px; margin-bottom: 0; }
+  table.attendance-table.att-compact .att-date-head .att-date-label { font-size: 10px; }
+  table.attendance-table.att-compact .att-cell { padding: 2px !important; }
+  table.attendance-table.att-compact .att-status-btn { width: 28px; height: 24px; font-size: 11.5px; border-radius: 6px; }
   .att-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 13px; color: var(--muted); }
   .att-legend span { display: inline-flex; align-items: center; gap: 6px; }
   .att-legend .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
@@ -376,7 +400,18 @@
       <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none" />
     </div>
 
-    <div class="attendance-card">
+    <div class="att-viewbar" id="att-viewbar">
+      <div class="att-seg" id="att-seg" role="group" aria-label="Show"></div>
+      <div class="att-nav">
+        <button type="button" class="att-compact-toggle" id="att-compact-btn" title="Smaller columns so more dates fit on screen">Compact</button>
+        <button type="button" id="att-scroll-start" title="Go to the first date" aria-label="First date">⇤</button>
+        <button type="button" id="att-scroll-left" title="Scroll left" aria-label="Scroll left">◀</button>
+        <button type="button" id="att-scroll-right" title="Scroll right" aria-label="Scroll right">▶</button>
+        <button type="button" id="att-scroll-end" title="Go to the latest date" aria-label="Latest date">⇥</button>
+        <button type="button" id="att-scroll-today" class="att-nav-txt" title="Jump to today">Today</button>
+      </div>
+    </div>
+    <div class="attendance-card" id="attendance-card">
       <table class="attendance-table" id="attendance-table"></table>
     </div>
     <p id="attendance-cols-hint" class="hint" style="display:none; margin-top:8px;">No matches, trainings, or events for this team yet — add one with the button above and it'll show up as a column here.</p>
@@ -738,29 +773,63 @@
       filterByGender(filterByCategory(supabaseClient.from("events").select("id, date, title").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam), filterTeamCategory), filterTeamGender),
     ]);
 
-    const cols = [
-      ...(visibleEventTypes.match ? (matches || []).map((m) => ({ type: "match", id: m.id, date: m.date, label: m.opponent ? "vs " + m.opponent : "Match", icon: "🏀" })) : []),
-      ...(visibleEventTypes.training ? (trainings || []).map((t) => ({ type: "training", id: t.id, date: t.date, label: t.title || "Training", icon: "⏱" })) : []),
-      ...(visibleEventTypes.event ? (events || []).map((e) => ({ type: "event", id: e.id, date: e.date, label: e.title || "Event", icon: "📌" })) : []),
-    ].sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Siempre se traen los 3 tipos (aunque el filtro esté en "solo
+    // entrenos"), así cambiar de filtro es instantáneo y los contadores
+    // de los botones son siempre correctos.
+    const allCols = [
+      ...(matches || []).map((m) => ({ type: "match", id: m.id, date: m.date, label: m.opponent ? "vs " + m.opponent : "Match", icon: "🏀" })),
+      ...(trainings || []).map((t) => ({ type: "training", id: t.id, date: t.date, label: t.title || "Training", icon: "⏱" })),
+      ...(events || []).map((e) => ({ type: "event", id: e.id, date: e.date, label: e.title || "Event", icon: "📌" })),
+    ].sort((a, b) => String(a.date).localeCompare(String(b.date)) || (TYPE_ORDER[a.type] - TYPE_ORDER[b.type]));
 
-    const matchIds = cols.filter((c) => c.type === "match").map((c) => c.id);
-    const trainingIds = cols.filter((c) => c.type === "training").map((c) => c.id);
-    const eventIds = cols.filter((c) => c.type === "event").map((c) => c.id);
-
-    const attendanceRows = [];
-    if (matchIds.length) { const { data } = await supabaseClient.from("attendance").select("*").in("match_id", matchIds); attendanceRows.push(...(data || [])); }
-    if (trainingIds.length) { const { data } = await supabaseClient.from("attendance").select("*").in("training_id", trainingIds); attendanceRows.push(...(data || [])); }
-    if (eventIds.length) { const { data } = await supabaseClient.from("attendance").select("*").in("event_id", eventIds); attendanceRows.push(...(data || [])); }
-
+    // Dani 2026-10-27: con muchas fechas y jugadores, la consulta de
+    // asistencia se podía quedar corta (Supabase devuelve como mucho 1000
+    // filas por consulta y una lista larga de ids en la URL puede fallar
+    // sin avisar) y las celdas salían vacías. Se pide por trozos y paginado.
+    const idsOf = (t) => allCols.filter((c) => c.type === t).map((c) => c.id);
+    const [mRows, tRows, eRows] = await Promise.all([
+      fetchAttendanceChunked("match_id", idsOf("match")),
+      fetchAttendanceChunked("training_id", idsOf("training")),
+      fetchAttendanceChunked("event_id", idsOf("event")),
+    ]);
     const attendanceByKey = {};
-    attendanceRows.forEach((a) => {
+    [...mRows, ...tRows, ...eRows].forEach((a) => {
       const key = `${a.match_id || a.training_id || a.event_id}|${a.player_id}`;
       attendanceByKey[key] = a;
     });
 
-    renderAttendanceTable(players || [], cols, attendanceByKey);
-    lastGridData = { players: players || [], cols, attendanceByKey };
+    lastGridData = { players: players || [], allCols, cols: [], attendanceByKey };
+    applyColumnFilter();
+  }
+  const TYPE_ORDER = { match: 0, training: 1, event: 2 };
+
+  async function fetchAttendanceChunked(column, ids) {
+    const out = [];
+    const CHUNK = 40, PAGE = 1000;
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const slice = ids.slice(i, i + CHUNK);
+      let from = 0;
+      for (;;) {
+        const { data, error } = await supabaseClient.from("attendance").select("*").in(column, slice).order("id").range(from, from + PAGE - 1);
+        if (error) { showMessage("Couldn't load part of the attendance: " + (error.message || "try again."), "error"); break; }
+        out.push(...(data || []));
+        if (!data || data.length < PAGE) break;
+        from += PAGE;
+      }
+    }
+    return out;
+  }
+
+  // Aplica el filtro de tipos (Todo / Partidos / Entrenos / Eventos) sobre
+  // lo ya cargado -- sin volver a pedir nada a la base de datos.
+  function applyColumnFilter() {
+    if (!lastGridData) return;
+    const { players, allCols, attendanceByKey } = lastGridData;
+    const cols = allCols.filter((c) => visibleEventTypes[c.type]);
+    lastGridData.cols = cols;
+    renderViewBar();
+    renderAttendanceTable(players, cols, attendanceByKey);
+    updateScrollButtons();
   }
   let lastGridData = null;
 
@@ -804,6 +873,7 @@
     tbody += "</tbody>";
 
     table.innerHTML = thead + tbody;
+    table.classList.toggle("att-compact", isCompactNow(cols.length));
 
     const hint = document.getElementById("attendance-cols-hint");
     if (hint) hint.style.display = cols.length === 0 ? "block" : "none";
@@ -919,7 +989,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   // aparecen como columnas -- partidos / entrenos / eventos.
   // -----------------------------------------------------------------------
   function loadVisibleEventTypes() {
-    try { return JSON.parse(localStorage.getItem("pivot_attendance_types") || "null") || { match: true, training: true, event: true }; }
+    try { return Object.assign({ match: true, training: true, event: true }, JSON.parse(localStorage.getItem("pivot_attendance_types") || "null") || {}); }
     catch (e) { return { match: true, training: true, event: true }; }
   }
   let visibleEventTypes = loadVisibleEventTypes();
@@ -935,8 +1005,8 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
       cb.checked = visibleEventTypes[key];
       cb.addEventListener("change", () => {
         visibleEventTypes[key] = cb.checked;
-        localStorage.setItem("pivot_attendance_types", JSON.stringify(visibleEventTypes));
-        loadAttendanceGrid();
+        try { localStorage.setItem("pivot_attendance_types", JSON.stringify(visibleEventTypes)); } catch (e) {}
+        applyColumnFilter();
       });
       row.appendChild(cb);
       row.appendChild(document.createTextNode(label));
@@ -944,6 +1014,94 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
     });
   }
   renderColumnsPanel();
+
+  // -----------------------------------------------------------------------
+  // Barra de vista (Dani 2026-10-27): filtro Todo / Partidos / Entrenos /
+  // Eventos con contadores, modo compacto y flechas para desplazarse por
+  // las fechas cuando hay muchas columnas.
+  // -----------------------------------------------------------------------
+  function saveVisibleEventTypes() {
+    try { localStorage.setItem("pivot_attendance_types", JSON.stringify(visibleEventTypes)); } catch (e) {}
+  }
+  function currentFilterKey() {
+    const v = visibleEventTypes;
+    if (v.match && v.training && v.event) return "all";
+    if (v.match && !v.training && !v.event) return "match";
+    if (!v.match && v.training && !v.event) return "training";
+    if (!v.match && !v.training && v.event) return "event";
+    return "custom";
+  }
+  function renderViewBar() {
+    const seg = document.getElementById("att-seg");
+    const all = (lastGridData && lastGridData.allCols) || [];
+    const n = (t) => all.filter((c) => c.type === t).length;
+    const key = currentFilterKey();
+    const items = [["all", "All", all.length], ["match", "🏀 Matches", n("match")], ["training", "⏱ Trainings", n("training")], ["event", "📌 Events", n("event")]];
+    seg.innerHTML = items.map(([k, label, count]) => `<button type="button" data-filter="${k}" class="${key === k ? "active" : ""}">${label}<span class="n">${count}</span></button>`).join("");
+    seg.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+      const k = b.dataset.filter;
+      visibleEventTypes = { match: k === "all" || k === "match", training: k === "all" || k === "training", event: k === "all" || k === "event" };
+      saveVisibleEventTypes();
+      renderColumnsPanel();
+      applyColumnFilter();
+    }));
+    const cb = document.getElementById("att-compact-btn");
+    cb.classList.toggle("on", isCompactNow(lastGridData ? lastGridData.cols.length : 0));
+    document.getElementById("att-viewbar").style.display = all.length ? "flex" : "none";
+  }
+
+  // Compacto: si la persona lo eligió, se respeta; si no, se activa solo
+  // cuando hay más de 10 fechas.
+  const COMPACT_AUTO_THRESHOLD = 10;
+  function getCompactPref() {
+    try { const v = localStorage.getItem("pivot_attendance_compact"); return v === "1" ? true : v === "0" ? false : null; } catch (e) { return null; }
+  }
+  function isCompactNow(colCount) {
+    const pref = getCompactPref();
+    return pref === null ? colCount > COMPACT_AUTO_THRESHOLD : pref;
+  }
+  document.getElementById("att-compact-btn").addEventListener("click", () => {
+    const now = isCompactNow(lastGridData ? lastGridData.cols.length : 0);
+    try { localStorage.setItem("pivot_attendance_compact", now ? "0" : "1"); } catch (e) {}
+    applyColumnFilter();
+  });
+
+  // Flechas: se desplazan ~ 5 columnas; ⇤/⇥ van al principio/final; "Today"
+  // centra la fecha más cercana a hoy.
+  function attCard() { return document.getElementById("attendance-card"); }
+  function scrollStep() { const card = attCard(); return Math.max(120, Math.round(card.clientWidth * 0.6)); }
+  function updateScrollButtons() {
+    const card = attCard();
+    if (!card) return;
+    const max = card.scrollWidth - card.clientWidth;
+    const atStart = card.scrollLeft <= 1, atEnd = card.scrollLeft >= max - 1;
+    const noScroll = max <= 1;
+    document.getElementById("att-scroll-left").disabled = noScroll || atStart;
+    document.getElementById("att-scroll-start").disabled = noScroll || atStart;
+    document.getElementById("att-scroll-right").disabled = noScroll || atEnd;
+    document.getElementById("att-scroll-end").disabled = noScroll || atEnd;
+    document.getElementById("att-scroll-today").disabled = noScroll;
+  }
+  function scrollCardTo(x) { attCard().scrollTo({ left: x, behavior: "smooth" }); }
+  document.getElementById("att-scroll-left").addEventListener("click", () => scrollCardTo(attCard().scrollLeft - scrollStep()));
+  document.getElementById("att-scroll-right").addEventListener("click", () => scrollCardTo(attCard().scrollLeft + scrollStep()));
+  document.getElementById("att-scroll-start").addEventListener("click", () => scrollCardTo(0));
+  document.getElementById("att-scroll-end").addEventListener("click", () => scrollCardTo(attCard().scrollWidth));
+  document.getElementById("att-scroll-today").addEventListener("click", () => {
+    if (!lastGridData || !lastGridData.cols.length) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const cols = lastGridData.cols;
+    let idx = 0, best = Infinity;
+    cols.forEach((c, i) => { const d = Math.abs(new Date(c.date) - new Date(today)); if (d < best) { best = d; idx = i; } });
+    const th = attCard().querySelectorAll("thead .att-date-head")[idx];
+    if (!th) return;
+    const card = attCard();
+    const playerW = card.querySelector("th.att-player-col").offsetWidth;
+    scrollCardTo(th.offsetLeft - playerW - (card.clientWidth - playerW - th.offsetWidth) / 2);
+  });
+  attCard().addEventListener("scroll", updateScrollButtons, { passive: true });
+  window.addEventListener("resize", updateScrollButtons);
+
   document.getElementById("columns-btn").addEventListener("click", () => {
     const panel = document.getElementById("columns-panel");
     panel.style.display = panel.style.display === "none" ? "block" : "none";
@@ -1116,41 +1274,75 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
     const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
     const accent = [236, 103, 24], navy = [8, 0, 38], ink = [26, 26, 26], muted = [130, 130, 136];
     const pageW = 842, pageH = 595, marginX = 36, contentW = pageW - marginX * 2;
-    let y = 30;
-    if (logoDataUrl) { try { doc.addImage(logoDataUrl, "PNG", pageW - marginX - 52, 20, 52, 52); } catch (e) {} }
-    doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.setTextColor(...navy);
-    doc.text(els.orgName.textContent || "PlayPivot", marginX, y + 8);
-    y += 24;
-    doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...accent);
-    doc.text(`Attendance — ${filterTeam}${filterTeamCategory ? " (" + filterTeamCategory + ")" : ""} — ${filterSeason}`, marginX, y);
-    y += 10;
-    doc.setDrawColor(...accent); doc.setLineWidth(2);
-    doc.line(marginX, y, pageW - marginX, y);
-    y += 22;
-    const nameColW = 130;
-    const dateColW = cols.length ? (contentW - nameColW) / cols.length : contentW - nameColW;
-    const rowH = Math.max(9, Math.min(18, players.length ? (pageH - y - 24) / (players.length + 1) : 18));
-    doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...muted);
-    let x = marginX + nameColW;
-    cols.forEach((c) => { doc.text(c.date.slice(5), x, y); x += dateColW; });
-    y += rowH * 0.6;
-    doc.setDrawColor(225, 225, 225); doc.line(marginX, y, pageW - marginX, y);
-    y += rowH * 0.8;
-    doc.setFontSize(8.5);
-    players.forEach((p, i) => {
-      if (i % 2 === 1) { doc.setFillColor(250, 250, 250); doc.rect(marginX, y - rowH * 0.7, contentW, rowH, "F"); }
-      doc.setTextColor(...ink);
-      doc.text(`${p.first_name} ${p.last_name}`, marginX, y);
-      let x2 = marginX + nameColW;
-      cols.forEach((c) => {
-        const r = attendanceByKey[`${c.id}|${p.id}`];
-        doc.text(r ? STATUS_LETTER[r.status] : "—", x2, y);
-        x2 += dateColW;
-      });
-      y += rowH;
+    // Dani 2026-10-27: antes todas las fechas se metían en UNA página
+    // (columnas apretadas y encimadas con muchas fechas, y con muchos
+    // jugadores las filas se salían de la hoja). Ahora se reparte en
+    // páginas: máx. ~20 fechas por página y las filas que quepan, y cada
+    // fecha lleva su tipo (M partido / T entreno / E evento).
+    const nameColW = 130, minDateColW = 28, rowH = 16, headerH = 30, bottomPad = 34;
+    const TYPE_LETTER = { match: "M", training: "T", event: "E" };
+    const TYPE_RGB = { match: accent, training: navy, event: [22, 163, 74] };
+    const colsPerPage = Math.max(1, Math.min(20, Math.floor((contentW - nameColW) / minDateColW)));
+    const colChunks = [];
+    for (let i = 0; i < Math.max(cols.length, 1); i += colsPerPage) colChunks.push(cols.slice(i, i + colsPerPage));
+    let firstPage = true;
+    const drawPageTop = () => {
+      let y0 = 30;
+      if (logoDataUrl) { try { doc.addImage(logoDataUrl, "PNG", pageW - marginX - 52, 20, 52, 52); } catch (e) {} }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.setTextColor(...navy);
+      doc.text(els.orgName.textContent || "PlayPivot", marginX, y0 + 8);
+      y0 += 24;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...accent);
+      doc.text(`Attendance — ${filterTeam}${filterTeamCategory ? " (" + filterTeamCategory + ")" : ""} — ${filterSeason}`, marginX, y0);
+      y0 += 10;
+      doc.setDrawColor(...accent); doc.setLineWidth(2);
+      doc.line(marginX, y0, pageW - marginX, y0);
+      return y0 + 22;
+    };
+    const drawFooter = () => {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...muted);
+      doc.text("P present · A absent · E excused · L late    |    M match · T training · E event", marginX, pageH - 24);
+      doc.text(`Generated by PlayPivot on ${new Date().toISOString().slice(0, 10)}`, marginX, pageH - 14);
+    };
+    colChunks.forEach((chunk, ci) => {
+      let rowStart = 0;
+      do {
+        if (!firstPage) doc.addPage();
+        firstPage = false;
+        let y = drawPageTop();
+        const rowsFit = Math.max(1, Math.floor((pageH - y - headerH - bottomPad) / rowH));
+        const dateColW = chunk.length ? Math.min(60, (contentW - nameColW) / chunk.length) : 60;
+        // cabecera: tipo + fecha
+        doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
+        let x = marginX + nameColW;
+        chunk.forEach((c) => {
+          doc.setTextColor(...TYPE_RGB[c.type]);
+          doc.text(TYPE_LETTER[c.type], x, y - 8);
+          doc.setTextColor(...muted);
+          doc.text(String(c.date).slice(5), x, y + 2);
+          x += dateColW;
+        });
+        if (colChunks.length > 1) { doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...muted); doc.text(`Dates ${ci * colsPerPage + 1}–${ci * colsPerPage + chunk.length} of ${cols.length}`, marginX, y + 2); }
+        y += 6;
+        doc.setDrawColor(225, 225, 225); doc.setLineWidth(0.5); doc.line(marginX, y, pageW - marginX, y);
+        y += rowH * 0.8;
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+        players.slice(rowStart, rowStart + rowsFit).forEach((p, i) => {
+          if ((rowStart + i) % 2 === 1) { doc.setFillColor(250, 250, 250); doc.rect(marginX, y - rowH * 0.7, contentW, rowH, "F"); }
+          doc.setTextColor(...ink);
+          doc.text(`${p.first_name} ${p.last_name}`, marginX, y);
+          let x2 = marginX + nameColW;
+          chunk.forEach((c) => {
+            const r = attendanceByKey[`${c.id}|${p.id}`];
+            doc.text(r ? STATUS_LETTER[r.status] : "—", x2, y);
+            x2 += dateColW;
+          });
+          y += rowH;
+        });
+        drawFooter();
+        rowStart += rowsFit;
+      } while (rowStart < players.length);
     });
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...muted);
-    doc.text(`Generated by PlayPivot on ${new Date().toISOString().slice(0, 10)}`, marginX, pageH - 14);
     doc.save(`${teamFileLabel()}_${filterSeason}_attendance.pdf`);
   });
 
