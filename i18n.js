@@ -24,12 +24,12 @@
  * ya cargado de la base de datos nunca pasa por el traductor).
  */
 (function () {
-  var VERSION = 1;   // súbelo al cambiar un diccionario (evita la caché)
+  var VERSION = 2;   // súbelo al cambiar un diccionario (evita la caché)
   var LANGS = ["en", "fr", "es"];
   var LOCALES = { en: undefined, fr: "fr-FR", es: "es-ES" };
   var STORAGE_KEY = "pivot_lang";
   var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, CODE: 1, PRE: 1, NOSCRIPT: 1, SVG: 1, svg: 1 };
-  var ATTRS = ["title", "placeholder", "aria-label", "alt"];
+  var ATTRS = ["title", "placeholder", "aria-label", "alt", "label"];
 
   function detect() {
     var saved = null;
@@ -49,6 +49,9 @@
 
   // Plantillas: claves con {huecos}. Se compilan una vez a expresiones regulares.
   var templates = null;
+  // Huecos que son siempre números ({n} partidos...): así "New match" no encaja con "{n} match"
+  // (acierto falso que daba "New partido"). El resto de huecos ({name}, {team}...) aceptan cualquier texto.
+  var NUMERIC_NAMES = { n: 1, k: 1, i: 1, total: 1, done: 1, number: 1 };
   function buildTemplates() {
     templates = [];
     Object.keys(dict).forEach(function (k) {
@@ -56,7 +59,7 @@
       var names = [];
       var re = "^" + k.split(/(\{\w+\})/).map(function (part) {
         var m = part.match(/^\{(\w+)\}$/);
-        if (m) { names.push(m[1]); return "(.+?)"; }
+        if (m) { names.push(m[1]); return NUMERIC_NAMES[m[1]] ? "(#?\\d[\\d.,:%\\/×+\\-–]*)" : "(.+?)"; }
         return esc(part);
       }).join("") + "$";
       templates.push({ key: k, re: new RegExp(re), names: names });
@@ -111,7 +114,25 @@
         if (b !== undefined) return lead + b + m[3];
       }
     }
-    return fromTemplate(core);
+    var ft = fromTemplate(core);
+    if (ft !== undefined) return ft;
+    // "Mensaje fijo: detalle dinámico" ("Couldn't load your teams: <error>"): se traduce el inicio si "Mensaje fijo:" es una clave
+    var ci = core.indexOf(": ");
+    if (ci > 3) { var hv = direct(core.slice(0, ci + 1)); if (hv !== undefined) return hv + core.slice(ci + 1); }
+    return fromList(core);
+  }
+
+  // Listas unidas por ", " / " · " / " — " ("Passing, Fast break", "Senior · Female — 2026-2027"):
+  // se traduce cada trozo que sea una clave del diccionario; si ninguno lo es, no se toca.
+  function fromList(core) {
+    if (!/(, | · | — | \/ |; )/.test(core)) return undefined;
+    var parts = core.split(/(, | · | — | \/ |; )/), changed = false;
+    for (var i = 0; i < parts.length; i += 2) {
+      var v = direct(parts[i]);
+      if (v === undefined) v = fromTemplate(parts[i]);
+      if (v !== undefined && v !== parts[i]) { parts[i] = v; changed = true; }
+    }
+    return changed ? parts.join("") : undefined;
   }
 
   function lookup(key) {
@@ -223,7 +244,7 @@
     st.textContent =
       ".pivot-lang-inline,.pivot-lang-floating{display:inline-flex;border:1px solid var(--line,#e5e5e5);border-radius:100px;overflow:hidden;background:var(--card,#fff);font-family:inherit}" +
       ".pivot-lang-floating{position:fixed;top:12px;right:12px;z-index:9999}" +
-      ".pivot-lang-inline button,.pivot-lang-floating button{border:none;background:none;padding:6px 10px;font-size:12.5px;font-weight:700;letter-spacing:.03em;color:var(--muted,#6b6b70);cursor:pointer;font-family:inherit}" +
+      ".pivot-lang-inline button,.pivot-lang-floating button{border:none;background:none;width:auto;margin:0;border-radius:0;line-height:1.2;transition:none;padding:6px 10px;font-size:12.5px;font-weight:700;letter-spacing:.03em;color:var(--muted,#6b6b70);cursor:pointer;font-family:inherit}" +
       ".pivot-lang-inline button+button,.pivot-lang-floating button+button{border-left:1px solid var(--line,#e5e5e5)}" +
       ".pivot-lang-inline button:hover,.pivot-lang-floating button:hover{background:var(--paper,#fafafa)}" +
       ".pivot-lang-inline button.active,.pivot-lang-floating button.active{background:var(--accent-tint,#fdefe7);color:var(--accent-deep,#b85012)}" +
@@ -308,9 +329,30 @@
     locale: function () { return LOCALES[lang]; },
     t: t, tHtml: tHtml, translateTree: translateTree, setLang: setLang, start: start,
     missing: function () { return Object.keys(missing); },
+    // diagnóstico (tools/tplhits.js): ¿por qué vía se traduce un texto? "direct" | "tpl:<clave>" | "none"
+    via: function (text) {
+      var s = norm(text); if (direct(s) !== undefined) return "direct";
+      if (!templates) buildTemplates();
+      for (var i = 0; i < templates.length; i++) { if (templates[i].re.test(s)) return "tpl:" + templates[i].key; }
+      return "none";
+    },
   };
   window._t = t;
   window._tHtml = tHtml;
+  // PDFs (jsPDF): envuelve doc.text para que los textos fijos y las plantillas
+  // ("Total: 45 min") salgan en el idioma elegido. En inglés no hace nada.
+  window._pdf = function (doc) {
+    if (lang === "en" || !doc || doc.__i18nPdf) return doc;
+    var orig = doc.text;
+    doc.text = function (s) {
+      var a = Array.prototype.slice.call(arguments);
+      if (typeof s === "string") a[0] = t(s);
+      else if (Array.isArray(s)) a[0] = s.map(function (x) { return typeof x === "string" ? t(x) : x; });
+      return orig.apply(doc, a);
+    };
+    doc.__i18nPdf = true;
+    return doc;
+  };
   window.PIVOT_LOCALE = LOCALES[lang];
 
   // Carga el diccionario del idioma elegido (solo ese) y arranca. Se usa

@@ -1,0 +1,42 @@
+Train smarter. Coach better.
+Access your PlayPivot workspace.
+Full name
+Before you continue, a few sentences on what PlayPivot actually is:
+What PlayPivot does:
+stores what your club enters (rosters, exercises, plans, assessments) so your club can organize its own coaching — and only acts on your club's instructions.
+What PlayPivot doesn't do:
+sell data, use it for advertising, share it beyond the circle you choose, or decide whether your club had the right to enter it in the first place.
+Who's responsible for what:
+PlayPivot is used worldwide, so this is a general principle, not every country's rules —
+your club is responsible
+for having the right to hold whatever data it enters (a player's, especially a minor's) under the law that applies where you are.
+PlayPivot is responsible
+for storing it securely and only using it the way your club instructs. Full detail in the document linked below.
+I have read and agree to the
+Privacy & Terms of Service
+Your club or association
+Create a new club or association
+Join an existing one
+Not right now — just let me look around
+Club or association name
+You'll be its admin — you'll be able to approve others who want to join.
+Which one?
+You'll join as a coach — the club's admin can change your role once they approve you. They'll need to approve your request (and confirm the team, if it's new) before you get access.
+Email
+Password
+Forgot your password?
+Don't have an account yet?
+Create one
+Set a new password
+Choose a new password for your account.
+New password
+Confirm new password
+Save new password
+← Back to playpivot.app
+PlayPivot
+Your name
+e.g. DEL Basket
+you@example.com
+English
+Français
+Español

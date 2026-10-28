@@ -382,7 +382,7 @@
 </main>
 </div><!-- /app-shell -->
 
-<script src="./i18n.js?v=1"></script>
+<script src="./i18n.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
 <script src="sidebar-widgets.js"></script>
@@ -539,7 +539,7 @@
   async function loadExampleTeam(key) {
     const ex = EXAMPLE_TEAMS[key];
     if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
-    if (!confirm(`Add ${ex.players.length} example players (${ex.team}, ${ex.season}) to your club?`)) return;
+    if (!confirm(_t("Add {n} example players ({team}, {season}) to your club?", { n: ex.players.length, team: ex.team, season: ex.season }))) return;
     try {
       await supabaseClient.from("players").delete()
         .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
@@ -547,7 +547,7 @@
       const { error } = await supabaseClient.from("players").insert(rows2);
       if (error) throw error;
       await selectSeasonTeam(ex.season, ex.team);
-      showMessage(`${ex.players.length} example players loaded.`, "success");
+      showMessage(_t("{n} example players loaded.", { n: ex.players.length }), "success");
     } catch (err) {
       showMessage(err.message || "Couldn't load the example data.", "error");
     }
@@ -556,7 +556,7 @@
   async function removeExampleTeam(key) {
     const ex = EXAMPLE_TEAMS[key];
     if (!currentOrgId) return;
-    if (!confirm(`Remove the example data (${ex.team}, ${ex.season})? This can't be undone.`)) return;
+    if (!confirm(_t("Remove the example data ({team}, {season})? This can't be undone.", { team: ex.team, season: ex.season }))) return;
     const { error } = await supabaseClient.from("players").delete()
       .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
     if (error) { showMessage(error.message, "error"); return; }
@@ -600,6 +600,7 @@
     allPlayers.forEach((p) => {
       const chip = document.createElement("div");
       chip.className = "player-chip" + (selectedIds.includes(p.id) ? " selected" : "");
+      chip.setAttribute("data-i18n-skip", ""); // nombre/equipo = datos del usuario
       chip.textContent = `${p.name} — ${p.team} (${p.season})`;
       chip.addEventListener("click", () => toggleSelected(p.id));
       els.playerPicker.appendChild(chip);
@@ -841,7 +842,7 @@
   async function loadMatchFields() {
     const { data } = await supabaseClient.from("match_stat_fields").select("*").eq("organization_id", currentOrgId).eq("enabled", true).order("position");
     matchFields = data || [];
-    els.matchStatsHead.innerHTML = `<th>Player</th><th>Games</th><th>PPG</th><th>RPG</th><th>APG</th><th>Fouls/g</th>${matchFields.map((f) => `<th>${escapeHtml(f.label)}/g</th>`).join("")}`;
+    els.matchStatsHead.innerHTML = `<th>Player</th><th>Games</th><th>PPG</th><th>RPG</th><th>APG</th><th>Fouls/g</th>${matchFields.map((f) => `<th>${escapeHtml(f.label)}${escapeHtml(_t("/g||per game suffix"))}</th>`).join("")}`;
   }
 
   async function loadMatchStats() {
@@ -879,8 +880,8 @@
       const s = matchStatsCache[id];
       const tr = document.createElement("tr");
       if (!s || s.games === 0) {
-        const teamLabel = [currentTeam, currentTeamCategory, currentTeamGender].filter(Boolean).join(" ");
-        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="${5 + matchFields.length}">No matches recorded for ${escapeHtml(teamLabel)} (${escapeHtml(currentSeason || "")})</td>`;
+        const teamLabel = [currentTeam, currentTeamCategory, currentTeamGender ? _t(currentTeamGender) : ""].filter(Boolean).join(" ");
+        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="${5 + matchFields.length}">${escapeHtml(_t("No matches recorded for {team} ({season})", { team: teamLabel, season: currentSeason || "" }))}</td>`;
       } else {
         const customCells = matchFields.map((f) => `<td>${(s.custom[f.key] || 0).toFixed(1)}</td>`).join("");
         tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td>${s.games}</td><td>${s.ppg.toFixed(1)}</td><td>${s.rpg.toFixed(1)}</td><td>${s.apg.toFixed(1)}</td><td>${s.fpg.toFixed(1)}</td>${customCells}`;
@@ -942,7 +943,7 @@
         sect.groups[grpKey].items.forEach((text, i) => {
           const opt = document.createElement("option");
           opt.value = `${sectKey}|${grpKey}|${i}`;
-          opt.textContent = `${sect.label} — ${text}`;
+          opt.textContent = `${_t(sect.label)} — ${_t(text)}`;
           els.criterionSelect.appendChild(opt);
         });
       });

@@ -1,0 +1,61 @@
+# Play design: mensajes y textos dinámicos
+PlayPivot | Basketball Play Design Tool ||| PlayPivot | Outil de création de systèmes de basket ||| PlayPivot | Herramienta de diseño de jugadas de baloncesto
+Uncategorized ||| Sans catégorie ||| Sin categoría
+For {team} — across all seasons. Looking for something else? Try Playbook below. ||| Pour {team} — toutes saisons confondues. Vous cherchez autre chose ? Essayez le Playbook ci-dessous. ||| Para {team}, de todas las temporadas. ¿Buscas otra cosa? Prueba el Playbook de abajo.
+No plays for {team} yet — start one above. ||| Aucun système pour {team} pour l'instant — créez-en un ci-dessus. ||| Todavía no hay jugadas para {team}: empieza una arriba.
+No saved plays for this team yet. ||| Aucun système enregistré pour cette équipe pour l'instant. ||| Todavía no hay jugadas guardadas para este equipo.
+Pick a team above to see its saved plays. ||| Choisissez une équipe ci-dessus pour voir ses systèmes enregistrés. ||| Elige un equipo arriba para ver sus jugadas guardadas.
+Step {n} of {total} — points start where the previous step's moves ended. ||| Étape {n} sur {total} — les points partent de là où les déplacements de l'étape précédente se sont terminés. ||| Paso {n} de {total}: los puntos empiezan donde terminaron los movimientos del paso anterior.
+Add more steps to build out the full sequence of the play. ||| Ajoutez des étapes pour construire toute la séquence du système. ||| Añade más pasos para construir la secuencia completa de la jugada.
+Click anything with "Move/Select", then "🗑 Delete element" (or Backspace) to remove just that one. ||| Cliquez sur un élément avec « Déplacer/Sélectionner », puis sur « 🗑 Supprimer l'élément » (ou Retour arrière) pour supprimer seulement celui-là. ||| Haz clic en cualquier elemento con «Mover/Seleccionar» y luego en «🗑 Eliminar elemento» (o Retroceso) para quitar solo ese.
+This step branches into options below — add steps inside an option instead. ||| Cette étape se ramifie en options ci-dessous — ajoutez plutôt des étapes à l'intérieur d'une option. ||| Este paso se ramifica en las opciones de abajo: añade pasos dentro de una opción.
+Step {n} ||| Étape {n} ||| Paso {n}
+step {n} of {total} ||| étape {n} sur {total} ||| paso {n} de {total}
++ Add step ||| + Ajouter une étape ||| + Añadir paso
+Go back to this option's parent ||| Revenir au parent de cette option ||| Volver al padre de esta opción
+⬅ Back ||| ⬅ Retour ||| ⬅ Volver
+Name for this option: ||| Nom de cette option : ||| Nombre de esta opción:
+🔀 + Add another option ||| 🔀 + Ajouter une autre option ||| 🔀 + Añadir otra opción
+🔀 Split into options here ||| 🔀 Scinder en options ici ||| 🔀 Dividir en opciones aquí
+You're inside an option — its lines/screens/zones are drawn in this option's own color automatically. ||| Vous êtes dans une option — ses lignes/écrans/zones sont dessinés automatiquement dans la couleur propre à cette option. ||| Estás dentro de una opción: sus líneas/bloqueos/zonas se dibujan automáticamente con el color propio de esa opción.
+This play branches into the options above — pick one to keep drawing it, or add another. ||| Ce système se ramifie en les options ci-dessus — choisissez-en une pour continuer à la dessiner, ou ajoutez-en une autre. ||| Esta jugada se ramifica en las opciones de arriba: elige una para seguir dibujándola, o añade otra.
+Delete option "{name}"? This can't be undone. ||| Supprimer l'option « {name} » ? Action irréversible. ||| ¿Eliminar la opción «{name}»? No se puede deshacer.
+Number/label for this player: ||| Numéro/étiquette de cet attaquant : ||| Número/etiqueta de este atacante:
+Number/label for this defender: ||| Numéro/étiquette de ce défenseur : ||| Número/etiqueta de este defensor:
+Label for this point: ||| Étiquette de ce point : ||| Etiqueta de este punto:
+Remove this point from the step? ||| Retirer ce point de l'étape ? ||| ¿Quitar este punto del paso?
+Nothing selected to delete yet — click "Move/Select" above, then click the point/line/screen/zone you want to remove, then try again. ||| Rien n'est encore sélectionné — cliquez sur « Déplacer/Sélectionner » ci-dessus, puis sur le point/la ligne/l'écran/la zone à retirer, et réessayez. ||| Todavía no hay nada seleccionado para eliminar: haz clic en «Mover/Seleccionar» arriba, luego en el punto/línea/bloqueo/zona que quieras quitar, y vuelve a intentarlo.
+This line didn't start on a player or ball, so it won't carry over to the next step. Start the drag right on the dot. ||| Cette ligne n'a pas commencé sur un joueur ou un ballon : elle ne sera donc pas reportée à l'étape suivante. Commencez le glissement directement sur le point. ||| Esta línea no empezó en un jugador ni en el balón, así que no pasará al paso siguiente. Empieza el arrastre justo sobre el punto.
+{label}: no progress for a long while — the GIF couldn't be generated. Try exporting the GIFs separately (one per option) instead of the combined one, reload the page with Ctrl/Cmd+Shift+R and, if it still fails, let us know. ||| {label} : aucune progression depuis longtemps — le GIF n'a pas pu être généré. Essayez d'exporter les GIF séparément (un par option) plutôt que le GIF combiné, rechargez la page avec Ctrl/Cmd+Maj+R et, si le problème persiste, prévenez-nous. ||| {label}: lleva un buen rato sin avanzar; no se pudo generar el GIF. Prueba a exportar los GIF por separado (uno por opción) en vez del combinado, recarga la página con Ctrl/Cmd+Mayús+R y, si sigue igual, avísanos.
+⏳ Generating GIF… ||| ⏳ Génération du GIF… ||| ⏳ Generando GIF…
+⬇ Download separate GIFs (one per option) ||| ⬇ Télécharger des GIF séparés (un par option) ||| ⬇ Descargar GIF por separado (uno por opción)
+Recording the GIF ({label}) — step {done} of {total}. Next comes the encoding; this takes a while — keep this page open. ||| Enregistrement du GIF ({label}) — étape {done} sur {total}. L'encodage vient ensuite ; cela prend du temps — gardez cette page ouverte. ||| Grabando el GIF ({label}) — paso {done} de {total}. Después viene la codificación; tarda un rato: mantén esta página abierta.
+Recording the GIF — step {done} of {total}. Next comes the encoding; this takes a while — keep this page open. ||| Enregistrement du GIF — étape {done} sur {total}. L'encodage vient ensuite ; cela prend du temps — gardez cette page ouverte. ||| Grabando el GIF — paso {done} de {total}. Después viene la codificación; tarda un rato: mantén esta página abierta.
+option {i} of {n}: {label} ||| option {i} sur {n} : {label} ||| opción {i} de {n}: {label}
+option {i} of {n} ||| option {i} sur {n} ||| opción {i} de {n}
+Starting the GIF — this takes a while — keep this page open. ||| Démarrage du GIF — cela prend du temps — gardez cette page ouverte. ||| Iniciando el GIF: tarda un rato; mantén esta página abierta.
+Couldn't create the GIF: {msg} ||| Impossible de créer le GIF : {msg} ||| No se pudo crear el GIF: {msg}
+Couldn't render the GIF. ||| Impossible de générer le GIF. ||| No se pudo generar el GIF.
+Encoding the GIF — this takes a while — keep this page open. ||| Encodage du GIF — cela prend du temps — gardez cette page ouverte. ||| Codificando el GIF: tarda un rato; mantén esta página abierta.
+Encoding the GIF (keep this page open) ||| Encodage du GIF (gardez cette page ouverte) ||| Codificando el GIF (mantén esta página abierta)
+GIF downloaded. ||| GIF téléchargé. ||| GIF descargado.
+Couldn't render the GIF for "{label}". ||| Impossible de générer le GIF pour « {label} ». ||| No se pudo generar el GIF de «{label}».
+Playing: {label} ||| Lecture : {label} ||| Reproduciendo: {label}
+Encoding the GIF for "{label}" ({i} of {n}) — this takes a while — keep this page open. ||| Encodage du GIF pour « {label} » ({i} sur {n}) — cela prend du temps — gardez cette page ouverte. ||| Codificando el GIF de «{label}» ({i} de {n}): tarda un rato; mantén esta página abierta.
+Encoding the GIF for "{label}" (keep this page open) ||| Encodage du GIF pour « {label} » (gardez cette page ouverte) ||| Codificando el GIF de «{label}» (mantén esta página abierta)
+{n} GIFs downloaded — one per option. ||| {n} GIF téléchargés — un par option. ||| {n} GIF descargados: uno por opción.
+Starting the combined GIF — this takes a while — keep this page open. ||| Démarrage du GIF combiné — cela prend du temps — gardez cette page ouverte. ||| Iniciando el GIF combinado: tarda un rato; mantén esta página abierta.
+Couldn't create the combined GIF: {msg} ||| Impossible de créer le GIF combiné : {msg} ||| No se pudo crear el GIF combinado: {msg}
+Couldn't render the combined GIF. ||| Impossible de générer le GIF combiné. ||| No se pudo generar el GIF combinado.
+Encoding the combined GIF — this takes a while — keep this page open. ||| Encodage du GIF combiné — cela prend du temps — gardez cette page ouverte. ||| Codificando el GIF combinado: tarda un rato; mantén esta página abierta.
+Encoding the combined GIF (keep this page open) ||| Encodage du GIF combiné (gardez cette page ouverte) ||| Codificando el GIF combinado (mantén esta página abierta)
+Combined GIF downloaded — all options in one file. ||| GIF combiné téléchargé — toutes les options dans un seul fichier. ||| GIF combinado descargado: todas las opciones en un solo archivo.
+New blank play — pick a tool and draw on the court, then Save when ready. ||| Nouveau système vierge — choisissez un outil et dessinez sur le terrain, puis enregistrez quand vous êtes prêt. ||| Jugada nueva en blanco: elige una herramienta y dibuja en la pista; guarda cuando estés listo.
+This play belongs to another club — you can look, but not edit or save changes. ||| Ce système appartient à un autre club — vous pouvez le consulter, mais pas le modifier ni enregistrer de changements. ||| Esta jugada pertenece a otro club: puedes verla, pero no editarla ni guardar cambios.
+Started a new play from "{name}" — edit freely, the original is untouched until you hit Save. ||| Nouveau système créé à partir de « {name} » — modifiez librement, l'original reste intact tant que vous n'enregistrez pas. ||| Jugada nueva creada a partir de «{name}»: edítala con libertad, la original no cambia hasta que guardes.
+Give the play a name first. ||| Donnez d'abord un nom au système. ||| Ponle primero un nombre a la jugada.
+Play saved. ||| Système enregistré. ||| Jugada guardada.
+Couldn't save that play. ||| Impossible d'enregistrer ce système. ||| No se pudo guardar esa jugada.
+Delete this play? This can't be undone. ||| Supprimer ce système ? Action irréversible. ||| ¿Eliminar esta jugada? No se puede deshacer.
+Untitled play ||| Système sans titre ||| Jugada sin título
+play||file name word ||| systeme ||| jugada

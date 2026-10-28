@@ -885,7 +885,7 @@
 </main>
 </div><!-- /app-shell -->
 
-<script src="./i18n.js?v=1"></script>
+<script src="./i18n.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
@@ -979,7 +979,7 @@
   // podía pisarse entre categorías. Esta función arma un nombre que incluye
   // también categoría y género cuando existen.
   function teamFileLabel() {
-    return [currentTeam, currentTeamCategory, currentTeamGender].filter(Boolean).join(" ");
+    return [currentTeam, currentTeamCategory, currentTeamGender ? _t(currentTeamGender) : ""].filter(Boolean).join(" ");
   }
   let currentTrainingId = null;
   let currentTrainingOwned = true; // false para una sesión compartida de otro club (solo lectura)
@@ -1502,7 +1502,8 @@
 
   async function deleteTeamSeason(season, team, category) {
     const gender = currentTeamGender;
-    if (!confirm(`Remove "${team}"${category ? " (" + category + ")" : ""}${gender ? " " + gender : ""} (${season}) and all its players? This can't be undone.`)) return;
+    const teamLabel = `${team}${category ? " (" + category + ")" : ""}${gender ? " " + _t(gender) : ""}`;
+    if (!confirm(_t(`Remove "{label}" ({season}) and all its players? This can't be undone.`, { label: teamLabel, season }))) return;
     const { error } = await filterByGender(filterByCategory(
       supabaseClient.from("players").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       category
@@ -1524,7 +1525,7 @@
       els.trainingArea.style.display = "none";
       els.currentSelection.textContent = "Pick a season/team above.";
     }
-    showMessage(`"${team}"${category ? " (" + category + ")" : ""} (${season}) removed.`, "success");
+    showMessage(_t(`"{label}" ({season}) removed.`, { label: `${team}${category ? " (" + category + ")" : ""}`, season }), "success");
     await loadTree();
   }
 
@@ -1538,7 +1539,7 @@
       const rows = ex.players.map((p) => ({ ...p, organization_id: currentOrgId, season: ex.season, team: ex.team }));
       const { error } = await supabaseClient.from("players").insert(rows);
       if (error) throw error;
-      showMessage(`${ex.players.length} example players loaded — pick "${ex.team}" under "${ex.season}" above to start.`, "success");
+      showMessage(_t(`{n} example players loaded — pick "{team}" under "{season}" above to start.`, { n: ex.players.length, team: ex.team, season: ex.season }), "success");
       await loadTree();
     } catch (err) {
       showMessage(err.message || "Couldn't load the example data.", "error");
@@ -2063,10 +2064,10 @@
   });
 
   const ATTENDANCE_BADGE = {
-    present: { label: "P", cls: "present-yes" },
-    absent: { label: "A", cls: "present-no" },
-    excused: { label: "E", cls: "present-other" },
-    late: { label: "L", cls: "present-other" },
+    present: { label: _t("P||status letter: present"), cls: "present-yes" },
+    absent: { label: _t("A||status letter: absent"), cls: "present-no" },
+    excused: { label: _t("E||status letter: excused"), cls: "present-other" },
+    late: { label: _t("L||status letter: late"), cls: "present-other" },
   };
 
   // Mismo ciclo que Match day y Attendance: sin marcar -> present -> absent -> excused -> late -> sin marcar.
@@ -2150,7 +2151,7 @@
     const planned = parseInt(els.planned.value, 10) || 0;
     const over = total > planned;
     els.durationBanner.className = "duration-banner" + (over ? " over" : "");
-    els.durationBanner.innerHTML = `<strong>${total} min</strong> planned so far, out of <strong>${planned} min</strong> total${over ? " — over the planned length" : ""}.`;
+    els.durationBanner.innerHTML = `<strong>${total} min</strong> ${_t("planned so far, out of")} <strong>${planned} min</strong> ${_t("total")}${over ? " " + _t("— over the planned length") : ""}.`;
   }
   els.planned.addEventListener("input", updateDurationBanner);
 
@@ -2408,7 +2409,7 @@
 
     const coaches = (sess.coaches || []).filter(Boolean);
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(GREY);
-    doc.text("Coach(es): " + (coaches.join(", ") || "—"), MARGIN, 136);
+    doc.text(_t("Coach(es):") + " " + (coaches.join(", ") || "—"), MARGIN, 136);
     doc.setTextColor(DARK);
 
     const top = 150, leftX0 = MARGIN, leftX1 = 195, midX0 = 205, rightX1 = PAGE_W - MARGIN;
@@ -2565,7 +2566,7 @@
     if (plannedMinutes > 0) {
       doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
       doc.setTextColor(totalMinutes > plannedMinutes ? ACCENT[0] : GREY, totalMinutes > plannedMinutes ? ACCENT[1] : GREY, totalMinutes > plannedMinutes ? ACCENT[2] : GREY);
-      doc.text(`(planned: ${plannedMinutes} min)`, midX0 + doc.getTextWidth(`Total: ${totalMinutes} min`) + 8, totalLineY);
+      doc.text(`(planned: ${plannedMinutes} min)`, midX0 + doc.getTextWidth(_t(`Total: ${totalMinutes} min`)) + 8, totalLineY);
       doc.setTextColor(DARK);
     }
 
@@ -2683,7 +2684,7 @@
       doc.setFont("helvetica", "bold"); doc.setFontSize(13);
       doc.text(`${clubName || "PlayPivot"} — SESSION SHEET (continued)`, MARGIN, 30);
       doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(GREY);
-      doc.text(`${sess.date ? formatDateDisplay(sess.date) : ""}${sess.number ? " — Session #" + sess.number : ""}`, MARGIN, 44);
+      doc.text(`${sess.date ? formatDateDisplay(sess.date) : ""}${sess.number ? " — " + _t("Session #") + sess.number : ""}`, MARGIN, 44);
       doc.setTextColor(DARK);
       return 62;
     }
@@ -3046,7 +3047,7 @@
 
   async function exportToPdf() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "pt", format: [595, 842] });
+    const doc = _pdf(new jsPDF({ unit: "pt", format: [595, 842] }));
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const clubName = (els.orgName.textContent || "").trim();
     const sess = {
@@ -3085,7 +3086,7 @@
     // que ya usa "Export whole notebook" para esto mismo) va siempre
     // delante, y el título detrás si lo hay -- "U10 Boys_Week 6_2026-10-05.pdf"
     // nunca choca con "U12 Girls_Week 6_2026-10-05.pdf".
-    const fileLabel = [teamFileLabel(), els.title.value.trim()].filter(Boolean).join("_") || "session";
+    const fileLabel = [teamFileLabel(), els.title.value.trim()].filter(Boolean).join("_") || _t("session||file name word");
     doc.save(`${fileLabel}_${els.date.value}.pdf`);
   }
 
@@ -3099,7 +3100,7 @@
     if (mine.length === 0) { showMessage("No sessions to export for this team yet.", "error"); return; }
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "pt", format: [595, 842] });
+    const doc = _pdf(new jsPDF({ unit: "pt", format: [595, 842] }));
     const PAGE_W = 595, PAGE_H = 842;
     const DARK = 30, GREY = 130, ACCENT = [236, 103, 24];
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
@@ -3162,7 +3163,7 @@
       }, logoDataUrl, clubName);
     }
 
-    doc.save(`${teamFileLabel()}_${currentSeason}_notebook.pdf`);
+    doc.save(`${teamFileLabel()}_${currentSeason}_${_t("notebook||file name word")}.pdf`);
   }
 
   // -----------------------------------------------------------------------

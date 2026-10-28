@@ -1,0 +1,145 @@
+# Match day (cadenas cortas; los textos largos de ayuda están en match_help.txt)
+PlayPivot | Basketball Match Day Management ||| PlayPivot | Gestion des jours de match de basket ||| PlayPivot | Gestión del día de partido de baloncesto
+Pick a team below. ||| Choisissez une équipe ci-dessous. ||| Elige un equipo abajo.
+Location ||| Lieu ||| Lugar
+Result ||| Résultat ||| Resultado
+Score ||| Score ||| Marcador
+e.g. Final, Semifinal, Friendly… ||| ex. Finale, Demi-finale, Amical… ||| p. ej. Final, Semifinal, Amistoso…
+Optional ||| Facultatif ||| Opcional
+Home/Away ||| Domicile/Extérieur ||| Local/Visitante
+Home ||| Domicile ||| Local
+Away ||| Extérieur ||| Visitante
+Referee ||| Arbitre ||| Árbitro
+Score (us) ||| Score (nous) ||| Marcador (nosotros)
+Score (them) ||| Score (eux) ||| Marcador (ellos)
+No "PlayPivot Community" option here on purpose — player stats always name real players. ||| Pas d'option « Communauté PlayPivot » ici, volontairement — les stats des joueurs nomment toujours de vrais joueurs. ||| Aquí no hay opción «Comunidad PlayPivot» a propósito: las estadísticas de los jugadores siempre nombran a jugadores reales.
+Click any stat cell to edit. "Columns ▾" shows/hides and reorders columns (just for you), and — for admins/coaches — adds or removes your club's own custom stats (steals, turnovers, +/-…). ||| Cliquez sur une cellule de stat pour la modifier. « Colonnes ▾ » affiche/masque et réordonne les colonnes (rien que pour vous) et — pour les admins/entraîneurs — ajoute ou retire les stats personnalisées de votre club (interceptions, balles perdues, +/-…). ||| Haz clic en cualquier celda de estadística para editarla. «Columnas ▾» muestra/oculta y reordena las columnas (solo para ti) y, para admins/entrenadores, añade o quita las estadísticas propias de tu club (robos, pérdidas, +/-…).
+"Called up" is yours to tick — the button above the column selects/clears everyone at once. Click "Present" to cycle through it, same options as Attendance — it's the same record, mark it here or there and it shows up in both. Present only becomes clickable once the match has been saved at least once. ||| « Convoqué » est à vous de cocher — le bouton au-dessus de la colonne sélectionne/désélectionne tout le monde d'un coup. Cliquez sur « Présent » pour alterner, mêmes options que dans Présences — c'est le même enregistrement, notez-le ici ou là et il apparaît dans les deux. « Présent » n'est cliquable qu'une fois le match enregistré au moins une fois. ||| «Convocado» lo marcas tú: el botón sobre la columna selecciona/limpia a todos a la vez. Haz clic en «Presente» para alternar, con las mismas opciones que en Asistencia: es el mismo registro, márcalo aquí o allí y aparece en los dos. Presente solo se puede pulsar cuando el partido se ha guardado al menos una vez.
+Not marked yet ||| Pas encore noté ||| Sin marcar todavía
+For someone not on this team's roster — a guest, or a call-up for just this match. Won't show up in your normal Roster list, but their stats here still count. ||| Pour quelqu'un qui n'est pas dans l'effectif de l'équipe — un invité, ou une convocation pour ce seul match. N'apparaîtra pas dans votre liste Effectif habituelle, mais ses stats ici comptent quand même. ||| Para alguien que no está en la plantilla del equipo: un invitado o un convocado solo para este partido. No aparecerá en tu lista de Plantilla normal, pero sus estadísticas aquí cuentan igualmente.
+(optional — no roster on file for them, so names and numbers are typed in) ||| (facultatif — pas d'effectif connu pour eux, donc noms et numéros sont saisis à la main) ||| (opcional: no hay plantilla registrada de ellos, así que nombres y dorsales se escriben a mano)
++ Add opponent player ||| + Ajouter un joueur adverse ||| + Añadir jugador rival
+Save match details ||| Enregistrer les détails du match ||| Guardar detalles del partido
+Print blank sheet ||| Imprimer une feuille vierge ||| Imprimir hoja en blanco
+Import stats from Excel ||| Importer les stats depuis Excel ||| Importar estadísticas desde Excel
+Reads player stats (yours and the opponent's, if the sheet has both), marks Present for who's in the file and Absent for the rest of the roster, and, if the file has a general-info block (competition, date, location, referee, teams, final score), fills in empty General info fields too -- never overwrites something you typed. ||| Lit les stats des joueurs (les vôtres et celles de l'adversaire, si la feuille contient les deux), marque Présent ceux qui sont dans le fichier et Absent le reste de l'effectif, et, si le fichier contient un bloc d'infos générales (compétition, date, lieu, arbitre, équipes, score final), remplit aussi les champs vides des Infos générales — n'écrase jamais ce que vous avez saisi. ||| Lee las estadísticas de los jugadores (las tuyas y las del rival, si el archivo trae las dos), marca Presente a quien está en el archivo y Ausente al resto de la plantilla y, si el archivo trae un bloque de información general (competición, fecha, lugar, árbitro, equipos, resultado final), rellena también los campos vacíos de Información general; nunca sobrescribe lo que hayas escrito.
+Download Excel template ||| Télécharger le modèle Excel ||| Descargar plantilla de Excel
+Descarga una plantilla .xlsx ya armada con el roster de este equipo -- rellenala durante el partido y subila con 'Import stats from Excel'. Un jugador que no juegue: dejá su fila en blanco, así no se marca como que jugó. ||| Télécharge un modèle .xlsx déjà prêt avec l'effectif de cette équipe — remplissez-le pendant le match et importez-le avec « Importer les stats depuis Excel ». Un joueur qui ne joue pas : laissez sa ligne vide, ainsi il n'est pas marqué comme ayant joué. ||| Descarga una plantilla .xlsx ya preparada con la plantilla de este equipo: rellénala durante el partido y súbela con «Importar estadísticas desde Excel». Un jugador que no juegue: deja su fila en blanco, así no se marca como que jugó.
+Import from a photo ||| Importer depuis une photo ||| Importar desde una foto
+Sheet text is mostly in ||| Le texte de la feuille est surtout en ||| El texto del acta está sobre todo en
+What this does ||| À quoi ça sert ||| Qué hace esto
+Fill in with AI ||| Remplir avec l'IA ||| Rellenar con IA
+Copy this prompt into any AI chat that can read images and PDFs (ChatGPT, Claude…), attach your photo or PDF of the scoresheet there — including an official federation match sheet, like the ones with a "running score" grid instead of a simple table, the prompt explains how to read those too — then paste its reply below. Tip: if your AI chat can also create/edit files (ChatGPT or Claude, paid plans), also attach the file from "⬇️ Download Excel template" above — the prompt asks the AI to fill that file in directly and hand it back, so you can skip pasting text and just re-upload the finished .xlsx with "Import stats from Excel" instead. PlayPivot doesn't send anything anywhere by itself — you copy and paste between the two tabs, same as "Fill in with AI" in Exercise creator. ||| Copiez ce prompt dans n'importe quel chat IA qui lit les images et PDF (ChatGPT, Claude…), joignez-y votre photo ou PDF de la feuille de match — y compris une feuille officielle de fédération, comme celles avec une grille de « running score » au lieu d'un simple tableau, le prompt explique aussi comment les lire — puis collez sa réponse ci-dessous. Astuce : si votre chat IA peut aussi créer/modifier des fichiers (ChatGPT ou Claude, offres payantes), joignez aussi le fichier de « ⬇️ Télécharger le modèle Excel » ci-dessus — le prompt demande à l'IA de le remplir directement et de vous le rendre, vous pouvez donc éviter de coller du texte et simplement réimporter le .xlsx terminé avec « Importer les stats depuis Excel ». PlayPivot n'envoie rien nulle part de lui-même — vous copiez-collez entre les deux onglets, comme pour « Remplir avec l'IA » dans le créateur d'exercices. ||| Copia este prompt en cualquier chat de IA que lea imágenes y PDF (ChatGPT, Claude…), adjunta ahí tu foto o PDF del acta (también vale un acta oficial de federación, de las que traen una cuadrícula de «running score» en vez de una tabla simple: el prompt explica también cómo leerlas) y pega su respuesta abajo. Consejo: si tu chat de IA también puede crear/editar archivos (ChatGPT o Claude, planes de pago), adjunta además el archivo de «⬇️ Descargar plantilla de Excel» de arriba: el prompt le pide a la IA que lo rellene directamente y te lo devuelva, así te ahorras pegar texto y solo vuelves a subir el .xlsx terminado con «Importar estadísticas desde Excel». PlayPivot no envía nada a ningún sitio por su cuenta: tú copias y pegas entre las dos pestañas, igual que con «Rellenar con IA» en el creador de ejercicios.
+Copy this prompt ||| Copier ce prompt ||| Copiar este prompt
+Paste the AI's reply here… ||| Collez ici la réponse de l'IA… ||| Pega aquí la respuesta de la IA…
+Fill from AI reply ||| Remplir depuis la réponse de l'IA ||| Rellenar desde la respuesta de la IA
+No matches recorded yet for this team. ||| Aucun match enregistré pour cette équipe pour l'instant. ||| Todavía no hay partidos registrados para este equipo.
+Called up ||| Convoqué ||| Convocado
+Starter ||| Titulaire ||| Titular
+Periods ||| Périodes ||| Periodos
+Remove this stat column for the whole club ||| Retirer cette colonne de stats pour tout le club ||| Quitar esta columna de estadísticas para todo el club
+Remove "{name}"? Numbers already entered for past matches stay saved, just hidden. ||| Retirer « {name} » ? Les chiffres déjà saisis pour les matchs passés restent enregistrés, simplement masqués. ||| ¿Quitar «{name}»? Los números ya introducidos en partidos pasados siguen guardados, solo ocultos.
+e.g. Steals ||| ex. Interceptions ||| p. ej. Robos
+Couldn't add that column. ||| Impossible d'ajouter cette colonne. ||| No se pudo añadir esa columna.
+all ||| tous ||| todos
+Select or clear everyone ||| Sélectionner ou désélectionner tout le monde ||| Seleccionar o limpiar a todos
+Pts/g ||| Pts/m ||| Pts/p
+Reb/g ||| Reb/m ||| Reb/p
+Ast/g ||| PD/m ||| Ast/p
+Fouls/g ||| Fautes/m ||| Faltas/p
+No score yet ||| Pas encore de score ||| Sin marcador todavía
+Draw ||| Nul ||| Empate
+Win ||| Victoire ||| Victoria
+Loss ||| Défaite ||| Derrota
+vs ||| vs ||| vs
+No opponent set ||| Aucun adversaire défini ||| Sin rival definido
+This match belongs to another club — you can look, but not edit or save changes. ||| Ce match appartient à un autre club — vous pouvez le consulter, mais pas le modifier ni enregistrer de changements. ||| Este partido pertenece a otro club: puedes verlo, pero no editarlo ni guardar cambios.
+Save the match first to mark presence ||| Enregistrez d'abord le match pour noter la présence ||| Guarda primero el partido para marcar la presencia
+(not on current roster) ||| (pas dans l'effectif actuel) ||| (no está en la plantilla actual)
+Played this match, but is no longer on the current roster (deactivated, or moved team/season). ||| A joué ce match, mais ne fait plus partie de l'effectif actuel (désactivé, ou changé d'équipe/saison). ||| Jugó este partido, pero ya no está en la plantilla actual (desactivado, o cambió de equipo/temporada).
+How many periods/quarters this player was on court ||| Combien de périodes/quart-temps ce joueur a été sur le terrain ||| Cuántos periodos/cuartos estuvo este jugador en pista
+1-point shots made ||| Lancers francs réussis ||| Tiros libres anotados
+2-point shots made ||| Tirs à 2 points réussis ||| Tiros de 2 puntos anotados
+3-point shots made ||| Tirs à 3 points réussis ||| Triples anotados
+TOTAL ||| TOTAL ||| TOTAL
+Open or start a match first. ||| Ouvrez ou démarrez d'abord un match. ||| Abre o empieza primero un partido.
+This match belongs to another club — you can't add players to it. ||| Ce match appartient à un autre club — vous ne pouvez pas y ajouter de joueurs. ||| Este partido pertenece a otro club: no puedes añadirle jugadores.
+First name (for a guest or call-up playing just this match -- won't show up in your normal Roster list): ||| Prénom (pour un invité ou un convoqué qui joue uniquement ce match — n'apparaîtra pas dans votre liste Effectif habituelle) : ||| Nombre (para un invitado o convocado que juega solo este partido; no aparecerá en tu lista de Plantilla normal):
+Last name for {name}: ||| Nom de famille de {name} : ||| Apellidos de {name}:
+Jersey number for {first} {last} (optional -- leave blank if unknown): ||| Numéro de maillot de {first} {last} (facultatif — laissez vide si inconnu) : ||| Dorsal de {first} {last} (opcional; déjalo en blanco si no se sabe):
+No matches for this team yet — create one first. ||| Aucun match pour cette équipe pour l'instant — créez-en un d'abord. ||| Todavía no hay partidos para este equipo: crea uno primero.
+Which match is this for? ||| Pour quel match est-ce ? ||| ¿Para qué partido es esto?
+{n} player row(s) found in that file — matched by name against {team}'s roster. ||| {n} ligne(s) de joueur trouvée(s) dans ce fichier — rapprochées par nom de l'effectif de {team}. ||| {n} fila(s) de jugador encontrada(s) en ese archivo, emparejadas por nombre con la plantilla de {team}.
+{n} player row found in that file — matched by name against {team}'s roster. ||| {n} ligne de joueur trouvée dans ce fichier — rapprochée par nom de l'effectif de {team}. ||| {n} fila de jugador encontrada en ese archivo, emparejada por nombre con la plantilla de {team}.
+{n} player rows found in that file — matched by name against {team}'s roster. ||| {n} lignes de joueurs trouvées dans ce fichier — rapprochées par nom de l'effectif de {team}. ||| {n} filas de jugadores encontradas en ese archivo, emparejadas por nombre con la plantilla de {team}.
+— vs ||| — vs ||| — vs
+Imported stats for {team}. ||| Stats importées pour {team}. ||| Estadísticas importadas para {team}.
+Import complete. ||| Import terminé. ||| Importación completada.
+Updated Present too. ||| Présent mis à jour aussi. ||| También se actualizó Presente.
+Also filled in general info. ||| Infos générales également remplies. ||| También se rellenó la información general.
+Couldn't save those stats. ||| Impossible d'enregistrer ces stats. ||| No se pudieron guardar esas estadísticas.
+Pick a team first. ||| Choisissez d'abord une équipe. ||| Elige primero un equipo.
+This team doesn't have any players in its roster yet. ||| Cette équipe n'a encore aucun joueur dans son effectif. ||| Este equipo todavía no tiene jugadores en su plantilla.
+Found {n} player(s) matching {team}'s roster, but none has any stats filled in yet -- fill in at least one column (even a "0") for whoever actually played, then import again. ||| {n} joueur(s) correspondant à l'effectif de {team} trouvé(s), mais aucun n'a encore de stats renseignées — remplissez au moins une colonne (même un « 0 ») pour ceux qui ont réellement joué, puis réimportez. ||| Se encontraron {n} jugador(es) que coinciden con la plantilla de {team}, pero ninguno tiene estadísticas rellenas todavía: rellena al menos una columna (aunque sea un «0») de quien jugó de verdad y vuelve a importar.
+Found {n} row(s), but none matched a name in {team}'s roster. ||| {n} ligne(s) trouvée(s), mais aucune ne correspond à un nom de l'effectif de {team}. ||| Se encontraron {n} fila(s), pero ninguna coincide con un nombre de la plantilla de {team}.
+Couldn't find a usable player name column. ||| Impossible de trouver une colonne de noms de joueurs exploitable. ||| No se encontró ninguna columna de nombres de jugadores utilizable.
+That doesn't have any rows. ||| Il n'y a aucune ligne là-dedans. ||| Eso no tiene ninguna fila.
+Couldn't read that Excel file. ||| Impossible de lire ce fichier Excel. ||| No se pudo leer ese archivo de Excel.
+Prompt copied — paste it into any AI chat that can read images, attach your photo, then send it. ||| Prompt copié — collez-le dans n'importe quel chat IA qui lit les images, joignez votre photo, puis envoyez. ||| Prompt copiado: pégalo en cualquier chat de IA que lea imágenes, adjunta tu foto y envíalo.
+Couldn't copy automatically — select the text above and copy it by hand. ||| Impossible de copier automatiquement — sélectionnez le texte ci-dessus et copiez-le à la main. ||| No se pudo copiar automáticamente: selecciona el texto de arriba y cópialo a mano.
+Paste the AI's reply first. ||| Collez d'abord la réponse de l'IA. ||| Pega primero la respuesta de la IA.
+Couldn't read that reply. ||| Impossible de lire cette réponse. ||| No se pudo leer esa respuesta.
+Use the template above so the AI replies in the right format. ||| Utilisez le modèle ci-dessus pour que l'IA réponde au bon format. ||| Usa la plantilla de arriba para que la IA responda con el formato correcto.
+Fill in with AI — what it actually does ||| Remplir avec l'IA — ce que ça fait vraiment ||| Rellenar con IA — qué hace realmente
+Import from a photo — what it actually does ||| Importer depuis une photo — ce que ça fait vraiment ||| Importar desde una foto — qué hace realmente
+— Ignore this column — ||| — Ignorer cette colonne — ||| — Ignorar esta columna —
+Player name ||| Nom du joueur ||| Nombre del jugador
+Points (total) ||| Points (total) ||| Puntos (total)
+Jersey number (backup match if the name doesn't) ||| Numéro de maillot (rapprochement de secours si le nom ne correspond pas) ||| Dorsal (emparejamiento de respaldo si el nombre no coincide)
+✕ column ||| ✕ colonne ||| ✕ columna
+Remove this column ||| Retirer cette colonne ||| Quitar esta columna
+Remove this row ||| Retirer cette ligne ||| Quitar esta fila
+Check what was read from the photo ||| Vérifiez ce qui a été lu sur la photo ||| Revisa lo que se leyó de la foto
+Fix any wrong cell, add or remove rows/columns if the table came out wrong, and pick what each column means in its dropdown. Nothing is saved until you click "Import these rows". ||| Corrigez toute cellule erronée, ajoutez ou retirez des lignes/colonnes si le tableau est faux, et choisissez le sens de chaque colonne dans sa liste déroulante. Rien n'est enregistré avant de cliquer sur « Importer ces lignes ». ||| Corrige cualquier celda errónea, añade o quita filas/columnas si la tabla salió mal y elige qué significa cada columna en su desplegable. No se guarda nada hasta que hagas clic en «Importar estas filas».
++ Add row ||| + Ajouter une ligne ||| + Añadir fila
++ Add column ||| + Ajouter une colonne ||| + Añadir columna
+Import these rows ||| Importer ces lignes ||| Importar estas filas
+Pick which column is "Player name" before importing. ||| Choisissez quelle colonne est « Nom du joueur » avant d'importer. ||| Elige qué columna es «Nombre del jugador» antes de importar.
+Found {n} row(s), but none matched a name in {team}'s roster — fix the name column and try again. ||| {n} ligne(s) trouvée(s), mais aucune ne correspond à un nom de l'effectif de {team} — corrigez la colonne des noms et réessayez. ||| Se encontraron {n} fila(s), pero ninguna coincide con un nombre de la plantilla de {team}: corrige la columna de nombres e inténtalo de nuevo.
+No usable rows yet — check the player name column. ||| Aucune ligne exploitable pour l'instant — vérifiez la colonne des noms de joueurs. ||| Todavía no hay filas utilizables: revisa la columna de nombres de jugadores.
+Reading the photo… ||| Lecture de la photo… ||| Leyendo la foto…
+Reading the photo… {n}% ||| Lecture de la photo… {n} % ||| Leyendo la foto… {n} %
+Photo read — check the table below before importing. ||| Photo lue — vérifiez le tableau ci-dessous avant d'importer. ||| Foto leída: revisa la tabla de abajo antes de importar.
+Couldn't read that photo. ||| Impossible de lire cette photo. ||| No se pudo leer esa foto.
+date TBD ||| date à définir ||| fecha por determinar
+This team ||| Cette équipe ||| Este equipo
+OPPONENT ||| ADVERSAIRE ||| RIVAL
+COMMENTS ||| COMMENTAIRES ||| COMENTARIOS
+Save the match first. ||| Enregistrez d'abord le match. ||| Guarda primero el partido.
+blank_match_sheet||file name word ||| feuille_de_match_vierge ||| hoja_de_partido_en_blanco
+Match template — {team} ||| Modèle de match — {team} ||| Plantilla de partido — {team}
+Competition||template label ||| Compétition ||| Competición
+Date||template label ||| Date ||| Fecha
+Location||template label ||| Lieu ||| Lugar
+Team A||template label ||| Équipe A ||| Equipo A
+Team B||template label ||| Équipe B ||| Equipo B
+Referee||template label ||| Arbitre ||| Árbitro
+Final score||template label ||| Score final ||| Resultado final
+TEAM A — {team} ||| ÉQUIPE A — {team} ||| EQUIPO A — {team}
+TEAM B — (opponent) ||| ÉQUIPE B — (adversaire) ||| EQUIPO B — (rival)
+Player||template column header ||| Joueur ||| Jugador
+Starter||template column header ||| Titulaire ||| Titular
+Points total||template column header ||| Points total ||| Puntos totales
+Fouls||template column header ||| Fautes ||| Faltas
+Periods played||template column header ||| Périodes jouées ||| Períodos jugados
+team||file name word ||| equipe ||| equipo
+Template||file name word ||| Modele ||| Plantilla
+Empty cells: fill them in during the match. "Points total" is calculated automatically from 1 pt/2 pts/3 pts (or type the number straight in, that works too). "Starter" (who started the game): write Y/S/X/1 if they started, leave it empty if not. Names don't have to match letter for letter -- nicknames work too, and the jersey number ("N°") is used as a backup. Each team's TOTAL row adds itself up. TEAM A already includes your whole roster -- for a player who did NOT play this match, leave their row completely blank (name and number only) and they won't be marked as having played when you import; if they played but scored nothing, write at least a "0" in one of their columns (Periods played, for example) so they DO count. Then: Match day → "Import stats from Excel". ||| Cellules vides : remplissez-les pendant le match. « Points total » se calcule automatiquement à partir de 1 pt/2 pts/3 pts (ou saisissez directement le nombre, ça marche aussi). « Titulaire » (qui a commencé le match) : écrivez O/Y/X/1 s'il a commencé, laissez vide sinon. Les noms n'ont pas besoin de correspondre lettre pour lettre — les surnoms fonctionnent aussi, et le numéro de maillot (« N° ») sert de secours. La ligne TOTAL de chaque équipe se calcule toute seule. ÉQUIPE A contient déjà tout votre effectif — pour un joueur qui n'a PAS joué ce match, laissez sa ligne complètement vide (nom et numéro seulement) et il ne sera pas marqué comme ayant joué à l'import ; s'il a joué sans rien marquer, écrivez au moins un « 0 » dans l'une de ses colonnes (Périodes jouées, par exemple) pour qu'il COMPTE. Ensuite : Jour de match → « Importer les stats depuis Excel ». ||| Celdas vacías: rellénalas durante el partido. «Puntos totales» se calcula solo a partir de 1 pt/2 pts/3 pts (o escribe el número directamente, también funciona). «Titular» (quién empezó el partido): escribe S/Y/X/1 si empezó, déjalo vacío si no. No hace falta que los nombres coincidan letra por letra: los apodos también funcionan, y el dorsal («N°») sirve de respaldo. La fila TOTAL de cada equipo se suma sola. EQUIPO A ya trae toda tu plantilla: para un jugador que NO jugó este partido, deja su fila completamente en blanco (solo nombre y dorsal) y no se marcará como que jugó al importar; si jugó pero no sumó nada, escribe al menos un «0» en alguna de sus columnas (Periodos jugados, por ejemplo) para que SÍ cuente. Después: Día de partido → «Importar estadísticas desde Excel».
+Match saved. ||| Match enregistré. ||| Partido guardado.
+{first} {last} added for this match. ||| {first} {last} ajouté(e) pour ce match. ||| {first} {last} añadido/a para este partido.
+Match sheet (blank) ||| Feuille de match (vierge) ||| Hoja de partido (en blanco)
+match||file name word ||| match ||| partido
++ New match ||| + Nouveau match ||| + Nuevo partido
+Pick a team above to see its matches. ||| Choisissez une équipe ci-dessus pour voir ses matchs. ||| Elige un equipo arriba para ver sus partidos.
+Match # ||| Match n° ||| Partido n.º
+Delete this match ||| Supprimer ce match ||| Eliminar este partido

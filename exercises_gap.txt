@@ -1,0 +1,133 @@
+Playbook
+PDF preview
+Not live as you type — click "Update PDF" whenever you want to see your latest changes.
+🔄 Update PDF
+Click "Update PDF" to see it here.
+How to use Create exercise
+This page always shows a ready-to-fill exercise — the "Number" field at the top is assigned automatically the moment you land here, and it never changes no matter which of the 3 buttons below you use. No need to click anything first. The small text next to "Number" shows how many exercises your club already has, so the number has some context — it only counts your own club's exercises, not ones shared by other clubs.
+How to use "Fill in with AI", step by step:
+Click the "Fill in with AI" button to open the section.
+Click "📋 Copy this template" — it's copied to your clipboard.
+Open any AI chat (ChatGPT, Claude…) in another tab, paste the template, and replace the very last line ("The exercise is about: …") with your own idea.
+Send it. If your idea was vague, the AI will ask you questions first — answer them in that same chat.
+Once the AI gives you the final sheet, copy its whole reply and paste it into the box on this page.
+Click "Fill from AI reply" — the form fills in below. Review everything,
+draw the diagram yourself
+(the AI never touches that), then Save.
+"📎 Copy my last exercise"
+— before describing a new idea to the AI, paste this in the chat first. It shows the AI a real exercise you already made, so it keeps the same style.
+"Fill in from a photo"
+draw the diagram by hand
+, using the photo as reference. Runs entirely on your device (nothing sent anywhere), so it works even without setting anything up.
+"Start from existing exercise"
+(also at the top) — pick one from the dropdown and "Use as starting point": copies everything, including the diagram, into this new exercise. The original is untouched.
+Every one of the 3 buttons above shows a short explainer the first time anyone at your club clicks it — reopen any of them anytime with the "❔" link next to it.
+Placing a player or defender on the diagram numbers them automatically (1, 2, 3…) — attack and defense count separately, same as Play design. Double-click one to change its label by hand.
+Anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.
+Court diagram section
+— 5 diagrams, each independent — they're not steps you have to fill in order. Each one has its own "This diagram's court" dropdown (half court / vertical / full court) — they start half/half/half/vertical/full by default, but pick whatever you need for each, including all 5 the same, if that's clearer for what you're drawing. Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.
+Color
+picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).
+Copy to next diagram
+duplicates everything into the next diagram — handy when you ARE drawing a sequence: draw diagram 1, copy it forward, then just move a couple of things for diagram 2, instead of starting from scratch each time. Any movement/dribble/pass/shot arrow is applied first (the player or ball lands where the arrow pointed) and doesn't carry over itself, so diagram 2 starts from the result, ready for its own arrows.
+🗑 Delete element
+— pick "Move/Select", click the player/arrow/zone/etc. you want gone, then this button (or Del/Backspace on a keyboard) removes just that one.
+Export PDF
+downloads the exercise sheet straight away: your club's logo and name, number, name, only the categories/material you actually picked, objectives, difficulty stars, description, variants, and all 5 diagrams — same one-page sheet as the desktop app.
+Numbering
+— the next free number in your own club is filled in automatically; nobody has to track it by hand.
+— this page always edits one language at a time; to add a translation of an exercise, use "Duplicate as translation" in the Library, which creates a linked copy in another language.
+Editing an existing exercise bumps its version number (v1 at creation) — visible in the Library, handy for tracking which ones changed recently.
+— 🔒 only you, 👥 your whole club, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them).
+Fill in from a photo
+Snap or upload a photo of a paper sheet, whiteboard, or your own notes — it reads the text straight into Description. You fill in the rest by hand and draw the diagram yourself, using the photo as reference.
+Start from existing exercise
+Pick one of your saved exercises and copy everything — including the court diagram — into this new one. The original stays untouched, ready for you to tweak.
+Exercise data
+❔ Step-by-step guide
+Copy this template into any AI chat (ChatGPT, Claude…), describe your exercise idea on the last line, then paste its reply below.
+This never draws the diagram — that always stays manual
+, in the "Court diagram" section below.
+📋 Copy this template
+📎 Copy my last exercise
+"Copy my last exercise" gives the AI a real example of your style — paste it in the chat before your new idea.
+Text is mostly in
+English
+Français
+Español
+📷 Read this photo
+Start from an existing exercise
+❔ How this works
+Pick one of your saved exercises — this copies everything, including the diagram, into this new exercise. The original stays untouched.
+Pick an exercise…
+Use as starting point
+★ Favorite
+▸ Age groups
+Seniors
+Dribble
+Anything you place on the court diagram (cones, balls…) is added here automatically when you save.
+Tags (semicolon-separated)
+Objectives (one per line, up to 4)
+Description
+Editing a saved exercise changes only this language's text — its translations (if any) stay untouched. To add another language, use "Duplicate as translation" in the Library.
+Who can see this exercise?
+🤝 My club association — clubs in my approved group
+🌐 PlayPivot Community — every club on PlayPivot (view only for them)
+Shared with your whole club by default — pick 🔒 Only me above if you'd rather keep it private.
+This diagram's court
+Half court
+Vertical
+Full court
+Move/Select
+Attacker
+Defender
+Coach (C)
+Ball
+Cone
+Post
+Handoff (#)
+Movement (no ball)
+Movement (dribble)
+Pass (dashed)
+Screen
+Highlighted zone
+Shot/finish (double line)
+Fake move
+Fake pass
+Fake shot
+Black
+Red
+Blue
+Green
+↩ Undo
+Copy to next diagram ➡
+Clear this diagram
+Placing a player/defender asks for its number right away (double-click one afterwards to change it). Click an element with "Move/Select", then "🗑 Delete element" (or Del/Backspace) to remove just that one — click anywhere inside a highlighted zone to select it, not just its corner. "Copy to next diagram" is for drawing a sequence: draw diagram 1, copy it forward (it also copies that diagram's court type, so the sequence stays the same shape) — any player or the ball lands wherever its movement/dribble/pass/shot arrow pointed to, ready for you to draw what happens next. It's greyed out on "Diagram 5" — there's no next one to copy into.
+Save exercise
+This uses an AI chat you already have (ChatGPT, Claude…) — PlayPivot doesn't send anything anywhere by itself, you copy and paste between the two tabs.
+It never draws the court diagram
+"📋 Copy this template"
+— it's copied to your clipboard.
+Also click
+and paste it in the chat first, before your idea — it shows the AI a real example of your style. (Skip this if it's your first exercise.)
+Open any AI chat in another tab, paste what you copied, and replace the last line ("The exercise is about: …") with your own idea.
+Send it. If your idea was too vague, the AI will ask you questions first — just answer in that same chat.
+Once it gives you the finished sheet, copy its whole reply.
+Come back to this tab, paste it into the box below "Fill in with AI", and click
+"Fill from AI reply"
+— the form fills in. Review everything, draw the diagram yourself (the AI never touches that), then Save.
+You can reopen this guide anytime with "❔ Step-by-step guide", next to "Fill in with AI".
+Fill in from a photo — what it actually does
+This is NOT AI — it's plain text recognition (OCR), running on your own device. No account, no setup, no internet service reading your exercises.
+reads the letters it can see in the photo and drops that text into "Description" — saves you typing it out by hand.
+good light, the sheet held flat and filling the frame, and fairly neat handwriting (or printed text) all make a real difference. Very messy handwriting may come out garbled — that's the technology's limit, not a bug.
+You can reopen this anytime with "❔ What this does", next to "Fill in from a photo".
+Start from an existing exercise — how it works
+Pick any exercise you can already see in the dropdown below and click
+"Use as starting point"
+. Everything copies over — name, categories, material, description, and the court diagram — into this new exercise.
+The original exercise is never touched — this always creates a brand new one. Review and change whatever you like before saving.
+PlayPivot
+Messages
+e.g. 3-man weave
+e.g. Footwork; Balance

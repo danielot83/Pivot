@@ -1,0 +1,37 @@
+Log in
+For basketball coaches
+Train smarter.
+Coach better.
+PlayPivot is where your team lives — practice plans, drills, rosters and game stats, all in one place built for the sideline, not the spreadsheet.
+Log in or sign up free
+What it is
+One app for everything that happens between two whistles.
+PlayPivot started as one exercise binder and turned into a full coaching workflow: a shared exercise library, session builders, match sheets, and a player-development tracker modeled on real federation assessment criteria.
+It is online and free to use, so any coach can create an account, set up their own team, share it with their whole coaching staff, and work from a phone, tablet or computer — with nothing to install.
+How a season runs
+Build the library
+Draw a drill by hand on a court diagram, or describe it and let AI draft it for you.
+Plan the session
+Pull exercises into a training, keep the timing honest, mark who showed up.
+Run match day
+Set the lineup and track live stats while the game is happening.
+See the progress
+Assessments and statistics turn a whole season into evidence, player by player.
+How it's organized
+Clubs, teams, and the leagues between them.
+PlayPivot isn't one shared space — it's built around clubs. Sign up and you either create a club and become its admin, or ask to join one that already exists. Nothing crosses between clubs by default: what one club's coaches see, another club's never does.
+The core of PlayPivot. Create one and you're its admin — invite coaches, and everyone works from the same shared library, rosters and stats.
+A club can have more than one — different age groups, genders, seasons. Training, matches and stats all stay scoped to the right team.
+Clubs can team up — like a league — to share content with each other. Needs approval; nothing is shared automatically.
+New members wait for the admin's approval before they get access —
+nobody joins a club automatically.
+Everything a season needs, in one tool.
+Every module works on its own and feeds the next one — nothing to re-type twice.
+PlayPivot is in continuous development —
+create an account
+to be ready when new modules land.
+Privacy
+PlayPivot
+English
+Français
+Español

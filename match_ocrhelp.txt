@@ -1,0 +1,10 @@
+Import from a photo — what it actually does
+This is NOT AI — it's plain text recognition (OCR), running on your own device. No account, no setup, no internet service reading your match sheets.
+What it does:
+reads the photo, guesses where the rows and columns of your stats table are, and shows you an editable grid so you can check and fix anything — nothing is imported until you review it and click "Import these rows".
+What it doesn't do:
+it's much less reliable with handwriting than with printed text, and it can't always tell where one column ends and the next begins on a busy sheet. Expect to fix some cells by hand, especially on a handwritten sheet — that's the technology's limit, not a bug. It also never guesses what a column means — you confirm that yourself for each one, right below the grid.
+Tips for a better read:
+good light, the sheet held flat and filling the frame, and as straight-on an angle as possible all make a real difference.
+You can reopen this anytime with "❔ What this does", next to "Import from a photo".
+Got it

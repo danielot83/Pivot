@@ -1,0 +1,10 @@
+Fill in with AI — what it actually does
+PlayPivot doesn't send your photo or PDF anywhere, and doesn't call any AI itself — no account, no setup, no cost on our side. You do the reading with an AI chat you already have (ChatGPT, Claude…), in another tab.
+Steps:
+click "📋 Copy this prompt", open any AI chat that can read images and PDFs, paste the prompt, attach your photo or PDF of the scoresheet, and send it. Then copy the AI's whole reply and paste it into the box below "Fill in with AI" here, and click "Fill from AI reply".
+Prefer getting a finished Excel file back instead of pasting text?
+If your AI chat can also create and edit files — ChatGPT or Claude, on a paid plan — also attach the file from "⬇️ Download Excel template" (above "Fill in with AI") when you send the prompt. The prompt already asks the AI to fill that exact file's cells in directly and reply with the completed .xlsx, so instead of pasting anything here, you just download that file from the AI chat and upload it with "Import stats from Excel". If your chat can't create files, or you didn't attach the template, it falls back to the text table — paste that one here as usual.
+Why this instead of "Import from a photo"?
+that one reads letters off the image (OCR) without understanding what it's looking at — it struggles with handwriting and busy tables. An AI chat actually understands a box score, so it's usually much more reliable on a hard photo, and it can also read an official federation PDF straight from the file, including the "running score" grid some of those use instead of a simple table (the prompt tells it exactly how to read that grid, point by point), and it figures out which team on the sheet is yours by name, not by assuming it's always listed first. Review its reply (or the filled Excel file) before importing it, the same way you'd check anyone else's work — if the sheet had a running-score grid, check the "NOTES:" line at the end too, the AI is told to flag it there if its count doesn't add up to the final score.
+You can reopen this anytime with "❔ What this does", next to "Fill in with AI".
+Got it

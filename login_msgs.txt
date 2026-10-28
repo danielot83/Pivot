@@ -1,0 +1,41 @@
+# login.html -- mensajes y textos dinámicos
+PlayPivot | Log in ||| PlayPivot | Connexion ||| PlayPivot | Iniciar sesión
+Log in ||| Se connecter ||| Iniciar sesión
+Create an account ||| Créer un compte ||| Crear una cuenta
+Your account, then create your own club/association or join one that's already on PlayPivot. ||| Votre compte, puis créez votre propre club/association ou rejoignez-en un déjà présent sur PlayPivot. ||| Tu cuenta y luego crea tu propio club/asociación o únete a uno que ya esté en PlayPivot.
+Create my account ||| Créer mon compte ||| Crear mi cuenta
+Already have an account? ||| Vous avez déjà un compte ? ||| ¿Ya tienes cuenta?
+(version {v}) ||| (version {v}) ||| (versión {v})
+Loading… ||| Chargement… ||| Cargando…
+None yet — create the first one! ||| Aucun pour l'instant — créez le premier ! ||| Aún no hay ninguno: ¡crea el primero!
+Couldn't load the list ||| Impossible de charger la liste ||| No se pudo cargar la lista
+No category ||| Sans catégorie ||| Sin categoría
+(current) ||| (actuelle) ||| (actual)
+Choose your team… ||| Choisissez votre équipe… ||| Elige tu equipo…
+Which team? ||| Quelle équipe ? ||| ¿Qué equipo?
+Team name ||| Nom de l'équipe ||| Nombre del equipo
+Category ||| Catégorie ||| Categoría
+Gender ||| Genre ||| Género
+Season ||| Saison ||| Temporada
+Which email is your account under? ||| Avec quel e-mail votre compte a-t-il été créé ? ||| ¿Con qué correo está tu cuenta?
+If {email} has an account, a reset link is on its way — check your inbox. ||| Si {email} a un compte, un lien de réinitialisation est en route — vérifiez votre boîte de réception. ||| Si {email} tiene una cuenta, va de camino un enlace para restablecerla: revisa tu bandeja de entrada.
+Couldn't send that right now. ||| Impossible d'envoyer cela pour le moment. ||| Ahora mismo no se pudo enviar.
+Password needs to be at least 6 characters. ||| Le mot de passe doit contenir au moins 6 caractères. ||| La contraseña debe tener al menos 6 caracteres.
+Those two don't match. ||| Les deux ne correspondent pas. ||| Las dos no coinciden.
+Password updated — taking you in… ||| Mot de passe mis à jour — nous vous connectons… ||| Contraseña actualizada: te llevamos dentro…
+Couldn't update that right now. ||| Impossible de mettre à jour cela pour le moment. ||| Ahora mismo no se pudo actualizar.
+Email and password are required. ||| L'e-mail et le mot de passe sont obligatoires. ||| El correo y la contraseña son obligatorios.
+Please read and accept the Privacy & Terms box above first. ||| Veuillez d'abord lire et accepter l'encadré Confidentialité et conditions ci-dessus. ||| Primero lee y acepta el recuadro de Privacidad y condiciones de arriba.
+Tell us the name, or pick one to join. ||| Indiquez le nom, ou choisissez-en un à rejoindre. ||| Dinos el nombre o elige uno al que unirte.
+Account created! Check your inbox to confirm your email, then come back to log in. ||| Compte créé ! Vérifiez votre boîte de réception pour confirmer votre e-mail, puis revenez vous connecter. ||| ¡Cuenta creada! Revisa tu bandeja de entrada para confirmar tu correo y luego vuelve para iniciar sesión.
+Something went wrong. ||| Une erreur est survenue. ||| Algo salió mal.
+Invalid login credentials ||| Identifiants de connexion invalides ||| Credenciales de acceso no válidas
+Email not confirmed ||| E-mail non confirmé ||| Correo no confirmado
+User already registered ||| Utilisateur déjà inscrit ||| El usuario ya está registrado
+Password should be at least 6 characters. ||| Le mot de passe doit contenir au moins 6 caractères. ||| La contraseña debe tener al menos 6 caracteres.
+Password should be at least 6 characters ||| Le mot de passe doit contenir au moins 6 caractères ||| La contraseña debe tener al menos 6 caracteres
+Unable to validate email address: invalid format ||| Impossible de valider l'adresse e-mail : format invalide ||| No se pudo validar la dirección de correo: formato no válido
+Signup requires a valid password ||| L'inscription nécessite un mot de passe valide ||| El registro requiere una contraseña válida
+Email rate limit exceeded ||| Limite d'envoi d'e-mails dépassée ||| Se superó el límite de correos
+New password should be different from the old password. ||| Le nouveau mot de passe doit être différent de l'ancien. ||| La contraseña nueva debe ser distinta de la anterior.
+Failed to fetch ||| Échec de la connexion au serveur ||| Error al conectar con el servidor

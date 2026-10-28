@@ -1,0 +1,78 @@
+# settings.html -- mensajes y textos dinámicos
+PlayPivot | Settings ||| PlayPivot | Paramètres ||| PlayPivot | Ajustes
+No PlayPivot account found with that email. ||| Aucun compte PlayPivot trouvé avec cet e-mail. ||| No se encontró ninguna cuenta de PlayPivot con ese correo.
+They can now approve association requests. ||| Cette personne peut désormais approuver les demandes d'association. ||| Esa persona ya puede aprobar solicitudes de asociación.
+That person is no longer a validator. ||| Cette personne n'est plus validatrice. ||| Esa persona ya no es validadora.
+Nobody else yet — just you. ||| Personne d'autre pour l'instant — juste vous. ||| Nadie más por ahora: solo tú.
+Export language updated — new PDFs will use it. ||| Langue d'exportation mise à jour — les nouveaux PDF l'utiliseront. ||| Idioma de exportación actualizado: los PDF nuevos lo usarán.
+Updated — new exercise PDFs will use this. ||| Mis à jour — les nouveaux PDF d'exercices l'utiliseront. ||| Actualizado: los PDF de ejercicios nuevos lo usarán.
+Nothing here yet. ||| Rien ici pour l'instant. ||| Todavía no hay nada aquí.
+({n} total) ||| ({n} au total) ||| ({n} en total)
+Set ALL of your exercises to "{vis}"? ||| Mettre TOUS vos exercices sur « {vis} » ? ||| ¿Poner TODOS tus ejercicios en «{vis}»?
+All exercises set to "{vis}". ||| Tous les exercices sont sur « {vis} ». ||| Todos los ejercicios están en «{vis}».
+Set ALL of your plays to "{vis}"? ||| Mettre TOUS vos systèmes sur « {vis} » ? ||| ¿Poner TODAS tus jugadas en «{vis}»?
+All plays set to "{vis}". ||| Tous les systèmes sont sur « {vis} ». ||| Todas las jugadas están en «{vis}».
+Set ALL of your matches to "{vis}"? ||| Mettre TOUS vos matchs sur « {vis} » ? ||| ¿Poner TODOS tus partidos en «{vis}»?
+All matches set to "{vis}". ||| Tous les matchs sont sur « {vis} ». ||| Todos los partidos están en «{vis}».
+Set ALL of your trainings to "{vis}"? ||| Mettre TOUTES vos séances sur « {vis} » ? ||| ¿Poner TODOS tus entrenamientos en «{vis}»?
+All trainings set to "{vis}". ||| Toutes les séances sont sur « {vis} ». ||| Todos los entrenamientos están en «{vis}».
+Set ALL of your player assessments to "{vis}"? ||| Mettre TOUTES vos évaluations de joueurs sur « {vis} » ? ||| ¿Poner TODAS tus evaluaciones de jugadores en «{vis}»?
+All player assessments set to "{vis}". ||| Toutes les évaluations de joueurs sont sur « {vis} ». ||| Todas las evaluaciones de jugadores están en «{vis}».
+Your club isn't part of any association yet. ||| Votre club ne fait encore partie d'aucune association. ||| Tu club aún no forma parte de ninguna asociación.
+⏳ Pending approval ||| ⏳ En attente d'approbation ||| ⏳ Pendiente de aprobación
+✅ Member ||| ✅ Membre ||| ✅ Miembro
+❌ Rejected ||| ❌ Refusée ||| ❌ Rechazada
+Give the association a name first. ||| Donnez d'abord un nom à l'association. ||| Primero ponle un nombre a la asociación.
+Request sent — waiting for the PlayPivot controller to approve it. ||| Demande envoyée — en attente de l'approbation du contrôleur PlayPivot. ||| Solicitud enviada: a la espera de que el controlador de PlayPivot la apruebe.
+Couldn't send that request. ||| Impossible d'envoyer cette demande. ||| No se pudo enviar esa solicitud.
+You're scoped to {team} — {season}, so you only see and manage members scoped to that same team. ||| Vous êtes limité à {team} — {season} : vous ne voyez et ne gérez donc que les membres limités à cette même équipe. ||| Estás limitado a {team} — {season}, así que solo ves y gestionas a los miembros limitados a ese mismo equipo.
+Someone ||| Quelqu'un ||| Alguien
+blocked||member status ||| bloqué ||| bloqueado
+{team} — {season} only ||| {team} — {season} uniquement ||| {team}: solo {season}
+Scope this person to one team only (optional) ||| Limiter cette personne à une seule équipe (facultatif) ||| Limitar a esta persona a un solo equipo (opcional)
+Whole club ||| Tout le club ||| Todo el club
++ Create new team… ||| + Créer une nouvelle équipe… ||| + Crear un equipo nuevo…
+Reactivate ||| Réactiver ||| Reactivar
+Block ||| Bloquer ||| Bloquear
+Remove ||| Retirer ||| Quitar
+whole club ||| tout le club ||| todo el club
+Loading… ||| Chargement… ||| Cargando…
+That didn't go through — this member is scoped to a different team than you manage, so the change was blocked. ||| Cela n'a pas abouti — ce membre est limité à une autre équipe que celle que vous gérez, la modification a donc été bloquée. ||| No se pudo hacer: este miembro está limitado a un equipo distinto del que gestionas, así que el cambio se bloqueó.
+Scoped to {team} — {season} only. ||| Limité à {team} — {season} uniquement. ||| Limitado a {team}: solo {season}.
+Scoped to the whole club again. ||| De nouveau limité à tout le club. ||| Vuelve a estar limitado a todo el club.
+Couldn't change that scope. ||| Impossible de modifier cette limitation. ||| No se pudo cambiar esa limitación.
+Member blocked — they've lost access to this club. ||| Membre bloqué — il a perdu l'accès à ce club. ||| Miembro bloqueado: ha perdido el acceso a este club.
+Member reactivated. ||| Membre réactivé. ||| Miembro reactivado.
+Couldn't change that member's status. ||| Impossible de modifier le statut de ce membre. ||| No se pudo cambiar el estado de ese miembro.
+That file is over 2 MB — pick a smaller one. ||| Ce fichier dépasse 2 Mo — choisissez-en un plus petit. ||| Ese archivo pesa más de 2 MB: elige uno más pequeño.
+Couldn't process that image. ||| Impossible de traiter cette image. ||| No se pudo procesar esa imagen.
+That doesn't look like a valid image. ||| Ce n'est pas une image valide. ||| Eso no parece una imagen válida.
+Couldn't read that file. ||| Impossible de lire ce fichier. ||| No se pudo leer ese archivo.
+Couldn't read that image. ||| Impossible de lire cette image. ||| No se pudo leer esa imagen.
+Logo updated. ||| Logo mis à jour. ||| Logo actualizado.
+Couldn't upload the logo. ||| Impossible d'envoyer le logo. ||| No se pudo subir el logo.
+You're not an active member of any club yet. ||| Vous n'êtes encore membre actif d'aucun club. ||| Todavía no eres miembro activo de ningún club.
+You're not an active member of any club. ||| Vous n'êtes membre actif d'aucun club. ||| No eres miembro activo de ningún club.
+🔒 Only your club's admin can change this — you're currently "{role}". ||| 🔒 Seul l'administrateur de votre club peut modifier cela — vous êtes actuellement « {role} ». ||| 🔒 Solo el administrador de tu club puede cambiar esto: ahora mismo eres «{role}».
+{role}, only admin ||| {role}, seul administrateur ||| {role}, único administrador
+Delete this club entirely ||| Supprimer ce club en entier ||| Eliminar este club por completo
+Leave this club ||| Quitter ce club ||| Salir de este club
+Delete "{name}" ENTIRELY? This removes the club and everything in it — roster, exercises, assessments, matches, everything. This can't be undone. ||| Supprimer « {name} » EN ENTIER ? Cela supprime le club et tout ce qu'il contient — effectif, exercices, évaluations, matchs, tout. Cette action est irréversible. ||| ¿Eliminar «{name}» POR COMPLETO? Esto borra el club y todo lo que contiene: plantilla, ejercicios, evaluaciones, partidos, todo. No se puede deshacer.
+Really sure? Type-to-confirm isn't available here, so this is your last check: delete "{name}" for good? ||| Vraiment sûr ? La confirmation par saisie n'est pas disponible ici, c'est donc votre dernière vérification : supprimer « {name} » définitivement ? ||| ¿Seguro de verdad? Aquí no se puede confirmar escribiendo, así que esta es tu última comprobación: ¿eliminar «{name}» para siempre?
+"{name}" has been deleted. ||| « {name} » a été supprimé. ||| «{name}» se ha eliminado.
+Leave "{name}"? You'll lose access, but the club's data stays intact for the rest of its members. ||| Quitter « {name} » ? Vous perdrez l'accès, mais les données du club restent intactes pour les autres membres. ||| ¿Salir de «{name}»? Perderás el acceso, pero los datos del club se mantienen intactos para el resto de miembros.
+You've left "{name}". ||| Vous avez quitté « {name} ». ||| Has salido de «{name}».
+Send a request to delete your PlayPivot login itself (your email/password, not just club memberships)? A person on our side needs to complete this manually. ||| Envoyer une demande de suppression de votre identifiant PlayPivot lui-même (votre e-mail/mot de passe, pas seulement les adhésions aux clubs) ? Une personne de notre côté doit la traiter manuellement. ||| ¿Enviar una solicitud para eliminar tu propio acceso a PlayPivot (tu correo/contraseña, no solo las pertenencias a clubes)? Una persona de nuestro lado tiene que tramitarla a mano.
+Couldn't find anyone to send this to right now — try again later. ||| Impossible de trouver un destinataire pour le moment — réessayez plus tard. ||| Ahora mismo no se encontró a nadie a quien enviarlo: inténtalo más tarde.
+Request sent — we'll action it and follow up by email once it's done. ||| Demande envoyée — nous la traiterons et vous écrirons par e-mail une fois terminé. ||| Solicitud enviada: la tramitaremos y te escribiremos por correo cuando esté hecha.
+Role updated. ||| Rôle mis à jour. ||| Rol actualizado.
+Couldn't change that role. ||| Impossible de modifier ce rôle. ||| No se pudo cambiar ese rol.
+Remove this person from the club? ||| Retirer cette personne du club ? ||| ¿Quitar a esta persona del club?
+Couldn't remove that member. ||| Impossible de retirer ce membre. ||| No se pudo quitar a ese miembro.
+Nobody to show yet. ||| Personne à afficher pour l'instant. ||| Todavía no hay nadie que mostrar.
+Couldn't load this right now. ||| Impossible de charger cela pour le moment. ||| No se pudo cargar esto ahora mismo.
+Only me ||| Moi seul ||| Solo yo
+Club association ||| Association de clubs ||| Asociación de clubes
+PlayPivot Community ||| Communauté PlayPivot ||| Comunidad PlayPivot
+PlayPivot | Account & Team Settings ||| PlayPivot | Compte et paramètres d'équipe ||| PlayPivot | Cuenta y ajustes del equipo
+Message to whoever approves it (optional) ||| Message pour la personne qui l'approuve (facultatif) ||| Mensaje para quien lo apruebe (opcional)

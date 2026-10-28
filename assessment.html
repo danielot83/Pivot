@@ -586,7 +586,7 @@
 </main>
 </div><!-- /app-shell -->
 
-<script src="./i18n.js?v=1"></script>
+<script src="./i18n.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -911,7 +911,7 @@
 
   async function deleteTeamSeason(season, team, category) {
     const gender = currentTeamGender;
-    if (!confirm(`Remove "${team}"${category ? " (" + category + ")" : ""}${gender ? " " + gender : ""} (${season}) and all its players? This can't be undone.`)) return;
+    if (!confirm(_t(`Remove "{label}" ({season}) and all its players? This can't be undone.`, { label: `${team}${category ? " (" + category + ")" : ""}${gender ? " " + gender : ""}`, season }))) return;
     const { error } = await filterByGender(filterByCategory(
       supabaseClient.from("players").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       category
@@ -934,7 +934,7 @@
       els.currentSelection.textContent = "Pick a season/team above.";
       els.playerSelect.innerHTML = '<option value="">Pick a season/team first</option>';
     }
-    showMessage(`"${team}"${category ? " (" + category + ")" : ""} (${season}) removed.`, "success");
+    showMessage(_t(`"{label}" ({season}) removed.`, { label: `${team}${category ? " (" + category + ")" : ""}`, season }), "success");
     await loadTree();
   }
 
@@ -1026,11 +1026,11 @@
     });
     if (inactive.length > 0) {
       const group = document.createElement("optgroup");
-      group.label = "Inactive";
+      group.label = _t("Inactive");
       inactive.forEach((p) => {
         const opt = document.createElement("option");
         opt.value = p.id;
-        opt.textContent = `${p.first_name} ${p.last_name} (inactive)`;
+        opt.textContent = `${p.first_name} ${p.last_name} ${_t("(inactive)")}`;
         group.appendChild(opt);
       });
       els.playerSelect.appendChild(group);
@@ -1047,7 +1047,7 @@
   async function loadExampleTeam(key) {
     const ex = EXAMPLE_TEAMS[key];
     if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
-    if (!confirm(`Load ${ex.team} (${ex.season}) with a sample assessment for each player?`)) return;
+    if (!confirm(_t("Load {team} ({season}) with a sample assessment for each player?", { team: ex.team, season: ex.season }))) return;
     try {
       await supabaseClient.from("players").delete()
         .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
@@ -1068,7 +1068,7 @@
 
       currentTeamCategory = ""; currentTeamGender = "";
       await selectSeasonTeam(ex.season, ex.team);
-      showMessage(`${ex.players.length} example players and assessments loaded.`, "success");
+      showMessage(_t("{n} example players and assessments loaded.", { n: ex.players.length }), "success");
     } catch (err) {
       showMessage(err.message || "Couldn't load the example data.", "error");
     }
@@ -1077,7 +1077,7 @@
   async function removeExampleTeam(key) {
     const ex = EXAMPLE_TEAMS[key];
     if (!currentOrgId) return;
-    if (!confirm(`Remove ${ex.team} (${ex.season}) and all its data? Can't be undone.`)) return;
+    if (!confirm(_t("Remove {team} ({season}) and all its data? Can't be undone.", { team: ex.team, season: ex.season }))) return;
     const { error } = await supabaseClient.from("players").delete()
       .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
     if (error) { showMessage(error.message, "error"); return; }
@@ -1086,7 +1086,7 @@
       els.currentSelection.textContent = "Pick a season/team above.";
       els.playerSelect.innerHTML = '<option value="">Pick a season/team first</option>';
     }
-    showMessage(`${ex.team} removed.`, "success");
+    showMessage(_t("{team} removed.", { team: ex.team }), "success");
     await loadTree();
   }
 
@@ -1163,7 +1163,7 @@
     SECTOR_ORDER.forEach((sectKey) => {
       const avg = sectorAverage(currentRatings, sectKey);
       const el = document.getElementById(`avg-${sectKey}`);
-      if (el) el.textContent = avg !== null ? `Average: ${avg.toFixed(1)} / 5` : "Average: —";
+      if (el) el.textContent = avg !== null ? _t("Average: {avg} / 5", { avg: avg.toFixed(1) }) : _t("Average: —");
       const bar = document.getElementById(`chart-bar-${sectKey}`);
       const valueLabel = document.getElementById(`chart-value-${sectKey}`);
       if (bar) bar.style.height = `${((avg || 0) / 5) * 80}px`;
@@ -1272,23 +1272,23 @@
     if (!data || data.length === 0) { showMessage("No assessments yet for this player.", "error"); return; }
 
     const rows = data.map((row) => {
-      const out = { date: row.date, location: row.location || "" };
+      const out = { [_t("date||assessment export column")]: row.date, [_t("location||assessment export column")]: row.location || "" };
       SECTOR_ORDER.forEach((s) => {
         const avg = sectorAverage(row.ratings, s);
-        out[CRITERIA[s].label] = avg !== null ? Number(avg.toFixed(2)) : "";
+        out[_t(CRITERIA[s].label)] = avg !== null ? Number(avg.toFixed(2)) : "";
       });
       const sectorAvgs = SECTOR_ORDER.map((s) => sectorAverage(row.ratings, s)).filter((v) => v !== null);
-      out["TOT"] = sectorAvgs.length ? Number(sectorAvgs.reduce((a, b) => a + b, 0).toFixed(2)) : "";
-      out["Positive points"] = row.positive_points || "";
-      out["Points to watch"] = row.negative_points || "";
-      out["To improve"] = row.to_improve || "";
+      out[_t("TOT||assessment export column")] = sectorAvgs.length ? Number(sectorAvgs.reduce((a, b) => a + b, 0).toFixed(2)) : "";
+      out[_t("Positive points")] = row.positive_points || "";
+      out[_t("Points to watch")] = row.negative_points || "";
+      out[_t("To improve||assessment export column")] = row.to_improve || "";
       return out;
     });
 
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Assessments");
-    XLSX.writeFile(wb, `${playerName.replace(/\s+/g, "_")}_assessments.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, _t("Assessments||sheet name"));
+    XLSX.writeFile(wb, `${playerName.replace(/\s+/g, "_")}_${_t("assessments||file name word")}.xlsx`);
   }
 
   async function loadLogoDataUrl(orgId) {
@@ -1330,7 +1330,7 @@
   async function generatePdf() {
     const playerName = els.playerSelect.options[els.playerSelect.selectedIndex]
       ? els.playerSelect.options[els.playerSelect.selectedIndex].textContent
-      : "Player";
+      : _t("Player||PDF fallback name");
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
@@ -1349,12 +1349,12 @@
     doc.text(els.orgName.textContent || "PlayPivot", marginX, y);
     y += 16;
     doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(...muted);
-    doc.text(`Player assessment — ${playerName}`, marginX, y);
+    doc.text(`${_t("Player assessment")} — ${playerName}`, marginX, y);
     y += 13;
     doc.setFontSize(9);
     let subLine = `${els.date.value || ""}${els.location.value ? " — " + els.location.value : ""}`;
     if (els.heightPlayer.value || els.heightFather.value || els.heightMother.value) {
-      subLine += `   ·   Height: ${els.heightPlayer.value || "—"} cm (father ${els.heightFather.value || "—"}, mother ${els.heightMother.value || "—"})`;
+      subLine += "   ·   " + _t("Height: {player} cm (father {father}, mother {mother})", { player: els.heightPlayer.value || "—", father: els.heightFather.value || "—", mother: els.heightMother.value || "—" });
     }
     doc.text(subLine, marginX, y);
     y += 8;
@@ -1373,7 +1373,7 @@
         const sect = CRITERIA[sectKey];
         const avg = sectorAverage(currentRatings, sectKey);
         doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(...ink);
-        doc.text(sect.label, colX, cy);
+        doc.text(_t(sect.label), colX, cy);
         doc.setTextColor(...accent);
         doc.text(avg !== null ? avg.toFixed(1) : "—", colX + colW - 20, cy);
         cy += 12;
@@ -1381,14 +1381,14 @@
           const grp = sect.groups[grpKey];
           if (grp.label) {
             doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...muted);
-            doc.text(grp.label.toUpperCase(), colX, cy);
+            doc.text(_t(grp.label).toUpperCase(), colX, cy);
             cy += 9;
           }
           grp.items.forEach((item, i) => {
             const val = currentRatings[sectKey][grpKey][i];
             if (!els.advancedToggle.checked && !item.basic) return; // n'affiche pas les avancés si la case n'est pas cochée
             doc.setFont("helvetica", "normal"); doc.setFontSize(7.8); doc.setTextColor(...ink);
-            const lines = doc.splitTextToSize(item.text, colW - 26);
+            const lines = doc.splitTextToSize(_t(item.text), colW - 26);
             doc.text(lines, colX, cy);
             doc.setTextColor(...accent); doc.setFont("helvetica", "bold");
             doc.text(val !== null && val !== undefined ? String(val) : "—", colX + colW - 14, cy);
@@ -1407,7 +1407,7 @@
     // -- graphique en barres par secteur, en bas de page --
     const chartTop = pageH - 118, chartHeight = 60, chartLeft = marginX, chartWidth = pageW - marginX * 2 - 260;
     doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(...ink);
-    doc.text("Sector averages", marginX, chartTop - 10);
+    doc.text(_t("Sector averages"), marginX, chartTop - 10);
     const barGap = 16, barWidth = (chartWidth - barGap * (SECTOR_ORDER.length - 1)) / SECTOR_ORDER.length;
     SECTOR_ORDER.forEach((sectKey, i) => {
       const avg = sectorAverage(currentRatings, sectKey) || 0;
@@ -1416,7 +1416,7 @@
       doc.setFillColor(...accent);
       doc.rect(bx, chartTop + chartHeight - barH, barWidth, barH, "F");
       doc.setFontSize(7); doc.setTextColor(...ink);
-      doc.text(CRITERIA[sectKey].label, bx, chartTop + chartHeight + 11, { maxWidth: barWidth });
+      doc.text(_t(CRITERIA[sectKey].label), bx, chartTop + chartHeight + 11, { maxWidth: barWidth });
       doc.setTextColor(...accent); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
       doc.text(avg ? avg.toFixed(1) : "—", bx, chartTop + chartHeight - barH - 3);
       doc.setFont("helvetica", "normal");
@@ -1425,7 +1425,7 @@
     // -- remarques, à côté du graphique --
     let cy2 = chartTop - 10;
     const notesX = chartLeft + chartWidth + 20;
-    [["Positive", els.positivePoints.value], ["To watch", els.negativePoints.value], ["Next", els.toImprove.value]]
+    [[_t("Positive||PDF notes label"), els.positivePoints.value], [_t("To watch||PDF notes label"), els.negativePoints.value], [_t("Next||PDF notes label"), els.toImprove.value]]
       .forEach(([label, text]) => {
         if (!text) return;
         doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...muted);
@@ -1438,9 +1438,9 @@
       });
 
     doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...muted);
-    doc.text(`Generated by PlayPivot on ${new Date().toISOString().slice(0, 10)}`, marginX, pageH - 14);
+    doc.text(_t("Generated by PlayPivot on {date}", { date: new Date().toISOString().slice(0, 10) }), marginX, pageH - 14);
 
-    doc.save(`${playerName.replace(/\s+/g, "_")}_${els.date.value || "assessment"}.pdf`);
+    doc.save(`${playerName.replace(/\s+/g, "_")}_${els.date.value || _t("assessment||file name word")}.pdf`);
   }
 
   // Dani, test funcional ronda 30 (hallazgo ALTO nº4): dos clics rápidos
@@ -1591,7 +1591,7 @@
           <div class="tracking-group-right">
             ${buildSparkline(g.entries.map((e) => e.result))}
             <span class="tracking-last">${last.result}${g.unit ? " " + escapeHtml(g.unit) : ""}</span>
-            ${delta !== null ? `<span class="tracking-delta">${deltaStr} vs previous</span>` : ""}
+            ${delta !== null ? `<span class="tracking-delta">${escapeHtml(_t("{delta} vs previous", { delta: deltaStr }))}</span>` : ""}
           </div>
         </div>
         <table class="tracking-table">
@@ -1758,7 +1758,7 @@
     if (count === 0) { showMessage("Couldn't find any recognizable scores in that text.", "error"); return; }
     fillFormFromRatings();
     applyAdvancedVisibility();
-    showMessage(`Filled in ${count} criteria from the AI reply — review before saving.`, "success");
+    showMessage(_t("Filled in {n} criteria from the AI reply — review before saving.", { n: count }), "success");
   });
 
   els.newBtn.addEventListener("click", openNew);

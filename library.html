@@ -536,7 +536,7 @@
 </main>
 </div><!-- /app-shell -->
 
-<script src="./i18n.js?v=1"></script>
+<script src="./i18n.js?v=2"></script>
 <script src="court-diagram.js?v=4"></script>
 <script src="exercise-categories.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -720,7 +720,7 @@
     if (!n) return;
     currentNotebookId = id;
     notebookContents = [...(notebookExerciseIds[id] || [])];
-    document.getElementById("notebook-editor-title").textContent = (n.organization_id === currentOrgId ? "Edit notebook: " : "View notebook: ") + n.name;
+    document.getElementById("notebook-editor-title").textContent = _t(n.organization_id === currentOrgId ? "Edit notebook: {name}" : "View notebook: {name}", { name: n.name });
     document.getElementById("notebook-name").value = n.name;
     document.getElementById("notebook-visibility").value = n.visibility || "team";
     resetNotebookFilters();
@@ -792,7 +792,7 @@
       const row = document.createElement("div");
       row.style.cssText = "display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 8px; font-size:13px; border-bottom:1px solid var(--line);";
       row.innerHTML = `
-        <div style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${i + 1}. ${escapeHtml(e ? e.name : "(deleted exercise)")}</div>
+        <div style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${i + 1}. ${escapeHtml(e ? e.name : _t("(deleted exercise)"))}</div>
         <div style="display:flex; gap:4px; flex-shrink:0;">
           ${notebookOwned ? `<button data-act="up" data-i="${i}" title="Move up" style="border:none; background:none; cursor:pointer; color:var(--muted);">↑</button>` : ""}
           ${notebookOwned ? `<button data-act="down" data-i="${i}" title="Move down" style="border:none; background:none; cursor:pointer; color:var(--muted);">↓</button>` : ""}
@@ -1113,7 +1113,7 @@
       return (a.shown.name || "").localeCompare(b.shown.name || "");
     });
 
-    els.resultCount.textContent = `${displayList.length} exercise${displayList.length === 1 ? "" : "s"} found`;
+    els.resultCount.textContent = _t(displayList.length === 1 ? "{n} exercise found" : "{n} exercises found", { n: displayList.length });
     els.listEmpty.style.display = displayList.length === 0 ? "block" : "none";
 
     displayList.forEach(({ shown: e, groupInFiltered }) => {
@@ -1146,7 +1146,7 @@
           <div class="name">${myFavoriteIds.has(e.id) ? "★ " : ""}${(e.number && e.organization_id === currentOrgId) ? e.number + ". " : ""}${escapeHtml(e.name)}</div>
           <div class="meta">${catIcons ? `<span class="category-icon">${catIcons}</span>` : ""}${escapeHtml((e.categories || []).join(", "))}${ageText ? ` · ${escapeHtml(ageText)}` : ""}</div>
           ${objText ? `<div class="meta" style="color:var(--muted); font-size:11.5px; margin-top:2px;">${escapeHtml(objText)}</div>` : ""}
-          ${creatorName ? `<div class="meta" style="color:var(--muted); font-size:11px; margin-top:2px;">by ${escapeHtml(creatorName)}</div>` : ""}
+          ${creatorName ? `<div class="meta" style="color:var(--muted); font-size:11px; margin-top:2px;">${escapeHtml(_t("by {name}", { name: creatorName }))}</div>` : ""}
         </div>
         <div class="lang-badge-slot"></div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
@@ -1199,7 +1199,7 @@
     if (!bar) return;
     bar.style.display = bulkSelectMode ? "flex" : "none";
     selectBtn.textContent = bulkSelectMode ? "Exit select mode" : "Select multiple…";
-    document.getElementById("bulk-count").textContent = `${bulkSelected.size} selected`;
+    document.getElementById("bulk-count").textContent = _t("{n} selected", { n: bulkSelected.size });
     document.getElementById("bulk-delete-btn").disabled = bulkSelected.size === 0;
     const diagEl = document.getElementById("bulk-role-diag");
     if (diagEl) diagEl.textContent = `role: ${myRole || "— (old org-switcher.js cached?)"} · club: ${(els.orgName && els.orgName.textContent) || "—"}`;
@@ -1231,7 +1231,7 @@
   document.getElementById("bulk-delete-btn").addEventListener("click", async () => {
     const ids = Array.from(bulkSelected);
     if (ids.length === 0) return;
-    if (!confirm(`Delete ${ids.length} exercise${ids.length === 1 ? "" : "s"}? This can't be undone.`)) return;
+    if (!confirm(_t(ids.length === 1 ? "Delete {n} exercise? This can't be undone." : "Delete {n} exercises? This can't be undone.", { n: ids.length }))) return;
     const btn = document.getElementById("bulk-delete-btn");
     btn.disabled = true; btn.textContent = "Deleting…";
     const { error } = await supabaseClient.from("exercises").delete().in("id", ids);
@@ -1242,7 +1242,7 @@
     selectedId = null;
     await loadExercises();
     renderDetail(null);
-    showMessage(`Deleted ${ids.length} exercise${ids.length === 1 ? "" : "s"}.`, "success");
+    showMessage(_t(ids.length === 1 ? "Deleted {n} exercise." : "Deleted {n} exercises.", { n: ids.length }), "success");
   });
 
   // -----------------------------------------------------------------------
@@ -1291,11 +1291,11 @@
       </div>` : "";
     const drawnSteps = COURT_IDS.filter((k) => ((e.diagram || {})[k] || []).length > 0);
     const diagramLine = drawnSteps.length
-      ? `<div class="section"><div class="section-label">Court diagram</div><div class="diagram-thumbs">${drawnSteps.map((k) => `<div class="diagram-thumb"><canvas data-step="${k}" width="1" height="1"></canvas><span>${COURT_LABELS[COURT_IDS.indexOf(k)]}</span></div>`).join("")}</div></div>`
+      ? `<div class="section"><div class="section-label">Court diagram</div><div class="diagram-thumbs">${drawnSteps.map((k) => `<div class="diagram-thumb"><canvas data-step="${k}" width="1" height="1"></canvas><span>${_t("Diagram {n}", { n: COURT_IDS.indexOf(k) + 1 })}</span></div>`).join("")}</div></div>`
       : `<div class="section"><div class="section-label">Court diagram</div><p style="color:var(--muted); font-size:12.5px;">Nothing drawn yet.</p></div>`;
     els.detailCard.innerHTML = `
       <h3>${myFavoriteIds.has(e.id) ? "★ " : ""}${escapeHtml(e.name)}</h3>
-      <div class="meta-row">#${e.number || "—"} · ${"★".repeat(e.difficulty || 1)}${"☆".repeat(3 - (e.difficulty || 1))} · ${used === 0 ? "never used" : used + "× used"} · ${langName} · ${visLabel}${!owned ? " · shared by another club" : ""}</div>
+      <div class="meta-row">#${e.number || "—"} · ${"★".repeat(e.difficulty || 1)}${"☆".repeat(3 - (e.difficulty || 1))} · ${used === 0 ? _t("never used") : _t("{n}× used", { n: used })} · ${langName} · ${_t(visLabel)}${!owned ? " · " + _t("shared by another club") : ""}</div>
       ${versionSwitcher}
       <div class="section"><div class="section-label">Age</div><p>${(e.age || []).map((a) => `<span class="tag-chip">${escapeHtml(a)}</span>`).join("") || "—"}</p></div>
       <div class="section"><div class="section-label">Categories</div><p>${(e.categories || []).map((c) => `<span class="tag-chip">${CATEGORY_ICONS[c] ? `<span class="category-icon">${CATEGORY_ICONS[c]}</span>` : ""}${escapeHtml(c)}</span>`).join("") || "—"}</p></div>
@@ -1659,7 +1659,7 @@
     doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text(".", MARGIN + w1 + w2 + w3, BOTTOM + 11);
     doc.setTextColor(DARK);
 
-    doc.save(`${(e.name || "exercise").replace(/\s+/g, "_")}.pdf`);
+    doc.save(`${(e.name || _t("exercise||file name word")).replace(/\s+/g, "_")}.pdf`);
   }
 
   // -----------------------------------------------------------------------
@@ -1923,7 +1923,7 @@
     const DARK = 30, GREY = 130, ACCENT = [236, 103, 24];
     const logoDataUrl = await loadLogoDataUrl(currentOrgId);
     const clubName = (els.orgName.textContent || "").trim();
-    const notebookName = document.getElementById("notebook-name").value || "Notebook";
+    const notebookName = document.getElementById("notebook-name").value || _t("Notebook");
     const L = await loadPdfLabels();
 
     // ---------- Portada, siempre la primera página ----------
@@ -1936,7 +1936,7 @@
     doc.setFont("helvetica", "bold"); doc.setFontSize(28); doc.setTextColor(DARK);
     doc.text(notebookName, COVER_W / 2, 390, { align: "center" });
     doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(GREY);
-    doc.text(`${notebookContents.length} exercise${notebookContents.length === 1 ? "" : "s"}`, COVER_W / 2, 412, { align: "center" });
+    doc.text(_t(notebookContents.length === 1 ? "{n} exercise" : "{n} exercises", { n: notebookContents.length }), COVER_W / 2, 412, { align: "center" });
     doc.setFont("helvetica", "bold"); doc.setFontSize(9);
     {
       const fullW = doc.getTextWidth("PlayPivot.");
@@ -1965,7 +1965,7 @@
       drawExercisePageOnNewPage(doc, ex, logoDataUrl, clubName, L);
     }
 
-    doc.save(`${notebookName.replace(/\s+/g, "_")}_notebook.pdf`);
+    doc.save(`${notebookName.replace(/\s+/g, "_")}_${_t("notebook||file name word")}.pdf`);
   }
 
   document.getElementById("export-notebook-btn").addEventListener("click", async () => {
@@ -2065,18 +2065,18 @@
     groupLanguages.add(e.language || "en");
     const options = Object.keys(LANGUAGE_NAMES).filter((l) => !groupLanguages.has(l));
     if (options.length === 0) { showMessage("This exercise already has a copy in every supported language.", "error"); return; }
-    const choice = prompt(`Translate to which language? (${options.join(" / ")})`, options[0]);
+    const choice = prompt(_t("Translate to which language? ({codes})", { codes: options.join(" / ") }), options[0]);
     if (!choice || !LANGUAGE_NAMES[choice]) { if (choice) showMessage("Unknown language code.", "error"); return; }
     const copy = { ...e, number: nextNumberForMyClub(), favorite: false, language: choice, translation_group_id: e.translation_group_id };
     delete copy.id; delete copy.created_by;
     const { error } = await supabaseClient.from("exercises").insert(copy);
     if (error) { showMessage(error.message, "error"); return; }
-    showMessage(`Created a ${LANGUAGE_NAMES[choice]} copy — translate its text in the editor.`, "success");
+    showMessage(_t("Created a {language} copy — translate its text in the editor.", { language: LANGUAGE_NAMES[choice] }), "success");
     await loadExercises();
   }
 
   async function deleteExercise(e) {
-    if (!confirm(`Delete "${e.name}"?`)) return;
+    if (!confirm(_t('Delete "{name}"?', { name: e.name }))) return;
     const { error } = await supabaseClient.from("exercises").delete().eq("id", e.id);
     if (error) { showMessage(error.message, "error"); return; }
     selectedId = null;

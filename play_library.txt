@@ -1,0 +1,24 @@
+# Playbook (play_library)
+Every play across your club — plus anything shared by other clubs — in one searchable, filterable list. ||| Tous les systèmes de votre club — plus ceux partagés par d'autres clubs — dans une seule liste où l'on peut chercher et filtrer. ||| Todas las jugadas de tu club, más las compartidas por otros clubes, en una sola lista donde buscar y filtrar.
+No play matches the current filters. ||| Aucun système ne correspond aux filtres actuels. ||| Ninguna jugada coincide con los filtros actuales.
+Pick a play from the list to see its details here. ||| Choisissez un système dans la liste pour voir ses détails ici. ||| Elige una jugada de la lista para ver aquí sus detalles.
+Pick a play from the list. ||| Choisissez un système dans la liste. ||| Elige una jugada de la lista.
+{n} play found ||| {n} système trouvé ||| {n} jugada encontrada
+{n} plays found ||| {n} systèmes trouvés ||| {n} jugadas encontradas
+No team ||| Sans équipe ||| Sin equipo
+(No team) ||| (Sans équipe) ||| (Sin equipo)
+(Uncategorized) ||| (Sans catégorie) ||| (Sin categoría)
+Play name, category… ||| Nom du système, catégorie… ||| Nombre de la jugada, categoría…
+Open in Play design → ||| Ouvrir dans la création de systèmes → ||| Abrir en Diseño de jugadas →
+Nothing drawn yet. ||| Rien de dessiné pour l'instant. ||| Todavía no hay nada dibujado.
+Play deleted. ||| Système supprimé. ||| Jugada eliminada.
+No play matches the current filters. ||| Aucun système ne correspond aux filtres actuels. ||| Ninguna jugada coincide con los filtros actuales.
+How to use Playbook ||| Comment utiliser le Playbook ||| Cómo usar el Playbook
+Every play you can see — your own club's, across every team, plus anything shared by other clubs — shows up here in one list. Search & filters sit in one row at the top; click any play to see its details in a popup. ||| Tous les systèmes que vous pouvez voir — ceux de votre club, toutes équipes confondues, plus ceux partagés par d'autres clubs — apparaissent ici dans une seule liste. La recherche et les filtres tiennent sur une ligne en haut ; cliquez sur un système pour voir ses détails dans une fenêtre. ||| Todas las jugadas que puedes ver —las de tu club, de todos los equipos, más las compartidas por otros clubes— aparecen aquí en una sola lista. La búsqueda y los filtros están en una fila arriba; haz clic en cualquier jugada para ver sus detalles en una ventana.
+Team / Category ||| Équipe / Catégorie ||| Equipo / Categoría
+— only show the teams/categories that actually have plays right now; they update as plays are added. ||| — n'affichent que les équipes/catégories qui ont réellement des systèmes en ce moment ; elles se mettent à jour à mesure que des systèmes sont ajoutés. ||| — solo muestran los equipos/categorías que ahora mismo tienen jugadas; se actualizan a medida que se añaden jugadas.
+— 👤 plays you made yourself, 👥 plays from others in your club, 🌐 plays shared by other clubs. ||| — 👤 les systèmes que vous avez créés vous-même, 👥 ceux des autres membres de votre club, 🌐 ceux partagés par d'autres clubs. ||| — 👤 las jugadas que has creado tú, 👥 las de otras personas de tu club, 🌐 las compartidas por otros clubes.
+— picks one play among whatever the current filters show. ||| — choisit un système parmi ceux que montrent les filtres actuels. ||| — elige una jugada entre las que muestren los filtros actuales.
+— opens that exact play in the editor, ready to look at, animate, or (if it's yours) edit and save. ||| — ouvre exactement ce système dans l'éditeur, prêt à être consulté, animé ou (s'il est à vous) modifié et enregistré. ||| — abre esa jugada exacta en el editor, lista para verla, animarla o (si es tuya) editarla y guardarla.
+Plays from other clubs (🌐) can be opened and looked at, but not edited or deleted — only their owner can. ||| Les systèmes d'autres clubs (🌐) peuvent être ouverts et consultés, mais ni modifiés ni supprimés — seul leur propriétaire le peut. ||| Las jugadas de otros clubes (🌐) se pueden abrir y ver, pero no editar ni eliminar: solo su propietario puede.
+PlayPivot | Playbook ||| PlayPivot | Playbook ||| PlayPivot | Playbook

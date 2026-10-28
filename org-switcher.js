@@ -104,6 +104,15 @@ function pivotMembershipScopeLabel(m) {
   return "whole club";
 }
 
+// Solo para MOSTRAR (los datos y las comparaciones siguen usando el texto en inglés de arriba):
+// "whole club" y el género (Male/Female/Mixed) se traducen; la categoría y el nombre del equipo son datos
+// del club y no se tocan.
+function pivotScopeShown(label) {
+  if (typeof _t !== "function") return label;
+  if (label === "whole club") return _t("whole club");
+  return String(label).replace(/\b(Male|Female|Mixed)\b/g, (g) => _t(g));
+}
+
 /**
  * A partir de la lista de membresías activas de la persona, decide qué
  * está activo ahora mismo -- lo guardado la última vez si todavía es

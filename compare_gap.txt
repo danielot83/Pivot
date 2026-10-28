@@ -1,0 +1,54 @@
+Seasons & teams
+Chicago Bulls '95-96
+Chicago Bulls '94-95
+Chicago Bulls '93-94
+Pick a season/team on the left.
+How to use Statistics
+Pick a season/team on the left first
+— comparing players only makes sense within a team, so everything here is scoped to whichever one you pick, same as Roster or Training builder. No team yet? Click "+ New season/team" to create one.
+Then pick which of the three —
+1. Training, 2. Matches, 3. Assessment
+— you want to look at. Only one shows at a time, on purpose, so numbers from different worlds don't get mixed together.
+Team overview
+is calculated live from Training builder — sessions logged, total minutes trained, average attendance, sessions per month, and which categories get worked on the most, for this team this season.
+Click any player chip to add them to the comparison — from this team's roster, that season.
+The sector chart shows each selected player's
+most recent
+assessment, one bar color per player.
+Development over time
+plots every assessment a selected player has ever had (not just the latest), reduced to one overall score per date — a real trend line, not a single snapshot. Needs at least 2 assessments to draw.
+The table below lets you pick one exact criterion (out of all 36) and see each player's score for just that, side by side.
+Training attendance
+— averages across this team's matches/sessions this season, for each selected player.
+Everything updates live as you add or remove players — no need to click a "compare" button.
+1. Training
+2. Matches
+3. Assessment
+Who to compare
+Click players to add or remove them from the comparison — from the team picked on the left, that season.
+— this team, this season
+Pulled straight from Training builder — log more sessions and this updates on its own.
+Sessions per month
+Most-worked categories
+How often each selected player showed up, across this team's sessions this season.
+Attendance rate
+Pick at least one player above.
+Team performance (matches)
+Growing
+Win/loss record and scoring trends across the season are next on the list — for now, match stats per player already live in "Match stats" below, and each match's own page has its box score.
+Averages across this team's matches this season, for each selected player.
+Games
+PPG
+RPG
+APG
+Each player's most recent assessment, one color per player.
+— overall assessment score, every time they were scored
+One line per player — climbing means real, measured improvement, not just a feeling.
+Pick at least one player above — needs 2+ assessments to draw a trend.
+One specific criterion
+Pick a single criterion to compare directly, score by score.
+Assessment date
+PlayPivot
+English
+Français
+Español

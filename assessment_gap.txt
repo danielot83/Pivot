@@ -1,0 +1,61 @@
+How to use Player assessment
+Pick a season/team
+above, then a player — the list updates to match.
+Show advanced criteria
+(Criteria card) reveals 18 more tactical/IQ-focused criteria on top of the 18 basic ones — leave it off for a quicker, simpler evaluation.
+Heights
+(player, father, mother) are optional, used to get a feel for likely adult height.
+— copy a ready-made prompt into any AI chat, describe the player, paste its reply back in, and it fills the scores in for you to review.
+Click "+ New assessment"
+, fill in what you can (blank stays blank, it's not forced to a random score), Save.
+Sector averages update live as you fill each one in, both on screen and in the exported PDF.
+Past assessments
+below are clickable — opens that one back up to review or edit.
+Tracking
+, below Past assessments (or jump straight there with
++ New tracking measurement
+, next to New assessment above) — a different kind of tracking: define your own criterion with its unit (e.g. "Sprint 20m" in seconds, "Free throws in a row" in made shots, "Weight" in kg) and add dated measurements over time — the result itself is always a number. Each criterion gets its own mini chart and table — this is for things that don't fit the 1-5 scoring above.
+— 🔒 only you, 👥 your whole club, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). An assessment is a real player's evaluation, so think before sharing beyond your club.
+player account
+never sees "Whole club" assessments in bulk, even from their own club — that would mean seeing every other player's evaluation.
+Criteria
+Show advanced criteria too (18 more, tactical/IQ-focused)
+What each score means
+— Needs a lot of work
+— Below what's expected
+— Meets expectations
+— Above what's expected
+— Excellent for this level
+Chicago Bulls '95-96
+Chicago Bulls '94-95
+Chicago Bulls '93-94
+Pick a season/team first
++ New assessment
+Shared with your whole club by default — pick 🔒 Only me above if you'd rather keep it private. No "PlayPivot Community" option here on purpose — an evaluation is always about a real player.
+English
+Français
+Español
+Copy this prompt into any AI chat (describe the player when it asks), then paste its reply below.
+Copy prompt
+Player height (cm)
+Father's height (cm)
+Mother's height (cm)
+Sector averages, at a glance
+Each bar shows the average of that sector's criteria (0 to 5). Updates live as you fill in scores above — the same chart appears on the generated PDF.
+Positive points
+Points to watch
+To work on next
+Save assessment
+Generate PDF
+Export history to Excel
+Pick a player above to see their assessment history.
+Define your own criterion with its unit (e.g. "Sprint 20m" in seconds, "Free throws in a row" in made shots, "Weight" in kg) and add dated measurements to see if it improves or gets worse over time.
+Pick a player above to see or add their tracking.
++ Add measurement
+Criterion
+Unit
+Notes (optional)
+Save measurement
+PlayPivot
+e.g. Sprint 20m, Free throws, Weight
+e.g. sec, kg, made shots

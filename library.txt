@@ -1,0 +1,84 @@
+# Library (bibliothèque d'exercices)
+Library ||| Bibliothèque ||| Biblioteca
+Search & filters ||| Recherche et filtres ||| Búsqueda y filtros
+Source ||| Source ||| Origen
+🌐 Other clubs ||| 🌐 Autres clubs ||| 🌐 Otros clubes
++ New exercise ||| + Nouvel exercice ||| + Nuevo ejercicio
+🎲 Pick at random ||| 🎲 Au hasard ||| 🎲 Elegir al azar
+Select multiple… ||| Sélection multiple… ||| Seleccionar varios…
+Exit select mode ||| Quitter la sélection ||| Salir de la selección
+Notebooks ▾ ||| Carnets ▾ ||| Cuadernos ▾
+Ready-made exercise lists, grouped by theme (e.g. "Defense", "U8") — not tied to a season/team. Pick one up later in Training builder's "Filter by notebook". ||| Listes d'exercices toutes prêtes, regroupées par thème (p. ex. « Défense », « U8 ») — non liées à une saison/équipe. Retrouvez-en une plus tard dans « Filtrer par carnet » de la Préparation des séances. ||| Listas de ejercicios ya preparadas, agrupadas por tema (p. ej. «Defensa», «U8»), sin ligar a una temporada/equipo. Recupera una más tarde en «Filtrar por cuaderno» del Constructor de entrenamientos.
++ New notebook ||| + Nouveau carnet ||| + Nuevo cuaderno
+{n} selected ||| {n} sélectionné(s) ||| {n} seleccionado(s)
+Only your own club's exercises show a checkbox ||| Seuls les exercices de votre propre club ont une case à cocher ||| Solo los ejercicios de tu propio club tienen casilla
+Only exercises created by your own club can be selected/deleted here ||| Seuls les exercices créés par votre propre club peuvent être sélectionnés/supprimés ici ||| Aquí solo se pueden seleccionar/eliminar ejercicios creados por tu propio club
+No exercise matches the current filters. ||| Aucun exercice ne correspond aux filtres actuels. ||| Ningún ejercicio coincide con los filtros actuales.
+New notebook ||| Nouveau carnet ||| Nuevo cuaderno
+Notebook details ||| Détails du carnet ||| Detalles del cuaderno
+Notebook name ||| Nom du carnet ||| Nombre del cuaderno
+Exercises in this notebook ||| Exercices de ce carnet ||| Ejercicios de este cuaderno
+Your library — click to add ||| Votre bibliothèque — cliquez pour ajouter ||| Tu biblioteca: haz clic para añadir
+Never used ||| Jamais utilisé ||| Nunca usado
+In this notebook ||| Dans ce carnet ||| En este cuaderno
+Order and remove exercises here ||| Ordonnez et retirez les exercices ici ||| Ordena y quita ejercicios aquí
+Nothing added yet — click exercises above. ||| Rien d'ajouté pour l'instant — cliquez sur des exercices ci-dessus. ||| Todavía no has añadido nada: haz clic en los ejercicios de arriba.
+Save notebook ||| Enregistrer le carnet ||| Guardar cuaderno
+📖 Export whole notebook (PDF) ||| 📖 Exporter tout le carnet (PDF) ||| 📖 Exportar el cuaderno completo (PDF)
+Delete this notebook ||| Supprimer ce carnet ||| Eliminar este cuaderno
+Pick an exercise from the list to see its details here. ||| Choisissez un exercice dans la liste pour voir ses détails ici. ||| Elige un ejercicio de la lista para ver aquí sus detalles.
+Pick an exercise from the list. ||| Choisissez un exercice dans la liste. ||| Elige un ejercicio de la lista.
+e.g. Defense, U8, Warm-ups ||| p. ex. Défense, U8, Échauffements ||| p. ej. Defensa, U8, Calentamientos
+{n} exercise found ||| {n} exercice trouvé ||| {n} ejercicio encontrado
+{n} exercises found ||| {n} exercices trouvés ||| {n} ejercicios encontrados
+by {name} ||| par {name} ||| por {name}
+never used ||| jamais utilisé ||| nunca usado
+{n}× used ||| utilisé {n}× ||| usado {n}×
+shared by another club ||| partagé par un autre club ||| compartido por otro club
+🤝 Club association ||| 🤝 Association du club ||| 🤝 Asociación del club
+Diagram {n} ||| Schéma {n} ||| Diagrama {n}
+Tags ||| Étiquettes ||| Etiquetas
+Unfavorite ||| Retirer des favoris ||| Quitar de favoritos
+Duplicate ||| Dupliquer ||| Duplicar
+Duplicate as translation… ||| Dupliquer comme traduction… ||| Duplicar como traducción…
+View ||| Voir ||| Ver
+Copy to my library ||| Copier dans ma bibliothèque ||| Copiar a mi biblioteca
+Nothing drawn yet. ||| Rien de dessiné pour l'instant. ||| Todavía no hay nada dibujado.
+Delete {n} exercise? This can't be undone. ||| Supprimer {n} exercice ? Action irréversible. ||| ¿Eliminar {n} ejercicio? No se puede deshacer.
+Delete {n} exercises? This can't be undone. ||| Supprimer {n} exercices ? Action irréversible. ||| ¿Eliminar {n} ejercicios? No se puede deshacer.
+Deleted {n} exercise. ||| {n} exercice supprimé. ||| {n} ejercicio eliminado.
+Deleted {n} exercises. ||| {n} exercices supprimés. ||| {n} ejercicios eliminados.
+Delete "{name}"? ||| Supprimer « {name} » ? ||| ¿Eliminar «{name}»?
+Exercise duplicated. ||| Exercice dupliqué. ||| Ejercicio duplicado.
+Copied to your library — it's now yours to edit. ||| Copié dans votre bibliothèque — il est maintenant à vous, modifiable. ||| Copiado a tu biblioteca: ahora es tuyo y puedes editarlo.
+This exercise already has a copy in every supported language. ||| Cet exercice a déjà une copie dans chaque langue prise en charge. ||| Este ejercicio ya tiene una copia en todos los idiomas disponibles.
+Translate to which language? ({codes}) ||| Traduire dans quelle langue ? ({codes}) ||| ¿A qué idioma traducir? ({codes})
+Unknown language code. ||| Code de langue inconnu. ||| Código de idioma desconocido.
+Created a {language} copy — translate its text in the editor. ||| Copie en {language} créée — traduisez son texte dans l'éditeur. ||| Copia en {language} creada: traduce su texto en el editor.
+This notebook belongs to another club — you can look, but not edit it. ||| Ce carnet appartient à un autre club — vous pouvez le consulter, mais pas le modifier. ||| Este cuaderno pertenece a otro club: puedes verlo, pero no editarlo.
+Give the notebook a name first. ||| Donnez d'abord un nom au carnet. ||| Ponle primero un nombre al cuaderno.
+Notebook saved. ||| Carnet enregistré. ||| Cuaderno guardado.
+Couldn't save that notebook. ||| Impossible d'enregistrer ce carnet. ||| No se pudo guardar ese cuaderno.
+Delete this notebook? The exercises inside it are not deleted, just this list. ||| Supprimer ce carnet ? Les exercices qu'il contient ne sont pas supprimés, seulement cette liste. ||| ¿Eliminar este cuaderno? Los ejercicios que contiene no se eliminan, solo esta lista.
+Save the notebook first. ||| Enregistrez d'abord le carnet. ||| Guarda primero el cuaderno.
+Nothing in this notebook yet. ||| Rien dans ce carnet pour l'instant. ||| Todavía no hay nada en este cuaderno.
+Edit notebook: {name} ||| Modifier le carnet : {name} ||| Editar cuaderno: {name}
+View notebook: {name} ||| Voir le carnet : {name} ||| Ver cuaderno: {name}
+Added ||| Ajouté ||| Añadido
++ Add ||| + Ajouter ||| + Añadir
+(deleted exercise) ||| (exercice supprimé) ||| (ejercicio eliminado)
+{n} exercise ||| {n} exercice ||| {n} ejercicio
+{n} exercises ||| {n} exercices ||| {n} ejercicios
+Notebook ||| Carnet ||| Cuaderno
+How to use Library ||| Comment utiliser la Bibliothèque ||| Cómo usar la Biblioteca
+(near the top) — ready-made exercise lists grouped by theme (e.g. "Defense", "U8"), not tied to a season or team. Build one once, reuse it in any session, in any team, forever. Check exercises from your library to fill one in, then ||| (en haut) — listes d'exercices toutes prêtes, regroupées par thème (p. ex. « Défense », « U8 »), non liées à une saison ou une équipe. Créez-en une une fois, réutilisez-la dans n'importe quelle séance, dans n'importe quelle équipe, pour toujours. Cochez des exercices de votre bibliothèque pour la remplir, puis ||| (arriba) — listas de ejercicios ya preparadas, agrupadas por tema (p. ej. «Defensa», «U8»), sin ligar a una temporada ni a un equipo. Créala una vez y reutilízala en cualquier sesión y en cualquier equipo, para siempre. Marca ejercicios de tu biblioteca para rellenarla y luego
+Export whole notebook ||| Exporter tout le carnet ||| Exportar el cuaderno completo
+for a real printable booklet: a cover page, followed by the full sheet for every exercise in it — court diagrams included, same as exporting one exercise. Training builder's "Filter by notebook" (when adding exercises to a session) picks up whatever you build here. ||| pour obtenir un vrai livret imprimable : une page de couverture, puis la fiche complète de chaque exercice qu'il contient — schémas de terrain inclus, comme pour l'export d'un seul exercice. Le « Filtrer par carnet » de la Préparation des séances (quand vous ajoutez des exercices à une séance) reprend tout ce que vous construisez ici. ||| para obtener un cuadernillo imprimible de verdad: una portada y, después, la ficha completa de cada ejercicio que contiene, con los diagramas de pista incluidos, igual que al exportar un solo ejercicio. El «Filtrar por cuaderno» del Constructor de entrenamientos (al añadir ejercicios a una sesión) recoge todo lo que construyas aquí.
+Search & filters sit in one row at the top — click any exercise below to see its full details in a popup, which works the same on mobile as on a computer. ||| Recherche et filtres tiennent sur une seule ligne en haut — cliquez sur un exercice ci-dessous pour voir tous ses détails dans une fenêtre, qui fonctionne de la même façon sur mobile et sur ordinateur. ||| Búsqueda y filtros están en una sola fila arriba: haz clic en cualquier ejercicio de abajo para ver todos sus detalles en una ventana, que funciona igual en el móvil que en el ordenador.
+looks across name, tags, description, variants, objectives, and material. ||| cherche dans le nom, les étiquettes, la description, les variantes, les objectifs et le matériel. ||| busca en el nombre, las etiquetas, la descripción, las variantes, los objetivos y el material.
+— tick several to combine them (age requires ALL ticked ages to match; category matches ANY ticked one). ||| — cochez-en plusieurs pour les combiner (l'âge exige que TOUS les âges cochés correspondent ; la catégorie accepte N'IMPORTE LAQUELLE des cochées). ||| — marca varias para combinarlas (la edad exige que coincidan TODAS las edades marcadas; la categoría admite CUALQUIERA de las marcadas).
+— picks one exercise among whatever the current filters show. ||| — choisit un exercice parmi ceux que montrent les filtres actuels. ||| — elige un ejercicio entre los que muestren los filtros actuales.
+Exercises from other clubs (🌐) can be viewed but not edited or deleted — only their owner can. ||| Les exercices d'autres clubs (🌐) peuvent être consultés mais ni modifiés ni supprimés — seul leur propriétaire le peut. ||| Los ejercicios de otros clubes (🌐) se pueden ver, pero no editar ni eliminar: solo su propietario puede.
+PlayPivot | Basketball Exercise Library ||| PlayPivot | Bibliothèque d'exercices de basket ||| PlayPivot | Biblioteca de ejercicios de baloncesto
+Never used in a session ||| Jamais utilisé dans une séance ||| Nunca usado en una sesión
+— hides any exercise already pulled into a training session, to help you rediscover ones you haven't tried. ||| — masque les exercices déjà ajoutés à une séance d'entraînement, pour vous aider à redécouvrir ceux que vous n'avez pas encore essayés. ||| — oculta los ejercicios que ya se han añadido a una sesión de entrenamiento, para ayudarte a redescubrir los que aún no has probado.

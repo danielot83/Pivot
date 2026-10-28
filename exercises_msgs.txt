@@ -1,0 +1,34 @@
+# Exercises: mensajes y textos dinámicos
+Template copied — paste it into any AI chat and finish the last line. ||| Modèle copié — collez-le dans n'importe quel chat IA et terminez la dernière ligne. ||| Plantilla copiada: pégala en cualquier chat de IA y completa la última línea.
+Couldn't copy automatically — select and copy the text manually. ||| Impossible de copier automatiquement — sélectionnez le texte et copiez-le à la main. ||| No se pudo copiar automáticamente: selecciona el texto y cópialo a mano.
+Your library is still empty — nothing to copy yet. ||| Votre bibliothèque est encore vide — rien à copier pour l'instant. ||| Tu biblioteca sigue vacía: todavía no hay nada que copiar.
+Copied exercise #{n} ("{name}") — paste it in the chat before your new idea, so the AI keeps the same style. ||| Exercice n° {n} (« {name} ») copié — collez-le dans le chat avant votre nouvelle idée, pour que l'IA garde le même style. ||| Ejercicio n.º {n} («{name}») copiado: pégalo en el chat antes de tu nueva idea para que la IA mantenga el mismo estilo.
+Couldn't copy automatically. ||| Impossible de copier automatiquement. ||| No se pudo copiar automáticamente.
+Filled in from the AI reply — review everything below, draw the diagram if you want one, then save. ||| Rempli depuis la réponse de l'IA — vérifiez tout ci-dessous, dessinez le schéma si vous en voulez un, puis enregistrez. ||| Rellenado desde la respuesta de la IA: revisa todo lo de abajo, dibuja el diagrama si quieres uno y guarda.
+Pick an exercise from the list first. ||| Choisissez d'abord un exercice dans la liste. ||| Elige primero un ejercicio de la lista.
+Started from "{name}" — review everything, then save as your own. ||| Départ depuis « {name} » — vérifiez tout, puis enregistrez-le comme le vôtre. ||| Partiendo de «{name}»: revisa todo y guárdalo como tuyo.
+Label for this player: ||| Étiquette de ce joueur : ||| Etiqueta de este jugador:
+Number/label for this ||| Numéro/étiquette pour ceci ||| Número/etiqueta para esto
+{a} already has something drawn on it. Replace it with a copy of {b}? ||| {a} contient déjà un dessin. Le remplacer par une copie de {b} ? ||| {a} ya tiene algo dibujado. ¿Sustituirlo por una copia de {b}?
+This exercise belongs to another club — you can look, but not edit or save changes. ||| Cet exercice appartient à un autre club — vous pouvez le consulter, mais pas le modifier ni enregistrer de changements. ||| Este ejercicio pertenece a otro club: puedes verlo, pero no editarlo ni guardar cambios.
+Give the exercise a name first. ||| Donnez d'abord un nom à l'exercice. ||| Ponle primero un nombre al ejercicio.
+Exercise saved. ||| Exercice enregistré. ||| Ejercicio guardado.
+Couldn't save that exercise. ||| Impossible d'enregistrer cet exercice. ||| No se pudo guardar ese ejercicio.
+— your library is empty so far ||| — votre bibliothèque est vide pour l'instant ||| — tu biblioteca está vacía por ahora
+— {n} exercise already in your library ||| — {n} exercice déjà dans votre bibliothèque ||| — {n} ejercicio ya en tu biblioteca
+— {n} exercises already in your library ||| — {n} exercices déjà dans votre bibliothèque ||| — {n} ejercicios ya en tu biblioteca
+Created by {name} ||| Créé par {name} ||| Creado por {name}
+Rendering… ||| Génération en cours… ||| Generando…
+Diagram {n} ({type}) ||| Schéma {n} ({type}) ||| Diagrama {n} ({type})
+half court ||| demi-terrain ||| media pista
+full court ||| terrain complet ||| pista completa
+vertical ||| vertical ||| vertical
+This is already the last diagram — there's no "next" one to copy into. ||| C'est déjà le dernier schéma — il n'y a pas de « suivant » où copier. ||| Este ya es el último diagrama: no hay un «siguiente» donde copiar.
+Loading the text reader… ||| Chargement du lecteur de texte… ||| Cargando el lector de texto…
+Reading the photo… this can take 10–30 seconds the first time. ||| Lecture de la photo… cela peut prendre 10 à 30 secondes la première fois. ||| Leyendo la foto… la primera vez puede tardar de 10 a 30 segundos.
+Photo read — check "Description" below, then fill in Name, Category, Material, etc. by hand from what you see. ||| Photo lue — vérifiez la « Description » ci-dessous, puis remplissez à la main Nom, Catégorie, Matériel, etc. d'après ce que vous voyez. ||| Foto leída: revisa «Descripción» abajo y rellena a mano Nombre, Categoría, Material, etc. con lo que veas.
+Couldn't read that photo: ||| Impossible de lire cette photo : ||| No se pudo leer esa foto:
+PDF preview ||| Aperçu du PDF ||| Vista previa del PDF
+it doesn't understand what an exercise is. It can't tell what order things should go in, so everything lands in "Description" as one unsorted block, exactly as it read it off the photo — it won't separate "objectives" from "description", won't pick Category, Material, Age group or Difficulty for you, and it never touches the court diagram. All of that you still do by hand, using the photo and the recognized text as reference. ||| ne comprend pas ce qu'est un exercice. Il ne sait pas dans quel ordre ranger les choses, donc tout atterrit dans la « Description » en un seul bloc non trié, tel qu'il l'a lu sur la photo — il ne sépare pas les « objectifs » de la « description », ne choisit ni la catégorie, ni le matériel, ni l'âge, ni la difficulté à votre place, et ne touche jamais au schéma du terrain. Tout cela reste à faire à la main, avec la photo et le texte reconnu comme référence. ||| no entiende qué es un ejercicio. No sabe en qué orden va cada cosa, así que todo cae en «Descripción» como un único bloque sin ordenar, tal como lo leyó de la foto: no separa los «objetivos» de la «descripción», no elige por ti la categoría, el material, la edad ni la dificultad, y nunca toca el diagrama de la pista. Todo eso lo sigues haciendo a mano, usando la foto y el texto reconocido como referencia.
+exercise||file name word ||| exercice ||| ejercicio
+Age groups ||| Catégories d'âge ||| Grupos de edad

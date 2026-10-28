@@ -1,0 +1,80 @@
+Only admins of a club can change these.
+How to use Settings
+Everyone can see this page, whatever their role — but only your club's
+(or a PlayPivot platform admin) can actually change anything here. If you're a coach, everything below is visible but locked, with a note explaining why.
+Club logo
+— pick an image, it's automatically resized and converted; instructions for the best result are right below the upload button.
+Members
+— change anyone's role with the dropdown,
+block||help sentence verb
+someone to cut their access without deleting their history (they can be reactivated any time), or
+remove||help sentence verb
+them for good. You can never demote, block, or remove the club's last admin — the app blocks it on purpose. Someone requesting to join for the first time shows up on your dashboard, not here.
+Exercise sharing
+— the two buttons here set ALL your exercises to either "PlayPivot Community" (everyone) or "Whole club" at once. To choose more precisely, set the sharing circle exercise by exercise in the Exercise creator:
+(private, even from your own teammates),
+(everyone active in your club),
+(a small group of clubes who agreed to share, needs the platform controller's approval), or
+— same 4 circles, same idea: set them all at once here, or pick one item at a time inside each module.
+Club association
+— propose a new group of clubes, or join an existing one by typing its exact name. Nothing is shared until the platform controller approves it — you'll see the request's status here, and a 🔔 on your dashboard shows you (or the controller) what's pending.
+Export language
+— the language new PDFs (roster sheets, assessments, plays, match reports...) are generated in for your club. Changing it doesn't touch PDFs you already downloaded.
+Exercise PDF — what to include
+— turn off any section (age, categories, material, objectives, difficulty) you don't want printed on an exercise sheet.
+The roles
+: Platform admin (Daniel, or anyone he adds) — can do anything, in any club. Club admin — full control, but only inside their own club, including this Settings page. Coach — creates and edits content within their own club/team.
+Admin only
+Shown across PlayPivot wherever your club appears.
+No logo yet
+Upload logo
+Any image works — it gets automatically center-cropped to a square and optimized, so file size and shape are never a problem.
+We also try to remove a plain background automatically. For best results, use a square-ish image with a plain, solid-colored background (a busy photo background won't get removed cleanly). If you'd rather remove the background yourself first,
+Transparent background
+(PNG) works best — it'll sit correctly on any color. If your photo has a plain background, remove it first for free at
+or
+remove-bg.io
+, then upload the result here.
+Formats accepted: PNG, JPEG, or WebP. Max 2 MB.
+PlayPivot resizes it automatically, so don't worry about the exact pixel size.
+Change someone's role, block them (they keep their account but lose access to this club), or remove them for good. You can't demote, block, or remove the club's last admin. Someone asking to join for the first time shows up on the dashboard, not here.
+Who directs your team, and their role. Visible to everyone in the club — to change something here, use Members above.
+The language your club's PDFs (roster sheets, assessments, plays, match reports...) are generated in.
+English
+Français
+Español
+Turn off anything you don't want printed on an exercise sheet.
+Difficulty stars
+Association validators
+Platform admin only
+People who can approve or reject club association requests — a smaller power than yours, they can't block accounts or clubs. You're the only one who can grant or remove this.
+Make validator
+Sets every exercise in your library to the chosen circle at once. You can still pick one exercise by exercise in the Exercise creator.
+Set all exercises to this
+Plays sharing
+Sets every play in your notebook to the chosen circle at once. You can still pick one play at a time in Play design.
+Set all plays to this
+Match reports sharing
+Match reports contain real player stats, so "PlayPivot Community" isn't offered here on purpose.
+Set all matches to this
+Training sessions sharing
+Sessions include real attendance, so "PlayPivot Community" isn't offered here on purpose. You can still pick one session at a time in Training builder.
+Set all sessions to this
+Player assessments sharing
+Assessments are always a real player's evaluation, so "PlayPivot Community" isn't offered here on purpose.
+Set all assessments to this
+A middle circle between "just my club" and "everyone on PlayPivot" — a small group of clubs (e.g. a league) who agree to share content with each other. Needs approval from the PlayPivot platform controller before it becomes real.
+Name for a new association (e.g. "Liga Cantonal U16")
+Request to create it
+Already know the name of an existing association? Ask its members, then request to join it the same way — matching names request to join the same association instead of creating a new one.
+Legal architecture
+The full data-protection and legal-structure reference document — who's controller, who's processor, sub-processors, DPA contents, implementation plan. Open to everyone at your club, not just admins.
+Open document →
+Delete my account & data
+Choose what to remove. This isn't reversible, so we ask what exactly before doing anything.
+Request deletion of my login itself
+Deleting the login credentials themselves needs a person on our side to action it — this sends that request directly, it isn't just a message.
+PlayPivot
+Their email
+Association name
+e.g. We're 3 clubs in the same league, would love to share exercises…

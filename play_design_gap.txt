@@ -1,0 +1,63 @@
+Playbook
+Draw sets, cuts, screens, and passes — as many steps as the play needs — then animate the whole sequence or export it.
+How to use Play design
+— pick them at the top, exactly like in Roster/Attendance/Match day. Every play you save is filed under the team selected there; switching teams switches which saved plays you see below.
++ New play
+— starts a blank play for whichever team is currently selected above.
+↻ Duplicate a saved play
+, right next to it, starts instead from one of this team's existing plays (pick it from the panel that opens) — the original stays untouched, only the new copy gets saved.
+Your saved plays
+— every play saved for the selected team, across all its seasons (a "Defense" category usually still makes sense next season). Grouped by
+underneath.
+Category = the "subfolder"
+— free text, typed by you (e.g. "Half-court offense", "Out of bounds", "Press break", "Zone offense"). There's no separate screen to "create" one — just type a name here and save; the next play you give the same name will automatically group with it. Typos create a new, separate folder, so keep the wording consistent (e.g. always "Out of bounds", not sometimes "OOB").
+Looking for a play from another team, another season, or shared by another club? Use
+🌐 Browse Playbook
+A new play starts
+completely empty
+— nothing is pre-placed. Pick "Attacker", "Defender", "Ball", "Cone", "Coach", "Post", or "Handoff" and click the court to add one; you'll be asked for a number/label for attackers and defenders.
+Move/select
+— drag any point you've placed. Double-click a player/defender to rename it, or double-click any other point to remove it. Clicking a line/screen/zone (or a point) selects it — then
+(or Delete/Backspace on a keyboard) removes just that one, without touching anything else on the step. Drawing a new line leaves that drawing tool active (so you can draw several in a row) — switch back to
+first if you want to click and delete something you just drew; "Delete element" tells you if nothing is selected yet instead of doing nothing.
+Steps
+— click "+ Add step" as many times as the play needs. Each new step starts with points positioned exactly where the previous step's cuts/dribbles/screens ended — draw a pass from 1 to 2 and step 2 opens with the ball already at 2; draw a screen and the screener carries over positioned right where they set it, not where they started.
+Options (branches)
+— when a play can go one way or another depending on what the defense does, click "🔀 Split into options here" on the play's last step. The first option (V1) keeps the play's usual black — nothing changes color yet; the second option (V2) onward each gets its own distinct color, so the moment a play actually forks into something different, the color change is obvious. Each option has its own mini-sequence of steps (reusing everything above), reached through the tabs that appear — its lines/screens/zones are drawn in that option's color automatically. An option can branch again into its own sub-options (a "variant of the variant") the same way, from ITS last step — a sub-option shades its parent's own color (lighter/darker) instead of a brand new one, so you can tell at a glance which family it belongs to. Once a play has options, "Download animation (GIF)" turns into two buttons: one GIF per option (each labelled "V1"/"V2"… in its own color, centered, with the play's name right underneath), or a single combined GIF with every option played in full, one after another, each labelled as it starts; "Export to PDF" prints every step of every option on its own page, breadcrumbed so you can tell which option you're reading.
+Note for this step
+— a short caption (e.g. "1 passes to 2 and cuts backdoor") that appears on screen while that step plays during "Animate", and under the diagram in the exported PDF.
+This step's court
+— half or full, chosen independently for every step.
+Speed
+— slows down or speeds up "Animate whole sequence"; the same speed also gets baked into the downloaded GIF.
+Download animation (GIF)
+— renders the whole sequence as a GIF file you can send or embed anywhere, not just play it here.
+Undo
+removes the last action, or the last point if there are no actions left.
+Clear this step
+wipes everything on the current step only.
+— 🔒 only you, 👥 your whole club, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). The icon next to each play in the list shows its current circle.
+New play
+Starts a blank play for the team selected above, or pick up where an existing one left off.
+Pick one of this team's saved plays to start a new one from it — the original stays untouched.
+🌐 Browse Playbook →
+Play details
+Play name
+English
+Français
+Español
+Steps & drawing tools
+Slow
+Normal
+Fast
+▶ Animate whole sequence
+⬇ Download animation (GIF)
+⬇ Download ALL options in one GIF
+↩ Undo last
+Save play
+Export to PDF (all steps)
+Delete this play
+PlayPivot
+Messages
+e.g. Horns flare
+e.g. 1 passes to 2 and cuts to the corner

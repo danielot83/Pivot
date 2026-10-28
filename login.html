@@ -321,6 +321,7 @@
 
 <!-- Official Supabase client, loaded from their CDN -- nothing to
      install for this first test. -->
+<script src="./i18n.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="terms-version.js"></script>
 <!-- Reutiliza TEAM_CATEGORY_OPTIONS/TEAM_GENDER_OPTIONS/guessSeasonOptions()
@@ -366,7 +367,7 @@
   };
 
   function showMessage(text, type) {
-    els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text;
+    els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + _t(text);
     els.msg.className = "msg " + type;
     els.msg.scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -377,7 +378,7 @@
   }
 
   function setMode(newMode) {
-    document.getElementById("terms-version-inline").textContent = ` (version ${TERMS_VERSION})`;
+    document.getElementById("terms-version-inline").textContent = " " + _t("(version {v})", { v: TERMS_VERSION });
     mode = newMode;
     clearMessage();
     if (mode === "login") {
@@ -416,7 +417,7 @@
   });
 
   async function loadJoinableOrgs() {
-    els.joinOrg.innerHTML = "<option>Loading…</option>";
+    els.joinOrg.innerHTML = "<option>" + _t("Loading…") + "</option>";
     try {
       const { data, error } = await supabaseClient
         .from("organizations")
@@ -426,18 +427,19 @@
       if (error) throw error;
       els.joinOrg.innerHTML = "";
       if (!data || data.length === 0) {
-        els.joinOrg.innerHTML = "<option value=''>None yet — create the first one!</option>";
+        els.joinOrg.innerHTML = "<option value=''>" + _t("None yet — create the first one!") + "</option>";
         return;
       }
       data.forEach((org) => {
         const opt = document.createElement("option");
         opt.value = org.id;
         opt.textContent = org.name;
+        opt.setAttribute("data-i18n-skip", "");
         els.joinOrg.appendChild(opt);
       });
       loadTeamsForJoinOrg(els.joinOrg.value);
     } catch (err) {
-      els.joinOrg.innerHTML = "<option value=''>Couldn't load the list</option>";
+      els.joinOrg.innerHTML = "<option value=''>" + _t("Couldn't load the list") + "</option>";
     }
   }
 
@@ -450,17 +452,17 @@
   // -----------------------------------------------------------------------
   let joinTeamOptions = [];
 
-  els.joinTeamNewCategory.innerHTML = TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}">${c || "No category"}</option>`).join("");
-  els.joinTeamNewGender.innerHTML = TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}">${g}</option>`).join("");
+  els.joinTeamNewCategory.innerHTML = TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}">${c || escapeHtml(_t("No category"))}</option>`).join("");
+  els.joinTeamNewGender.innerHTML = TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}">${escapeHtml(g ? _t(g) : g)}</option>`).join("");
   (function fillJoinSeasons() {
     const { seasons, current } = guessSeasonOptions();
-    els.joinTeamNewSeason.innerHTML = seasons.map((s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}${s === current ? " (current)" : ""}</option>`).join("");
+    els.joinTeamNewSeason.innerHTML = seasons.map((s) => `<option value="${s}" ${s === current ? "selected" : ""}>${s}${s === current ? " " + escapeHtml(_t("(current)")) : ""}</option>`).join("");
   })();
 
   async function loadTeamsForJoinOrg(orgId) {
-    els.joinTeam.innerHTML = '<option value="">Loading…</option>';
+    els.joinTeam.innerHTML = '<option value="">' + _t("Loading…") + '</option>';
     els.joinTeamNewFields.style.display = "none";
-    if (!orgId) { els.joinTeam.innerHTML = '<option value="" disabled selected>Choose your team…</option>'; return; }
+    if (!orgId) { els.joinTeam.innerHTML = '<option value="" disabled selected>' + _t("Choose your team…") + '</option>'; return; }
     const { data, error } = await supabaseClient
       .from("teams")
       .select("season, team, team_category, team_gender")
@@ -468,7 +470,7 @@
       .order("team");
     joinTeamOptions = error ? [] : (data || []);
     const teamLabel = (t) => {
-      const bits = [t.team_category, t.team_gender].filter(Boolean).join(" · ");
+      const bits = [t.team_category, t.team_gender ? _t(t.team_gender) : ""].filter(Boolean).join(" · ");
       return (bits ? `${t.team} — ${bits}` : t.team) + ` (${t.season})`;
     };
     // Dani, 2026-09-16: "Whole club" ya no es una opción que quien pide
@@ -477,9 +479,9 @@
     // pudiendo poner a alguien a "Whole club" después, desde Settings →
     // Members, con pleno conocimiento de causa.
     els.joinTeam.innerHTML =
-      '<option value="" disabled selected>Choose your team…</option>' +
-      joinTeamOptions.map((t, i) => `<option value="${i}">${escapeHtml(teamLabel(t))}</option>`).join("") +
-      '<option value="__new__">+ My team isn\'t listed — request a new one</option>';
+      '<option value="" disabled selected>' + escapeHtml(_t("Choose your team…")) + '</option>' +
+      joinTeamOptions.map((t, i) => `<option value="${i}" data-i18n-skip>${escapeHtml(teamLabel(t))}</option>`).join("") +
+      '<option value="__new__">' + escapeHtml(_t("+ My team isn't listed — request a new one")) + '</option>';
   }
 
   els.joinOrg.addEventListener("change", () => loadTeamsForJoinOrg(els.joinOrg.value));
@@ -496,13 +498,13 @@
   // -----------------------------------------------------------------------
   document.getElementById("forgot-password-link").addEventListener("click", async () => {
     const typed = els.email.value.trim();
-    const email = typed || prompt("Which email is your account under?");
+    const email = typed || prompt(_t("Which email is your account under?"));
     if (!email) return;
     try {
       const redirectTo = window.location.origin + window.location.pathname.replace(/[^/]*$/, "login.html");
       const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) throw error;
-      showMessage(`If ${email} has an account, a reset link is on its way — check your inbox.`, "success");
+      showMessage(_t("If {email} has an account, a reset link is on its way — check your inbox.", { email }), "success");
     } catch (err) {
       showMessage(err.message || "Couldn't send that right now.", "error");
     }
@@ -521,7 +523,7 @@
   document.getElementById("save-new-password-btn").addEventListener("click", async () => {
     const resetMsg = document.getElementById("reset-msg");
     const showResetMsg = (text, type) => {
-      resetMsg.textContent = (type === "error" ? "⚠ " : "✓ ") + text;
+      resetMsg.textContent = (type === "error" ? "⚠ " : "✓ ") + _t(text);
       resetMsg.className = "msg " + type;
       resetMsg.scrollIntoView({ behavior: "smooth", block: "center" });
     };

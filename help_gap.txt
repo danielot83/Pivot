@@ -1,0 +1,37 @@
+A quick map of everything PlayPivot can do — one line per module, nothing more.
+This page is deliberately brief: just enough to know what each module is for and where to find it.
+Want a proper step-by-step guide for one of these?
+Just ask in the app and we'll build a detailed walkthrough for that module — one at a time.
+Day to day
+Your home screen: your club, your role, quick stats, pending requests and messages, all in one place.
+Open Dashboard →
+Manage your players and staff — profiles, positions, seasons and teams — for the whole club in one table.
+Open Roster →
+Track who showed up to training and games, session by session, so you always know who's available.
+Open Attendance →
+Prepare games, set your lineup, track live stats and record the final result and box score.
+Open Match day →
+Training & coaching content
+Build a drill from scratch with a court diagram, step-by-step instructions and coaching notes.
+Open Exercise creator →
+Browse, search and organize every drill you've created or that's been shared with you or your club.
+Open Exercise library →
+Assemble a full practice session out of drills from your library, with timings, in the order you'll run it.
+Open Training builder →
+Draw offensive sets, defensive schemes and out-of-bounds plays on a court, and save them to your team's saved plays.
+Open Play design →
+Browse every play across your club — every team's saved plays, plus anything shared by other clubs — filtered by team, category or who made it.
+Open Playbook →
+Player development
+Score each player on technical skills, basketball IQ and attitude, and follow how they develop over time.
+Open Player assessment →
+Stats & Compare
+See team and player performance over the season, and compare match statistics and trends side by side.
+Open Stats & Compare →
+Your club
+Your club's logo, members and roles, sharing defaults, club associations, export language and account options.
+Open Settings →
+PlayPivot
+English
+Français
+Español

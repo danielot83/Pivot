@@ -1,0 +1,88 @@
+# Player assessment: criterios y mensajes
+Technique ||| Technique ||| Técnica
+Looks at the ball ||| Regarde le ballon ||| Mira el balón
+Dribbles with right hand ||| Dribble de la main droite ||| Bota con la mano derecha
+Dribbles with left hand ||| Dribble de la main gauche ||| Bota con la mano izquierda
+Changes of direction ||| Changements de direction ||| Cambios de dirección
+Shooting technique ||| Technique de tir ||| Técnica de tiro
+Balance / footwork for the shot ||| Équilibre / jeu de jambes pour le tir ||| Equilibrio / juego de pies para el tiro
+Speed of execution ||| Rapidité d'exécution ||| Velocidad de ejecución
+Free throw ||| Lancer franc ||| Tiro libre
+Passing technique ||| Technique de passe ||| Técnica de pase
+Passing out of the dribble ||| Passe après dribble ||| Pase tras el bote
+Catching passes ||| Réception des passes ||| Recepción de pases
+Defensive stance ||| Position défensive ||| Posición defensiva
+On-ball defense (strong side) ||| Défense sur le porteur (côté fort) ||| Defensa sobre el balón (lado fuerte)
+Off-ball defense (weak side) ||| Défense sans ballon (côté faible) ||| Defensa sin balón (lado débil)
+Basketball IQ ||| Intelligence de jeu ||| Inteligencia de juego
+Off the ball ||| Sans ballon ||| Sin balón
+Getting open, back door cuts ||| Se démarquer, coupes dans le dos ||| Desmarques, cortes por la espalda
+Spacing ||| Espacement ||| Espaciado
+Setting screens (U18) ||| Poser des écrans (U18) ||| Poner bloqueos (U18)
+With the ball ||| Avec ballon ||| Con balón
+Uses the dribble effectively ||| Utilise le dribble à bon escient ||| Usa el bote con eficacia
+Reads the defense ||| Lit la défense ||| Lee la defensa
+Shot selection ||| Choix des tirs ||| Selección de tiros
+Anticipation ||| Anticipation ||| Anticipación
+Reading the offense ||| Lecture de l'attaque ||| Lectura del ataque
+Help defense ||| Aide défensive ||| Ayuda defensiva
+Defending screens ||| Défense sur les écrans ||| Defensa de bloqueos
+Character, motivation, determination ||| Caractère, motivation, détermination ||| Carácter, motivación, determinación
+Pace of play ||| Rythme de jeu ||| Ritmo de juego
+Tactical choices ||| Choix tactiques ||| Decisiones tácticas
+Influence on the game ||| Influence sur le jeu ||| Influencia en el juego
+Personality ||| Personnalité ||| Personalidad
+General attitude ||| Attitude générale ||| Actitud general
+Towards teammates / coaches ||| Envers les coéquipiers / entraîneurs ||| Hacia compañeros / entrenadores
+Towards their own mistakes ||| Face à ses propres erreurs ||| Ante sus propios errores
+Towards referees ||| Envers les arbitres ||| Hacia los árbitros
+Behaviour ||| Comportement ||| Comportamiento
+Motivation, willing to sacrifice time for the sport, willing to push their limits ||| Motivation, prêt à sacrifier du temps pour le sport, prêt à repousser ses limites ||| Motivación, disposición a sacrificar tiempo por el deporte, disposición a superar sus límites
+Tactical discipline: follows the coach's instructions, pays attention when others are corrected ||| Discipline tactique : suit les consignes de l'entraîneur, reste attentif quand les autres sont corrigés ||| Disciplina táctica: sigue las instrucciones del entrenador y presta atención cuando se corrige a otros
+Team integration: helps and supports teammates ||| Intégration dans l'équipe : aide et soutient ses coéquipiers ||| Integración en el equipo: ayuda y apoya a sus compañeros
+Adaptability: can adapt quickly to a new role ||| Adaptabilité : sait s'adapter rapidement à un nouveau rôle ||| Adaptabilidad: sabe adaptarse rápido a un nuevo rol
+Average: {avg} / 5 ||| Moyenne : {avg} / 5 ||| Media: {avg} / 5
+Average: — ||| Moyenne : — ||| Media: —
+{delta} vs previous ||| {delta} vs précédent ||| {delta} vs anterior
+Sector averages ||| Moyennes par secteur ||| Medias por sector
+Height: {player} cm (father {father}, mother {mother}) ||| Taille : {player} cm (père {father}, mère {mother}) ||| Estatura: {player} cm (padre {father}, madre {mother})
+Positive||PDF notes label ||| Positifs ||| Positivos
+To watch||PDF notes label ||| À surveiller ||| A vigilar
+Next||PDF notes label ||| Suite ||| Próximos
+date||assessment export column ||| date ||| fecha
+location||assessment export column ||| lieu ||| lugar
+TOT||assessment export column ||| TOT ||| TOT
+To improve||assessment export column ||| À améliorer ||| A mejorar
+Assessments||sheet name ||| Évaluations ||| Evaluaciones
+assessments||file name word ||| evaluations ||| evaluaciones
+assessment||file name word ||| evaluation ||| evaluacion
+Player||PDF fallback name ||| Joueur ||| Jugador
+Pick a player first. ||| Choisissez d'abord un joueur. ||| Elige primero un jugador.
+Assessment saved. ||| Évaluation enregistrée. ||| Evaluación guardada.
+Couldn't save that assessment. ||| Impossible d'enregistrer cette évaluation. ||| No se pudo guardar esa evaluación.
+Delete this assessment? ||| Supprimer cette évaluation ? ||| ¿Eliminar esta evaluación?
+Delete this measurement? ||| Supprimer cette mesure ? ||| ¿Eliminar esta medición?
+Delete this measurement ||| Supprimer cette mesure ||| Eliminar esta medición
+No assessments yet for this player. ||| Aucune évaluation pour ce joueur pour l'instant. ||| Todavía no hay evaluaciones para este jugador.
+Couldn't load tracking — run database/step74_player_tracking.sql in Supabase first if you haven't yet. ||| Impossible de charger le suivi — exécutez d'abord database/step74_player_tracking.sql dans Supabase si ce n'est pas déjà fait. ||| No se pudo cargar el seguimiento: ejecuta antes database/step74_player_tracking.sql en Supabase si aún no lo has hecho.
+No measurements tracked yet for this player. ||| Aucune mesure suivie pour ce joueur pour l'instant. ||| Todavía no hay mediciones de seguimiento para este jugador.
+Name the criterion you're tracking. ||| Indiquez le critère que vous suivez. ||| Indica el criterio que estás siguiendo.
+Pick a date. ||| Choisissez une date. ||| Elige una fecha.
+Enter a result. ||| Saisissez un résultat. ||| Introduce un resultado.
+Result must be a number. ||| Le résultat doit être un nombre. ||| El resultado debe ser un número.
+Measurement saved. ||| Mesure enregistrée. ||| Medición guardada.
+Couldn't save that measurement. ||| Impossible d'enregistrer cette mesure. ||| No se pudo guardar esa medición.
+Prompt copied — paste it into any AI chat. ||| Consigne copiée — collez-la dans n'importe quel chat IA. ||| Instrucción copiada: pégala en cualquier chat de IA.
+Couldn't copy automatically — select and copy the prompt manually. ||| Impossible de copier automatiquement — sélectionnez et copiez la consigne à la main. ||| No se pudo copiar automáticamente: selecciona y copia la instrucción a mano.
+Paste the AI's reply first. ||| Collez d'abord la réponse de l'IA. ||| Pega primero la respuesta de la IA.
+Couldn't find any recognizable scores in that text. ||| Aucune note reconnaissable trouvée dans ce texte. ||| No se encontró ninguna puntuación reconocible en ese texto.
+Filled in {n} criteria from the AI reply — review before saving. ||| {n} critères remplis depuis la réponse de l'IA — relisez avant d'enregistrer. ||| {n} criterios rellenados desde la respuesta de la IA: revisa antes de guardar.
+Load {team} ({season}) with a sample assessment for each player? ||| Charger {team} ({season}) avec une évaluation d'exemple pour chaque joueur ? ||| ¿Cargar {team} ({season}) con una evaluación de muestra para cada jugador?
+{n} example players and assessments loaded. ||| {n} joueurs et évaluations d'exemple chargés. ||| {n} jugadores y evaluaciones de ejemplo cargados.
+{team} removed. ||| {team} supprimé. ||| {team} eliminado.
+Couldn't load the example data. ||| Impossible de charger les données d'exemple. ||| No se pudieron cargar los datos de ejemplo.
+▸ Fill in with AI ||| ▸ Remplir avec l'IA ||| ▸ Rellenar con IA
+▾ Fill in with AI ||| ▾ Remplir avec l'IA ||| ▾ Rellenar con IA
+PlayPivot | Basketball Player Assessment ||| PlayPivot | Évaluation des joueurs ||| PlayPivot | Evaluación de jugadores
+(inactive) ||| (inactif) ||| (inactivo)
+Inactive ||| Inactifs ||| Inactivos

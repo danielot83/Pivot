@@ -249,7 +249,7 @@
   <div></div>
   <div class="topbar-right">
     <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
-    <div id="org-name-big" style="display:none;"></div>
+    <div id="org-name-big" data-i18n-skip style="display:none;"></div>
   </div>
 </div>
 
@@ -439,7 +439,7 @@
 </main>
 </div><!-- /app-shell -->
 
-<script src="./i18n.js?v=1"></script>
+<script src="./i18n.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
 <script src="sidebar-widgets.js"></script>
@@ -467,7 +467,7 @@
   let isPlatformController = false;
   let pendingBlob = null;
 
-  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; }
+  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + _t(text); els.msg.className = "msg " + type; }
 
   function logoUrl(orgId) {
     return `${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`;
@@ -575,7 +575,7 @@
     if (!data || data.length === 0) { list.innerHTML = '<p class="hint" style="margin:0;">Nobody else yet — just you.</p>'; return; }
     list.innerHTML = data.map((p) => `
       <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line);">
-        <span>${escapeHtml(p.full_name || p.email)}</span>
+        <span data-i18n-skip>${escapeHtml(p.full_name || p.email)}</span>
         <button class="btn btn-secondary remove-validator-btn" data-id="${p.id}" style="padding:4px 10px; font-size:12px;">Remove</button>
       </div>`).join("");
     list.querySelectorAll(".remove-validator-btn").forEach((btn) => btn.addEventListener("click", () => setValidator(btn.dataset.id, false)));
@@ -619,7 +619,7 @@
       const note = document.createElement("p");
       note.className = "role-lock-note";
       note.style.cssText = "font-size:12.5px; color:var(--accent-deep); background:var(--accent-tint); border-radius:6px; padding:8px 10px; margin-top:10px;";
-      note.textContent = `🔒 Only your club's admin can change this — you're currently "${myRole}".`;
+      note.textContent = _t("🔒 Only your club's admin can change this — you're currently \"{role}\".", { role: _t(myRole) });
       card.appendChild(note);
     });
   }
@@ -669,6 +669,16 @@
   // -----------------------------------------------------------------------
   const VISIBILITY_LABELS = { private: "Only me", team: "Whole club", association: "Club association", community: "PlayPivot Community" };
 
+  // Frases completas por tabla (en vez de pegar el nombre de la tabla en medio de una frase) para que
+  // cada idioma pueda concordar género y número. El texto en inglés es idéntico al de antes.
+  const BULK_MSGS = {
+    exercises: ['Set ALL of your exercises to "{vis}"?', 'All exercises set to "{vis}".'],
+    plays: ['Set ALL of your plays to "{vis}"?', 'All plays set to "{vis}".'],
+    matches: ['Set ALL of your matches to "{vis}"?', 'All matches set to "{vis}".'],
+    trainings: ['Set ALL of your trainings to "{vis}"?', 'All trainings set to "{vis}".'],
+    player_assessments: ['Set ALL of your player assessments to "{vis}"?', 'All player assessments set to "{vis}".'],
+  };
+
   async function loadSharingStatus() {
     for (const card of document.querySelectorAll(".sharing-bulk-card")) {
       const table = card.dataset.table;
@@ -679,8 +689,8 @@
       (data || []).forEach((row) => { counts[row.visibility || "team"] = (counts[row.visibility || "team"] || 0) + 1; });
       const statusEl = card.querySelector(".sharing-status");
       statusEl.textContent = total === 0
-        ? "Nothing here yet."
-        : Object.keys(counts).filter((k) => counts[k] > 0).map((k) => `${counts[k]} ${VISIBILITY_LABELS[k]}`).join(" · ") + ` (${total} total)`;
+        ? _t("Nothing here yet.")
+        : Object.keys(counts).filter((k) => counts[k] > 0).map((k) => `${counts[k]} ${_t(VISIBILITY_LABELS[k])}`).join(" · ") + " " + _t("({n} total)", { n: total });
     }
   }
 
@@ -689,10 +699,11 @@
       const card = btn.closest(".sharing-bulk-card");
       const table = card.dataset.table;
       const value = card.querySelector(".bulk-visibility-select").value;
-      if (!confirm(`Set ALL of your ${table.replace(/_/g, " ")} to "${VISIBILITY_LABELS[value]}"?`)) return;
+      const bulk = BULK_MSGS[table];
+      if (!confirm(_t(bulk[0], { vis: _t(VISIBILITY_LABELS[value]) }))) return;
       const { error } = await supabaseClient.from(table).update({ visibility: value }).eq("organization_id", currentOrgId);
       if (error) { showMessage(error.message, "error"); return; }
-      showMessage(`All ${table.replace(/_/g, " ")} set to "${VISIBILITY_LABELS[value]}".`, "success");
+      showMessage(_t(bulk[1], { vis: _t(VISIBILITY_LABELS[value]) }), "success");
       await loadSharingStatus();
     });
   });
@@ -714,7 +725,7 @@
     list.innerHTML = data.map((row) => {
       const a = row.club_associations;
       const label = row.status === "pending" ? "⏳ Pending approval" : row.status === "approved" ? "✅ Member" : "❌ Rejected";
-      return `<div style="padding:8px 0; border-bottom:1px solid var(--line);"><strong>${escapeHtml(a ? a.name : "—")}</strong> — ${label}</div>`;
+      return `<div style="padding:8px 0; border-bottom:1px solid var(--line);"><strong data-i18n-skip>${escapeHtml(a ? a.name : "—")}</strong> — ${_t(label)}</div>`;
     }).join("");
   }
 
@@ -757,7 +768,7 @@
     const scopeNotice = document.getElementById("members-scope-notice");
     if (scopeNotice) {
       scopeNotice.textContent = myTeamSeason
-        ? `You're scoped to ${myTeamName} — ${myTeamSeason}, so you only see and manage members scoped to that same team.`
+        ? _t("You're scoped to {team} — {season}, so you only see and manage members scoped to that same team.", { team: myTeamName, season: myTeamSeason })
         : "";
       scopeNotice.style.display = myTeamSeason ? "block" : "none";
     }
@@ -815,7 +826,8 @@
       const info = document.createElement("div");
       info.className = "member-info";
       const name = document.createElement("strong");
-      name.textContent = ((m.profiles && m.profiles.full_name) || "Someone") + (m.status === "blocked" ? " — blocked" : "");
+      name.setAttribute("data-i18n-skip", "");
+      name.textContent = ((m.profiles && m.profiles.full_name) || _t("Someone")) + (m.status === "blocked" ? " — " + _t("blocked||member status") : "");
       info.appendChild(name);
 
       const actions = document.createElement("div");
@@ -824,7 +836,7 @@
       // Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): solo quedan admin y coach, la BD ya no acepta los otros tres.
       ["admin", "coach"].forEach((r) => {
         const opt = document.createElement("option");
-        opt.value = r; opt.textContent = r;
+        opt.value = r; opt.textContent = _t(r);
         if (r === m.role) opt.selected = true;
         roleSelect.appendChild(opt);
       });
@@ -846,15 +858,15 @@
       const scopeValueOf = (t) => `${t.season}|${t.team}|${t.team_category || ""}|${t.team_gender || ""}`;
       const scopeCurrentValue = m.team_season ? `${m.team_season}|${m.team_name}|${m.team_category || ""}|${m.team_gender || ""}` : "";
       const scopeSelect = document.createElement("select");
-      scopeSelect.title = "Scope this person to one team only (optional)";
+      scopeSelect.title = _t("Scope this person to one team only (optional)");
       scopeSelect.disabled = m.status === "blocked";
-      scopeSelect.innerHTML = '<option value="">Whole club</option>' +
+      scopeSelect.innerHTML = `<option value="">${escapeHtml(_t("Whole club"))}</option>` +
         teamOptions.map((t) => {
-          const catGender = [t.team_category, t.team_gender].filter(Boolean).join(" ");
+          const catGender = [t.team_category, t.team_gender ? _t(t.team_gender) : ""].filter(Boolean).join(" ");
           const label = catGender ? `${t.team} · ${catGender}` : t.team;
-          return `<option value="${escapeHtml(scopeValueOf(t))}" ${scopeValueOf(t) === scopeCurrentValue ? "selected" : ""}>${escapeHtml(label)} — ${escapeHtml(t.season)} only</option>`;
+          return `<option value="${escapeHtml(scopeValueOf(t))}" ${scopeValueOf(t) === scopeCurrentValue ? "selected" : ""}>${escapeHtml(_t("{team} — {season} only", { team: label, season: t.season }))}</option>`;
         }).join("") +
-        '<option value="__new__">+ Create new team…</option>';
+        `<option value="__new__">${escapeHtml(_t("+ Create new team…"))}</option>`;
       scopeSelect.addEventListener("change", async () => {
         if (scopeSelect.value === "__new__") {
           const created = await promptNewTeam(supabaseClient, currentOrgId);
@@ -870,11 +882,11 @@
       });
 
       const statusBtn = document.createElement("button");
-      statusBtn.textContent = m.status === "blocked" ? "Reactivate" : "Block";
+      statusBtn.textContent = _t(m.status === "blocked" ? "Reactivate" : "Block");
       statusBtn.addEventListener("click", () => changeStatus(m.id, m.status === "blocked" ? "active" : "blocked", row));
 
       const removeBtn = document.createElement("button");
-      removeBtn.textContent = "Remove";
+      removeBtn.textContent = _t("Remove");
       removeBtn.addEventListener("click", () => removeMember(m.id, row));
 
       actions.appendChild(roleSelect);
@@ -914,7 +926,7 @@
     const scopeNotice = document.getElementById("org-chart-scope-notice");
     if (scopeNotice) {
       scopeNotice.textContent = myTeamSeason
-        ? `Showing ${myTeamName} — ${myTeamSeason}'s own staff, plus anyone who directs the whole club.`
+        ? _t("Showing {team} — {season}'s own staff, plus anyone who directs the whole club.", { team: myTeamName, season: myTeamSeason })
         : "";
       scopeNotice.style.display = myTeamSeason ? "block" : "none";
     }
@@ -952,7 +964,7 @@
     const byPerson = new Map();
     rows.forEach((m) => {
       const key = m.user_id || ((m.profiles && m.profiles.full_name) || "?");
-      if (!byPerson.has(key)) byPerson.set(key, { name: (m.profiles && m.profiles.full_name) || "Someone", isAdmin: false, scopes: new Set() });
+      if (!byPerson.has(key)) byPerson.set(key, { name: (m.profiles && m.profiles.full_name) || _t("Someone"), isAdmin: false, scopes: new Set() });
       const person = byPerson.get(key);
       if (m.role === "admin") person.isAdmin = true;
       person.scopes.add(pivotMembershipScopeLabel(m));
@@ -965,8 +977,8 @@
       const scopes = Array.from(p.scopes).sort((a, b) => (a === "whole club" ? -1 : b === "whole club" ? 1 : a.localeCompare(b, undefined, { numeric: true })));
       return `
       <div style="display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); gap:10px;">
-        <span>${escapeHtml(p.name)}</span>
-        <span style="font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase; text-align:right;">${label} · ${escapeHtml(scopes.join(", "))}</span>
+        <span data-i18n-skip>${escapeHtml(p.name)}</span>
+        <span data-i18n-skip style="font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase; text-align:right;">${_t(label)} · ${escapeHtml(scopes.map(pivotScopeShown).join(", "))}</span>
       </div>`;
     };
     list.innerHTML = admins.map((p) => rowHtml(p, "Admin")).join("") + coaches.map((p) => rowHtml(p, "Coach")).join("");
@@ -992,8 +1004,8 @@
         .eq("id", membershipId).select("id");
       if (error) throw error;
       if (!data || data.length === 0) { showMessage(SCOPE_BLOCKED_MSG, "error"); await loadMembers(); return; }
-      const catGender = [teamCategory, teamGender].filter(Boolean).join(" ");
-      showMessage(season ? `Scoped to ${team}${catGender ? ` · ${catGender}` : ""} — ${season} only.` : "Scoped to the whole club again.", "success");
+      const catGender = [teamCategory, teamGender ? _t(teamGender) : ""].filter(Boolean).join(" ");
+      showMessage(season ? _t("Scoped to {team} — {season} only.", { team: `${team}${catGender ? ` · ${catGender}` : ""}`, season }) : "Scoped to the whole club again.", "success");
       // Dani 2026-09-29 (captura: acota a Daniel a "U10 Mixed" aquí arriba,
       // pero "Team org chart" -- la tarjeta de más abajo en esta misma
       // página -- seguía diciendo "Whole club"): esa tarjeta solo consulta
@@ -1176,7 +1188,7 @@
       <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
         <li>Everyone can see this page, whatever their role — but only your club's <strong>admin</strong> (or a PlayPivot platform admin) can actually change anything here. If you're a coach, everything below is visible but locked, with a note explaining why.</li>
         <li><strong>Club logo</strong> — pick an image, it's automatically resized and converted; instructions for the best result are right below the upload button.</li>
-        <li><strong>Members</strong> — change anyone's role with the dropdown, <strong>block</strong> someone to cut their access without deleting their history (they can be reactivated any time), or <strong>remove</strong> them for good. You can never demote, block, or remove the club's last admin — the app blocks it on purpose. Someone requesting to join for the first time shows up on your dashboard, not here.</li>
+        <li><strong>Members</strong> — change anyone's role with the dropdown, <strong>${_t("block||help sentence verb")}</strong> someone to cut their access without deleting their history (they can be reactivated any time), or <strong>${_t("remove||help sentence verb")}</strong> them for good. You can never demote, block, or remove the club's last admin — the app blocks it on purpose. Someone requesting to join for the first time shows up on your dashboard, not here.</li>
         <li><strong>Exercise sharing</strong> — the two buttons here set ALL your exercises to either "PlayPivot Community" (everyone) or "Whole club" at once. To choose more precisely, set the sharing circle exercise by exercise in the Exercise creator: <strong>Only me</strong> (private, even from your own teammates), <strong>Whole club</strong> (everyone active in your club), <strong>My club association</strong> (a small group of clubes who agreed to share, needs the platform controller's approval), or <strong>PlayPivot Community</strong> (every club on PlayPivot, view only for them). The same 4 choices exist in Plays, Match day, Training builder, and Player assessment — see the sections below to set them in bulk, or per item inside each module.</li>
         <li><strong>Plays / Matches / Trainings / Assessments sharing</strong> — same 4 circles, same idea: set them all at once here, or pick one item at a time inside each module.</li>
         <li><strong>Club association</strong> — propose a new group of clubes, or join an existing one by typing its exact name. Nothing is shared until the platform controller approves it — you'll see the request's status here, and a 🔔 on your dashboard shows you (or the controller) what's pending.</li>
@@ -1221,7 +1233,7 @@ els.logoutBtn.addEventListener("click", async () => {
       row.style.cssText = "display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;";
       const orgName = (m.organizations && m.organizations.name) || "?";
       const btnLabel = isSoleAdmin ? "Delete this club entirely" : "Leave this club";
-      row.innerHTML = `<span>${escapeHtml(orgName)} <span class="hint" style="font-size:11.5px;">(${m.role}${isSoleAdmin ? ", only admin" : ""})</span></span>
+      row.innerHTML = `<span><span data-i18n-skip>${escapeHtml(orgName)}</span> <span class="hint" style="font-size:11.5px;">(${escapeHtml(isSoleAdmin ? _t("{role}, only admin", { role: _t(m.role) }) : _t(m.role))})</span></span>
         <button data-id="${m.id}" data-org="${m.organization_id}" data-sole="${isSoleAdmin}" data-name="${escapeHtml(orgName)}" style="background:none; border:1px solid var(--line); border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer; color:${isSoleAdmin ? "#991b1b" : "var(--ink)"};">${btnLabel}</button>`;
       container.appendChild(row);
     }
@@ -1230,16 +1242,16 @@ els.logoutBtn.addEventListener("click", async () => {
         const isSole = btn.dataset.sole === "true";
         const name = btn.dataset.name;
         if (isSole) {
-          if (!confirm(`Delete "${name}" ENTIRELY? This removes the club and everything in it — roster, exercises, assessments, matches, everything. This can't be undone.`)) return;
-          if (!confirm(`Really sure? Type-to-confirm isn't available here, so this is your last check: delete "${name}" for good?`)) return;
+          if (!confirm(_t("Delete \"{name}\" ENTIRELY? This removes the club and everything in it — roster, exercises, assessments, matches, everything. This can't be undone.", { name }))) return;
+          if (!confirm(_t("Really sure? Type-to-confirm isn't available here, so this is your last check: delete \"{name}\" for good?", { name }))) return;
           const { error } = await supabaseClient.from("organizations").delete().eq("id", btn.dataset.org);
           if (error) { showMessage(error.message, "error"); return; }
-          showMessage(`"${name}" has been deleted.`, "success");
+          showMessage(_t("\"{name}\" has been deleted.", { name }), "success");
         } else {
-          if (!confirm(`Leave "${name}"? You'll lose access, but the club's data stays intact for the rest of its members.`)) return;
+          if (!confirm(_t("Leave \"{name}\"? You'll lose access, but the club's data stays intact for the rest of its members.", { name }))) return;
           const { error } = await supabaseClient.from("memberships").delete().eq("id", btn.dataset.id);
           if (error) { showMessage(error.message, "error"); return; }
-          showMessage(`You've left "${name}".`, "success");
+          showMessage(_t("You've left \"{name}\".", { name }), "success");
         }
         // Dani 2026-09-17 (ronda30): borrar/salir de un club dejaba el resto
         // de la página (logo, org-switcher, secciones de sharing, roster de

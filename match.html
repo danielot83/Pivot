@@ -654,7 +654,7 @@
 </main>
 </div><!-- /app-shell -->
 
-<script src="./i18n.js?v=1"></script>
+<script src="./i18n.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -745,7 +745,7 @@
   // Esta función arma un nombre que incluye también categoría y género
   // cuando existen.
   function teamFileLabel() {
-    return [currentTeam, currentTeamCategory, currentTeamGender].filter(Boolean).join(" ");
+    return [currentTeam, currentTeamCategory, currentTeamGender ? _t(currentTeamGender) : ""].filter(Boolean).join(" ");
   }
   let currentMatchId = null;
   let currentMatchOwned = true; // false para un partido compartido de otro club (solo lectura)
@@ -910,7 +910,8 @@
 
   async function deleteTeam(season, team, category) {
     const gender = currentTeamGender;
-    if (!confirm(`Remove "${team}"${category ? " (" + category + ")" : ""}${gender ? " " + gender : ""} (${season}) and all its players? This can't be undone.`)) return;
+    const teamLabel = `${team}${category ? " (" + category + ")" : ""}${gender ? " " + _t(gender) : ""}`;
+    if (!confirm(_t(`Remove "{label}" ({season}) and all its players? This can't be undone.`, { label: teamLabel, season }))) return;
     const { error } = await filterByGender(filterByCategory(
       supabaseClient.from("players").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       category
@@ -932,7 +933,7 @@
     }
 
     if (season === currentSeason && team === currentTeam && (category || "") === (currentTeamCategory || "")) { currentSeason = null; currentTeam = null; currentTeamCategory = ""; currentTeamGender = ""; els.matchArea.classList.remove("open"); }
-    showMessage(`"${team}"${category ? " (" + category + ")" : ""} (${season}) removed.`, "success");
+    showMessage(_t(`"{label}" ({season}) removed.`, { label: `${team}${category ? " (" + category + ")" : ""}`, season }), "success");
     await loadTree();
   }
 
@@ -1634,10 +1635,10 @@
   }
 
   const ATTENDANCE_BADGE = {
-    present: { label: "P", cls: "present-yes" },
-    absent: { label: "A", cls: "present-no" },
-    excused: { label: "E", cls: "present-other" },
-    late: { label: "L", cls: "present-other" },
+    present: { label: _t("P||status letter: present"), cls: "present-yes" },
+    absent: { label: _t("A||status letter: absent"), cls: "present-no" },
+    excused: { label: _t("E||status letter: excused"), cls: "present-other" },
+    late: { label: _t("L||status letter: late"), cls: "present-other" },
   };
 
   // Mismo ciclo que Attendance: sin marcar -> present -> absent -> excused -> late -> sin marcar.
@@ -1858,7 +1859,12 @@
     const field = td.dataset.field;
     const custom = td.dataset.custom;
     const i = parseInt(td.dataset.opp, 10);
-    const original = td.textContent.trim();
+    // Se lee del dato, NO del texto en pantalla: con el selector de idioma el
+    // texto visible puede estar traducido y no debe acabar guardado en la BD.
+    const rowData = opponentStats[i] || {};
+    const rawOriginal = custom ? (rowData.custom_stats || {})[custom] : rowData[field];
+    const shown = td.textContent.trim();
+    const original = rawOriginal === null || rawOriginal === undefined ? (/^-?[\d.,]+$/.test(shown) ? shown : "") : String(rawOriginal).trim();
     const isText = field === "player_name" || field === "jersey_number";
     const input = document.createElement("input");
     input.type = isText ? "text" : "number";
@@ -1934,7 +1940,7 @@
       .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`));
     statsByPlayer[data.id] = { called_up: true, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} };
     renderCallupTable();
-    showMessage(`${first_name} ${last_name} added for this match.`, "success");
+    showMessage(_t("{first} {last} added for this match.", { first: first_name, last: last_name }), "success");
   });
 
   // -----------------------------------------------------------------------
@@ -2005,6 +2011,9 @@
     // emparejamiento sigue siendo por nombre), pero sirve como respaldo si
     // el nombre no hace match con nadie del roster (ver matchPlayerByRow).
     jersey_number: ["n°", "no", "num", "numero", "número", "dorsal", "#", "number", "jersey", "jersey number", "maillot"],
+    // La plantilla de Excel trae "Starter" (en francés "Titulaire", en español "Titular"):
+    // antes esta columna no tenía ningún alias y el import nunca la leía.
+    started: ["starter", "started", "titular", "titulaire", "gs", "mt", "pt"],
   };
 
   // Dani, ronda 31: la lógica de "¿qué columna significa qué?" + "arma la
@@ -2051,7 +2060,7 @@
   // partidos, por lo visto) se queda sin esta información para siempre.
   // Acepta varias formas de decir "sí" en la celda -- nunca hace falta
   // que el archivo use exactamente la misma palabra.
-  const STARTER_YES_VALUES = new Set(["y", "yes", "s", "si", "sí", "x", "1", "true", "titular", "starter", "✓", "✔"]);
+  const STARTER_YES_VALUES = new Set(["y", "yes", "s", "si", "sí", "o", "oui", "x", "1", "true", "titular", "titulaire", "starter", "✓", "✔"]);
   function parseStarterCell(val) {
     return STARTER_YES_VALUES.has(String(val ?? "").trim().toLowerCase());
   }
@@ -2603,7 +2612,7 @@
   function excelTemplateColumns() {
     const base = [
       { header: "N°", field: "jersey_number" },
-      { header: "Joueur", field: "player_name" },
+      { header: _t("Player||template column header"), field: "player_name" },
       // Dani (2026-10-12): agregada para que GS (games started) en el
       // resumen de temporada tenga de dónde sacar datos cuando el partido
       // se cargó por import -- antes solo existía como casilla manual en
@@ -2611,16 +2620,16 @@
       // de IA, así que quedaba siempre vacía para cualquier partido
       // importado. Acepta "Y"/"S"/"X"/"1"/"titular"/etc. -- ver
       // parseStarterCell más arriba.
-      { header: "Starter", field: "started" },
+      { header: _t("Starter||template column header"), field: "started" },
       { header: "Min", field: "minutes" },
       { header: "1 pt", field: "made_1" },
       { header: "2 pts", field: "made_2" },
       { header: "3 pts", field: "made_3" },
-      { header: "Points total", field: "points", formula: true },
+      { header: _t("Points total||template column header"), field: "points", formula: true },
       { header: "Reb", field: "rebounds" },
       { header: "Ast", field: "assists" },
-      { header: "Fautes", field: "fouls" },
-      { header: "Periods played", field: "periods_played" },
+      { header: _t("Fouls||template column header"), field: "fouls" },
+      { header: _t("Periods played||template column header"), field: "periods_played" },
     ];
     return [...base, ...matchFields.map((f) => ({ header: f.label, field: "custom:" + f.key }))];
   }
@@ -2632,21 +2641,21 @@
 
     const rows = [];
     const ownLabel = teamFileLabel();
-    rows.push([`Plantilla de partido — ${ownLabel}`]);
+    rows.push([_t("Match template — {team}", { team: ownLabel })]);
     rows.push([]);
-    rows.push(["Compétition", ""]);
-    rows.push(["Date", ""]);
-    rows.push(["Lieu", ""]);
-    rows.push(["Équipe A", ownLabel]);
-    rows.push(["Équipe B", ""]);
-    rows.push(["Arbitre", ""]);
-    rows.push(["Score final", ""]);
+    rows.push([_t("Competition||template label"), ""]);
+    rows.push([_t("Date||template label"), ""]);
+    rows.push([_t("Location||template label"), ""]);
+    rows.push([_t("Team A||template label"), ownLabel]);
+    rows.push([_t("Team B||template label"), ""]);
+    rows.push([_t("Referee||template label"), ""]);
+    rows.push([_t("Final score||template label"), ""]);
     rows.push([]);
 
     // Dani (ronda 34): la tabla "Équipe A" ya trae el roster real de este
     // equipo, para no tener que escribir los nombres a mano -- sigue
     // igual acá, solo que ahora con más columnas detrás de cada jugador.
-    rows.push([`ÉQUIPE A — ${ownLabel}`]);
+    rows.push([_t("TEAM A — {team}", { team: ownLabel })]);
     rows.push(cols.map((c) => c.header));
     const ownDataStart = rows.length;
     const sortedPlayers = [...teamPlayers].sort((a, b) => {
@@ -2673,7 +2682,7 @@
     // 7, sin Min/Reb/Ast/Periods/stats del club), 14 filas en blanco para
     // completar a mano durante el partido (nombre Y dorsal -- no hay
     // roster del rival del que traerlos).
-    rows.push(["ÉQUIPE B — (rival)"]);
+    rows.push([_t("TEAM B — (opponent)")]);
     rows.push(cols.map((c) => c.header));
     const oppDataStart = rows.length;
     for (let i = 0; i < 14; i++) rows.push(blankDataRow());
@@ -2684,16 +2693,7 @@
     const oppTotalRow = rows.length - 1;
     rows.push([]);
 
-    rows.push([
-      "Celdas vacías: completá durante el partido. \"Points total\" se calcula solo a partir de " +
-      "1 pt/2 pts/3 pts (o escribí el número directo ahí, también funciona). \"Starter\" (quién salió de " +
-      "titular): escribí Y/S/X/1 si salió de titular, dejalo vacío si no. No hace falta que los " +
-      "nombres coincidan letra por letra -- apodos también funcionan, y el dorsal (\"N°\") sirve de " +
-      "respaldo. La fila TOTAL de cada equipo se suma sola. ÉQUIPE A ya trae a todo tu roster -- un " +
-      "jugador que NO jugó este partido: dejá su fila completamente en blanco (nombre y dorsal nada " +
-      "más) y no se marcará como que jugó al importar; si jugó pero no sumó nada, escribí al menos un " +
-      "\"0\" en alguna columna suya (Periods played, por ejemplo) para que SÍ cuente. Después: Match day → \"Import stats from Excel\".",
-    ]);
+    rows.push([_t("Empty cells: fill them in during the match. \"Points total\" is calculated automatically from 1 pt/2 pts/3 pts (or type the number straight in, that works too). \"Starter\" (who started the game): write Y/S/X/1 if they started, leave it empty if not. Names don't have to match letter for letter -- nicknames work too, and the jersey number (\"N°\") is used as a backup. Each team's TOTAL row adds itself up. TEAM A already includes your whole roster -- for a player who did NOT play this match, leave their row completely blank (name and number only) and they won't be marked as having played when you import; if they played but scored nothing, write at least a \"0\" in one of their columns (Periods played, for example) so they DO count. Then: Match day → \"Import stats from Excel\".")]);
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws["!cols"] = cols.map((c) => ({ wch: c.field === "player_name" ? 24 : Math.max(8, c.header.length + 2) }));
@@ -2721,9 +2721,9 @@
     });
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Partido");
-    const safeName = (ownLabel || "equipo").replace(/[^a-z0-9]+/gi, "_");
-    XLSX.writeFile(wb, `Plantilla_${safeName}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, _t("Match"));
+    const safeName = (ownLabel || _t("team||file name word")).replace(/[^a-z0-9]+/gi, "_");
+    XLSX.writeFile(wb, `${_t("Template||file name word")}_${safeName}.xlsx`);
   }
 
   document.getElementById("download-template-btn").addEventListener("click", () => {
@@ -3249,7 +3249,11 @@
 
   function makeCellEditable(td) {
     if (td.querySelector("input")) return;
-    const original = td.textContent.trim();
+    // Del dato, no del texto en pantalla (ver makeOpponentCellEditable).
+    const sRow = statsByPlayer[td.dataset.player] || {};
+    const rawOriginal = td.dataset.custom ? (sRow.custom_stats || {})[td.dataset.custom] : sRow[td.dataset.field];
+    const shown = td.textContent.trim();
+    const original = rawOriginal === null || rawOriginal === undefined ? (/^-?[\d.,]+$/.test(shown) ? shown : "") : String(rawOriginal).trim();
     const input = document.createElement("input");
     input.type = "number";
     input.value = original;
@@ -3489,7 +3493,7 @@
     // Player/Min/Pts/Reb/Ast/Fouls) el ancho útil baja de ~770pt a ~523pt,
     // así que la cabecera y las celdas usan letra más chica (y se recortan
     // con "…" si de verdad no entran) para que no se superpongan.
-    const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+    const doc = _pdf(new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" }));
     const accent = [210, 20, 20], ink = [26, 26, 26], muted = [130, 130, 136];
     const marginX = 36, pageW = 595, pageH = 842;
     if (logoDataUrl) { try { doc.addImage(logoDataUrl, "PNG", pageW - marginX - 36, 22, 36, 36); } catch (e) {} }
@@ -3512,9 +3516,9 @@
     doc.text(els.orgName.textContent || "PlayPivot", marginX, y);
     y += 16;
     doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(...muted);
-    const opponentLabel = els.matchOpponent.value ? `vs ${els.matchOpponent.value}` : "vs ?";
+    const opponentLabel = els.matchOpponent.value ? _t("vs {team}", { team: els.matchOpponent.value }) : "vs ?";
     const dateLabel = els.matchDate.value ? formatDateDisplay(els.matchDate.value) : "date TBD";
-    doc.text(`${blank ? "Match sheet (blank)" : "Match day"} — ${currentTeam} ${opponentLabel} (${dateLabel})`, marginX, y);
+    doc.text(`${blank ? _t("Match sheet (blank)") : _t("Match day")} — ${currentTeam} ${opponentLabel} (${dateLabel})`, marginX, y);
     y += 8;
     doc.setDrawColor(...accent); doc.setLineWidth(1);
     doc.line(marginX, y, pageW - marginX, y);
@@ -3614,7 +3618,7 @@
       doc.text(title, marginX, y);
       y += 16;
       doc.setFont("helvetica", "bold"); doc.setFontSize(7.3); doc.setTextColor(...muted);
-      headers.forEach((h, i) => doc.text(fitText(String(h).toUpperCase(), colW - cellPad), marginX + i * colW, y));
+      headers.forEach((h, i) => doc.text(fitText(_t(String(h)).toUpperCase(), colW - cellPad), marginX + i * colW, y));
       y += 14;
       doc.setDrawColor(225, 225, 225); doc.line(marginX, y, pageW - marginX, y);
       y += 14;
@@ -3649,7 +3653,7 @@
     // no, el PDF del partido pierde a ese jugador para siempre.
     const rowPlayers = blank ? teamPlayers : teamPlayers.concat(matchGhostPlayers).filter((p) => statsByPlayer[p.id] && statsByPlayer[p.id].called_up);
     y = drawTeamSection(
-      `${currentTeam || "This team"}`.toUpperCase(),
+      `${currentTeam || _t("This team")}`.toUpperCase(),
       ownCols,
       rowPlayers.map((p) => normalizeOwnRec(p, statsByPlayer[p.id] || {}, attendanceByPlayer[p.id])),
       false
@@ -3660,7 +3664,7 @@
       ? new Array(14).fill(null).map(() => normalizeOpponentRec({}))
       : sortByJersey(opponentStats || [], (r) => r.jersey_number).map((r) => normalizeOpponentRec(r));
     y = drawTeamSection(
-      (els.matchOpponent.value || "OPPONENT").toUpperCase(),
+      (els.matchOpponent.value || _t("OPPONENT")).toUpperCase(),
       oppCols,
       oppRecs,
       true
@@ -3687,20 +3691,20 @@
     y += commentsBoxHeight + 10;
 
     doc.setFontSize(8); doc.setTextColor(...muted);
-    doc.text(`Generated by PlayPivot on ${new Date().toISOString().slice(0, 10)}`, marginX, pageH - 14);
+    doc.text(_t("Generated by PlayPivot on {date}", { date: new Date().toISOString().slice(0, 10) }), marginX, pageH - 14);
     return doc;
   }
 
   async function exportToPdf() {
     if (!currentMatchId) { showMessage("Save the match first.", "error"); return; }
     const doc = await buildMatchPdfDoc(false);
-    doc.save(`${teamFileLabel()}_vs_${els.matchOpponent.value || "match"}_${els.matchDate.value}.pdf`);
+    doc.save(`${teamFileLabel()}_vs_${els.matchOpponent.value || _t("match||file name word")}_${els.matchDate.value}.pdf`);
   }
 
   async function exportBlankPdf() {
     if (!currentTeam) { showMessage("Pick a season/team first.", "error"); return; }
     const doc = await buildMatchPdfDoc(true);
-    doc.save(`${teamFileLabel()}_blank_match_sheet.pdf`);
+    doc.save(`${teamFileLabel()}_${_t("blank_match_sheet||file name word")}.pdf`);
   }
 
   document.getElementById("new-match-btn").addEventListener("click", newMatch);

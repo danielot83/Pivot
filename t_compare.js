@@ -1,0 +1,35 @@
+const { open } = require("./harness");
+const lang = process.argv[2] || "fr";
+(async () => {
+  const h = await open("compare", lang, { query: "?i18n_debug=1" }); const { page } = h;
+  page.on("dialog", async (d) => { console.log("DIALOG", d.type(), d.message()); await d.accept(); });
+  await page.waitForTimeout(300);
+  await page.evaluate(async () => {
+    const db = window.__DB;
+    const base = { organization_id: "o1", season: "2026-2027", team: "Senior", team_category: null, team_gender: "Female" };
+    db.players = [{ id: "p1", first_name: "Ana", last_name: "Pérez", active: true, ...base }, { id: "p2", first_name: "Luc", last_name: "Martin", active: true, ...base }];
+    db.teams = [{ ...base }];
+    const r = { technique: { dribble: [4, 3, null, null], tir: [null, null, null, null], passe: [null, null, null], defense: [null, null, null] }, intelligence: { sans_ballon: [null, null, 5, null], avec_ballon: [null, null, null], defense: [null, null, null, null, null], divers: [null, null, null] }, personnalite: { attitude: [2, null, null] }, comportement: { comportement: [null, null, null, null] } };
+    db.player_assessments = [{ player_id: "p1", date: "2026-09-20", ratings: r }, { player_id: "p1", date: "2026-10-20", ratings: r }, { player_id: "p2", date: "2026-10-01", ratings: r }];
+    db.trainings = [{ id: "t1", date: "2026-09-10", planned_minutes: 60, categories_summary: ["Passing", "Defense"], organization_id: "o1", season: "2026-2027", team: "Senior", team_gender: "Female" }, { id: "t2", date: "2026-10-12", planned_minutes: 60, categories_summary: ["Passing"], organization_id: "o1", season: "2026-2027", team: "Senior", team_gender: "Female" }];
+    db.training_exercises = [{ training_id: "t1", duration_minutes: 20 }, { training_id: "t2", duration_minutes: 30 }];
+    db.attendance = [{ training_id: "t1", status: "present", player_id: "p1", trainings: { season: "2026-2027", team: "Senior" } }, { training_id: "t1", status: "absent", player_id: "p2" }];
+    db.match_stat_fields = [{ key: "stl", label: "Steals", enabled: true, position: 1, organization_id: "o1" }];
+    db.match_player_stats = [{ player_id: "p1", points: 10, rebounds: 4, assists: 2, fouls: 1, custom_stats: { stl: 2 }, matches: { season: "2026-2027", team: "Senior" } }];
+    currentOrgId = "o1";
+    await selectSeasonTeam("2026-2027", "Senior", "", "Female");
+    buildCriterionSelect();
+    await toggleSelected("p1"); await toggleSelected("p2");
+  });
+  await page.waitForTimeout(300);
+  const body = async (l) => console.log(l, JSON.stringify(await page.evaluate(() => document.body.innerText.replace(/\s+/g, " ").slice(0, 3500))));
+  await body("PAGE");
+  await page.evaluate(() => { document.querySelectorAll(".tab-btn").forEach((b) => { if (b.dataset.tab) { b.click(); } }); });
+  await body("TABS-LAST");
+  await page.evaluate(() => document.getElementById("help-btn").click());
+  console.log("OPTS", await page.evaluate(() => [...els.criterionSelect.options].slice(0, 3).map((o) => o.textContent)));
+  await page.evaluate(async () => { selectedIds = []; await selectSeasonTeam("2026-2027", "Nobody", "", ""); await toggleSelected("zz"); });
+  console.log("MISSING:", JSON.stringify(await page.evaluate(() => (window.pivotI18n ? pivotI18n.missing() : "n/a"))).slice(0, 3500));
+  console.log("ERRORS:", h.errors);
+  await h.close();
+})();

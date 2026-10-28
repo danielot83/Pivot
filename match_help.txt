@@ -1,0 +1,42 @@
+How to use Match day — step by step
+1–3. Pick a team
+Select team, select season, then "Team info" shows the one you picked — same tree as Roster and Attendance, the exact same teams. Create, rename, or delete one here and it shows up everywhere.
+4. Matches
+The list of matches for the team you picked above. "+ New match", or click an existing row — its details open right below, as "5. Match details".
+Each row shows where it was played and, once there's a score, a small W/L/D badge — green win, red loss, yellow draw.
+5. Match details
+General info
+— date, opponent, location, home/away, match number, referee, up to 3 coaches, score. Use
+Comments
+for a short note like "Final", "Semifinal", or "Friendly" — handy for tournaments; it also shows next to the match in the list above.
+Call-up & stats
+— a small legend above the table explains each column at a glance. Tick
+"Called up"
+for who's on the roster for this match (the "all" button next to that column heading selects or clears everyone in one click), and "Starter" for the five who start. Click
+"Present"
+to cycle through it: — → Present → Absent → Excused → Late → — again — the exact same states as Attendance, and it's the same record: mark it here or in Attendance, either way it shows up in both places right away. "Present" only becomes clickable once the match itself has been saved at least once — on a brand-new match it stays greyed out with a "—" until then. Click any stat cell (minutes, points, rebounds, assists, fouls, plus your club's own custom columns) to fill it in.
+"Columns ▾"
+, above that table, shows/hides and reorders its columns — just for you, remembered next time you open Match day. Admins/coaches can also add or remove your club's own custom stat columns there (steals, turnovers, +/-, in any language) — that part's shared with the whole club. The TOTAL row at the bottom of the table adds up each visible numeric column for the whole team.
+Opponent stats
+, further down, is optional — there's no roster for the other team, so you type their names (and jersey numbers) by hand if you want to track them. It now has the same columns as your own team's table (Starter, #, minutes, points, rebounds, assists, fouls, periods played, 1PM/2PM/3PM, and your club's own custom stats), its own
+"Columns ▾"
+to show/hide/reorder them for the rival without touching your own table, and its own TOTAL row at the bottom.
+Fill in everything above, then
+"Save match details"
+at the very bottom saves it all in one go — general info, call-up, stats, and opponent stats together.
+"Import stats from Excel"
+, next to it, reads a file (name, jersey number, minutes/points/rebounds/assists/fouls, periods played, shot breakdown, and your own custom stat columns — recognized automatically by name, in several languages), matches names against this team's roster, then asks which match to save it to. The file doesn't have to start with the table on row 1 — a title or notes above it are fine, the table is found wherever it is. If the file has a second block of names that don't match anyone on this team (for example a full box score with both teams, like the ones some phone apps generate from a photo of the paper scoresheet), those rows are saved as opponent stats automatically, by name — nothing from the file gets thrown away, including their jersey numbers. A successful import also sets
+"Present"
+for the whole roster: players found in the file
+with at least one real stat filled in
+are marked Present, everyone else on the roster is marked Absent (overwriting whatever was there before) — and, when the file has a general-info block (competition, date, location, referee, teams, final score), it fills in any empty fields up at the top too, without touching anything you already typed by hand (except the date, which always gets updated).
+"Download Excel template"
+gives you a ready-to-fill .xlsx built from this team's actual roster (names and jersey numbers already in place), with the SAME full set of columns for both your team and the rival's (plus your club's custom stats) and a TOTAL row with live formulas for each — fill it in during the game (or send it to whoever's keeping score) and import it straight after. Since that template pre-fills your whole roster whether or not each player actually plays that match, a row you leave completely untouched (name/number only, no stats) is read as "didn't play" on import, not "played with nothing to show" — so someone who sits the game out the whole time doesn't get wrongly marked Present just for being listed. If a player did play but genuinely has zero of everything, jot a deliberate "0" somewhere in their row (Periods played works well) so it counts as real data.
+"Fill in with AI"
+is an alternative to "Import from a photo" for a hard photo or PDF (handwriting, a busy table, or an official federation sheet with a "running score" point grid instead of a simple column — the prompt explains how to read that grid too, and it figures out which team on the sheet is yours by name rather than assuming it's always listed first): it gives you a ready-made prompt to copy into any AI chat that reads images and PDFs (ChatGPT, Claude…) — attach your photo or PDF there, paste the reply back, and it's read through the exact same engine as an Excel file. If that AI chat can also create/edit files (paid ChatGPT or Claude), you can instead also attach the file from "⬇️ Download Excel template", have the AI fill it in directly, and just re-upload the finished .xlsx with "Import stats from Excel" — no pasting needed. PlayPivot never calls any AI itself; you do the copy-pasting (or file up/download) between the two tabs.
+"Export to PDF"
+and
+"Print blank sheet"
+(filled and empty versions of the same sheet) now print exactly the columns each table is showing — whatever you've got ticked on in "Columns ▾" for your team and for the rival, including "Called up"/"Present"/"Starter" if those are on, in the same order, with both TOTAL rows — nothing more, nothing hidden. The sheet prints in portrait (vertical), so it's easier to hold on a clipboard during the game; with a lot of columns on at once, text that doesn't fit shrinks or gets trimmed with "…" rather than overlapping the next column — if a table feels too packed on paper, hide a column or two from "Columns ▾" first. Both also end with a
+"Comments"
+box to write on by hand — pre-filled with whatever's in the "Comments" field up in General info, if anything.
