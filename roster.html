@@ -887,7 +887,7 @@
 
   async function deleteTeam(season, team, category) {
     const gender = currentTeamGender;
-    const teamLabel = `${team}${category ? " (" + category + ")" : ""}${gender ? " " + gender : ""}`;
+    const teamLabel = `${team}${category ? " (" + category + ")" : ""}${gender ? " " + _t(gender) : ""}`;
     if (!confirm(_t(`Remove "{label}" ({season}) and all its players? This can't be undone.`, { label: teamLabel, season }))) return;
     const { error } = await filterByGender(filterByCategory(
       supabaseClient.from("players").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),

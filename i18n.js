@@ -154,6 +154,7 @@
   // "E" en inglés; en otro idioma busca la clave completa (para que la misma
   // palabra/letra pueda traducirse distinto según el sitio).
   function t(key, vars) {
+    if (typeof key !== "string") return String(key);   // _t(undefined) debe comportarse como `${undefined}`, no romper
     var cut = key.indexOf("||");
     var plain = cut === -1 ? key : key.slice(0, cut);
     if (lang === "en") return fill(plain, vars);
