@@ -207,6 +207,9 @@
   .att-status-absent { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
   .att-status-excused { background: #fef9c3; border-color: #fde047; color: #854d0e; }
   .att-status-late { background: var(--accent-tint); border-color: #fbbf7a; color: var(--accent-deep); }
+  /* Presente con otro rol (staff): cuenta como presente pero NO como partido jugado/asistido. */
+  .att-status-coach { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+  .att-status-ot { background: #ede9fe; border-color: #c4b5fd; color: #5b21b6; font-size: 12px; }
   /* Dani 2026-10-27: con muchas fechas la grilla se hacía enorme -> filtro por tipo,
      modo compacto y flechas para desplazarse. */
   .att-viewbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -420,6 +423,8 @@
       <span><span class="dot" style="background:#fef2f2; border:1px solid #fca5a5;"></span>Absent</span>
       <span><span class="dot" style="background:#fef9c3; border:1px solid #fde047;"></span>Excused</span>
       <span><span class="dot" style="background:var(--accent-tint); border:1px solid #fbbf7a;"></span>Late</span>
+      <span title="Present, but in another role: doesn't count as a match played or attended"><span class="dot" style="background:#dbeafe; border:1px solid #93c5fd;"></span>Coach</span>
+      <span title="Present, but in another role: doesn't count as a match played or attended"><span class="dot" style="background:#ede9fe; border:1px solid #c4b5fd;"></span>Table official (OT)</span>
       <span style="margin-left:auto;">Click a cell to cycle through the states.</span>
     </div>
   </div>
@@ -835,10 +840,10 @@
   }
   let lastGridData = null;
 
-  const STATUS_CYCLE = [null, "present", "absent", "excused", "late"];
+  const STATUS_CYCLE = [null, "present", "absent", "excused", "late", "coach", "ot"];
   // Letras de las celdas según el idioma (EN P/A/E/L · FR P/A/E/R · ES P/A/J/T)
-  const STATUS_LABEL = { present: _t("P||status letter: present"), absent: _t("A||status letter: absent"), excused: _t("E||status letter: excused"), late: _t("L||status letter: late") };
-  const STATUS_CLASS = { present: "att-status-present", absent: "att-status-absent", excused: "att-status-excused", late: "att-status-late" };
+  const STATUS_LABEL = { present: _t("P||status letter: present"), absent: _t("A||status letter: absent"), excused: _t("E||status letter: excused"), late: _t("L||status letter: late"), coach: _t("C||status letter: coach"), ot: _t("OT||status letter: table official") };
+  const STATUS_CLASS = { present: "att-status-present", absent: "att-status-absent", excused: "att-status-excused", late: "att-status-late", coach: "att-status-coach", ot: "att-status-ot" };
   const TYPE_CLASS = { match: "att-type-match", training: "att-type-training", event: "att-type-event" };
 
   function renderAttendanceTable(players, cols, attendanceByKey) {
@@ -969,7 +974,8 @@
       </ol>
       <p style="margin:8px 0 4px; font-weight:600;">3. Mark attendance</p>
       <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
-        <li>Click a cell to cycle through the states: blank → Present → Absent → Excused → Late → back to blank.</li>
+        <li>Click a cell to cycle through the states: blank → Present → Absent → Excused → Late → Coach → Table official (OT) → back to blank.</li>
+        <li>Coach and OT mean the person was there in another role: it counts as present for trainings and events, but not as a match played or attended.</li>
       </ol>
       <p style="margin:8px 0 4px; font-weight:600;">4. The rest</p>
       <ul style="margin:0; padding-left:18px; line-height:1.7;">
@@ -1256,7 +1262,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   document.getElementById("export-excel-btn").addEventListener("click", () => {
     if (!lastGridData) return;
     const { players, cols, attendanceByKey } = lastGridData;
-    const STATUS_TEXT = { present: _t("Present"), absent: _t("Absent"), excused: _t("Excused"), late: _t("Late") };
+    const STATUS_TEXT = { present: _t("Present"), absent: _t("Absent"), excused: _t("Excused"), late: _t("Late"), coach: _t("Coach"), ot: _t("Table official (OT)") };
     const infoRows = [
       [els.orgName.textContent || "PlayPivot"],
       [_t("Team: {team} — Season: {season}", { team: filterTeam + (filterTeamCategory ? " (" + filterTeamCategory + ")" : ""), season: filterSeason })],
@@ -1310,7 +1316,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
     };
     const drawFooter = () => {
       doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...muted);
-      doc.text(["present", "absent", "excused", "late"].map((k) => STATUS_LABEL[k] + " " + _t(k.charAt(0).toUpperCase() + k.slice(1)).toLowerCase()).join(" · ") + "    |    " + ["match", "training", "event"].map((k) => TYPE_LETTER[k] + " " + _t(k.charAt(0).toUpperCase() + k.slice(1)).toLowerCase()).join(" · "), marginX, pageH - 24);
+      doc.text(["present", "absent", "excused", "late"].map((k) => STATUS_LABEL[k] + " " + _t(k.charAt(0).toUpperCase() + k.slice(1)).toLowerCase()).concat([STATUS_LABEL.coach + " " + _t("Coach").toLowerCase(), STATUS_LABEL.ot + " " + _t("Table official (OT)").toLowerCase()]).join(" · ") + "    |    " + ["match", "training", "event"].map((k) => TYPE_LETTER[k] + " " + _t(k.charAt(0).toUpperCase() + k.slice(1)).toLowerCase()).join(" · "), marginX, pageH - 24);
       doc.text(_t("Generated by PlayPivot on {date}", { date: new Date().toISOString().slice(0, 10) }), marginX, pageH - 14);
     };
     colChunks.forEach((chunk, ci) => {

@@ -308,8 +308,8 @@
   </div>
 
   <div class="card" id="export-language-card" style="display:none">
-    <h2>Export language</h2>
-    <p class="hint">The language your club's PDFs (roster sheets, assessments, plays, match reports...) are generated in.</p>
+    <h2>Default exercise language</h2>
+    <p class="hint">The exercise language the lists (Exercise library, Add from library) show first. PDFs and Excel files follow the language chosen at the top right (EN / FR / ES).</p>
     <select id="export-language-select">
       <option value="en">English</option>
       <option value="fr">Français</option>
@@ -633,7 +633,7 @@
   document.getElementById("export-language-select").addEventListener("change", async (e) => {
     const { error } = await supabaseClient.from("organizations").update({ export_language: e.target.value }).eq("id", currentOrgId);
     if (error) { showMessage(error.message, "error"); return; }
-    showMessage("Export language updated — new PDFs will use it.", "success");
+    showMessage("Default exercise language updated.", "success");
   });
 
   const PDF_SECTION_KEYS = ["age", "categories", "material", "objectives", "difficulty"];
@@ -1192,7 +1192,7 @@
         <li><strong>Exercise sharing</strong> — the two buttons here set ALL your exercises to either "PlayPivot Community" (everyone) or "Whole club" at once. To choose more precisely, set the sharing circle exercise by exercise in the Exercise creator: <strong>Only me</strong> (private, even from your own teammates), <strong>Whole club</strong> (everyone active in your club), <strong>My club association</strong> (a small group of clubes who agreed to share, needs the platform controller's approval), or <strong>PlayPivot Community</strong> (every club on PlayPivot, view only for them). The same 4 choices exist in Plays, Match day, Training builder, and Player assessment — see the sections below to set them in bulk, or per item inside each module.</li>
         <li><strong>Plays / Matches / Trainings / Assessments sharing</strong> — same 4 circles, same idea: set them all at once here, or pick one item at a time inside each module.</li>
         <li><strong>Club association</strong> — propose a new group of clubes, or join an existing one by typing its exact name. Nothing is shared until the platform controller approves it — you'll see the request's status here, and a 🔔 on your dashboard shows you (or the controller) what's pending.</li>
-        <li><strong>Export language</strong> — the language new PDFs (roster sheets, assessments, plays, match reports...) are generated in for your club. Changing it doesn't touch PDFs you already downloaded.</li>
+        <li><strong>Default exercise language</strong> — which exercise language the lists show first. PDFs and Excel files follow the screen language (EN / FR / ES) chosen at the top right.</li>
         <li><strong>Exercise PDF — what to include</strong> — turn off any section (age, categories, material, objectives, difficulty) you don't want printed on an exercise sheet.</li>
         <!-- Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): solo quedan 2 roles reales + el flag aparte de platform admin; se borran las descripciones de Assistant/Player/Viewer y el párrafo de "linked player account", esa feature ya no existe. -->
         <li><strong>The roles</strong>: Platform admin (Daniel, or anyone he adds) — can do anything, in any club. Club admin — full control, but only inside their own club, including this Settings page. Coach — creates and edits content within their own club/team.</li>

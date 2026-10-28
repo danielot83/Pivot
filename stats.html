@@ -1004,6 +1004,10 @@
   // % a todo el equipo. Es independiente del filtro de partidos de arriba.
   // =========================================================================
   const ATTENDED_STATUSES = ["present", "late"];
+  // Dani 2026-10-28: "coach" / "ot" = presente con otro rol (entrenador, oficial de mesa).
+  // En entrenos y eventos cuenta como presente; en PARTIDOS no cuenta ni a favor ni
+  // en contra (no suma asistencia ni baja el %): ese partido se quita de su cuenta.
+  const STAFF_STATUSES = ["coach", "ot"];
   let attRows = [];
   let attInfo = { total: { match: 0, training: 0, event: 0 }, counted: { match: 0, training: 0, event: 0 } };
   let attSort = { key: "overall", dir: "desc" };
@@ -1016,21 +1020,23 @@
     const typeOfId = {};
     ["match", "training", "event"].forEach((t) => { (sessions[t] || []).forEach((id) => { typeOfId[id] = t; }); recorded[t] = new Set(); });
     const attendedKeys = new Set();
+    const staffMatchKeys = new Set();
     attendanceRows.forEach((a) => {
       const sid = a.match_id || a.training_id || a.event_id;
       const t = typeOfId[sid];
       if (!t) return;
       recorded[t].add(sid);
       if (ATTENDED_STATUSES.includes(a.status)) attendedKeys.add(sid + "|" + a.player_id);
+      if (STAFF_STATUSES.includes(a.status)) { if (t === "match") staffMatchKeys.add(sid + "|" + a.player_id); else attendedKeys.add(sid + "|" + a.player_id); }
     });
     ["match", "training", "event"].forEach((t) => { info.total[t] = (sessions[t] || []).length; info.counted[t] = recorded[t].size; });
     const rows = players.map((p) => {
       const r = { id: p.id, name: `${p.first_name || ""} ${p.last_name || ""}`.trim(), jersey_number: p.jersey_number };
       let sumAtt = 0, sumTot = 0;
       ["match", "training", "event"].forEach((t) => {
-        let n = 0;
-        recorded[t].forEach((sid) => { if (attendedKeys.has(sid + "|" + p.id)) n++; });
-        const tot = info.counted[t];
+        let n = 0, skipped = 0;
+        recorded[t].forEach((sid) => { if (attendedKeys.has(sid + "|" + p.id)) n++; else if (t === "match" && staffMatchKeys.has(sid + "|" + p.id)) skipped++; });
+        const tot = info.counted[t] - skipped;
         r[t + "_n"] = n; r[t + "_tot"] = tot;
         r[t + "_pct"] = tot ? (n / tot) * 100 : null;
         sumAtt += n; sumTot += tot;

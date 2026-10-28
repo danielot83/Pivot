@@ -141,6 +141,8 @@
   .present-yes { background: #dcfce7; color: #166534; }
   .present-no { background: #fef2f2; color: #991b1b; }
   .present-other { background: #fef9c3; color: #854d0e; }
+  .present-coach { background: #dbeafe; color: #1e40af; }
+  .present-ot { background: #ede9fe; color: #5b21b6; font-size: 10px; }
   .present-unknown { background: var(--line); color: var(--muted); }
 
   .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 14px; }
@@ -1893,6 +1895,15 @@
     if (input) input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addManualSummaryItem(type); } });
   });
 
+  // Suma los "N min" que haya escritos en un texto libre. Reconoce min, mins,
+  // minute(s), minuto(s), mn y el apóstrofo (10'). Devuelve null si no hay ninguno.
+  function minutesInText(text) {
+    const re = /(\d+(?:[.,]\d+)?)\s*(?:minutes?|minutos?|mins?|mn|['\u2019\u2032])(?![a-z\u00e0-\u00ff])/gi;
+    let m, total = 0, found = false;
+    while ((m = re.exec(String(text || "")))) { total += parseFloat(m[1].replace(",", ".")); found = true; }
+    return found ? Math.round(total) : null;
+  }
+
   function renderSessionTable() {
     els.sessionBody.innerHTML = "";
     els.sessionEmpty.style.display = sessionExercises.length === 0 ? "block" : "none";
@@ -1981,6 +1992,9 @@
       const minutesInput = tr.querySelector('input[type="number"]');
       const syncMinutes = (e) => {
         sessionExercises[i].duration_minutes = parseInt(e.target.value, 10) || 0;
+        // Si la persona toca la casilla de minutos a mano, mandan sus minutos
+        // (ya no se recalculan desde el texto).
+        if (e.isTrusted !== false) sessionExercises[i].minutes_manual = true;
         updateDurationBanner();
       };
       minutesInput.addEventListener("input", syncMinutes);
@@ -1990,9 +2004,21 @@
         sessionExercises[i].match_format = e.target.value;
       });
       const freetextInput = tr.querySelector(".freetext-label-input");
-      if (freetextInput) freetextInput.addEventListener("change", (e) => {
-        sessionExercises[i].name = e.target.value.trim();
-      });
+      if (freetextInput) {
+        freetextInput.addEventListener("change", (e) => {
+          sessionExercises[i].name = e.target.value.trim();
+        });
+        // Minutos escritos en el propio texto ("Team talk 10 min", "5' + 5 min"):
+        // se suman y pasan a la casilla de minutos (y por tanto al total), salvo
+        // que la persona ya haya puesto los minutos a mano en esa fila.
+        freetextInput.addEventListener("input", (e) => {
+          const mins = minutesInText(e.target.value);
+          if (mins == null || sessionExercises[i].minutes_manual) return;
+          sessionExercises[i].duration_minutes = mins;
+          minutesInput.value = mins;
+          updateDurationBanner();
+        });
+      }
       const editBtn = tr.querySelector('[data-action="edit"]');
       if (editBtn) editBtn.addEventListener("click", () => {
         expandedRowIdx = expandedRowIdx === i ? null : i;
@@ -2068,10 +2094,12 @@
     absent: { label: _t("A||status letter: absent"), cls: "present-no" },
     excused: { label: _t("E||status letter: excused"), cls: "present-other" },
     late: { label: _t("L||status letter: late"), cls: "present-other" },
+    coach: { label: _t("C||status letter: coach"), cls: "present-coach" },
+    ot: { label: _t("OT||status letter: table official"), cls: "present-ot" },
   };
 
   // Mismo ciclo que Match day y Attendance: sin marcar -> present -> absent -> excused -> late -> sin marcar.
-  const PRESENT_STATUS_CYCLE = [null, "present", "absent", "excused", "late"];
+  const PRESENT_STATUS_CYCLE = [null, "present", "absent", "excused", "late", "coach", "ot"];
 
   function renderAttendanceTable() {
     els.attendanceBody.innerHTML = "";
@@ -2081,7 +2109,7 @@
       const badge = rec && rec.status ? ATTENDANCE_BADGE[rec.status] : null;
       const cls = badge ? badge.cls : "present-unknown";
       const label = badge ? badge.label : "—";
-      const title = canEdit ? "Click to cycle: — → Present → Absent → Excused → Late → — (same as Attendance)" : "Save the session first to mark attendance";
+      const title = canEdit ? "Click to cycle: — → Present → Absent → Excused → Late → Coach → Table official (OT) → — (same as Attendance)" : "Save the session first to mark attendance";
       const tr = document.createElement("tr");
       tr.innerHTML = `<td><button type="button" class="present-badge ${cls}" style="border:none;${canEdit ? " cursor:pointer;" : ""}" data-player="${p.id}" data-record-id="${rec ? rec.id : ""}" data-status="${(rec && rec.status) || ""}" ${canEdit ? "" : "disabled"} title="${title}">${label}</button></td><td>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>`;
       els.attendanceBody.appendChild(tr);
@@ -2783,7 +2811,7 @@
   // player_id -> {id, status} de la tabla "attendance" compartida.
   function presentBoolMap(attMap) {
     const out = {};
-    Object.keys(attMap || {}).forEach((pid) => { out[pid] = attMap[pid] && attMap[pid].status === "present"; });
+    Object.keys(attMap || {}).forEach((pid) => { out[pid] = !!(attMap[pid] && (attMap[pid].status === "present" || attMap[pid].status === "coach" || attMap[pid].status === "ot")); });
     return out;
   }
 
@@ -2804,8 +2832,8 @@
     es: { number: "EJERCICIO N°:", name: "NOMBRE:", age: "EDAD:", category: "CATEGORÍA:", material: "MATERIAL:", objectives: "OBJETIVOS:", difficulty: "DIFICULTAD:", description: "DESCRIPCIÓN:", variants: "VARIANTES:" },
   };
   async function loadPdfLabels() {
-    const { data } = await supabaseClient.from("organizations").select("export_language").eq("id", currentOrgId).maybeSingle();
-    return PDF_LABELS[(data && data.export_language) || "en"] || PDF_LABELS.en;
+    // Las etiquetas del PDF siguen el idioma de la pantalla (EN/FR/ES).
+    return PDF_LABELS[(window.pivotI18n && pivotI18n.lang) || "en"] || PDF_LABELS.en;
   }
 
   function drawExercisePageOnNewPage(doc, e, logoDataUrl, clubName, L) {
@@ -3149,7 +3177,7 @@
       }));
       const { data: attRows } = await supabaseClient.from("attendance").select("player_id, status").eq("training_id", t.id);
       const sessAttendance = {};
-      (attRows || []).forEach((r) => (sessAttendance[r.player_id] = r.status === "present"));
+      (attRows || []).forEach((r) => (sessAttendance[r.player_id] = r.status === "present" || r.status === "coach" || r.status === "ot"));
 
       doc.addPage();
       drawSessionPage(doc, {
@@ -3218,7 +3246,7 @@
         <li>Click <strong>"Edit"</strong> next to an exercise in the plan to set key points and a variant just for this session, without touching the original exercise. Use ↑/↓ to reorder anything in the plan, <strong>⏸ Add pause</strong> to drop in a rest period between exercises, <strong>Add match</strong> to drop in a scrimmage (choose 5v5, 4v4, or 3v3 right in the row), and <strong>📝 Add free text</strong> for anything else that isn't in the exercise library (a team talk, video analysis, water break…) — all three count toward the total time same as anything else.</li>
         <li>The banner above the exercise list tracks your running total against the planned length, and turns red if you go over.</li>
         <li><strong>Auto-summary</strong> fills itself in from the exercises you add (categories, material, up to 4 objectives) — edit it by hand any time.</li>
-        <li><strong>Attendance</strong> starts blank for every session — click a player's badge to cycle Present → Absent → Excused → Late → blank. It's saved instantly (once the session itself has been saved once) and shared live with Match day and the Attendance page — mark it in any of the three and it shows the same everywhere.</li>
+        <li><strong>Attendance</strong> starts blank for every session — click a player's badge to cycle Present → Absent → Excused → Late → Coach → Table official (OT) → blank. It's saved instantly (once the session itself has been saved once) and shared live with Match day and the Attendance page — mark it in any of the three and it shows the same everywhere.</li>
         <li><strong>Post-session feedback</strong> is deliberately separate from everything above — the rest is what you planned, this is what actually happened: a rating, comments, and ideas for next time. Fill it in after the session, whenever you're ready.</li>
         <li><strong>Export to PDF</strong> makes a session sheet in the same style as the exercise sheets: attendance on the left, the plan in the middle, the summary and feedback on the right. <strong>Export whole book</strong> (under Sessions) does the same for every session of the selected team/season at once, with a cover page.</li>
         <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole club, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). The icon next to each session in the list shows its current circle.</li>

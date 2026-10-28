@@ -1819,8 +1819,8 @@
   };
 
   async function loadPdfLabels() {
-    const { data } = await supabaseClient.from("organizations").select("export_language").eq("id", currentOrgId).maybeSingle();
-    return PDF_LABELS[(data && data.export_language) || "en"] || PDF_LABELS.en;
+    // Las etiquetas del PDF siguen el idioma de la pantalla (EN/FR/ES).
+    return PDF_LABELS[(window.pivotI18n && pivotI18n.lang) || "en"] || PDF_LABELS.en;
   }
 
   async function buildExercisePdfDoc() {

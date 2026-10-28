@@ -637,12 +637,12 @@
     // entreno marcado después del 15/09. "late" no cuenta como presente
     // a propósito -- llegó tarde, no estuvo toda la sesión; si prefieres
     // que sí cuente, es una línea de cambiar (r.status === "present" ||
-    // r.status === "late").
+    // r.status === "late"). Coach / OT (presente con otro rol) SÍ cuentan como presente en entrenos.
     let presentCount = 0, totalAttRows = 0;
     const { data: attRows } = trainingIds.length
       ? await supabaseClient.from("attendance").select("training_id, status").in("training_id", trainingIds)
       : { data: [] };
-    (attRows || []).forEach((r) => { totalAttRows++; if (r.status === "present") presentCount++; });
+    (attRows || []).forEach((r) => { totalAttRows++; if (r.status === "present" || r.status === "coach" || r.status === "ot") presentCount++; });
     const attendanceRate = totalAttRows > 0 ? Math.round((presentCount / totalAttRows) * 100) : null;
 
     renderTeamOverviewGrid({
@@ -909,7 +909,7 @@
       ), currentTeamGender, "trainings.team_gender");
       if (error) { attendanceCache[id] = null; continue; }
       const rows = data || [];
-      const present = rows.filter((r) => r.status === "present").length;
+      const present = rows.filter((r) => r.status === "present" || r.status === "coach" || r.status === "ot").length;
       attendanceCache[id] = { sessions: rows.length, present };
     }
   }
