@@ -439,6 +439,7 @@
 </main>
 </div><!-- /app-shell -->
 
+<script src="./i18n.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -687,7 +688,8 @@
 
   async function deleteTeam(season, team, category) {
     const gender = filterTeamGender;
-    if (!confirm(`Remove "${team}"${category ? " (" + category + ")" : ""}${gender ? " " + gender : ""} (${season}) and all its players? This can't be undone.`)) return;
+    const teamLabel = `${team}${category ? " (" + category + ")" : ""}${gender ? " " + gender : ""}`;
+    if (!confirm(_t(`Remove "{label}" ({season}) and all its players? This can't be undone.`, { label: teamLabel, season }))) return;
     const { error } = await filterByGender(filterByCategory(
       supabaseClient.from("players").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
       category
@@ -709,7 +711,7 @@
     }
 
     if (season === filterSeason && team === filterTeam && (category || "") === (filterTeamCategory || "")) { filterSeason = null; filterTeam = null; filterTeamCategory = ""; filterTeamGender = ""; }
-    showMessage(`"${team}"${category ? " (" + category + ")" : ""} (${season}) removed.`, "success");
+    showMessage(_t(`"{label}" ({season}) removed.`, { label: `${team}${category ? " (" + category + ")" : ""}`, season }), "success");
     await loadTree();
     await loadAttendanceGrid();
   }
@@ -777,9 +779,9 @@
     // entrenos"), así cambiar de filtro es instantáneo y los contadores
     // de los botones son siempre correctos.
     const allCols = [
-      ...(matches || []).map((m) => ({ type: "match", id: m.id, date: m.date, label: m.opponent ? "vs " + m.opponent : "Match", icon: "🏀" })),
-      ...(trainings || []).map((t) => ({ type: "training", id: t.id, date: t.date, label: t.title || "Training", icon: "⏱" })),
-      ...(events || []).map((e) => ({ type: "event", id: e.id, date: e.date, label: e.title || "Event", icon: "📌" })),
+      ...(matches || []).map((m) => ({ type: "match", id: m.id, date: m.date, label: m.opponent ? _t("vs {team}", { team: m.opponent }) : _t("Match"), icon: "🏀" })),
+      ...(trainings || []).map((t) => ({ type: "training", id: t.id, date: t.date, label: t.title || _t("Training"), icon: "⏱" })),
+      ...(events || []).map((e) => ({ type: "event", id: e.id, date: e.date, label: e.title || _t("Event"), icon: "📌" })),
     ].sort((a, b) => String(a.date).localeCompare(String(b.date)) || (TYPE_ORDER[a.type] - TYPE_ORDER[b.type]));
 
     // Dani 2026-10-27: con muchas fechas y jugadores, la consulta de
@@ -834,7 +836,8 @@
   let lastGridData = null;
 
   const STATUS_CYCLE = [null, "present", "absent", "excused", "late"];
-  const STATUS_LABEL = { present: "P", absent: "A", excused: "E", late: "L" };
+  // Letras de las celdas según el idioma (EN P/A/E/L · FR P/A/E/R · ES P/A/J/T)
+  const STATUS_LABEL = { present: _t("P||status letter: present"), absent: _t("A||status letter: absent"), excused: _t("E||status letter: excused"), late: _t("L||status letter: late") };
   const STATUS_CLASS = { present: "att-status-present", absent: "att-status-absent", excused: "att-status-excused", late: "att-status-late" };
   const TYPE_CLASS = { match: "att-type-match", training: "att-type-training", event: "att-type-event" };
 
@@ -1158,9 +1161,9 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   // archivo (dorsal, categoría, etc.) se ignora a propósito.
   // -----------------------------------------------------------------------
   const HEADER_ALIASES = {
-    first_name: ["first_name", "prenom", "prénom", "firstname"],
-    last_name: ["last_name", "nom", "lastname", "surname"],
-    combined_name: ["contacts", "nom complet", "name", "joueur", "player"],
+    first_name: ["first_name", "prenom", "prénom", "firstname", "first name", "given name", "nombre", "nombres", "primer nombre"],
+    last_name: ["last_name", "nom", "lastname", "last name", "surname", "family name", "nom de famille", "apellido", "apellidos"],
+    combined_name: ["contacts", "nom complet", "name", "joueur", "joueuse", "player", "full name", "jugador", "jugadora", "nombre completo", "nombre y apellido", "nombre y apellidos", "apellidos y nombre"],
   };
   function normalizeHeader(h) {
     return String(h || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -1199,10 +1202,16 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
             last_name = last_name || (ln || "").trim();
             first_name = first_name || (fn || "").trim();
           } else {
-            const parts = combined.split(" ");
-            first_name = first_name || parts.pop() || "";
+            const parts = combined.split(" ").filter(Boolean);
+            first_name = first_name || parts.shift() || "";   // igual que Roster: la primera palabra es el nombre
             last_name = last_name || parts.join(" ");
           }
+        }
+        // Un solo campo con nombre y apellido (p. ej. columna "Nombre" con "Ana Pérez")
+        if (first_name && !last_name && !r.combined_name && first_name.includes(" ")) {
+          const parts = first_name.split(" ");
+          first_name = parts.shift() || "";      // "Ana Pérez García" -> nombre "Ana", apellidos "Pérez García"
+          last_name = parts.join(" ");
         }
         if (!first_name || !last_name) return;
         payloadBase.push({ first_name, last_name });
@@ -1247,28 +1256,28 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   document.getElementById("export-excel-btn").addEventListener("click", () => {
     if (!lastGridData) return;
     const { players, cols, attendanceByKey } = lastGridData;
-    const STATUS_TEXT = { present: "Present", absent: "Absent", excused: "Excused", late: "Late" };
+    const STATUS_TEXT = { present: _t("Present"), absent: _t("Absent"), excused: _t("Excused"), late: _t("Late") };
     const infoRows = [
       [els.orgName.textContent || "PlayPivot"],
-      [`Team: ${filterTeam}${filterTeamCategory ? " (" + filterTeamCategory + ")" : ""} — Season: ${filterSeason}`],
-      [`Generated ${new Date().toISOString().slice(0, 10)}`],
+      [_t("Team: {team} — Season: {season}", { team: filterTeam + (filterTeamCategory ? " (" + filterTeamCategory + ")" : ""), season: filterSeason })],
+      [_t("Generated {date}", { date: new Date().toISOString().slice(0, 10) })],
       [],
     ];
-    const headerRow = ["Player", ...cols.map((c) => `${c.icon} ${c.date} — ${c.label}`)];
+    const headerRow = [_t("Player"), ...cols.map((c) => `${c.icon} ${c.date} — ${c.label}`)];
     const dataRows = players.map((p) => [
       `${p.first_name} ${p.last_name}`,
       ...cols.map((c) => { const r = attendanceByKey[`${c.id}|${p.id}`]; return r ? STATUS_TEXT[r.status] : ""; }),
     ]);
     const ws = XLSX.utils.aoa_to_sheet([...infoRows, headerRow, ...dataRows]);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-    XLSX.writeFile(wb, `${teamFileLabel()}_${filterSeason}_attendance.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, _t("Attendance"));
+    XLSX.writeFile(wb, `${teamFileLabel()}_${filterSeason}_${_t("attendance||file name word")}.xlsx`);
   });
 
   document.getElementById("export-pdf-btn").addEventListener("click", async () => {
     if (!lastGridData) return;
     const { players, cols, attendanceByKey } = lastGridData;
-    const STATUS_LETTER = { present: "P", absent: "A", excused: "E", late: "L" };
+    const STATUS_LETTER = STATUS_LABEL;
     const logoDataUrl = await loadLogoDataUrlSimple();
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
@@ -1280,7 +1289,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
     // páginas: máx. ~20 fechas por página y las filas que quepan, y cada
     // fecha lleva su tipo (M partido / T entreno / E evento).
     const nameColW = 130, minDateColW = 28, rowH = 16, headerH = 30, bottomPad = 34;
-    const TYPE_LETTER = { match: "M", training: "T", event: "E" };
+    const TYPE_LETTER = { match: _t("M||type letter: match"), training: _t("T||type letter: training"), event: _t("E||type letter: event") };
     const TYPE_RGB = { match: accent, training: navy, event: [22, 163, 74] };
     const colsPerPage = Math.max(1, Math.min(20, Math.floor((contentW - nameColW) / minDateColW)));
     const colChunks = [];
@@ -1293,7 +1302,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
       doc.text(els.orgName.textContent || "PlayPivot", marginX, y0 + 8);
       y0 += 24;
       doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...accent);
-      doc.text(`Attendance — ${filterTeam}${filterTeamCategory ? " (" + filterTeamCategory + ")" : ""} — ${filterSeason}`, marginX, y0);
+      doc.text(_t("Attendance — {team} — {season}", { team: filterTeam + (filterTeamCategory ? " (" + filterTeamCategory + ")" : ""), season: filterSeason }), marginX, y0);
       y0 += 10;
       doc.setDrawColor(...accent); doc.setLineWidth(2);
       doc.line(marginX, y0, pageW - marginX, y0);
@@ -1301,8 +1310,8 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
     };
     const drawFooter = () => {
       doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...muted);
-      doc.text("P present · A absent · E excused · L late    |    M match · T training · E event", marginX, pageH - 24);
-      doc.text(`Generated by PlayPivot on ${new Date().toISOString().slice(0, 10)}`, marginX, pageH - 14);
+      doc.text(["present", "absent", "excused", "late"].map((k) => STATUS_LABEL[k] + " " + _t(k.charAt(0).toUpperCase() + k.slice(1)).toLowerCase()).join(" · ") + "    |    " + ["match", "training", "event"].map((k) => TYPE_LETTER[k] + " " + _t(k.charAt(0).toUpperCase() + k.slice(1)).toLowerCase()).join(" · "), marginX, pageH - 24);
+      doc.text(_t("Generated by PlayPivot on {date}", { date: new Date().toISOString().slice(0, 10) }), marginX, pageH - 14);
     };
     colChunks.forEach((chunk, ci) => {
       let rowStart = 0;
@@ -1322,7 +1331,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
           doc.text(String(c.date).slice(5), x, y + 2);
           x += dateColW;
         });
-        if (colChunks.length > 1) { doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...muted); doc.text(`Dates ${ci * colsPerPage + 1}–${ci * colsPerPage + chunk.length} of ${cols.length}`, marginX, y + 2); }
+        if (colChunks.length > 1) { doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...muted); doc.text(_t("Dates {from}–{to} of {total}", { from: ci * colsPerPage + 1, to: ci * colsPerPage + chunk.length, total: cols.length }), marginX, y + 2); }
         y += 6;
         doc.setDrawColor(225, 225, 225); doc.setLineWidth(0.5); doc.line(marginX, y, pageW - marginX, y);
         y += rowH * 0.8;
@@ -1343,7 +1352,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
         rowStart += rowsFit;
       } while (rowStart < players.length);
     });
-    doc.save(`${teamFileLabel()}_${filterSeason}_attendance.pdf`);
+    doc.save(`${teamFileLabel()}_${filterSeason}_${_t("attendance||file name word")}.pdf`);
   });
 
   async function loadLogoDataUrlSimple() {

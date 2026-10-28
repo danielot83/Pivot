@@ -527,6 +527,7 @@
   </main>
 </div>
 
+<script src="./i18n.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
 <script src="sidebar-widgets.js"></script>
@@ -1082,10 +1083,10 @@
     const anyCounted = attInfo.counted.match + attInfo.counted.training + attInfo.counted.event > 0;
     if (!attRows.length || !anyCounted) { table.style.display = "none"; empty.style.display = "block"; return; }
     table.style.display = "table"; empty.style.display = "none";
-    const types = [["training", "⏱ Trainings"], ["match", "🏀 Matches"], ["event", "📌 Events"]].filter(([t]) => attInfo.counted[t] > 0);
-    const cols = [{ id: "name", label: "Player", field: "name" },
+    const types = [["training", "⏱ " + _t("Trainings")], ["match", "🏀 " + _t("Matches")], ["event", "📌 " + _t("Events")]].filter(([t]) => attInfo.counted[t] > 0);
+    const cols = [{ id: "name", label: _t("Player"), field: "name" },
       ...types.map(([t, label]) => ({ id: t, label: `${label} (${attInfo.counted[t]})`, field: t + "_pct" })),
-      { id: "overall", label: "Overall", field: "overall_pct" }];
+      { id: "overall", label: _t("Overall"), field: "overall_pct" }];
     const arrow = (id) => attSort.key === id ? (attSort.dir === "asc" ? " ▲" : " ▼") : "";
     document.getElementById("att-table-head").innerHTML = cols.map((c) => `<th class="sortable" data-id="${c.id}">${escapeHtml(c.label)}${arrow(c.id)}</th>`).join("");
     document.querySelectorAll("#att-table-head th").forEach((th) => th.addEventListener("click", () => {
@@ -1107,9 +1108,9 @@
       ${pctCell(r.overall_n, r.overall_tot, r.overall_pct)}
     </tr>`).join("");
     const skipped = ["training", "match", "event"].map((t) => [t, attInfo.total[t] - attInfo.counted[t]]).filter(([, n]) => n > 0);
-    const lbl = { training: "training", match: "match", event: "event" };
-    document.getElementById("att-hint").textContent = "Share of this season's trainings, matches and events each player attended (present or late). Click a column header to sort."
-      + (skipped.length ? " Not counted because no attendance was taken: " + skipped.map(([t, n]) => `${n} ${lbl[t]}${n > 1 ? "s" : ""}`).join(", ") + "." : "");
+    const countLabel = (t, n) => _t(({ training: ["{n} training", "{n} trainings"], match: ["{n} match", "{n} matches"], event: ["{n} event", "{n} events"] })[t][n > 1 ? 1 : 0], { n });
+    document.getElementById("att-hint").textContent = _t("Share of this season's trainings, matches and events each player attended (present or late). Click a column header to sort.")
+      + (skipped.length ? " " + _t("Not counted because no attendance was taken: {list}.", { list: skipped.map(([t, n]) => countLabel(t, n)).join(", ") }) : "");
   }
 
   // -----------------------------------------------------------------------
@@ -1274,8 +1275,8 @@
 
     let html = `
       <div class="record-line">
-        <span class="record-badge"><span class="w">${wins}W</span> – <span class="l">${losses}L</span>${draws ? ` – <span class="d">${draws}D</span>` : ""}</span>
-        <span class="hint">${decided.length} of ${matches.length} match${matches.length === 1 ? "" : "es"} ha${matches.length === 1 ? "s" : "ve"} a final score</span>
+        <span class="record-badge"><span class="w">${wins}${_t("W||win letter (record)")}</span> – <span class="l">${losses}${_t("L||loss letter (record)")}</span>${draws ? ` – <span class="d">${draws}${_t("D||draw letter (record)")}</span>` : ""}</span>
+        <span class="hint">${_t(matches.length === 1 ? "{n} of {total} match has a final score" : "{n} of {total} matches have a final score", { n: decided.length, total: matches.length })}</span>
       </div>
       <div class="stat-tile-grid">
         <div class="stat-tile"><div class="stat-tile-value">${fmtAvg(avgPF)}</div><div class="stat-tile-label">Points for / game</div></div>
@@ -1484,7 +1485,7 @@
       const decided = matches.filter((m) => m.team_score != null && m.opponent_score != null);
       return {
         hasOpp: true,
-        ownLabel: "Points for", oppLabel: "Points allowed",
+        ownLabel: _t("Points for"), oppLabel: _t("Points allowed"),
         games: decided.map((m) => ({ label: formatDateDisplay(m.date), opponent: m.opponent || "?", title: `${formatDateDisplay(m.date)} vs ${m.opponent || "?"}`, own: m.team_score, opp: m.opponent_score })),
       };
     }
@@ -1501,7 +1502,7 @@
     const gamesWithStats = matches.filter((m) => byMatch[m.id]); // conserva el orden cronológico de `matches`
     return {
       hasOpp,
-      ownLabel: hasOpp ? `${def.label} (own team)` : def.label, oppLabel: `${def.label} (opponent)`,
+      ownLabel: hasOpp ? _t("{stat} (own team)", { stat: _t(def.label) }) : _t(def.label), oppLabel: _t("{stat} (opponent)", { stat: _t(def.label) }),
       games: gamesWithStats.map((m) => ({
         label: formatDateDisplay(m.date), opponent: m.opponent || "?", title: `${formatDateDisplay(m.date)} vs ${m.opponent || "?"}`,
         own: sumFor(byMatch[m.id]), opp: hasOpp ? sumFor(byMatchOpp[m.id]) : null,
@@ -1630,13 +1631,13 @@
   function renderTrendMiniChart(def, matches, playerStats, opponentStats) {
     const series = buildTrendSeries(def.id, matches, playerStats, opponentStats);
     const CHART_PX_HEIGHT = 190;
-    const titleSuffix = trendViewMode === "diff" ? " — differential (you − opponent)" : "";
+    const titleSuffix = trendViewMode === "diff" ? " " + _t("— differential (you − opponent)") : "";
 
     if (!series.games.length) {
       return `<div class="trend-mini-chart"><div class="trend-mini-title">${escapeHtml(def.label)}</div><div class="empty-state">Nothing logged for this stat yet this season.</div></div>`;
     }
     if (trendViewMode === "diff" && !series.hasOpp) {
-      return `<div class="trend-mini-chart"><div class="trend-mini-title">${escapeHtml(def.label)}${titleSuffix}</div><div class="empty-state">No opponent data logged for ${escapeHtml(def.label).toLowerCase()} yet, so a differential can't be calculated. Switch to "Total" to see your own numbers, or log opponent stats for this field.</div></div>`;
+      return `<div class="trend-mini-chart"><div class="trend-mini-title">${escapeHtml(_t(def.label))}${titleSuffix}</div><div class="empty-state">${_t('No opponent data logged for {stat} yet, so a differential can\'t be calculated. Switch to "Total" to see your own numbers, or log opponent stats for this field.', { stat: escapeHtml(_t(def.label)).toLowerCase() })}</div></div>`;
     }
 
     const showOpp = trendIncludeOpponent && series.hasOpp;
@@ -1651,7 +1652,7 @@
 
     return `
       <div class="trend-mini-chart">
-        <div class="trend-mini-title">${escapeHtml(def.label)}${titleSuffix}</div>
+        <div class="trend-mini-title">${escapeHtml(_t(def.label))}${titleSuffix}</div>
         ${chart.legendHtml}
         <div class="trend-chart-grid" style="height:${CHART_PX_HEIGHT}px;">
           <div class="trend-y-axis">${chart.yLabelsHtml}</div>

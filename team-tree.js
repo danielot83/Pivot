@@ -1,3 +1,6 @@
+// i18n: en las páginas que no cargan i18n.js (login, landing...) _t devuelve el texto en inglés tal cual.
+var _t = window._t || function (k, v) { k = String(k); var c = k.indexOf("||"); if (c !== -1) k = k.slice(0, c); return v ? k.replace(/\{(\w+)\}/g, function (m, n) { return v[n] == null ? m : v[n]; }) : k; };
+
 // =============================================================================
 // El árbol "Seasons & teams" -- Equipo → Categoría (si existe) → Año.
 // Una sola fuente de verdad (como org-switcher.js, example-data.js),
@@ -351,7 +354,7 @@ function renderTeamGenderCategoryDropdown(containerId, rows, current, onChange) 
   });
 
   const teamName = current && current.team ? current.team : null;
-  const subLabel = current && current.team ? [current.team_category, current.team_gender].filter(Boolean).join(" ") : "No team selected yet";
+  const subLabel = current && current.team ? [current.team_category, current.team_gender && _t(current.team_gender)].filter(Boolean).join(" ") : _t("No team selected yet");
 
   container.innerHTML = `
     <button type="button" id="${containerId}-trigger" style="width:100%; display:flex; align-items:center; gap:12px; padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--card); cursor:pointer; text-align:left;">
@@ -480,7 +483,7 @@ function promptImportTarget(rows, defaults, itemCount) {
     overlay.innerHTML = `
       <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
         <h3 style="margin:0 0 4px; font-size:17px;">Where does this go?</h3>
-        ${typeof itemCount === "number" ? `<p style="margin:0 0 12px; font-size:14px; font-weight:600; color:var(--accent-deep);">${itemCount} player${itemCount === 1 ? "" : "s"} found in that file.</p>` : ""}
+        ${typeof itemCount === "number" ? `<p style="margin:0 0 12px; font-size:14px; font-weight:600; color:var(--accent-deep);">${_t(itemCount === 1 ? "{n} player found in that file." : "{n} players found in that file.", { n: itemCount })}</p>` : ""}
         <p style="margin:0 0 16px; font-size:12.5px; color:var(--muted);">Pick the team/category/season these players belong to.</p>
 
         <label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team</label>
@@ -505,7 +508,7 @@ function promptImportTarget(rows, defaults, itemCount) {
 
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button id="import-target-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
-          <button id="import-target-confirm" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">${typeof itemCount === "number" ? `Import ${itemCount} player${itemCount === 1 ? "" : "s"}` : "Import here"}</button>
+          <button id="import-target-confirm" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">${typeof itemCount === "number" ? _t(itemCount === 1 ? "Import {n} player" : "Import {n} players", { n: itemCount }) : "Import here"}</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);

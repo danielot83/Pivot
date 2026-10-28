@@ -1,0 +1,210 @@
+# ===== Dashboard =====
+PlayPivot | Basketball Coaching Dashboard ||| PlayPivot | Tableau de bord pour entraîneurs de basket ||| PlayPivot | Panel para entrenadores de baloncesto
+Welcome to PlayPivot 👋 ||| Bienvenue sur PlayPivot 👋 ||| Te damos la bienvenida a PlayPivot 👋
+One thing worth knowing before you dive in: almost everything you create — exercises, plays, sessions, matches, assessments — has its own ||| Une chose à savoir avant de commencer : presque tout ce que vous créez — exercices, systèmes, séances, matchs, évaluations — a son propre réglage ||| Algo que conviene saber antes de empezar: casi todo lo que creas — ejercicios, jugadas, sesiones, partidos, evaluaciones — tiene su propio ajuste
+"Who can see it?" ||| « Qui peut le voir ? » ||| «¿Quién puede verlo?»
+setting. Nothing is shared further than you choose. ||| Rien n'est partagé au-delà de ce que vous choisissez. ||| No se comparte nada más allá de lo que tú elijas.
+Only me ||| Moi seul ||| Solo yo
+— private, not even your own teammates see it. ||| — privé, même vos coéquipiers ne le voient pas. ||| — privado, ni siquiera tus compañeros lo ven.
+Whole club ||| Tout le club ||| Todo el club
+— everyone active in your club (this is the default). ||| — tous les membres actifs de votre club (c'est le réglage par défaut). ||| — todos los miembros activos de tu club (es el ajuste por defecto).
+My club association ||| Mon association de clubs ||| Mi asociación de clubes
+— a small group of clubs who agreed to share, needs approval. ||| — un petit groupe de clubs qui ont accepté de partager, avec approbation requise. ||| — un pequeño grupo de clubes que acordaron compartir, requiere aprobación.
+PlayPivot Community ||| Communauté PlayPivot ||| Comunidad PlayPivot
+— every club on PlayPivot can see it (view only). ||| — tous les clubs de PlayPivot peuvent le voir (lecture seule). ||| — todos los clubes de PlayPivot pueden verlo (solo lectura).
+If you're a club admin, ||| Si vous êtes administrateur de club, ||| Si eres administrador de un club,
+Settings ||| Paramètres ||| Ajustes
+also lets you set all of a type at once (e.g. every exercise), and manage who's in your club and their role (Club admin or Coach). ||| permet aussi de régler d'un coup tous les éléments d'un type (p. ex. tous les exercices) et de gérer qui fait partie de votre club et son rôle (Administrateur du club ou Entraîneur). ||| también permite ajustar de una vez todos los de un tipo (p. ej. todos los ejercicios) y gestionar quién forma parte de tu club y su rol (Administrador del club o Entrenador).
+Worth knowing too: ||| À savoir aussi : ||| También conviene saber:
+only add data about players you actually coach, and you're responsible for having the right to hold it (a guardian's consent, especially for a minor — see ||| n'ajoutez que des données sur des joueurs que vous entraînez réellement, et vous êtes responsable d'avoir le droit de les conserver (le consentement d'un tuteur, surtout pour un mineur — voir ||| añade solo datos de jugadores que entrenes realmente, y eres responsable de tener derecho a conservarlos (el consentimiento de un tutor, sobre todo si es menor — consulta
+Privacy & Terms ||| Confidentialité et conditions ||| Privacidad y condiciones
+). Don't republish someone else's shared content outside PlayPivot as your own. ||| ). Ne republiez pas hors de PlayPivot, comme si c'était le vôtre, un contenu partagé par quelqu'un d'autre. ||| ). No vuelvas a publicar fuera de PlayPivot como tuyo un contenido compartido por otra persona.
+Got it, let's go ||| Compris, c'est parti ||| Entendido, ¡vamos!
+Welcome ||| Bienvenue ||| Bienvenido
+Welcome, {name} ||| Bienvenue, {name} ||| Te damos la bienvenida, {name}
+Pending requests to approve ||| Demandes en attente d'approbation ||| Solicitudes pendientes de aprobar
+Teams ||| Équipes ||| Equipos
+Assessments ||| Évaluations ||| Evaluaciones
+Exercises ||| Exercices ||| Ejercicios
+Notebooks ||| Carnets ||| Cuadernos
+Play designs ||| Systèmes créés ||| Jugadas diseñadas
+Matches ||| Matchs ||| Partidos
+Wins ||| Victoires ||| Victorias
+Losses ||| Défaites ||| Derrotas
+Previous month ||| Mois précédent ||| Mes anterior
+Next month ||| Mois suivant ||| Mes siguiente
+Team org chart ||| Organigramme de l'équipe ||| Organigrama del equipo
+Who directs your team, and their role. To change something here, use Settings → Members. ||| Qui dirige votre équipe, et son rôle. Pour modifier quelque chose ici, utilisez Paramètres → Membres. ||| Quién dirige tu equipo y cuál es su rol. Para cambiar algo aquí, usa Ajustes → Miembros.
+Platform overview — Admin general ||| Vue d'ensemble de la plateforme — Admin général ||| Vista general de la plataforma — Admin general
+Clubs ||| Clubs ||| Clubes
+Users, total ||| Utilisateurs, total ||| Usuarios, total
+Online now ||| En ligne maintenant ||| En línea ahora
+Clubs on PlayPivot ||| Clubs sur PlayPivot ||| Clubes en PlayPivot
+Tools ||| Outils ||| Herramientas
+Dismiss ||| Fermer ||| Descartar
+You have {n} new requests to review. ||| Vous avez {n} nouvelles demandes à examiner. ||| Tienes {n} solicitudes nuevas que revisar.
+You have a new request to review. ||| Vous avez une nouvelle demande à examiner. ||| Tienes una solicitud nueva que revisar.
+You're already a member of a club called "{name}" — create ANOTHER separate one with the same name? (If you meant to add a new TEAM inside your existing club instead, cancel and use "+ New season/team" there.) ||| Vous êtes déjà membre d'un club nommé « {name} » — en créer UN AUTRE, distinct, avec le même nom ? (Si vous vouliez plutôt ajouter une nouvelle ÉQUIPE dans votre club existant, annulez et utilisez « + Nouvelle saison / équipe » là-bas.) ||| Ya eres miembro de un club llamado «{name}» — ¿crear OTRO distinto con el mismo nombre? (Si lo que querías era añadir un nuevo EQUIPO dentro de tu club existente, cancela y usa «+ Nueva temporada/equipo» allí.)
+Couldn't create that club. ||| Impossible de créer ce club. ||| No se pudo crear ese club.
+You're not an active member of any club or association yet. ||| Vous n'êtes encore membre actif d'aucun club ni d'aucune association. ||| Todavía no eres miembro activo de ningún club ni asociación.
+Admin general — access to every club ||| Admin général — accès à tous les clubs ||| Admin general — acceso a todos los clubes
+(browsing as platform admin) ||| (navigation en tant qu'administrateur de la plateforme) ||| (navegando como administrador de la plataforma)
+⚠ Something went wrong loading the Dashboard: ||| ⚠ Un problème est survenu au chargement du tableau de bord : ||| ⚠ Algo salió mal al cargar el panel:
+No clubs yet. ||| Aucun club pour l'instant. ||| Aún no hay clubes.
+Club ||| Club ||| Club
+Search people/clubs… ||| Rechercher des personnes / clubs… ||| Buscar personas/clubes…
+Couldn't load the clubs table: {error} ||| Impossible de charger le tableau des clubs : {error} ||| No se pudo cargar la tabla de clubes: {error}
+No clubs match that search. ||| Aucun club ne correspond à cette recherche. ||| Ningún club coincide con esa búsqueda.
+Manage ||| Gérer ||| Gestionar
+✉ Message admin ||| ✉ Écrire à l'admin ||| ✉ Escribir al administrador
+Delete data… ||| Supprimer des données… ||| Eliminar datos…
+Remove whole club ||| Supprimer tout le club ||| Eliminar todo el club
+See club → ||| Voir le club → ||| Ver el club →
+⚠ Duplicate name ||| ⚠ Nom en double ||| ⚠ Nombre duplicado
+Another active club has this exact same name -- likely an accidental duplicate. ||| Un autre club actif porte exactement le même nom -- probablement un doublon accidentel. ||| Otro club activo tiene exactamente el mismo nombre -- probablemente un duplicado accidental.
+No active admin found for "{name}". ||| Aucun administrateur actif trouvé pour « {name} ». ||| No se encontró ningún administrador activo para «{name}».
+Couldn't find that club's admin. ||| Impossible de trouver l'administrateur de ce club. ||| No se pudo encontrar al administrador de ese club.
+This hides "{name}" from the platform (its data stays, nothing is deleted — you can reactivate it later from Supabase directly). Type the club name to confirm: ||| Cela masque « {name} » de la plateforme (ses données restent, rien n'est supprimé — vous pourrez le réactiver plus tard directement depuis Supabase). Saisissez le nom du club pour confirmer : ||| Esto oculta «{name}» de la plataforma (sus datos se conservan, no se borra nada — podrás reactivarlo más tarde directamente desde Supabase). Escribe el nombre del club para confirmar:
+Name didn't match — nothing was changed. ||| Le nom ne correspond pas — rien n'a été modifié. ||| El nombre no coincide — no se cambió nada.
+"{name}" deactivated. ||| « {name} » désactivé. ||| «{name}» desactivado.
+Couldn't deactivate that club. ||| Impossible de désactiver ce club. ||| No se pudo desactivar ese club.
+Delete data — {name} ||| Supprimer des données — {name} ||| Eliminar datos — {name}
+Pick a team/season, then choose exactly what to delete for it. Nothing outside your choices gets touched. ||| Choisissez une équipe / saison, puis exactement ce qu'il faut supprimer pour elle. Rien en dehors de vos choix n'est touché. ||| Elige un equipo/temporada y luego exactamente qué eliminar para él. No se toca nada fuera de tu elección.
+Loading teams… ||| Chargement des équipes… ||| Cargando equipos…
+Roster / players ( ||| Effectif / joueurs ( ||| Plantilla / jugadores (
+) — also removes their assessments, match stats and attendance ||| ) — supprime aussi leurs évaluations, statistiques de match et présences ||| ) — también elimina sus evaluaciones, estadísticas de partido y asistencia
+Matches ( ||| Matchs ( ||| Partidos (
+Training sessions ( ||| Séances d'entraînement ( ||| Sesiones de entrenamiento (
+Plays for this team ( ||| Systèmes de cette équipe ( ||| Jugadas de este equipo (
+The team entry itself (just removes it from the team list) ||| L'entrée de l'équipe elle-même (la retire simplement de la liste des équipes) ||| La propia entrada del equipo (solo la quita de la lista de equipos)
+Exercises and notebooks aren't listed — they belong to the whole club, not to one team, so they're never affected here. ||| Les exercices et les carnets ne sont pas listés — ils appartiennent à tout le club, pas à une seule équipe, donc ils ne sont jamais touchés ici. ||| Los ejercicios y cuadernos no aparecen — pertenecen a todo el club, no a un equipo, así que aquí nunca se ven afectados.
+Delete selected ||| Supprimer la sélection ||| Eliminar lo seleccionado
+No teams with data found for this club. ||| Aucune équipe avec des données trouvée pour ce club. ||| No se encontraron equipos con datos para este club.
+Choose a team/season… ||| Choisir une équipe / saison… ||| Elegir un equipo/temporada…
+Roster/players ||| Effectif/joueurs ||| Plantilla/jugadores
+Training sessions ||| Séances d'entraînement ||| Sesiones de entrenamiento
+Plays ||| Systèmes ||| Jugadas
+the team entry ||| l'entrée de l'équipe ||| la entrada del equipo
+This permanently deletes: {summary} for "{team}" ({season}) in "{club}". This can't be undone. Type the team name ("{team}") to confirm: ||| Cela supprime définitivement : {summary}\npour « {team} » ({season}) dans « {club} ». Cette action est irréversible.\n\nSaisissez le nom de l'équipe (« {team} ») pour confirmer : ||| Esto elimina de forma permanente: {summary}\npara «{team}» ({season}) en «{club}». No se puede deshacer.\n\nEscribe el nombre del equipo («{team}») para confirmar:
+Team name didn't match — nothing was deleted. ||| Le nom de l'équipe ne correspond pas — rien n'a été supprimé. ||| El nombre del equipo no coincide — no se eliminó nada.
+Deleting… ||| Suppression… ||| Eliminando…
+Deleted for "{team}": {summary}. ||| Supprimé pour « {team} » : {summary}. ||| Eliminado para «{team}»: {summary}.
+Something failed partway through — check what's left before retrying. ||| Un problème est survenu en cours de route — vérifiez ce qui reste avant de réessayer. ||| Algo falló a mitad de camino — comprueba qué queda antes de reintentar.
+Message {name} ||| Écrire à {name} ||| Escribir a {name}
+Couldn't send that. ||| Impossible d'envoyer. ||| No se pudo enviar.
+Message sent. ||| Message envoyé. ||| Mensaje enviado.
+Loading members… ||| Chargement des membres… ||| Cargando miembros…
+Search coaches/admins… ||| Rechercher des entraîneurs / admins… ||| Buscar entrenadores/administradores…
+No members found. ||| Aucun membre trouvé. ||| No se encontraron miembros.
+admin ||| administrateur ||| administrador
+coach ||| entraîneur ||| entrenador
+Send a message ||| Envoyer un message ||| Enviar un mensaje
+(blocked) ||| (bloqué) ||| (bloqueado)
+this person ||| cette personne ||| esta persona
+Role updated. ||| Rôle mis à jour. ||| Rol actualizado.
+Couldn't change that role. ||| Impossible de modifier ce rôle. ||| No se pudo cambiar ese rol.
+Remove this person from the club? ||| Retirer cette personne du club ? ||| ¿Quitar a esta persona del club?
+Couldn't remove that member. ||| Impossible de retirer ce membre. ||| No se pudo quitar a ese miembro.
+Couldn't load members: {error} ||| Impossible de charger les membres : {error} ||| No se pudieron cargar los miembros: {error}
+Showing {team} — {season}'s own staff, plus anyone who directs the whole club. ||| Affichage de {team} — {season} : son propre staff, plus toutes les personnes qui dirigent tout le club. ||| Mostrando {team} — {season}: su propio cuerpo técnico, más quien dirige todo el club.
+Couldn't load this right now. ||| Impossible de charger cela pour le moment. ||| No se pudo cargar esto ahora mismo.
+Nobody to show yet. ||| Personne à afficher pour l'instant. ||| Todavía no hay nadie que mostrar.
+Admin ||| Administrateur ||| Administrador
+Request to join a club or association ||| Demande pour rejoindre un club ou une association ||| Solicitud para unirse a un club o asociación
+You need a club to use PlayPivot ||| Il vous faut un club pour utiliser PlayPivot ||| Necesitas un club para usar PlayPivot
+PlayPivot is built around coaching a real team — create your own club, or ask to join one you already coach for, to unlock the Dashboard and every tool. ||| PlayPivot est conçu pour entraîner une vraie équipe — créez votre propre club, ou demandez à rejoindre celui pour lequel vous entraînez déjà, pour débloquer le tableau de bord et tous les outils. ||| PlayPivot está pensado para entrenar a un equipo real — crea tu propio club, o pide unirte a uno en el que ya entrenes, para desbloquear el panel y todas las herramientas.
+that club ||| ce club ||| ese club
+the club's admin ||| l'administrateur du club ||| el administrador del club
+Waiting for approval ||| En attente d'approbation ||| Esperando aprobación
+Your request to join {club} is waiting for {admin} to approve it — you'll get access to the Dashboard as soon as they do. ||| Votre demande pour rejoindre {club} attend l'approbation de {admin} — vous aurez accès au tableau de bord dès qu'elle sera validée. ||| Tu solicitud para unirte a {club} está esperando que {admin} la apruebe — tendrás acceso al panel en cuanto lo haga.
+Waiting for approval to join {club} ||| En attente d'approbation pour rejoindre {club} ||| Esperando aprobación para unirse a {club}
+You already have a membership or a pending request for that team in this club — check with the club's admin, or pick a different team. ||| Vous avez déjà une adhésion ou une demande en attente pour cette équipe dans ce club — voyez avec l'administrateur du club, ou choisissez une autre équipe. ||| Ya tienes una membresía o una solicitud pendiente para ese equipo en este club — consúltalo con el administrador del club, o elige otro equipo.
+Couldn't send the request. ||| Impossible d'envoyer la demande. ||| No se pudo enviar la solicitud.
+Request to join a club ||| Demande pour rejoindre un club ||| Solicitud para unirse a un club
+Pick your club, and your team within it if you know it — the club's admin approves before you get access. ||| Choisissez votre club, et votre équipe au sein de celui-ci si vous la connaissez — l'administrateur du club valide avant que vous n'ayez accès. ||| Elige tu club y, si lo sabes, tu equipo dentro de él — el administrador del club aprueba antes de que tengas acceso.
+Which club or association? ||| Quel club ou quelle association ? ||| ¿Qué club o asociación?
+Which team? ||| Quelle équipe ? ||| ¿Qué equipo?
+Choose your team… ||| Choisissez votre équipe… ||| Elige tu equipo…
+Message to the admin (optional) ||| Message pour l'administrateur (facultatif) ||| Mensaje para el administrador (opcional)
+Send request ||| Envoyer la demande ||| Enviar solicitud
+e.g. Hi, I'm the new U16 coach… ||| ex. Bonjour, je suis le nouvel entraîneur des U16… ||| p. ej. Hola, soy el nuevo entrenador del U16…
++ My team isn't listed — request a new one ||| + Mon équipe n'est pas dans la liste — en demander une nouvelle ||| + Mi equipo no aparece — solicitar uno nuevo
+Pick a club first. ||| Choisissez d'abord un club. ||| Primero elige un club.
+Pick your team, or request a new one. ||| Choisissez votre équipe, ou demandez-en une nouvelle. ||| Elige tu equipo, o solicita uno nuevo.
+Request sent — the admin needs to approve it. ||| Demande envoyée — l'administrateur doit l'approuver. ||| Solicitud enviada — el administrador debe aprobarla.
+Club "{name}" created — you're its admin. ||| Club « {name} » créé — vous en êtes l'administrateur. ||| Club «{name}» creado — eres su administrador.
+Your request to join has been sent — the admin needs to approve it. ||| Votre demande a été envoyée — l'administrateur doit l'approuver. ||| Tu solicitud se ha enviado — el administrador debe aprobarla.
+Couldn't finish setting up your club. ||| Impossible de terminer la configuration de votre club. ||| No se pudo terminar de configurar tu club.
+wants to join {club} as {role} ||| souhaite rejoindre {club} en tant que {role} ||| quiere unirse a {club} como {role}
+your club ||| votre club ||| tu club
+Team: "{team}"{bits} — new team, needs creating ||| Équipe : « {team} »{bits} — nouvelle équipe, à créer ||| Equipo: «{team}»{bits} — equipo nuevo, hay que crearlo
+Team: {team} ({season}) ||| Équipe : {team} ({season}) ||| Equipo: {team} ({season})
+Team: whole club (no specific team requested) ||| Équipe : tout le club (aucune équipe précise demandée) ||| Equipo: todo el club (no se pidió un equipo concreto)
+Couldn't update that request. ||| Impossible de mettre à jour cette demande. ||| No se pudo actualizar esa solicitud.
+All teams ||| Toutes les équipes ||| Todos los equipos
+Other teams ||| Autres équipes ||| Otros equipos
+Type ||| Type ||| Tipo
+Match ||| Match ||| Partido
+Training ||| Entraînement ||| Entrenamiento
+Event ||| Événement ||| Evento
+No teams yet ||| Aucune équipe pour l'instant ||| Aún no hay equipos
+Sun ||| Dim ||| Dom
+Mon ||| Lun ||| Lun
+Tue ||| Mar ||| Mar
+Wed ||| Mer ||| Mié
+Thu ||| Jeu ||| Jue
+Fri ||| Ven ||| Vie
+Sat ||| Sam ||| Sáb
+TBD ||| À déterminer ||| Por determinar
+Training session ||| Séance d'entraînement ||| Sesión de entrenamiento
+Add something? ||| Ajouter quelque chose ? ||| ¿Añadir algo?
+Are you sure you want to delete this? It'll also disappear from its module and from Recent activity. ||| Voulez-vous vraiment supprimer ceci ? Cela disparaîtra aussi de son module et de l'activité récente. ||| ¿Seguro que quieres eliminar esto? También desaparecerá de su módulo y de la actividad reciente.
+Deleted. ||| Supprimé. ||| Eliminado.
+Couldn't delete that. ||| Impossible de supprimer. ||| No se pudo eliminar.
+No teams yet — ||| Aucune équipe pour l'instant — ||| Aún no hay equipos —
+create one first in Roster ||| créez-en d'abord une dans Effectif ||| crea uno primero en Plantilla
+, then come back. ||| , puis revenez. ||| , y luego vuelve.
+Location (optional) ||| Lieu (facultatif) ||| Lugar (opcional)
+e.g. Madrid Hoops ||| ex. Lyon Basket ||| p. ej. Madrid Hoops
+e.g. Pabellón Municipal ||| ex. Gymnase municipal ||| p. ej. Pabellón Municipal
+e.g. Competition week ||| ex. Semaine de compétition ||| p. ej. Semana de competición
+Team (optional — leave as "Whole club" for a general event) ||| Équipe (facultatif — laissez « Tout le club » pour un événement général) ||| Equipo (opcional — déjalo en «Todo el club» para un evento general)
+e.g. Championship game, Team photo day… ||| ex. Finale du championnat, journée photo d'équipe… ||| p. ej. Partido del campeonato, día de la foto del equipo…
+Added to the calendar — and it'll show up in its module too. ||| Ajouté au calendrier — et il apparaîtra aussi dans son module. ||| Añadido al calendario — y aparecerá también en su módulo.
+Just now ||| À l'instant ||| Ahora mismo
+{n}m ago ||| il y a {n} min ||| hace {n} min
+{n}h ago ||| il y a {n} h ||| hace {n} h
+{n}d ago ||| il y a {n} j ||| hace {n} d
+Exercise created ||| Exercice créé ||| Ejercicio creado
+Play design created ||| Système créé ||| Jugada diseñada
+Match added ||| Match ajouté ||| Partido añadido
+Training planned ||| Entraînement planifié ||| Entrenamiento planificado
+Assessment completed ||| Évaluation terminée ||| Evaluación completada
+Event added ||| Événement ajouté ||| Evento añadido
+New coach joined ||| Nouvel entraîneur arrivé ||| Se unió un nuevo entrenador
+Nothing yet — your recent additions will show up here. ||| Rien pour l'instant — vos ajouts récents apparaîtront ici. ||| Todavía nada — tus últimas incorporaciones aparecerán aquí.
+Are you sure you want to delete this? It'll also disappear from its module and from the calendar (if it had a date). ||| Voulez-vous vraiment supprimer ceci ? Cela disparaîtra aussi de son module et du calendrier (s'il avait une date). ||| ¿Seguro que quieres eliminar esto? También desaparecerá de su módulo y del calendario (si tenía fecha).
+Add {n} example players ({team}, {season}), plus a sample assessment for each, to your club? ||| Ajouter {n} joueurs d'exemple ({team}, {season}), plus une évaluation d'exemple pour chacun, à votre club ? ||| ¿Añadir {n} jugadores de ejemplo ({team}, {season}), más una evaluación de muestra para cada uno, a tu club?
+Example assessment, for demo purposes. ||| Évaluation d'exemple, à titre de démonstration. ||| Evaluación de ejemplo, con fines de demostración.
+{n} example players and assessments added — see them in Roster and Player assessment. ||| {n} joueurs et évaluations d'exemple ajoutés — consultez-les dans Effectif et Évaluation des joueurs. ||| {n} jugadores y evaluaciones de ejemplo añadidos — míralos en Plantilla y Evaluación de jugadores.
+Remove {team} ({season}) and all its data? Can't be undone. ||| Supprimer {team} ({season}) et toutes ses données ? Action irréversible. ||| ¿Eliminar {team} ({season}) y todos sus datos? No se puede deshacer.
+Couldn't remove that. ||| Impossible de supprimer. ||| No se pudo eliminar.
+How to use the Dashboard ||| Comment utiliser le tableau de bord ||| Cómo usar el panel
+This is your home screen — your club, your role, and quick stats about what's in PlayPivot so far. If you're not in any club yet, you can request to join one or create your own club from the club selector in the sidebar. ||| Voici votre écran d'accueil — votre club, votre rôle et des statistiques rapides sur ce que contient PlayPivot jusqu'ici. Si vous n'êtes encore dans aucun club, vous pouvez demander à en rejoindre un ou créer le vôtre depuis le sélecteur de club du menu latéral. ||| Esta es tu pantalla de inicio — tu club, tu rol y estadísticas rápidas de lo que hay en PlayPivot hasta ahora. Si todavía no estás en ningún club, puedes pedir unirte a uno o crear el tuyo desde el selector de club de la barra lateral.
+Sidebar (left) ||| Menu latéral (à gauche) ||| Barra lateral (izquierda)
+— every module, always one click away. Below "Dashboard" is your club selector: switch between clubs you belong to, create a new one, or ask to join another. Settings, Help, and Privacy live at the bottom, along with your name and role. ||| — tous les modules, toujours à un clic. Sous « Tableau de bord » se trouve votre sélecteur de club : passez d'un club auquel vous appartenez à un autre, créez-en un nouveau ou demandez à en rejoindre un autre. Paramètres, Aide et Confidentialité sont en bas, avec votre nom et votre rôle. ||| — todos los módulos, siempre a un clic. Debajo de «Panel» está tu selector de club: cambia entre los clubes a los que perteneces, crea uno nuevo o pide unirte a otro. Ajustes, Ayuda y Privacidad están abajo, junto con tu nombre y tu rol.
+Your stats at a glance ||| Vos statistiques en un coup d'œil ||| Tus estadísticas de un vistazo
+— Teams, Players, Assessments, Exercises, Notebooks (from Training builder), Play designs, Matches, Wins, Losses. All counted from your own club only. Example data (any Bulls season, the Celtics) is never counted here, even if it's still loaded on Roster/Assessment/Training. ||| — Équipes, Joueurs, Évaluations, Exercices, Carnets (de la préparation des séances), Systèmes créés, Matchs, Victoires, Défaites. Tout est compté uniquement pour votre propre club. Les données d'exemple (toute saison des Bulls, les Celtics) ne sont jamais comptées ici, même si elles sont encore chargées dans Effectif / Évaluation / Séances. ||| — Equipos, Jugadores, Evaluaciones, Ejercicios, Cuadernos (del Constructor de entrenamientos), Jugadas diseñadas, Partidos, Victorias, Derrotas. Todo se cuenta solo de tu propio club. Los datos de ejemplo (cualquier temporada de los Bulls, los Celtics) nunca se cuentan aquí, aunque sigan cargados en Plantilla/Evaluación/Entrenamientos.
+Calendar ||| Calendrier ||| Calendario
+— matches (orange), trainings (navy), and events (green) for your club. Click any day to see what's on it, or to add a match, training, or event right there — it'll show up in its own module automatically. ||| — les matchs (orange), entraînements (bleu marine) et événements (vert) de votre club. Cliquez sur un jour pour voir ce qu'il contient, ou pour y ajouter un match, un entraînement ou un événement — il apparaîtra automatiquement dans son propre module. ||| — los partidos (naranja), entrenamientos (azul marino) y eventos (verde) de tu club. Haz clic en un día para ver lo que hay, o para añadir ahí mismo un partido, entrenamiento o evento — aparecerá automáticamente en su propio módulo.
+Recent activity ||| Activité récente ||| Actividad reciente
+— the last few things added to your club: exercises, plays, matches, trainings, events, assessments. ||| — les dernières choses ajoutées à votre club : exercices, systèmes, matchs, entraînements, événements, évaluations. ||| — lo último que se ha añadido a tu club: ejercicios, jugadas, partidos, entrenamientos, eventos, evaluaciones.
+✉️ (top right) is your ||| ✉️ (en haut à droite) est votre ||| ✉️ (arriba a la derecha) es tu
+messages ||| messagerie ||| bandeja de mensajes
+inbox — direct messages between you and a teammate, or you and a PlayPivot admin/validator. A number badge means unread messages. ||| — messages directs entre vous et un coéquipier, ou entre vous et un admin / validateur PlayPivot. Une pastille avec un nombre indique des messages non lus. ||| — mensajes directos entre tú y un compañero, o entre tú y un administrador/validador de PlayPivot. Un número en una insignia indica mensajes sin leer.
+🔔 (only shows up when there's something) is for ||| 🔔 (n'apparaît que lorsqu'il y a quelque chose) sert aux ||| 🔔 (solo aparece cuando hay algo) sirve para las
+club association requests ||| demandes d'association de clubs ||| solicitudes de asociación de clubes
+— if you're a platform admin or validator, you'll see every pending request here with Approve/Reject; otherwise you'll see the status of your own club's requests. Pending requests to join your own club show up further down the page too. ||| — si vous êtes administrateur ou validateur de la plateforme, vous verrez ici toutes les demandes en attente avec Approuver / Refuser ; sinon vous verrez l'état des demandes de votre propre club. Les demandes en attente pour rejoindre votre club apparaissent aussi plus bas dans la page. ||| — si eres administrador o validador de la plataforma, verás aquí todas las solicitudes pendientes con Aprobar/Rechazar; si no, verás el estado de las solicitudes de tu propio club. Las solicitudes pendientes para unirse a tu club aparecen también más abajo en la página.
+If you're a PlayPivot platform admin, choosing ||| Si vous êtes administrateur de la plateforme PlayPivot, choisir ||| Si eres administrador de la plataforma PlayPivot, elegir
+"⚡ Admin (all clubs)" ||| « ⚡ Admin (tous les clubs) » ||| «⚡ Admin (todos los clubes)»
+from the club selector takes you to a platform-wide view: totals across every club, a searchable clubs table, and the ability to message a club's admin, manage roles, or deactivate a club. ||| dans le sélecteur de club vous mène à une vue globale de la plateforme : totaux de tous les clubs, un tableau de clubs avec recherche, et la possibilité d'écrire à l'administrateur d'un club, de gérer les rôles ou de désactiver un club. ||| en el selector de club te lleva a una vista de toda la plataforma: totales de todos los clubes, una tabla de clubes con búsqueda y la posibilidad de escribir al administrador de un club, gestionar roles o desactivar un club.

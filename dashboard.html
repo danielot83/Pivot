@@ -488,6 +488,7 @@
   </main>
 </div><!-- /app-shell -->
 
+<script src="./i18n.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
 <script src="team-tree.js"></script>
@@ -1961,7 +1962,7 @@
       teamLine.style.cssText = "font-size:13px; color:var(--muted); margin-top:2px;";
       if (req.requested_team_is_new) {
         const bits = [req.requested_team_category, req.requested_team_gender].filter(Boolean).join(" · ");
-        teamLine.textContent = `Team: "${req.team_name}"${bits ? ` (${bits})` : ""} — new team, needs creating`;
+        teamLine.textContent = _t('Team: "{team}"{bits} — new team, needs creating', { team: req.team_name, bits: bits ? ` (${bits})` : "" });
       } else if (req.team_name) {
         teamLine.textContent = `Team: ${req.team_name} (${req.team_season || "?"})`;
       } else {

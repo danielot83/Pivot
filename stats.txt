@@ -1,0 +1,112 @@
+# ===== Match stats =====
+PlayPivot | Match Stats ||| PlayPivot | Statistiques de match ||| PlayPivot | Estadísticas de partido
+Pick a team and season below. ||| Choisissez une équipe et une saison ci-dessous. ||| Elige un equipo y una temporada abajo.
+Team & season ||| Équipe et saison ||| Equipo y temporada
+Pick which team/season to summarize. Create teams and log matches from Match day. ||| Choisissez l'équipe / saison à résumer. Créez des équipes et saisissez des matchs depuis Jour de match. ||| Elige qué equipo/temporada resumir. Crea equipos y registra partidos desde Día de partido.
+Matches included: all ({n}) ||| Matchs inclus : tous ({n}) ||| Partidos incluidos: todos ({n})
+Matches included: {k} of {n} — choose specific matches ▾ ||| Matchs inclus : {k} sur {n} — choisir des matchs précis ▾ ||| Partidos incluidos: {k} de {n} — elegir partidos concretos ▾
+Matches included: all ||| Matchs inclus : tous ||| Partidos incluidos: todos
+Select all ||| Tout sélectionner ||| Seleccionar todo
+Select none ||| Tout désélectionner ||| No seleccionar ninguno
+(no opponent set) ||| (adversaire non indiqué) ||| (sin rival indicado)
+Team summary — ||| Résumé de l'équipe — ||| Resumen del equipo —
+Trends over the season ||| Tendances sur la saison ||| Tendencias a lo largo de la temporada
+Pick one or more stats to see them match by match — each gets its own mini-chart below, since they don't share a scale. "Points" uses the official score; the others are the sum of what was logged per player (and per opponent player, if any was logged). ||| Choisissez une ou plusieurs statistiques pour les voir match par match — chacune a son propre mini-graphique ci-dessous, car elles n'ont pas la même échelle. « Points » utilise le score officiel ; les autres sont la somme de ce qui a été saisi par joueur (et par joueur adverse, le cas échéant). ||| Elige una o varias estadísticas para verlas partido a partido — cada una tiene su propio minigráfico debajo, porque no comparten escala. «Points» usa el marcador oficial; las demás son la suma de lo registrado por jugador (y por jugador rival, si se registró algo).
+Include opponent ||| Inclure l'adversaire ||| Incluir al rival
+Player averages — ||| Moyennes des joueurs — ||| Medias de los jugadores —
+Click a column header to sort. GP only counts matches the player actually got on the court for (called up alone doesn't count). "Average" shows per-game numbers, "Totals" the season sum. ||| Cliquez sur un en-tête de colonne pour trier. MJ ne compte que les matchs où le joueur est réellement entré sur le terrain (une simple convocation ne compte pas). « Moyenne » affiche les chiffres par match, « Totaux » le cumul de la saison. ||| Haz clic en el encabezado de una columna para ordenar. PJ solo cuenta los partidos en los que el jugador llegó a jugar (estar convocado no cuenta). «Media» muestra las cifras por partido y «Totales» la suma de la temporada.
+No stats recorded for any player yet this season. ||| Aucune statistique enregistrée pour un joueur cette saison. ||| Todavía no hay estadísticas registradas de ningún jugador esta temporada.
+Attendance — ||| Présences — ||| Asistencia —
+Share of this season's trainings, matches and events each player attended (present or late). Click a column header to sort. ||| Part des entraînements, matchs et événements de la saison auxquels chaque joueur a assisté (présent ou en retard). Cliquez sur un en-tête de colonne pour trier. ||| Porcentaje de los entrenamientos, partidos y eventos de la temporada a los que asistió cada jugador (presente o con retraso). Haz clic en el encabezado de una columna para ordenar.
+Not counted because no attendance was taken: ||| Non comptés faute de présences saisies : ||| No se cuentan porque no se pasó lista:
+No attendance recorded yet this season — fill it in under Attendance. ||| Aucune présence enregistrée cette saison — renseignez-la dans Présences. ||| Todavía no hay asistencia registrada esta temporada — rellénala en Asistencia.
+Overall ||| Global ||| Total
+Leaders ||| Meilleurs ||| Líderes
+Leaders — {stat} (season total) ||| Meilleurs — {stat} (total de la saison) ||| Líderes — {stat} (total de la temporada)
+Leaders — {stat} per game ||| Meilleurs — {stat} par match ||| Líderes — {stat} por partido
+Same stats shown in "Player averages" above — hide a column there with "Columns ▾" and it drops out of this list too. ||| Mêmes statistiques que dans « Moyennes des joueurs » ci-dessus — masquez une colonne là-bas avec « Colonnes ▾ » et elle disparaît aussi de cette liste. ||| Las mismas estadísticas de «Medias de los jugadores» de arriba — oculta una columna allí con «Columnas ▾» y desaparece también de esta lista.
+Record and scoring average against each rival this season — "PA/G" is how many points, on average, that rival has scored against you. ||| Bilan et moyenne de points contre chaque adversaire cette saison — « PE/M » est le nombre de points marqués en moyenne par cet adversaire contre vous. ||| Balance y media de puntos contra cada rival esta temporada — «PC/P» es cuántos puntos, de media, te ha anotado ese rival.
+No matches with a final score yet this season. ||| Aucun match avec un score final cette saison. ||| Todavía no hay partidos con marcador final esta temporada.
+Pick a team and season above to see its stats. ||| Choisissez une équipe et une saison ci-dessus pour voir ses statistiques. ||| Elige un equipo y una temporada arriba para ver sus estadísticas.
+Points ||| Points ||| Puntos
+Pts ||| Pts ||| Pts
+Rebounds ||| Rebonds ||| Rebotes
+Reb ||| Reb ||| Reb
+Assists ||| Passes décisives ||| Asistencias
+Ast ||| PD ||| Ast
+Fouls ||| Fautes ||| Faltas
+Minutes ||| Minutes ||| Minutos
+Min ||| Min ||| Min
+1PM ||| LF ||| TL
+2PM ||| 2 pts ||| T2
+3PM ||| 3 pts ||| T3
+Periods played ||| Périodes jouées ||| Periodos jugados
+Per ||| Pér ||| Per
+Total ||| Total ||| Total
+Differential ||| Différentiel ||| Diferencial
+Average ||| Moyenne ||| Media
+Totals ||| Totaux ||| Totales
+Couldn't load matches: ||| Impossible de charger les matchs : ||| No se pudieron cargar los partidos:
+W||win letter (record) ||| V ||| G
+L||loss letter (record) ||| D ||| P
+D||draw letter (record) ||| N ||| E
+{n} of {total} match has a final score ||| {n} match sur {total} a un score final ||| {n} de {total} partido tiene marcador final
+{n} of {total} matches have a final score ||| {n} matchs sur {total} ont un score final ||| {n} de {total} partidos tienen marcador final
+Points for / game ||| Points marqués / match ||| Puntos a favor / partido
+Points allowed / game ||| Points encaissés / match ||| Puntos en contra / partido
+Point differential ||| Différence de points ||| Diferencia de puntos
+Team box-score totals per game (sum of all players' tracked stats — may be lower than the official score above if some matches are missing stats). Use "Columns ▾" above to hide stats you don't log. ||| Totaux de la feuille de stats de l'équipe par match (somme des statistiques saisies pour tous les joueurs — peut être inférieure au score officiel ci-dessus si des matchs n'ont pas de statistiques). Utilisez « Colonnes ▾ » ci-dessus pour masquer les statistiques que vous ne saisissez pas. ||| Totales del acta del equipo por partido (suma de las estadísticas registradas de todos los jugadores — puede ser menor que el marcador oficial de arriba si faltan estadísticas en algunos partidos). Usa «Columnas ▾» arriba para ocultar las estadísticas que no registras.
+No shooting percentage yet — the app only tracks shots ||| Pas encore de pourcentage de tir — l'application ne suit que les tirs ||| Todavía no hay porcentaje de tiro — la aplicación solo registra los tiros
+made ||| réussis ||| anotados
+(1PM/2PM/3PM), not attempts. Averages above are makes, not accuracy. ||| (LF/2 pts/3 pts), pas les tentatives. Les moyennes ci-dessus sont des paniers marqués, pas une adresse. ||| (TL/T2/T3), no los intentos. Las medias de arriba son canastas anotadas, no un porcentaje de acierto.
+No columns selected — pick at least one from "Columns ▾". ||| Aucune colonne sélectionnée — choisissez-en au moins une dans « Colonnes ▾ ». ||| No hay columnas seleccionadas — elige al menos una en «Columnas ▾».
+(player no longer on record) ||| (joueur qui n'est plus dans l'effectif) ||| (jugador que ya no consta en la plantilla)
+GP ||| MJ ||| PJ
+GS ||| MT ||| PT
+No stats selected — pick at least one from "Columns ▾" in Player averages above. ||| Aucune statistique sélectionnée — choisissez-en au moins une dans « Colonnes ▾ » de Moyennes des joueurs ci-dessus. ||| No hay estadísticas seleccionadas — elige al menos una en «Columnas ▾» de Medias de los jugadores arriba.
+No "{stat}" logged yet. ||| Aucun « {stat} » saisi pour l'instant. ||| Todavía no se ha registrado ningún «{stat}».
+Points for ||| Points marqués ||| Puntos a favor
+Points allowed ||| Points encaissés ||| Puntos en contra
+{a} vs {b} ||| {a} vs {b} ||| {a} vs {b}
+{stat} (own team) ||| {stat} (notre équipe) ||| {stat} (nuestro equipo)
+{stat} (opponent) ||| {stat} (adversaire) ||| {stat} (rival)
+No opponent data logged for this stat yet, so only your own team is shown. ||| Aucune donnée adverse saisie pour cette statistique, seule votre équipe est affichée. ||| Todavía no hay datos del rival para esta estadística, así que solo se muestra tu equipo.
+Opponent hidden — check "Include opponent" above to compare. ||| Adversaire masqué — cochez « Inclure l'adversaire » ci-dessus pour comparer. ||| Rival oculto — marca «Incluir al rival» arriba para comparar.
+You ahead ||| Vous devant ||| Vas por delante
+Opponent ahead ||| Adversaire devant ||| El rival va por delante
+— differential (you − opponent) ||| — différentiel (vous − adversaire) ||| — diferencial (tú − rival)
+Nothing logged for this stat yet this season. ||| Rien de saisi pour cette statistique cette saison. ||| Todavía no hay nada registrado para esta estadística esta temporada.
+No opponent data logged for {stat} yet, so a differential can't be calculated. Switch to "Total" to see your own numbers, or log opponent stats for this field. ||| Aucune donnée adverse saisie pour {stat}, donc le différentiel ne peut pas être calculé. Passez à « Total » pour voir vos propres chiffres, ou saisissez les statistiques adverses pour ce champ. ||| Todavía no hay datos del rival para {stat}, así que no se puede calcular el diferencial. Cambia a «Total» para ver tus propias cifras, o registra las estadísticas del rival para este campo.
+Pick at least one stat above. ||| Choisissez au moins une statistique ci-dessus. ||| Elige al menos una estadística arriba.
+Hover (or tab to) a bar to see the exact match and value. Left = earliest, right = most recent. ||| Survolez une barre (ou naviguez dessus avec Tab) pour voir le match et la valeur exacts. Gauche = le plus ancien, droite = le plus récent. ||| Pasa el ratón por una barra (o navega a ella con Tab) para ver el partido y el valor exactos. Izquierda = el más antiguo, derecha = el más reciente.
+PF/G ||| PM/M ||| PF/P
+PA/G ||| PE/M ||| PC/P
+Diff/G ||| Diff/M ||| Dif/P
+Last played ||| Dernier match ||| Último partido
+Opponent ||| Adversaire ||| Rival
+Record ||| Bilan ||| Balance
+How to read Match stats ||| Comment lire les statistiques de match ||| Cómo leer las estadísticas de partido
+1–2. Pick a team and season ||| 1–2. Choisir une équipe et une saison ||| 1–2. Elegir un equipo y una temporada
+Same teams/seasons as Match day and Roster. This page only reads matches you can already see there — it doesn't create or change anything. ||| Mêmes équipes / saisons que Jour de match et Effectif. Cette page ne lit que les matchs que vous y voyez déjà — elle ne crée ni ne modifie rien. ||| Los mismos equipos/temporadas que Día de partido y Plantilla. Esta página solo lee partidos que ya puedes ver allí — no crea ni cambia nada.
+Matches included ||| Matchs inclus ||| Partidos incluidos
+By default every match of the season counts. Open "choose specific matches" to untick any you want left out of every number and chart on this page (e.g. a friendly that shouldn't count). ||| Par défaut, tous les matchs de la saison comptent. Ouvrez « choisir des matchs précis » pour décocher ceux que vous voulez exclure de tous les chiffres et graphiques de cette page (ex. un match amical qui ne doit pas compter). ||| Por defecto cuentan todos los partidos de la temporada. Abre «elegir partidos concretos» para desmarcar los que quieras dejar fuera de todas las cifras y gráficos de esta página (p. ej. un amistoso que no debe contar).
+Team summary ||| Résumé de l'équipe ||| Resumen del equipo
+Win/loss record and scoring average come from the official score of each match. The "box-score totals" further down are the sum of whatever you entered per player in Match day's "Call-up & stats" — if a match is missing stats for some players, those totals will run a bit below the official score. Use "Columns ▾" to only show the stats you actually log. ||| Le bilan victoires/défaites et la moyenne de points viennent du score officiel de chaque match. Les « totaux de la feuille de stats » plus bas sont la somme de ce que vous avez saisi par joueur dans « Convocation et stats » de Jour de match — si un match n'a pas de statistiques pour certains joueurs, ces totaux seront un peu inférieurs au score officiel. Utilisez « Colonnes ▾ » pour n'afficher que les statistiques que vous saisissez réellement. ||| El balance de victorias/derrotas y la media de puntos salen del marcador oficial de cada partido. Los «totales del acta» de más abajo son la suma de lo que introdujiste por jugador en «Convocatoria y estadísticas» de Día de partido — si a un partido le faltan estadísticas de algunos jugadores, esos totales quedarán algo por debajo del marcador oficial. Usa «Columnas ▾» para mostrar solo las estadísticas que realmente registras.
+Trends ||| Tendances ||| Tendencias
+Pick any stat to see it match by match, for your team and (when logged) the opponent too. ||| Choisissez une statistique pour la voir match par match, pour votre équipe et (si elle est saisie) pour l'adversaire aussi. ||| Elige cualquier estadística para verla partido a partido, de tu equipo y (si se registró) también del rival.
+Player averages ||| Moyennes des joueurs ||| Medias de los jugadores
+One row per player with at least one match actually played this season (called up alone doesn't count), even if they're no longer on the current roster. GP = games played, GS = games started. Click any column header to sort, use "Columns ▾" to pick which stats show. ||| Une ligne par joueur ayant réellement joué au moins un match cette saison (une simple convocation ne compte pas), même s'il ne fait plus partie de l'effectif actuel. MJ = matchs joués, MT = matchs en tant que titulaire. Cliquez sur un en-tête de colonne pour trier, utilisez « Colonnes ▾ » pour choisir les statistiques affichées. ||| Una fila por jugador con al menos un partido jugado de verdad esta temporada (estar convocado no cuenta), aunque ya no esté en la plantilla actual. PJ = partidos jugados, PT = partidos como titular. Haz clic en el encabezado de una columna para ordenar, usa «Columnas ▾» para elegir qué estadísticas se muestran.
+Top 10 players for whichever stat you pick. ||| Les 10 meilleurs joueurs pour la statistique choisie. ||| Los 10 mejores jugadores en la estadística que elijas.
+By opponent ||| Par adversaire ||| Por rival
+Grouped by the opponent name exactly as typed in each match — if the same rival was spelled two different ways across matches, they'll show as two separate rows. ||| Regroupé par nom d'adversaire exactement comme saisi dans chaque match — si le même adversaire est orthographié de deux façons, il apparaîtra sur deux lignes distinctes. ||| Agrupado por el nombre del rival tal como se escribió en cada partido — si el mismo rival se escribió de dos formas distintas, aparecerá en dos filas separadas.
+Only matches you're allowed to see count towards any of this — a match a teammate marked "Only me" won't show up in your numbers, even for your own club. ||| Seuls les matchs que vous avez le droit de voir comptent dans tout cela — un match qu'un coéquipier a marqué « Moi seul » n'apparaîtra pas dans vos chiffres, même pour votre propre club. ||| Solo cuentan los partidos que tienes permiso para ver — un partido que un compañero marcó como «Solo yo» no aparecerá en tus cifras, ni siquiera en tu propio club.
+Trainings ||| Entraînements ||| Entrenamientos
+Events ||| Événements ||| Eventos
+Player ||| Joueur ||| Jugador
+{n} training ||| {n} entraînement ||| {n} entrenamiento
+{n} trainings ||| {n} entraînements ||| {n} entrenamientos
+{n} match ||| {n} match ||| {n} partido
+{n} matches ||| {n} matchs ||| {n} partidos
+{n} event ||| {n} événement ||| {n} evento
+{n} events ||| {n} événements ||| {n} eventos
+Not counted because no attendance was taken: {list}. ||| Non comptés faute de présences saisies : {list}. ||| No se cuentan porque no se pasó lista: {list}.
