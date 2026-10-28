@@ -199,6 +199,11 @@
   .present-other { background: #fef9c3; color: #854d0e; }
   .present-unknown { background: var(--line); color: var(--muted); }
 
+  .att-pct-cell { white-space: nowrap; }
+  .att-pct-cell .att-pct-bar { display: inline-block; vertical-align: middle; width: 54px; height: 6px; border-radius: 3px; background: var(--line); margin-right: 8px; overflow: hidden; }
+  .att-pct-cell .att-pct-bar > i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  .att-pct-cell .att-pct-num { font-weight: 700; }
+  .att-pct-cell .att-pct-frac { color: var(--muted); font-size: 12.5px; margin-left: 6px; }
   .table-scroll { overflow-x: auto; border-radius: 10px; }
   .table-scroll table { margin-bottom: 0; }
   th.sortable { cursor: pointer; user-select: none; }
@@ -473,6 +478,20 @@
         </table>
       </div>
       <div class="empty-state" id="player-table-empty" style="display:none;">No stats recorded for any player yet this season.</div>
+    </div>
+
+    <div class="team-bar-card" id="attendance-pct-card">
+      <div class="card-head-row">
+        <h2>Attendance — <span id="att-team-label"></span></h2>
+      </div>
+      <p class="hint" style="margin:0 0 14px;" id="att-hint">Share of this season's trainings, matches and events each player attended (present or late). Click a column header to sort.</p>
+      <div class="table-scroll">
+        <table id="att-table">
+          <thead><tr id="att-table-head"></tr></thead>
+          <tbody id="att-table-body"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="att-table-empty" style="display:none;">No attendance recorded yet this season — fill it in under Attendance.</div>
     </div>
 
     <div class="team-bar-card">
@@ -972,6 +991,125 @@
     selectedMatchIds = null;
     renderMatchPicker();
     applyFiltersAndRender();
+    loadAttendanceStats();
+  }
+
+  // =========================================================================
+  // Attendance % por jugador (Dani 2026-10-28): de todos los entrenos,
+  // partidos y eventos de la temporada/equipo elegido, a cuántos fue cada
+  // jugador. Cuenta como "asistió" present o late (excused/absent no).
+  // El denominador son las sesiones en las que SE LLEGÓ A PASAR LISTA (hay
+  // al menos un registro): una sesión que nadie rellenó no debe bajarle el
+  // % a todo el equipo. Es independiente del filtro de partidos de arriba.
+  // =========================================================================
+  const ATTENDED_STATUSES = ["present", "late"];
+  let attRows = [];
+  let attInfo = { total: { match: 0, training: 0, event: 0 }, counted: { match: 0, training: 0, event: 0 } };
+  let attSort = { key: "overall", dir: "desc" };
+
+  function computeAttendanceStats(players, sessions, attendanceRows) {
+    // sessions: { match:[ids], training:[ids], event:[ids] }
+    const info = { total: {}, counted: {} };
+    const recorded = {};     // tipo -> Set(ids con al menos 1 registro)
+    const attendedBy = {};   // playerId -> tipo -> n
+    const typeOfId = {};
+    ["match", "training", "event"].forEach((t) => { (sessions[t] || []).forEach((id) => { typeOfId[id] = t; }); recorded[t] = new Set(); });
+    const attendedKeys = new Set();
+    attendanceRows.forEach((a) => {
+      const sid = a.match_id || a.training_id || a.event_id;
+      const t = typeOfId[sid];
+      if (!t) return;
+      recorded[t].add(sid);
+      if (ATTENDED_STATUSES.includes(a.status)) attendedKeys.add(sid + "|" + a.player_id);
+    });
+    ["match", "training", "event"].forEach((t) => { info.total[t] = (sessions[t] || []).length; info.counted[t] = recorded[t].size; });
+    const rows = players.map((p) => {
+      const r = { id: p.id, name: `${p.first_name || ""} ${p.last_name || ""}`.trim(), jersey_number: p.jersey_number };
+      let sumAtt = 0, sumTot = 0;
+      ["match", "training", "event"].forEach((t) => {
+        let n = 0;
+        recorded[t].forEach((sid) => { if (attendedKeys.has(sid + "|" + p.id)) n++; });
+        const tot = info.counted[t];
+        r[t + "_n"] = n; r[t + "_tot"] = tot;
+        r[t + "_pct"] = tot ? (n / tot) * 100 : null;
+        sumAtt += n; sumTot += tot;
+      });
+      r.overall_n = sumAtt; r.overall_tot = sumTot;
+      r.overall_pct = sumTot ? (sumAtt / sumTot) * 100 : null;
+      return r;
+    });
+    return { rows, info };
+  }
+
+  async function fetchAttendanceChunked(column, ids) {
+    const out = [], CHUNK = 40, PAGE = 1000;
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const slice = ids.slice(i, i + CHUNK);
+      let from = 0;
+      for (;;) {
+        const { data, error } = await supabaseClient.from("attendance").select("*").in(column, slice).order("id").range(from, from + PAGE - 1);
+        if (error) { console.error("attendance error:", error); break; }
+        out.push(...(data || []));
+        if (!data || data.length < PAGE) break;
+        from += PAGE;
+      }
+    }
+    return out;
+  }
+
+  async function loadAttendanceStats() {
+    document.getElementById("att-team-label").textContent = currentTeam || "";
+    const scope = (q) => filterByGender(filterByCategory(q.eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam), currentTeamCategory), currentTeamGender);
+    const [pl, tr, ev] = await Promise.all([
+      scope(supabaseClient.from("players").select("id, first_name, last_name, jersey_number").eq("active", true)),
+      scope(supabaseClient.from("trainings").select("id")),
+      scope(supabaseClient.from("events").select("id")),
+    ]);
+    const players = pl.data || [];
+    const sessions = { match: allMatchesCache.map((m) => m.id), training: (tr.data || []).map((x) => x.id), event: (ev.data || []).map((x) => x.id) };
+    const [m, t, e] = await Promise.all([
+      fetchAttendanceChunked("match_id", sessions.match),
+      fetchAttendanceChunked("training_id", sessions.training),
+      fetchAttendanceChunked("event_id", sessions.event),
+    ]);
+    const res = computeAttendanceStats(players, sessions, [...m, ...t, ...e]);
+    attRows = res.rows; attInfo = res.info;
+    renderAttendanceStatsTable();
+  }
+
+  function renderAttendanceStatsTable() {
+    const table = document.getElementById("att-table"), empty = document.getElementById("att-table-empty");
+    const anyCounted = attInfo.counted.match + attInfo.counted.training + attInfo.counted.event > 0;
+    if (!attRows.length || !anyCounted) { table.style.display = "none"; empty.style.display = "block"; return; }
+    table.style.display = "table"; empty.style.display = "none";
+    const types = [["training", "⏱ Trainings"], ["match", "🏀 Matches"], ["event", "📌 Events"]].filter(([t]) => attInfo.counted[t] > 0);
+    const cols = [{ id: "name", label: "Player", field: "name" },
+      ...types.map(([t, label]) => ({ id: t, label: `${label} (${attInfo.counted[t]})`, field: t + "_pct" })),
+      { id: "overall", label: "Overall", field: "overall_pct" }];
+    const arrow = (id) => attSort.key === id ? (attSort.dir === "asc" ? " ▲" : " ▼") : "";
+    document.getElementById("att-table-head").innerHTML = cols.map((c) => `<th class="sortable" data-id="${c.id}">${escapeHtml(c.label)}${arrow(c.id)}</th>`).join("");
+    document.querySelectorAll("#att-table-head th").forEach((th) => th.addEventListener("click", () => {
+      const id = th.dataset.id;
+      attSort = attSort.key === id ? { key: id, dir: attSort.dir === "asc" ? "desc" : "asc" } : { key: id, dir: id === "name" ? "asc" : "desc" };
+      renderAttendanceStatsTable();
+    }));
+    const field = cols.find((c) => c.id === attSort.key).field;
+    const sorted = [...attRows].sort((a, b) => {
+      const av = a[field], bv = b[field];
+      const cmp = field === "name" ? String(av).localeCompare(String(bv)) : (av == null ? -1 : av) - (bv == null ? -1 : bv);
+      return attSort.dir === "asc" ? cmp : -cmp;
+    });
+    const pctCell = (n, tot, pct) => pct == null ? `<td class="att-pct-cell">—</td>`
+      : `<td class="att-pct-cell"><span class="att-pct-bar"><i style="width:${Math.round(pct)}%"></i></span><span class="att-pct-num">${Math.round(pct)}%</span><span class="att-pct-frac">${n}/${tot}</span></td>`;
+    document.getElementById("att-table-body").innerHTML = sorted.map((r) => `<tr>
+      <td>${escapeHtml(r.name)}</td>
+      ${types.map(([t]) => pctCell(r[t + "_n"], r[t + "_tot"], r[t + "_pct"])).join("")}
+      ${pctCell(r.overall_n, r.overall_tot, r.overall_pct)}
+    </tr>`).join("");
+    const skipped = ["training", "match", "event"].map((t) => [t, attInfo.total[t] - attInfo.counted[t]]).filter(([, n]) => n > 0);
+    const lbl = { training: "training", match: "match", event: "event" };
+    document.getElementById("att-hint").textContent = "Share of this season's trainings, matches and events each player attended (present or late). Click a column header to sort."
+      + (skipped.length ? " Not counted because no attendance was taken: " + skipped.map(([t, n]) => `${n} ${lbl[t]}${n > 1 ? "s" : ""}`).join(", ") + "." : "");
   }
 
   // -----------------------------------------------------------------------
