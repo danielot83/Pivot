@@ -1,0 +1,2202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/x-icon" href="./favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https://eeucbnhqsnfitzwzghtg.supabase.co;
+  connect-src 'self' https://eeucbnhqsnfitzwzghtg.supabase.co https://cdn.jsdelivr.net https://tessdata.projectnaptha.com;
+  object-src 'none'; base-uri 'none'; form-action 'none'" />
+<title>PlayPivot | Basketball Exercise Creator</title>
+<meta name="description" content="Create custom basketball drills with court diagrams, instructions and coaching details for your team's training sessions." />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #ec6718; --accent-deep: #b85012; --accent-tint: #fdefe7;
+    --navy: #080026; --navy-hover: #191235; --sidebar-w: 244px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; font-size: 14px; }
+    @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+  h1, h2, h3, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  a { color: inherit; }
+
+  .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .logotype-img { height: 28px; width: auto; display: block; }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
+  .nav-btn:hover { border-color: var(--accent); }
+
+  .layout { display: flex; flex-direction: column; gap: 20px; max-width: 1080px; margin: 0 auto; padding: 24px; }
+
+  h1 { font-size: 23px; margin: 0 0 4px; display:flex; align-items:center; justify-content:space-between; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+  /* Faltaba esta regla -- ".hint" se usaba 12 veces en esta página (los
+     textos explicativos de "Fill in with AI"/"Fill in from a photo"/
+     "Start from existing exercise", entre otros) pero nunca tuvo un tamaño
+     de letra propio, así que cada uno caía en el tamaño por defecto del
+     navegador (~16px) salvo que alguien le pusiera un font-size a mano --
+     de ahí que unos textos se vieran más grandes que otros sin motivo. A
+     petición de Dani ("no tienen el mismo formato"). Mismo valor que usan
+     match.html/roster.html/attendance.html/play_design.html para ".hint". */
+  .hint { font-size: 14px; color: var(--muted); }
+  /* Dani (voz, 2026-10-04): "cuando des a salvar, que te vuelve para
+     arriba" -- antes .msg vivia arriba del todo de la pagina y
+     showMessage() hacia scrollIntoView, asi que CUALQUIER mensaje (hasta
+     "Guardado correctamente") arrastraba el scroll entero hacia arriba,
+     lejos de donde estabas (p.ej. el boton Save, al final de un
+     formulario largo). Ahora .msg flota fijo cerca de abajo de la
+     pantalla -- se ve sin mover el scroll para nada, asi que
+     showMessage() ya no necesita (ni hace) scrollIntoView. */
+  .msg { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); margin: 0; padding: 12px 18px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; z-index: 400; max-width: min(460px, calc(100vw - 32px)); box-shadow: 0 10px 28px rgba(0,0,0,.18); }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
+  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 14px; color: var(--ink); margin-bottom: 12px; }
+  /* Intro -- a petición de Dani: el principio de esta página era solo el
+     título y los 3 botones, sin ningún contexto ("no me gusta asi", "no me
+     parece que el principio sea atractivo"). Primera versión: una franja
+     con una frase resumen. Dani, 2026-09-29 ("mejor. Quita el balón... y
+     márcalo con un cuadradito"): sin balón, y un cuadradito propio por
+     opción explicando en un par de frases qué hace cada una, en vez de una
+     sola frase para las tres juntas -- siempre visible, a diferencia de
+     help-box (escondida detrás del "?"). */
+  .intro-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  @media (max-width: 700px) { .intro-tiles { grid-template-columns: 1fr; } }
+  .intro-tile { background: var(--accent-tint); border-radius: 10px; padding: 14px 16px; }
+  /* .intro-tile-icon eliminado a petición de Dani, 2026-09-29 (cuarta vuelta,
+     "hay que quitar los logos aqui") -- ya no hay emoji delante del título de
+     cada opción; se ha quitado también su regla CSS y el margin-top de 6px
+     del título, pensado para el aire que dejaba ese emoji encima. */
+  .intro-tile .intro-tile-title { font-size: 14px; font-weight: 700; color: var(--accent-deep); margin: 0 0 4px; }
+  .intro-tile .intro-tile-desc { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0; }
+
+  .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .cat-btn { display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 8px; margin: 1px 0; border-radius: 6px; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .cat-btn:hover { background: var(--paper); }
+  .cat-btn.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .ex-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 8px; border-radius: 6px; font-size: 12.5px; cursor: pointer; gap: 6px; }
+  .ex-item:hover { background: var(--paper); }
+  .ex-item.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .ex-item .stars { color: var(--accent); font-size: 11px; white-space: nowrap; }
+  .new-btn { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; font-weight: 600; }
+
+  .field-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .checkbox-field label { font-size: 13px; }
+  .field input, .field select, .field textarea { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 14.5px; font-family: inherit; }
+  .checkbox-field { display: flex; align-items: center; gap: 6px; }
+  .category-icon { font-size: 14px; filter: grayscale(1) contrast(0.9) brightness(0.75); opacity: 0.75; }
+  .checkbox-field input { width: auto; }
+  .checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 4px 10px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+  .checkbox-group-label { font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 10px; display: block; }
+  .group-card { margin-bottom: 14px; }
+
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn:disabled:hover { border-color: var(--line); }
+  .spacer { flex: 1; }
+  .tool-group { display: flex; flex-wrap: wrap; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px; margin-bottom: 6px; }
+  .tool-btn { padding: 5px 9px; border: none; background: none; border-radius: 6px; cursor: pointer; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .tool-btn:hover { background: var(--paper); }
+  .tool-btn.active { background: var(--accent); color: #fff; }
+
+  .step-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+  .step-tab { padding: 6px 12px; border: 1px solid var(--line); background: var(--card); border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .step-tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  .court-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  #court-canvas { display: block; margin: 0 auto; cursor: crosshair; touch-action: none; }
+  .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }
+  .hint-text { font-size: 11.5px; color: var(--muted); margin: 8px 0 0; }
+
+  /* ---------------------------------------------------------------------
+     App shell: sidebar (fixed on desktop/tablet, off-canvas on mobile)
+     + main content column. Same shell as dashboard.html/roster.html.
+     --------------------------------------------------------------------- */
+  .app-shell { display: flex; min-height: 100vh; align-items: stretch; }
+
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0; background: var(--navy); color: #fff;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; z-index: 100;
+  }
+  .sidebar-header { padding: 22px 20px 18px; display: flex; align-items: center; justify-content: space-between; background: transparent; }
+  .sidebar-logo-img { height: 24px; width: auto; display: block; }
+  .sidebar-close-btn { display: none; background: none; border: none; color: #b5b2be; font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; }
+
+  .sidebar-nav { display: block; padding: 4px 12px; background: transparent; }
+  .sidebar-section-gap { height: 14px; }
+  .sidebar-link {
+    display: block; padding: 9px 12px; border-radius: 8px; background: transparent;
+    color: #dad9de; text-decoration: none; font-size: 15px; font-weight: 500;
+    white-space: nowrap; margin-bottom: 2px;
+  }
+  .sidebar-link svg { width: 17px; height: 17px; vertical-align: -4px; margin-right: 10px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .sidebar-link:hover { background: var(--navy-hover); color: #fff; }
+  .sidebar-link.active { background: var(--accent); color: #fff; }
+  .sidebar-divider { height: 1px; background: #211a3c; margin: 10px 20px; }
+
+  .sidebar-footer { margin-top: auto; padding: 8px 12px 16px; background: transparent; }
+  .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 10px 10px; margin-top: 6px; border-radius: 10px; background: #140d31; }
+  .sidebar-user-avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14.5px;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-user-info { flex: 1; min-width: 0; }
+  .sidebar-user-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-role { font-size: 14px; color: #848092; }
+  .sidebar-logout-btn { background: none; border: none; color: #848092; cursor: pointer; padding: 5px; flex-shrink: 0; border-radius: 6px; }
+  .sidebar-logout-btn:hover { color: #fff; background: #191235; }
+  .sidebar-logout-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; display: block; }
+
+  .mobile-topbar { display: none; }
+  .sidebar-overlay { display: none; }
+
+  @media (max-width: 767px) {
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: 0 0 40px rgba(0,0,0,0.3); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-close-btn { display: block; }
+    .mobile-topbar {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--card);
+      border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 40;
+    }
+    .mobile-topbar img { height: 22px; }
+    .hamburger-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink); padding: 4px; line-height: 1; }
+    .sidebar-overlay {
+      display: block; position: fixed; inset: 0; background: rgba(8,0,38,0.5); z-index: 90;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+  }
+
+  .main-content { flex: 1; min-width: 0; }
+
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 28px 32px 4px; flex-wrap: wrap; max-width: 1080px; margin: 0 auto; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .icon-btn {
+    width: 58px; height: 58px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); position: relative;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .icon-badge {
+    position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 10px;
+    font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
+    justify-content: center; padding: 0 3px;
+  }
+</style>
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//playpivot.app/analytics/matomo/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '1']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+</head>
+<body>
+
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">☰</button>
+  <img src="./playpivot-logo.png" alt="PlayPivot" />
+</div>
+
+<div class="app-shell">
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo-negativo.png" alt="PlayPivot" class="sidebar-logo-img" /></a>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close menu">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div id="sidebar-admin-badge" style="display:none; font-size:13.5px; font-weight:700; letter-spacing:0.05em; color:var(--accent); padding:0 12px 6px;">⚡ PLATFORM ADMIN</div>
+
+      <div style="padding:8px 12px 12px;">
+        <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
+      </div>
+      <a href="./dashboard.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+      <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
+      <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
+      <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
+      <a href="./stats.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
+      <a href="./exercises.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg>Exercise creator</a>
+      <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
+      <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
+      <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
+      <a href="./play_library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21V7"/><path d="M4 5c2-1 5-1 8 2 3-3 6-3 8-2v13c-2-1-5-1-8 2-3-3-6-3-8-2Z"/></svg>Playbook</a>
+      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-divider"></div>
+      <nav class="sidebar-nav" style="padding:0;">
+        <a href="./settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
+        <a href="./help.html" id="sidebar-help-link" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
+      </nav>
+      <div class="sidebar-user" id="sidebar-user">
+        <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">—</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">—</div>
+        </div>
+        <button class="sidebar-logout-btn" id="logout-btn" title="Log out">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<div class="topbar" style="align-items:center;">
+  <div></div>
+  <div class="topbar-right">
+    <div id="pending-requests-widget" style="position:relative; display:none;">
+      <button id="pending-requests-btn" class="icon-btn" aria-label="Pending requests">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
+        <span class="icon-badge" id="pending-requests-count" style="display:none;"></span>
+      </button>
+      <div id="pending-requests-panel" style="display:none; position:absolute; top:44px; right:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
+    </div>
+    <div id="messages-widget" style="position:relative;">
+      <button id="messages-btn" class="icon-btn" aria-label="Messages">
+        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+        <span class="icon-badge" id="messages-count" style="display:none;"></span>
+      </button>
+      <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
+    </div>
+    <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
+    <div id="org-name-big" style="display:none;"></div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- Ocultado por ahora, a petición de Dani -- "Export PDF" (más abajo, junto
+       a "Save exercise") ya genera el mismo PDF directamente, así que esta
+       vista previa era un paso extra. No se ha borrado nada: los botones
+       #update-pdf-btn/#pdf-preview-frame se siguen usando en el diálogo de
+       ayuda ("?") -- si se quiere recuperar, basta con quitar este display:none. -->
+  <div class="side-card" style="display:none;">
+    <h2>PDF preview</h2>
+    <p class="hint" style="margin:0 0 10px;">Not live as you type — click "Update PDF" whenever you want to see your latest changes.</p>
+    <button class="btn btn-primary" id="update-pdf-btn" style="width:100%; margin-bottom:10px;">🔄 Update PDF</button>
+    <div id="pdf-preview-empty" class="hint" style="text-align:center; padding:30px 8px; border:1px dashed var(--line); border-radius:8px;">Click "Update PDF" to see it here.</div>
+    <iframe id="pdf-preview-frame" style="display:none; width:100%; height:600px; border:1px solid var(--line); border-radius:8px;"></iframe>
+  </div>
+
+  <div>
+    <h1>
+      Create exercise
+      <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+    </h1>
+    <!-- Nuevo, a petición de Dani: quién creó el ejercicio -- solo se muestra
+         al abrir uno ya existente (no tiene sentido en uno nuevo, todavía sin
+         guardar). Usa exercises.created_by, que ya existía en la BD (se
+         limpia al duplicar, ver copyToMyLibrary en library.html) -- aquí solo
+         hacía falta mostrarlo. -->
+    <p class="hint" id="ex-created-by" style="display:none; margin:-4px 0 12px;"></p>
+    <div class="help-box" id="help-box"></div>
+    <div class="msg" id="msg"></div>
+
+    <div class="intro-tiles">
+      <div class="intro-tile">
+        <p class="intro-tile-title">Fill in with AI</p>
+        <p class="intro-tile-desc">Copy a ready-made prompt into any AI chat, describe your idea, then paste its reply back here — it fills in Name, Category, Objectives and the rest for you. You still draw the court diagram yourself.</p>
+      </div>
+      <div class="intro-tile">
+        <p class="intro-tile-title">Fill in from a photo</p>
+        <p class="intro-tile-desc">Snap or upload a photo of a paper sheet, whiteboard, or your own notes — it reads the text straight into Description. You fill in the rest by hand and draw the diagram yourself, using the photo as reference.</p>
+      </div>
+      <div class="intro-tile">
+        <p class="intro-tile-title">Start from existing exercise</p>
+        <p class="intro-tile-desc">Pick one of your saved exercises and copy everything — including the court diagram — into this new one. The original stays untouched, ready for you to tweak.</p>
+      </div>
+    </div>
+
+    <div id="editor-area" style="display:block">
+      <!-- Antes "Data" y "Court diagram" eran dos pestañas -- el diagrama
+           quedaba escondido detrás de un clic y era fácil no darse cuenta
+           de que existía. Ahora las dos secciones están siempre visibles,
+           una debajo de la otra, con su propio título. -->
+      <p style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); margin:0 0 10px;">Exercise data</p>
+
+      <div id="tab-data">
+        <!-- Los tres puntos de partida (IA / foto / ejercicio existente) --
+             ahora son tres botones iguales, del mismo estilo naranja que el
+             resto de la app (a petición de Dani: "quiero que sean como los
+             botones típicos... exactamente iguales que los demás"). Al
+             clicar uno se abre su panel debajo (y se cierran los otros dos,
+             para no amontonar texto) y, la primera vez, su ventana
+             explicando cómo funciona -- igual que antes, solo que ahora se
+             entra desde un botón real en vez de un enlace de texto. -->
+        <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" id="ai-toggle-btn" style="flex:1; min-width:170px;">Fill in with AI</button>
+          <button type="button" class="btn btn-primary" id="photo-toggle-btn" style="flex:1; min-width:170px;">Fill in from a photo</button>
+          <button type="button" class="btn btn-primary" id="start-from-toggle-btn" style="flex:1; min-width:170px;">Start from existing exercise</button>
+        </div>
+
+        <div class="side-card" id="ai-card" style="display:none; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <h2 style="margin:0; text-transform:none; font-size:14.5px; color:var(--ink); letter-spacing:0;">Fill in with AI</h2>
+            <a href="#" id="ai-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap;">❔ Step-by-step guide</a>
+          </div>
+          <div id="ai-section" style="margin-top:12px;">
+            <p class="hint" style="margin:0 0 10px;">
+              Copy this template into any AI chat (ChatGPT, Claude…), describe your exercise idea on the last line, then paste its reply below. <strong>This never draws the diagram — that always stays manual</strong>, in the "Court diagram" section below.
+            </p>
+            <textarea id="ai-block-template" readonly style="width:100%; min-height:120px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12px; font-family:inherit; color:var(--muted); margin-bottom:8px;"></textarea>
+            <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+              <button class="btn btn-secondary" id="copy-ai-template-btn">📋 Copy this template</button>
+              <button class="btn btn-secondary" id="copy-last-ex-btn">📎 Copy my last exercise</button>
+            </div>
+            <p class="hint" style="margin:0 0 8px;">"Copy my last exercise" gives the AI a real example of your style — paste it in the chat before your new idea.</p>
+            <textarea id="ai-block-input" placeholder="Paste the AI's reply here…" style="width:100%; min-height:100px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit;"></textarea>
+            <button class="btn btn-primary" id="fill-from-ai-btn" style="margin-top:8px;">Fill from AI reply</button>
+          </div>
+        </div>
+
+        <!-- "Fill in from a photo" (a petición de Dani) -- lee el texto de una
+             foto de una ficha en papel/pizarra, TODO dentro del navegador de
+             cada persona (Tesseract.js, WebAssembly) -- sin servidor propio,
+             sin IA, sin ningún coste ni límite que dependa de la cuenta de
+             Dani. A propósito NO intenta adivinar categoría/edad/dificultad
+             -- eso necesitaría entender el texto, no solo leerlo, y ahí un
+             OCR se equivoca mucho. Se limita a volcar el texto reconocido en
+             "Description" para que quien lo use rellene el resto a mano
+             mirándolo -- ahorra teclear, no ahorra revisar.
+        -->
+        <div class="side-card" id="photo-fill-card" style="display:none; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <h2 style="margin:0; text-transform:none; font-size:14.5px; color:var(--ink); letter-spacing:0;">Fill in from a photo</h2>
+            <a href="#" id="photo-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap;">❔ What this does</a>
+          </div>
+          <div id="photo-section" style="margin-top:12px;">
+            <p class="hint" style="margin:0 0 10px;">
+              Take or upload a photo of a paper exercise sheet, a whiteboard, or your own notes — this reads the text and dumps it, as one block, straight into "Description" below (it can't tell what order things should go in, or which lines are objectives vs. description). You still fill in Name, Category, Material, etc. by hand, and it never touches the court diagram — draw that yourself, same as always. Works best with a clear, well-lit, fairly legible sheet.
+            </p>
+            <div class="field" style="max-width:200px; margin-bottom:10px;">
+              <label for="photo-lang-select">Text is mostly in</label>
+              <select id="photo-lang-select">
+                <option value="eng">English</option>
+                <option value="fra">Français</option>
+                <option value="spa">Español</option>
+              </select>
+            </div>
+            <input type="file" id="photo-file-input" accept="image/*" capture="environment" style="width:100%; font-size:13px; margin-bottom:10px;" />
+            <img id="photo-preview" style="display:none; max-width:100%; max-height:180px; border-radius:8px; margin-bottom:10px; border:1px solid var(--line);" />
+            <button class="btn btn-primary" id="read-photo-btn" disabled>📷 Read this photo</button>
+            <p class="hint" id="photo-status" style="margin:8px 0 0;"></p>
+          </div>
+        </div>
+
+        <div class="side-card" id="start-from-card" style="display:none; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <h2 style="margin:0; text-transform:none; font-size:14.5px; color:var(--ink); letter-spacing:0;">Start from an existing exercise</h2>
+            <a href="#" id="start-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap;">❔ How this works</a>
+          </div>
+          <div id="start-from-section" style="margin-top:12px;">
+            <p class="hint" style="margin:0 0 10px;">Pick one of your saved exercises — this copies everything, including the diagram, into this new exercise. The original stays untouched.</p>
+            <div style="display:flex; gap:8px;">
+              <select id="start-from-select" style="flex:1;"><option value="">Pick an exercise…</option></select>
+              <button class="btn btn-secondary" id="start-from-btn">Use as starting point</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field"><label for="ex-number">Number <span id="ex-number-hint" class="hint" style="font-weight:400; text-transform:none;"></span></label><input id="ex-number" type="number" style="width:80px;" /></div>
+          <div class="field" style="flex:2;"><label for="ex-name">Name</label><input id="ex-name" type="text" placeholder="e.g. 3-man weave" /></div>
+          <div class="field">
+            <label for="ex-difficulty">Difficulty</label>
+            <select id="ex-difficulty"><option value="1">★☆☆</option><option value="2">★★☆</option><option value="3">★★★</option></select>
+          </div>
+          <div class="checkbox-field" style="align-self:end; margin-bottom:8px;"><input type="checkbox" id="ex-favorite" /><label for="ex-favorite">★ Favorite</label></div>
+        </div>
+
+        <div class="group-card">
+          <a href="#" class="checkbox-group-label group-toggle-link" id="age-group-toggle" style="cursor:pointer; text-decoration:none; display:block;">▸ Age groups</a>
+          <div class="checkbox-group" id="age-group" style="display:none;"></div>
+        </div>
+        <div class="group-card">
+          <a href="#" class="checkbox-group-label group-toggle-link" id="categories-group-toggle" style="cursor:pointer; text-decoration:none; display:block;">▸ Categories</a>
+          <div class="checkbox-group" id="categories-group" style="display:none;"></div>
+        </div>
+        <div class="group-card">
+          <a href="#" class="checkbox-group-label group-toggle-link" id="material-group-toggle" style="cursor:pointer; text-decoration:none; display:block;">▸ Material</a>
+          <div class="checkbox-group" id="material-group" style="display:none;"></div>
+          <p class="hint" style="margin:8px 0 0;">Anything you place on the court diagram (cones, balls…) is added here automatically when you save.</p>
+        </div>
+
+        <div class="field" style="margin-bottom:12px;"><label for="ex-tags">Tags (semicolon-separated)</label><input id="ex-tags" type="text" placeholder="e.g. Footwork; Balance" /></div>
+        <div class="field" style="margin-bottom:12px;"><label for="ex-objectives">Objectives (one per line, up to 4)</label><textarea id="ex-objectives" rows="3"></textarea></div>
+        <div class="field" style="margin-bottom:12px;"><label for="ex-description">Description</label><textarea id="ex-description" rows="4"></textarea></div>
+        <div class="field" style="margin-bottom:12px;"><label for="ex-variants">Variants</label><textarea id="ex-variants" rows="2"></textarea></div>
+
+        <div class="field" style="margin-bottom:12px;">
+          <label for="ex-language">Language</label>
+          <select id="ex-language">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+          </select>
+          <p class="hint" style="margin:4px 0 0;">Editing a saved exercise changes only this language's text — its translations (if any) stay untouched. To add another language, use "Duplicate as translation" in the Library.</p>
+        </div>
+
+        <div class="field" style="margin-bottom:14px;">
+          <label for="ex-visibility">Who can see this exercise?</label>
+          <select id="ex-visibility">
+            <option value="private">🔒 Only me</option>
+            <option value="team">👥 Whole club</option>
+            <option value="association">🤝 My club association — clubs in my approved group</option>
+            <option value="community">🌐 PlayPivot Community — every club on PlayPivot (view only for them)</option>
+          </select>
+          <!-- A petición de Dani, 2026-09-30 ("deberíamos poner un aviso de
+               revisa la confidencialidad... esto es común para todos"):
+               recordatorio de que el valor por defecto (👥 Whole club)
+               comparte con todo el club. Mismo texto corto en Player
+               assessment, Play design, Training builder y Library
+               (notebooks). -->
+          <p class="hint" style="margin:4px 0 0;">Shared with your whole club by default — pick 🔒 Only me above if you'd rather keep it private.</p>
+        </div>
+      </div>
+
+      <p style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); margin:24px 0 10px;">Court diagram</p>
+
+      <div id="tab-diagram">
+        <div class="step-tabs" id="step-tabs"></div>
+        <!-- Dani (voz, 2026-10-04): "hay usuarios que dicen que no está
+             muy bien" que los 5 diagramas tuvieran un tipo de pista FIJO
+             (3 media pista, 1 vertical, 1 completa, siempre igual, sin
+             poder elegir). Ahora cada diagrama tiene su propio desplegable
+             -- por defecto trae el mismo reparto de siempre (para no
+             cambiar el aspecto de los ejercicios ya guardados), pero se
+             puede poner los 5 en "Full court" (o cualquier combinación)
+             si así se prefiere. El PDF ya sabía encajar cualquier forma
+             dentro del hueco de cada diagrama sin estirarla (centra la
+             imagen y deja margen gris si no coincide la proporción) --
+             no hizo falta tocar nada ahí. -->
+        <div class="field" style="flex-direction:row; align-items:center; gap:6px; margin:8px 0;">
+          <label for="step-court-type" style="margin:0;">This diagram's court</label>
+          <select id="step-court-type" style="width:120px;">
+            <option value="half">Half court</option>
+            <option value="vertical">Vertical</option>
+            <option value="full">Full court</option>
+          </select>
+        </div>
+        <div class="tool-group" id="tools-row1"></div>
+        <div class="tool-group" id="tools-row2"></div>
+        <div class="tool-group" id="tools-row3"></div>
+        <div class="toolbar">
+          <div class="field" style="flex-direction:row; align-items:center; gap:6px;">
+            <label for="color-select" style="margin:0;">Color</label>
+            <select id="color-select" style="width:100px;">
+              <option value="#141414">Black</option>
+              <option value="#c9002b">Red</option>
+              <option value="#1560bd">Blue</option>
+              <option value="#1e7a3c">Green</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary" id="undo-btn">↩ Undo</button>
+          <button class="btn btn-secondary" id="copy-step-btn">Copy to next diagram ➡</button>
+          <button class="btn btn-secondary" id="delete-element-btn">🗑 Delete element</button>
+          <button class="btn btn-secondary" id="clear-btn">Clear this diagram</button>
+        </div>
+        <div class="court-card">
+          <canvas id="court-canvas" width="300" height="300"></canvas>
+        </div>
+        <p class="hint-text">Placing a player/defender asks for its number right away (double-click one afterwards to change it). Click an element with "Move/Select", then "🗑 Delete element" (or Del/Backspace) to remove just that one — click anywhere inside a highlighted zone to select it, not just its corner. "Copy to next diagram" is for drawing a sequence: draw diagram 1, copy it forward (it also copies that diagram's court type, so the sequence stays the same shape) — any player or the ball lands wherever its movement/dribble/pass/shot arrow pointed to, ready for you to draw what happens next. It's greyed out on "Diagram 5" — there's no next one to copy into.</p>
+      </div>
+
+      <div class="toolbar" style="margin-top:16px;">
+        <button class="btn btn-primary" id="save-ex-btn">Save exercise</button>
+        <button class="btn btn-secondary" id="pdf-ex-btn">Export PDF</button>
+        <button class="btn btn-secondary" id="delete-ex-btn" style="display:none; color:#991b1b;">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:32px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:14px; flex-wrap:wrap; max-width:1080px; margin-left:auto; margin-right:auto;">
+  <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right?</span>
+  <button class="nav-btn" id="contact-support-btn" title="Send a message straight to the PlayPivot admin">💬 Contact us</button>
+</div>
+
+<footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; font-size:14.5px; color:var(--muted); max-width:1080px; margin-left:auto; margin-right:auto;">
+  <span>© 2026 PlayPivot. All rights reserved.</span>
+  <a href="./privacy.html" style="color:var(--muted); text-decoration:none;">Privacy Policy</a>
+  <a href="./privacy.html#use" style="color:var(--muted); text-decoration:none;">Terms of Use</a>
+</footer>
+</main>
+</div><!-- /app-shell -->
+
+<script src="./i18n.js?v=2"></script>
+<script src="court-diagram.js?v=4"></script>
+<script src="exercise-categories.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="org-switcher.js"></script>
+<script src="sidebar-widgets.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
+  // Un ejercicio compartido puede venir de otro club -- su nombre es
+  // texto escrito por otra persona. Sin escapar, podría inyectar HTML/JS
+  // que se ejecutara en el navegador de quien lo mire.
+  function escapeHtml(str) {
+    return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  // Mêmes listes exactes que PlayPivot.py (CATEGORIES / AGE_GROUPS / MATERIALS)
+  // CATEGORIES/CATEGORY_ICONS vienen de exercise-categories.js (compartido).
+  const AGE_GROUPS = ["U6","U7","U8","U9","U10","U11","U12","U13","U14","U15","U16","U17","U18","U19","U20","Seniors","All ages"];
+  const MATERIALS = ["Balls","Cones","Marker cones","Rings","Coordination ladder","Bibs","Sticks","Chairs","Resistance bands","Benches","Mats","Ropes","Other"];
+  // COURT_IDS, COURT_LABELS, COURT_TYPES, CANVAS_SIZES, LINE_KINDS,
+  // TOOLS_ROW1/2/3 now come from the shared court-diagram.js.
+
+  const els = {
+    orgName: document.getElementById("org-name-big"),
+    orgLogo: document.getElementById("org-logo-big"),
+    logoutBtn: document.getElementById("logout-btn"),
+    msg: document.getElementById("msg"),
+    editorArea: document.getElementById("editor-area"),
+    number: document.getElementById("ex-number"),
+    numberHint: document.getElementById("ex-number-hint"),
+    name: document.getElementById("ex-name"),
+    difficulty: document.getElementById("ex-difficulty"),
+    favorite: document.getElementById("ex-favorite"),
+    tags: document.getElementById("ex-tags"),
+    objectives: document.getElementById("ex-objectives"),
+    description: document.getElementById("ex-description"),
+    variants: document.getElementById("ex-variants"),
+    visibility: document.getElementById("ex-visibility"),
+    language: document.getElementById("ex-language"),
+    canvas: document.getElementById("court-canvas"),
+    colorSelect: document.getElementById("color-select"),
+    stepCourtType: document.getElementById("step-court-type"),
+    copyStepBtn: document.getElementById("copy-step-btn"),
+  };
+  let ctx = els.canvas.getContext("2d");
+  let cssW = 300, cssH = 280;
+  // Dani (voz, 2026-10-04): antes el tipo de cada uno de los 5 diagramas
+  // era fijo (COURT_TYPES, court-diagram.js) -- ahora es de verdad por
+  // ejercicio, elegible con el desplegable "This diagram's court". Se
+  // inicializa SIEMPRE con una copia de COURT_TYPES (el mismo reparto de
+  // siempre: 3 media pista, 1 vertical, 1 completa) para que un ejercicio
+  // guardado ANTES de este cambio (sin su propio court_types guardado)
+  // se siga viendo exactamente igual que antes.
+  function defaultDiagramCourtTypes() { return Object.assign({}, COURT_TYPES); }
+  let diagramCourtTypes = defaultDiagramCourtTypes();
+
+  let currentOrgId = null;
+  let myOrgIds = new Set(); // 2026-09-30: todos mis clubes activos, ver pivotFilterVisibleRows en org-switcher.js
+  let currentUserId = null;
+  let myRole = null;
+  let isPlatformController = false;
+  let myFavoriteIds = new Set(); // ids favoritos DE ESTE usuario (exercise_favorites), no la vieja columna compartida
+  const canDelete = () => myRole === "admin" || myRole === "coach";
+  let currentExId = null;
+  let currentTranslationGroupId = null;
+  let allExercises = [];
+  let activeTool = "select";
+  const pointCounters = { nextPlayerNum: 1, nextDefenderNum: 1 };
+  let currentStep = "court_1";
+  let diagram = {}; // { court_1: [...elements], court_2: [...], ... }
+  let dragging = null, drawingFrom = null;
+  // Desfase entre el punto donde se hizo clic y la esquina guardada de la
+  // zone (el.x/el.y) -- sin esto, arrastrar una zone agarrándola por el
+  // CENTRO (ahora posible, ver elementAt) haría que su esquina saltara de
+  // golpe al cursor en vez de moverse con él. Para los demás elementos
+  // (jugador, cono...) queda en {0,0}: ahí el.x/el.y YA ES el punto que
+  // se agarra, así que no hace falta ningún desfase -- mismo comportamiento
+  // de siempre.
+  let dragOffset = { dx: 0, dy: 0 };
+  // Dani, test funcional ronda 30 (hallazgo MEDIO nº7): el hint-text dice
+  // "Del/Backspace clears the selection", pero no existía ningún
+  // listener de teclado en este archivo -- esa combinación no hacía
+  // nada, y la única forma de quitar una flecha/pase/pantalla ya
+  // dibujada era deshacer sucesivo (perdiendo todo lo de después) o
+  // borrar el diagrama entero. `selectedElement` guarda el elemento
+  // elegido con la herramienta "Move/Select" (ahora también reconoce
+  // flechas/pases/pantallas, no solo jugadores/conos/zonas) -- Delete o
+  // Backspace lo quita de verdad.
+  let selectedElement = null;
+
+  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; }
+
+  // -----------------------------------------------------------------------
+  // Bloque IA -- même format que l'app de bureau : un prompt fixe à
+  // copier (pas une conversation), les mêmes étiquettes (avec quelques
+  // synonymes FR/ES acceptés en plus, au cas où l'IA répond dans une
+  // autre langue), et "Copier mon dernier exercice" pour donner à l'IA
+  // un exemple réel de style + le bon numéro suivant.
+  // -----------------------------------------------------------------------
+  const AI_BLOCK_TEMPLATE = [
+    "You're helping a basketball coach prepare a complete exercise sheet, ready to go into their training notebook.",
+    "",
+    "I'll describe an exercise idea at the very bottom. If that description is too vague to fill in every field below with real confidence (for example: no age group, no clear skill focus, no idea how many players), ask me clarifying questions FIRST, in this same conversation, before writing anything — don't guess wildly just to fill a field. Once you genuinely have enough, reply with a complete sheet, following EXACTLY this format (one label per line, no bold, no markdown, nothing before or after). Don't worry about assigning a number to the exercise — that's handled automatically on the app's side.",
+    "",
+    "NAME: [invent a short, clear name for this exercise]",
+    `CATEGORY: [one or more, separated by semicolons; choose only from: ${CATEGORIES.join(", ")}]`,
+    `MATERIAL: [one or more, separated by semicolons; choose only from: ${MATERIALS.join(", ")}]`,
+    "DIFFICULTY: [1, 2, or 3, based on how hard the exercise really is]",
+    `AGE: [age groups this fits, separated by semicolons; choose only from: ${AGE_GROUPS.join(", ")}]`,
+    "TAGS: [a few free keywords separated by semicolons, to find this exercise again later]",
+    "OBJECTIVES:",
+    "[2 to 4 concrete coaching objectives, one per line]",
+    "DESCRIPTION:",
+    "[describe exactly how the exercise runs on the court: who does what, in what order, with what rules]",
+    "VARIANTS:",
+    "[1 to 3 possible variants of the exercise]",
+    "",
+    "Important: don't worry about the court diagram (player positions, arrows, ball...) — the coach draws that themselves, directly in the app, afterwards. Focus only on the text above. Once you give the final sheet, give ONLY that — no extra commentary before or after it.",
+    "",
+    "The exercise is about: [DESCRIBE YOUR EXERCISE IDEA HERE]",
+  ].join("\n");
+
+  const LABEL_ALIASES = {
+    number: ["NUMBER", "NUMERO", "NÚMERO", "N", "N°", "Nº"],
+    name: ["NAME", "NOM", "NOM DE L'EXERCICE", "NOMBRE", "TITLE", "TITRE", "TITULO"],
+    difficulty: ["DIFFICULTY", "DIFFICULTE", "DIFFICULTÉ", "DIFICULTAD"],
+    categories: ["CATEGORY", "CATEGORIES", "CATÉGORIE", "CATEGORIE", "CATEGORIA", "CATEGORÍAS", "CATEGORIAS"],
+    material: ["MATERIAL", "MATERIEL", "MATÉRIEL"],
+    age: ["AGE", "ÂGE", "EDAD"],
+    tags: ["TAGS", "ETIQUETTES", "ÉTIQUETTES", "ETIQUETAS", "MOTS CLES", "MOTS-CLES"],
+    objectives: ["OBJECTIVES", "OBJECTIF", "OBJECTIFS", "OBJETIVO", "OBJETIVOS"],
+    description: ["DESCRIPTION", "DESCRIPCION", "DESCRIPCIÓN"],
+    variants: ["VARIANTS", "VARIANTE", "VARIANTES"],
+  };
+  const LABEL_LOOKUP = {};
+  Object.keys(LABEL_ALIASES).forEach((key) => LABEL_ALIASES[key].forEach((alias) => (LABEL_LOOKUP[normalizeLabel(alias)] = key)));
+
+  function normalizeLabel(s) {
+    return s.trim().toUpperCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z ]/g, "").replace(/\s+/g, " ").trim();
+  }
+
+  // Reconnaît le bloc préparé par n'importe quelle IA, que l'étiquette
+  // soit suivie du contenu sur la même ligne ou sur les lignes d'après.
+  function parseFreeBlock(text) {
+    const sections = {};
+    Object.keys(LABEL_ALIASES).forEach((k) => (sections[k] = []));
+    let current = null;
+    text.replace(/\r\n/g, "\n").split("\n").forEach((rawLine) => {
+      const line = rawLine.replace(/\s+$/, "");
+      const stripped = line.trim();
+      let candidate = stripped, inlineValue = null;
+      if (stripped.includes(":")) {
+        const idx = stripped.indexOf(":");
+        candidate = stripped.slice(0, idx);
+        inlineValue = stripped.slice(idx + 1).trim();
+      }
+      const key = candidate.length <= 40 ? LABEL_LOOKUP[normalizeLabel(candidate)] : null;
+      if (key) {
+        current = key;
+        if (inlineValue) sections[current].push(inlineValue);
+        return;
+      }
+      if (current) sections[current].push(line);
+    });
+    const out = {};
+    Object.keys(sections).forEach((k) => (out[k] = sections[k].join("\n").trim()));
+    return out;
+  }
+
+  function parseBlock(text) {
+    const sections = parseFreeBlock(text);
+    const digits = (sections.number || "").replace(/\D/g, "");
+    const nameLines = (sections.name || "").split("\n").map((l) => l.trim()).filter(Boolean);
+    if (!nameLines.length) throw new Error("Couldn't find the exercise's NAME in that text. Use the template above so the AI replies in the right format.");
+    const diffDigits = (sections.difficulty || "").replace(/\D/g, "");
+    const objectives = (sections.objectives || "").split("\n").map((l) => l.replace(/^[\s\-]+/, "").trim()).filter(Boolean).slice(0, 4);
+    return {
+      number: digits ? parseInt(digits, 10) : null,
+      name: nameLines[0],
+      difficulty: diffDigits ? Math.max(1, Math.min(3, parseInt(diffDigits, 10))) : 1,
+      age: matchOptions(sections.age || "", AGE_GROUPS, ";"),
+      categories: matchOptions(sections.categories || "", CATEGORIES, ";"),
+      material: matchOptions(sections.material || "", MATERIALS, ";"),
+      tags: (sections.tags || "").split(";").map((t) => t.trim()).filter(Boolean).join("; "),
+      objectives,
+      description: sections.description || "",
+      variants: sections.variants || "Adapt the instructions to the group's level.",
+    };
+  }
+
+  function matchOptions(text, options, sep) {
+    const parts = text.split(sep || ",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    return options.filter((opt) => parts.includes(opt.toLowerCase()));
+  }
+
+  // L'inverse de parseBlock -- pour "Copier mon dernier exercice" : donne
+  // à l'IA un exemple réel de style et le prochain numéro à utiliser.
+  function formatExerciseAsBlock(e) {
+    return [
+      `NUMBER: ${e.number || 0}`,
+      `NAME: ${e.name || ""}`,
+      `CATEGORY: ${(e.categories || []).join("; ")}`,
+      `MATERIAL: ${(e.material || []).join("; ")}`,
+      `DIFFICULTY: ${e.difficulty || 1}`,
+      `AGE: ${(e.age || []).join("; ")}`,
+      `TAGS: ${(e.tags || []).join("; ")}`,
+      "OBJECTIVES:",
+      (e.objectives || []).join("\n"),
+      "DESCRIPTION:",
+      e.description || "",
+      "VARIANTS:",
+      e.variants || "",
+    ].join("\n");
+  }
+
+  // Ce que voit le schéma (cônes, plots, ballons) s'ajoute automatiquement
+  // au matériel -- même correspondance que l'app de bureau.
+  const DIAGRAM_MATERIAL_MAP = { cone: "Cones", post: "Marker cones", ball: "Balls" };
+  function materialFromDiagram(diagramObj) {
+    const found = [];
+    Object.values(diagramObj || {}).forEach((elements) => {
+      (elements || []).forEach((el) => {
+        const mat = DIAGRAM_MATERIAL_MAP[el && el.type];
+        if (mat && !found.includes(mat)) found.push(mat);
+      });
+    });
+    return found;
+  }
+
+  function applyParsedData(data) {
+    // El número de ejercicio (campo "Number") NUNCA se toca aquí -- se
+    // asigna solo, automáticamente, al entrar en la página (nextNumber(),
+    // ver más abajo) y ese es siempre el correcto. Antes una IA/foto que
+    // adivinaba mal el número podía pisar ese valor bueno; a petición de
+    // Dani ("no me ha quedado claro cómo hacer lo de los números"), ahora
+    // el número en pantalla manda siempre y no hay nada más que explicar.
+    els.name.value = data.name || "";
+    els.difficulty.value = String(data.difficulty || 1);
+    setCheckedValues("age", data.age || []);
+    setCheckedValues("categories", data.categories || []);
+    setCheckedValues("material", data.material || []);
+    els.tags.value = data.tags || "";
+    els.objectives.value = (data.objectives || []).join("\n");
+    els.description.value = data.description || "";
+    els.variants.value = data.variants || "";
+  }
+
+  function getLastExercise() {
+    const mine = allExercises.filter((e) => e.organization_id === currentOrgId);
+    if (mine.length === 0) return null;
+    return mine.reduce((latest, e) => (!latest || (e.number || 0) > (latest.number || 0) ? e : latest), null);
+  }
+
+  // -----------------------------------------------------------------------
+  // "Fill in with AI" -- repliable dans la même page, comme dans Player
+  // assessment. Le format du bloc (étiquettes, "copier mon dernier
+  // exercice") reste celui de l'app de bureau, mais l'écran ne change
+  // plus -- on reste sur le même formulaire du début à la fin.
+  //
+  // Guía paso a paso (a petición de Dani -- este flujo de copiar/pegar con
+  // una IA externa no se entendía a la primera). Aparece sola la primera
+  // vez que alguien abre "Fill in with AI" en este club (localStorage por
+  // club, no por persona -- así el segundo coach del mismo club tampoco se
+  // pierde), y siempre se puede volver a abrir con el enlace "❔ Step-by-
+  // step guide", al lado del desplegable.
+  // -----------------------------------------------------------------------
+  function openAiGuideModal() {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:460px; width:100%; padding:24px 26px; max-height:85vh; overflow-y:auto;">
+        <h3 style="margin:0 0 6px; font-size:17px;">Fill in with AI — step by step</h3>
+        <p class="hint" style="margin:0 0 14px;">This uses an AI chat you already have (ChatGPT, Claude…) — PlayPivot doesn't send anything anywhere by itself, you copy and paste between the two tabs.</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 14px;"><strong>It never draws the court diagram</strong> — only the text fields (Name, Category, Objectives, Description…). You draw the diagram yourself, by hand, in the "Court diagram" section below, every time.</p>
+        <ol style="margin:0 0 16px; padding-left:20px; line-height:1.8; font-size:14.5px;">
+          <li>Click <strong>"📋 Copy this template"</strong> — it's copied to your clipboard.</li>
+          <li>Also click <strong>"📎 Copy my last exercise"</strong> and paste it in the chat first, before your idea — it shows the AI a real example of your style. (Skip this if it's your first exercise.)</li>
+          <li>Open any AI chat in another tab, paste what you copied, and replace the last line ("The exercise is about: …") with your own idea.</li>
+          <li>Send it. If your idea was too vague, the AI will ask you questions first — just answer in that same chat.</li>
+          <li>Once it gives you the finished sheet, copy its whole reply.</li>
+          <li>Come back to this tab, paste it into the box below "Fill in with AI", and click <strong>"Fill from AI reply"</strong> — the form fills in. Review everything, draw the diagram yourself (the AI never touches that), then Save.</li>
+        </ol>
+        <p class="hint" style="margin:0 0 16px;">You can reopen this guide anytime with "❔ Step-by-step guide", next to "Fill in with AI".</p>
+        <button class="btn btn-primary" id="ai-guide-close-btn" style="width:100%;">Got it</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector("#ai-guide-close-btn").addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    try { localStorage.setItem(`pivot_ai_guide_seen_${currentOrgId || "x"}`, "1"); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
+  }
+
+  // Los tres botones de arriba (IA / foto / existente) funcionan como un
+  // acordeón: abrir uno cierra los otros dos, para que el formulario no se
+  // llene de paneles abiertos a la vez. `toggleCreatorCard` centraliza esto.
+  const CREATOR_CARD_IDS = ["ai-card", "photo-fill-card", "start-from-card"];
+  function toggleCreatorCard(cardId, onOpen) {
+    const card = document.getElementById(cardId);
+    const wasOpen = card.style.display === "block";
+    CREATOR_CARD_IDS.forEach((id) => { document.getElementById(id).style.display = "none"; });
+    if (!wasOpen) {
+      card.style.display = "block";
+      card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      if (onOpen) onOpen();
+    }
+  }
+
+  document.getElementById("ai-toggle-btn").addEventListener("click", () => {
+    toggleCreatorCard("ai-card", () => {
+      document.getElementById("ai-block-template").value = AI_BLOCK_TEMPLATE;
+      let seen = true;
+      try { seen = localStorage.getItem(`pivot_ai_guide_seen_${currentOrgId || "x"}`) === "1"; } catch (e) { /* no pasa nada */ }
+      if (!seen) openAiGuideModal();
+    });
+  });
+
+  document.getElementById("ai-guide-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    openAiGuideModal();
+  });
+
+  // -----------------------------------------------------------------------
+  // "Fill in from a photo" -- lectura de texto (OCR) enteramente en el
+  // navegador, con Tesseract.js (WebAssembly) -- a petición de Dani, sin IA
+  // y sin servidor propio: nada que él tenga que pagar, ni límite que
+  // dependa de su cuenta, ni riesgo de que otro club de la plataforma le
+  // dispare la factura. La librería (varios MB) se carga sola, y solo, la
+  // primera vez que alguien abre esta sección -- no en cada visita a la
+  // página. El texto reconocido cae en "Description"; el resto de campos
+  // (Name, Category...) se rellenan a mano, igual que si se copiara de un
+  // papel -- un OCR lee letras, no entiende una ficha de ejercicio.
+  // -----------------------------------------------------------------------
+  let tesseractLoadPromise = null;
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve();
+    if (!tesseractLoadPromise) {
+      tesseractLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Couldn't load the text-reading library — check your internet connection and try again."));
+        document.head.appendChild(script);
+      });
+    }
+    return tesseractLoadPromise;
+  }
+
+  // Explicación aparte (a petición de Dani: "tendremos que explicarlo") --
+  // esto NO es IA, así que hay que dejar claro qué hace y qué no hace, para
+  // que nadie espere que le rellene Category/Material solo. Igual que la
+  // guía de "Fill in with AI": popup solo la primera vez por club, y un
+  // enlace "❔" siempre a mano para volver a verlo.
+  function openPhotoGuideModal() {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:460px; width:100%; padding:24px 26px; max-height:85vh; overflow-y:auto;">
+        <h3 style="margin:0 0 6px; font-size:17px;">Fill in from a photo — what it actually does</h3>
+        <p class="hint" style="margin:0 0 14px;">This is NOT AI — it's plain text recognition (OCR), running on your own device. No account, no setup, no internet service reading your exercises.</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>What it does:</strong> reads the letters it can see in the photo and drops that text into "Description" — saves you typing it out by hand.</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 14px;"><strong>What it doesn't do:</strong> it doesn't understand what an exercise is. It can't tell what order things should go in, so everything lands in "Description" as one unsorted block, exactly as it read it off the photo — it won't separate "objectives" from "description", won't pick Category, Material, Age group or Difficulty for you, and it never touches the court diagram. All of that you still do by hand, using the photo and the recognized text as reference.</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 16px;"><strong>Tips for a better read:</strong> good light, the sheet held flat and filling the frame, and fairly neat handwriting (or printed text) all make a real difference. Very messy handwriting may come out garbled — that's the technology's limit, not a bug.</p>
+        <p class="hint" style="margin:0 0 16px;">You can reopen this anytime with "❔ What this does", next to "Fill in from a photo".</p>
+        <button class="btn btn-primary" id="photo-guide-close-btn" style="width:100%;">Got it</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector("#photo-guide-close-btn").addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    try { localStorage.setItem(`pivot_photo_guide_seen_${currentOrgId || "x"}`, "1"); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
+  }
+
+  document.getElementById("photo-toggle-btn").addEventListener("click", () => {
+    toggleCreatorCard("photo-fill-card", () => {
+      loadTesseract().catch(() => {}); // precarga en segundo plano; si falla, ya avisará el botón "Read this photo"
+      let seen = true;
+      try { seen = localStorage.getItem(`pivot_photo_guide_seen_${currentOrgId || "x"}`) === "1"; } catch (e) { /* no pasa nada */ }
+      if (!seen) openPhotoGuideModal();
+    });
+  });
+
+  document.getElementById("photo-guide-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    openPhotoGuideModal();
+  });
+
+  let selectedPhotoFile = null;
+  document.getElementById("photo-file-input").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    selectedPhotoFile = file || null;
+    const preview = document.getElementById("photo-preview");
+    const readBtn = document.getElementById("read-photo-btn");
+    document.getElementById("photo-status").textContent = "";
+    if (!file) { preview.style.display = "none"; readBtn.disabled = true; return; }
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = "block";
+    readBtn.disabled = false;
+  });
+
+  document.getElementById("read-photo-btn").addEventListener("click", async () => {
+    if (!selectedPhotoFile) return;
+    const btn = document.getElementById("read-photo-btn");
+    const status = document.getElementById("photo-status");
+    const lang = document.getElementById("photo-lang-select").value;
+    btn.disabled = true;
+    status.textContent = "Loading the text reader…";
+    try {
+      await loadTesseract();
+      status.textContent = "Reading the photo… this can take 10–30 seconds the first time.";
+      const worker = await window.Tesseract.createWorker(lang, 1, {
+        logger: (m) => {
+          if (m.status === "recognizing text" && typeof m.progress === "number") {
+            status.textContent = `Reading the photo… ${Math.round(m.progress * 100)}%`;
+          }
+        },
+      });
+      let result;
+      try {
+        result = await worker.recognize(selectedPhotoFile);
+      } finally {
+        await worker.terminate();
+      }
+      const text = ((result && result.data && result.data.text) || "").trim();
+      if (!text) throw new Error("Couldn't find any readable text in that photo.");
+      const descEl = document.getElementById("ex-description");
+      descEl.value = descEl.value ? descEl.value + "\n\n" + text : text;
+      status.textContent = "Photo read — check \"Description\" below, then fill in Name, Category, Material, etc. by hand from what you see.";
+      descEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      descEl.focus();
+    } catch (err) {
+      console.error("Photo read error:", err);
+      status.textContent = "Couldn't read that photo: " + (err && err.message ? err.message : "unknown error") + ". A clearer, better-lit photo usually helps.";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("copy-ai-template-btn").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(AI_BLOCK_TEMPLATE); showMessage("Template copied — paste it into any AI chat and finish the last line.", "success"); }
+    catch (e) { showMessage("Couldn't copy automatically — select and copy the text manually.", "error"); }
+  });
+
+  document.getElementById("copy-last-ex-btn").addEventListener("click", async () => {
+    const last = getLastExercise();
+    if (!last) { showMessage("Your library is still empty — nothing to copy yet.", "error"); return; }
+    try {
+      await navigator.clipboard.writeText(formatExerciseAsBlock(last));
+      showMessage(`Copied exercise #${last.number} ("${last.name}") — paste it in the chat before your new idea, so the AI keeps the same style.`, "success");
+    } catch (e) { showMessage("Couldn't copy automatically.", "error"); }
+  });
+
+  document.getElementById("fill-from-ai-btn").addEventListener("click", () => {
+    const text = document.getElementById("ai-block-input").value;
+    if (!text.trim()) { showMessage("Paste the AI's reply first.", "error"); return; }
+    try {
+      const data = parseBlock(text);
+      applyParsedData(data);
+      showMessage("Filled in from the AI reply — review everything below, draw the diagram if you want one, then save.", "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't read that reply.", "error");
+    }
+  });
+
+  // -----------------------------------------------------------------------
+  // "Start from an existing exercise" -- une liste déroulante juste en
+  // dessous du bloc IA, pas un renvoi vers la Library. Copie tout, y
+  // compris le diagramme (contrairement au bloc IA, qui ne touche jamais
+  // au dessin) -- l'original reste intact, ça crée une fiche à part.
+  // -----------------------------------------------------------------------
+  // Igual que con "Fill in with AI" y "Fill in from a photo": la primera vez
+  // que alguien del club abre este botón le sale una ventana corta
+  // explicando qué hace, y el enlace "❔" la vuelve a abrir cuando quieras.
+  function openStartGuideModal() {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:460px; width:100%; padding:24px 26px; max-height:85vh; overflow-y:auto;">
+        <h3 style="margin:0 0 6px; font-size:17px;">Start from an existing exercise — how it works</h3>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;">Pick any exercise you can already see in the dropdown below and click <strong>"Use as starting point"</strong>. Everything copies over — name, categories, material, description, and the court diagram — into this new exercise.</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 16px;">The original exercise is never touched — this always creates a brand new one. Review and change whatever you like before saving.</p>
+        <button class="btn btn-primary" id="start-guide-close-btn" style="width:100%;">Got it</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector("#start-guide-close-btn").addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    try { localStorage.setItem(`pivot_start_guide_seen_${currentOrgId || "x"}`, "1"); } catch (e) { /* no pasa nada si el almacenamiento está bloqueado */ }
+  }
+
+  document.getElementById("start-from-toggle-btn").addEventListener("click", () => {
+    toggleCreatorCard("start-from-card", () => {
+      let seen = true;
+      try { seen = localStorage.getItem(`pivot_start_guide_seen_${currentOrgId || "x"}`) === "1"; } catch (e) { /* no pasa nada */ }
+      if (!seen) openStartGuideModal();
+    });
+  });
+
+  document.getElementById("start-guide-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    openStartGuideModal();
+  });
+
+  function populateStartFromSelect() {
+    const sel = document.getElementById("start-from-select");
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Pick an exercise…</option>';
+    allExercises.slice().sort((a, b) => (a.number || 0) - (b.number || 0)).forEach((e) => {
+      const opt = document.createElement("option");
+      opt.value = e.id;
+      opt.textContent = `#${e.number || "—"} — ${e.name}${e.organization_id !== currentOrgId ? " 🌐" : ""}`;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+  }
+
+  document.getElementById("start-from-btn").addEventListener("click", () => {
+    const id = document.getElementById("start-from-select").value;
+    if (!id) { showMessage("Pick an exercise from the list first.", "error"); return; }
+    const source = allExercises.find((e) => e.id === id);
+    if (!source) return;
+    applyParsedData({
+      number: nextNumber(), name: source.name, difficulty: source.difficulty,
+      age: source.age, categories: source.categories, material: source.material,
+      tags: (source.tags || []).join("; "), objectives: source.objectives,
+      description: source.description, variants: source.variants,
+    });
+    diagram = JSON.parse(JSON.stringify(source.diagram || {}));
+    diagramCourtTypes = Object.assign(defaultDiagramCourtTypes(), source.court_types || {});
+    currentStep = "court_1";
+    buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
+    document.getElementById("start-from-select").value = "";
+    showMessage(`Started from "${source.name}" — review everything, then save as your own.`, "success");
+  });
+
+  function buildCheckboxGroup(containerId, options, prefix) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = "";
+    options.forEach((opt) => {
+      const label = document.createElement("label");
+      label.className = "checkbox-field";
+      const icon = CATEGORY_ICONS[opt] ? `<span class="category-icon">${CATEGORY_ICONS[opt]}</span> ` : "";
+      label.innerHTML = `<input type="checkbox" value="${opt}" data-group="${prefix}" /> <span style="font-size:13px;">${icon}${opt}</span>`;
+      el.appendChild(label);
+    });
+  }
+  buildCheckboxGroup("age-group", AGE_GROUPS, "age");
+  buildCheckboxGroup("categories-group", CATEGORIES, "categories");
+  buildCheckboxGroup("material-group", MATERIALS, "material");
+
+  function getCheckedValues(prefix) {
+    return Array.from(document.querySelectorAll(`input[data-group="${prefix}"]:checked`)).map((cb) => cb.value);
+  }
+  function setCheckedValues(prefix, values) {
+    document.querySelectorAll(`input[data-group="${prefix}"]`).forEach((cb) => { cb.checked = (values || []).includes(cb.value); });
+    updateGroupToggleLabels();
+  }
+
+  // Age groups/Categories/Material -- cerrados por defecto (como el
+  // "▸ Fill in with AI" de más arriba), en vez de siempre visibles, para
+  // que el formulario ocupe menos alto. La etiqueta muestra cuántos hay
+  // marcados aunque el grupo esté cerrado.
+  const GROUP_TOGGLES = [["age-group", "Age groups", "age"], ["categories-group", "Categories", "categories"], ["material-group", "Material", "material"]];
+  function updateGroupToggleLabels() {
+    GROUP_TOGGLES.forEach(([key, label, prefix]) => {
+      const section = document.getElementById(key);
+      const toggle = document.getElementById(`${key}-toggle`);
+      const isOpen = section.style.display !== "none";
+      const count = getCheckedValues(prefix).length;
+      toggle.textContent = (isOpen ? "▾ " : "▸ ") + _t(label) + (count ? ` (${count})` : "");
+    });
+  }
+  GROUP_TOGGLES.forEach(([key]) => {
+    const section = document.getElementById(key);
+    document.getElementById(`${key}-toggle`).addEventListener("click", (e) => {
+      e.preventDefault();
+      section.style.display = section.style.display === "none" ? "" : "none";
+      updateGroupToggleLabels();
+    });
+    section.addEventListener("change", updateGroupToggleLabels);
+  });
+  updateGroupToggleLabels();
+
+  // -----------------------------------------------------------------------
+  // Barre d'outils du diagramme (17 outils, comme court_editor.py)
+  // -----------------------------------------------------------------------
+  buildSharedToolbar(["tools-row1", "tools-row2", "tools-row3"], (key) => { activeTool = key; });
+
+  // Antes el nombre de la pestaña incluía el tipo FIJO ("Diagram 4
+  // (vertical)") porque nunca podía cambiar. Ahora que sí puede, se
+  // calcula en vivo a partir de diagramCourtTypes -- así la pestaña
+  // siempre dice la verdad, sea cual sea el tipo elegido para ese
+  // diagrama en concreto.
+  const COURT_TYPE_SHORT_LABEL = { half: "half court", vertical: "vertical", full: "full court" };
+  function stepTabLabel(i, cid) {
+    return `Diagram ${i + 1} (${COURT_TYPE_SHORT_LABEL[diagramCourtTypes[cid]] || "half court"})`;
+  }
+
+  function buildStepTabs() {
+    const row = document.getElementById("step-tabs");
+    row.innerHTML = "";
+    COURT_IDS.forEach((cid, i) => {
+      const btn = document.createElement("button");
+      btn.className = "step-tab" + (cid === currentStep ? " active" : "");
+      btn.textContent = stepTabLabel(i, cid);
+      btn.addEventListener("click", () => { currentStep = cid; buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render(); });
+      row.appendChild(btn);
+    });
+    // BUG arreglado (Dani, voz, 2026-10-04: "cuando haces la siguiente
+    // etapa no siempre funciona bien el de ejercicios"): "Copy to next
+    // diagram" no tiene a dónde copiar estando ya en "Diagram 5" (el
+    // último de los 5, no hay un "Diagram 6") -- el click no hacía NADA,
+    // sin ningún aviso ni mensaje, así que parecía que el botón estaba
+    // roto en vez de que simplemente no hubiera un "siguiente" a donde ir.
+    // Ahora se deshabilita visualmente (atenuado + tooltip) en ese caso,
+    // en vez de fingir que funciona y quedarse callado.
+    if (els.copyStepBtn) {
+      const isLast = currentStep === COURT_IDS[COURT_IDS.length - 1];
+      els.copyStepBtn.disabled = isLast;
+      els.copyStepBtn.title = isLast ? "This is already the last diagram — there's no \"next\" one to copy into." : "";
+    }
+  }
+
+  function syncCourtTypeSelect() {
+    els.stepCourtType.value = diagramCourtTypes[currentStep] || "half";
+  }
+  els.stepCourtType.addEventListener("change", () => {
+    diagramCourtTypes[currentStep] = els.stepCourtType.value;
+    buildStepTabs(); resizeCanvasForStep(); render();
+  });
+
+  function resizeCanvasForStep() {
+    [cssW, cssH] = CANVAS_SIZES[diagramCourtTypes[currentStep] || "half"];
+    ctx = setupHiDPICanvas(els.canvas, cssW, cssH);
+  }
+
+  // -----------------------------------------------------------------------
+  // Fonds de terrain (visuels seulement, jamais exportés)
+  // -----------------------------------------------------------------------
+  function drawBackground() {
+    drawCourtBackground(ctx, els.canvas, diagramCourtTypes[currentStep] || "half", cssW, cssH);
+  }
+
+  function toPx(x, y) { return [x * cssW, y * cssH]; }
+  function currentElements() { return diagram[currentStep] || (diagram[currentStep] = []); }
+
+  function render() {
+    drawBackground();
+    currentElements().forEach((el) => drawDiagramElement(ctx, toPx, els.canvas, el));
+    drawSelectionHighlight();
+  }
+
+  // Aro discontinuo (punto/zona) o línea discontinua más gruesa por
+  // detrás (flecha/pase/pantalla) alrededor del elemento seleccionado --
+  // sin tocar court-diagram.js, que no sabe nada de selección. Se
+  // comprueba que `selectedElement` siga en el diagrama actual antes de
+  // dibujar nada -- así, cambiar de paso/deshacer/borrar hace que el
+  // resalte desaparezca solo, sin tener que acordarse de limpiar la
+  // variable en cada sitio que toca el diagrama.
+  function drawSelectionHighlight() {
+    if (activeTool !== "select" || !selectedElement || !currentElements().includes(selectedElement)) return;
+    const el = selectedElement;
+    ctx.save();
+    ctx.strokeStyle = "#ec6718";
+    ctx.setLineDash([4, 3]);
+    if (el.points && el.points.length >= 2) {
+      const [x1, y1] = el.points[0], [x2, y2] = el.points[el.points.length - 1];
+      const [px1, py1] = toPx(x1, y1), [px2, py2] = toPx(x2, y2);
+      ctx.lineWidth = 5;
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2); ctx.stroke();
+    } else if (el.type === "zone") {
+      const [x, y] = toPx(el.x, el.y);
+      const [x2, y2] = toPx(el.x + el.w, el.y + el.h);
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - 3, y - 3, (x2 - x) + 6, (y2 - y) + 6);
+    } else if (el.x !== undefined) {
+      const [px, py] = toPx(el.x, el.y);
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(px, py, 16, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Extraído a su propia función para poder llamarlo tanto desde
+  // Del/Backspace como desde el botón "🗑 Delete element" (a petición de
+  // Dani -- en una tablet/pista no siempre hay teclado a mano).
+  function deleteSelectedElement() {
+    if (!selectedElement || !currentElements().includes(selectedElement)) return;
+    const idx = currentElements().indexOf(selectedElement);
+    if (idx !== -1) currentElements().splice(idx, 1);
+    selectedElement = null;
+    dragging = null;
+    render();
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Delete" && e.key !== "Backspace") return;
+    // No robarle Backspace a un campo de texto normal de la página
+    // (nombre, descripción, tags...) -- solo actúa si el foco no está
+    // en un input/textarea/select y hay algo seleccionado en el lienzo.
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (!selectedElement || !currentElements().includes(selectedElement)) return;
+    e.preventDefault();
+    deleteSelectedElement();
+  });
+  document.getElementById("delete-element-btn").addEventListener("click", deleteSelectedElement);
+
+  function eventToFraction(e) {
+    const rect = els.canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
+  }
+  // BUG arreglado (Dani, voz, 2026-10-04: "el botón de borrar elemento no
+  // funciona"): una "zone" (rectángulo resaltado) guarda su ESQUINA
+  // superior-izquierda en `el.x`/`el.y`, no su centro -- esta función
+  // trataba esa esquina como si fuera un punto normal (jugador, cono...)
+  // y solo la "seleccionaba" si se hacía clic a menos de 0.06 de esa
+  // esquina EXACTA. Hacer clic en cualquier otro punto del rectángulo
+  // (lo normal: el centro, o cualquier sitio dentro) no encontraba nada
+  // que seleccionar -- así que "🗑 Delete element" no tenía nada que
+  // borrar y parecía que el botón simplemente no funcionaba, para una
+  // zone en concreto. Ahora, para una zone, se comprueba si (x,y) cae
+  // DENTRO del rectángulo (con un pequeño margen); el resto de elementos
+  // (jugador, cono, balón...) sigue igual que siempre.
+  function elementAt(x, y) {
+    return currentElements().find((el) => {
+      if (el.type === "zone") {
+        const pad = 0.015;
+        return x >= el.x - pad && x <= el.x + el.w + pad && y >= el.y - pad && y <= el.y + el.h + pad;
+      }
+      return el.x !== undefined && Math.hypot(el.x - x, el.y - y) < 0.06;
+    });
+  }
+  // Distancia de un punto al segmento [x1,y1]-[x2,y2] -- para poder
+  // seleccionar una flecha/pase/pantalla haciendo clic CERCA de la
+  // línea, no solo exactamente sobre uno de sus dos extremos.
+  function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+  }
+  function elementAtAny(x, y) {
+    const point = elementAt(x, y);
+    if (point) return point;
+    return currentElements().find((el) => {
+      if (!el.points || el.points.length < 2) return false;
+      const [x1, y1] = el.points[0], [x2, y2] = el.points[el.points.length - 1];
+      return distToSegment(x, y, x1, y1, x2, y2) < 0.02;
+    }) || null;
+  }
+
+  els.canvas.addEventListener("mousedown", onDown); els.canvas.addEventListener("touchstart", onDown);
+  function onDown(e) {
+    e.preventDefault();
+    const { x, y } = eventToFraction(e);
+    if (activeTool === "select") {
+      const hit = elementAtAny(x, y);
+      selectedElement = hit;
+      // Solo los elementos de "punto" (jugador, cono, zona...) se
+      // arrastran, como ya era -- una flecha/pase/pantalla se
+      // selecciona (para poder borrarla) pero no se arrastra de un
+      // clic, sus dos extremos no tienen una sola posición que mover.
+      dragging = hit && hit.x !== undefined ? hit : null;
+      dragOffset = dragging && dragging.type === "zone" ? { dx: dragging.x - x, dy: dragging.y - y } : { dx: 0, dy: 0 };
+      render();
+      return;
+    }
+    if (["player","defender","coach","cone","ball","post","handoff"].includes(activeTool)) {
+      const el = { type: activeTool, x, y, color: els.colorSelect.value };
+      // BUG arreglado (Dani, voz, 2026-10-04: "cuando clicas jugadores...
+      // uno te dice el jugador o el número y el otro no te dice nada"):
+      // Play design SÍ preguntaba el número al colocar un jugador/defensor
+      // (prompt con el siguiente número como valor por defecto, editable
+      // ahí mismo); aquí se asignaba el siguiente número en silencio, sin
+      // preguntar nada -- la auto-numeración era la MISMA, solo que un
+      // editor avisaba y el otro no. Ahora pregunta igual que en Play
+      // design; cancelar el prompt cancela la colocación (no se añade
+      // nada), igual que allí.
+      if (activeTool === "player" || activeTool === "defender") {
+        const counterKey = activeTool === "player" ? "nextPlayerNum" : "nextDefenderNum";
+        const label = prompt("Number/label for this " + activeTool + ":", String(pointCounters[counterKey]));
+        if (label === null) return; // cancelado -- no se coloca nada
+        el.label = label.trim();
+        pointCounters[counterKey]++;
+      }
+      currentElements().push(el);
+      render();
+      return;
+    }
+    if (activeTool === "zone") { drawingFrom = { x, y }; return; }
+    drawingFrom = { x, y };
+  }
+  els.canvas.addEventListener("mousemove", onMove); els.canvas.addEventListener("touchmove", onMove);
+  function onMove(e) {
+    if (!dragging && !drawingFrom) return;
+    e.preventDefault();
+    const { x, y } = eventToFraction(e);
+    if (dragging) { dragging.x = Math.min(0.97, Math.max(0.03, x + dragOffset.dx)); dragging.y = Math.min(0.97, Math.max(0.03, y + dragOffset.dy)); render(); }
+    else if (activeTool === "zone") {
+      render();
+      drawZoneElement(ctx, toPx, els.canvas, { x: Math.min(drawingFrom.x, x), y: Math.min(drawingFrom.y, y), w: Math.abs(x - drawingFrom.x), h: Math.abs(y - drawingFrom.y), color: els.colorSelect.value });
+    } else {
+      render();
+      const previewType = activeTool === "screen" ? "screen" : activeTool;
+      if (previewType === "screen") drawScreenElement(ctx, toPx, { points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value });
+      else drawLineElement(ctx, toPx, { type: activeTool, points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value });
+    }
+  }
+  window.addEventListener("mouseup", onUp); window.addEventListener("touchend", onUp);
+  function onUp(e) {
+    if (dragging) { dragging = null; return; }
+    if (drawingFrom) {
+      const { x, y } = eventToFraction(e.changedTouches ? e.changedTouches[0] : e);
+      if (activeTool === "zone") {
+        if (Math.abs(x - drawingFrom.x) > 0.02 && Math.abs(y - drawingFrom.y) > 0.02) {
+          currentElements().push({ type: "zone", x: Math.min(drawingFrom.x, x), y: Math.min(drawingFrom.y, y), w: Math.abs(x - drawingFrom.x), h: Math.abs(y - drawingFrom.y), color: els.colorSelect.value });
+        }
+      } else if (Math.hypot(x - drawingFrom.x, y - drawingFrom.y) > 0.03) {
+        currentElements().push({ type: activeTool, points: [[drawingFrom.x, drawingFrom.y], [x, y]], color: els.colorSelect.value });
+      }
+      drawingFrom = null; render();
+    }
+  }
+  els.canvas.addEventListener("dblclick", (e) => {
+    const { x, y } = eventToFraction(e);
+    const el = elementAt(x, y);
+    if (el && (el.type === "player" || el.type === "defender")) {
+      const label = prompt("Label for this player:", el.label || "");
+      if (label !== null) { el.label = label.trim(); render(); }
+    }
+  });
+
+  document.getElementById("undo-btn").addEventListener("click", () => { currentElements().pop(); render(); });
+  document.getElementById("clear-btn").addEventListener("click", () => { diagram[currentStep] = []; render(); });
+  // Dani, test funcional ronda 30 (hallazgo MEDIO nº6, mismo botón que
+  // ya se había aclarado con Dani en la ronda 27): esto ACUMULABA sobre
+  // lo que ya hubiera en el diagrama siguiente en vez de reemplazarlo --
+  // usar el botón dos veces sobre el mismo destino (el propio flujo que
+  // invita el hint-text: copiar, ajustar, copiar otra vez) dejaba
+  // jugadores/flechas/conos duplicados superpuestos. "Copy to next
+  // diagram" reemplaza el diagrama siguiente por una copia del actual,
+  // como ya dice el texto de ayuda ("duplicates everything into the
+  // next diagram") -- no lo suma a lo que ya hubiera ahí.
+  // A petición de Dani: "Copy to next diagram" debería aplicar el
+  // movimiento, como ya hace "+ Add step" en Play design (play_design.html)
+  // -- si hay una flecha/dribble/pase/tiro moviendo a un jugador o al
+  // balón, el diagrama copiado empieza con ese jugador/balón YA en el
+  // punto de llegada, no en el de salida.
+  //
+  // A diferencia de Play design, aquí cada línea de movimiento NO guarda
+  // a qué jugador pertenece (pointId) -- el editor de ejercicios siempre
+  // ha sido más de "dibujo libre", sin ese enganche. Así que se resuelve
+  // por proximidad: el jugador/balón/etc. más cercano al INICIO de la
+  // línea es a quien mueve -- mismo margen de tolerancia (0.09, en
+  // fracción de cancha) que usa Play design para el mismo gesto al
+  // EMPEZAR a dibujar una línea de movimiento. Si no hay nada
+  // suficientemente cerca del inicio, esa línea no mueve a nadie.
+  //
+  // Las líneas de movimiento reales (arrow/dribble/pass/shot) Y las
+  // fintas (fake_move/fake_pass/fake_shot) no pasan al diagrama
+  // siguiente -- representan algo que "ya pasó" en ESTE diagrama, y
+  // dejarlas dibujadas encima de un jugador que ya se movió quedaría mal
+  // (y habría que borrarlas a mano de todas formas). Todo lo demás
+  // (jugadores, defensas, coach, balón, conos, postes, handoffs,
+  // pantallas, zonas) se copia igual que antes, en su sitio.
+  const MOVER_LINE_TYPES = ["arrow", "dribble", "pass", "shot"];
+  const DROPPED_LINE_TYPES = ["arrow", "dribble", "pass", "shot", "fake_move", "fake_pass", "fake_shot"];
+  const POINT_TYPES_FOR_MOVEMENT = ["player", "defender", "coach", "ball", "cone", "post", "handoff"];
+  const MOVE_MATCH_RADIUS = 0.09;
+  const BALL_ATTACH_RADIUS = 0.06;
+
+  function nearestPointElement(elements, x, y, excludeSet) {
+    let best = null, bestDist = Infinity;
+    elements.forEach((el) => {
+      if (!POINT_TYPES_FOR_MOVEMENT.includes(el.type) || excludeSet.has(el)) return;
+      const d = Math.hypot(el.x - x, el.y - y);
+      if (d < MOVE_MATCH_RADIUS && d < bestDist) { best = el; bestDist = d; }
+    });
+    return best;
+  }
+
+  function resolveMovementForCopy(elements) {
+    // Primero se decide QUIÉN se mueve con cada línea, sobre las
+    // posiciones originales -- así, si dos líneas se resuelven en el
+    // mismo lote, la segunda no "engancha" por error al jugador que la
+    // primera ya movió.
+    const usedAsTarget = new Set();
+    const moves = [];
+    elements.forEach((el) => {
+      if (!MOVER_LINE_TYPES.includes(el.type) || !el.points || el.points.length < 2) return;
+      const [sx, sy] = el.points[0];
+      const [ex, ey] = el.points[el.points.length - 1];
+      let target = nearestPointElement(elements, sx, sy, usedAsTarget);
+      if (!target) return;
+      if ((el.type === "pass" || el.type === "shot") && (target.type === "player" || target.type === "defender")) {
+        // Una pase/tiro: quien vuela es el balón, no quien lo envía --
+        // igual que en Play design.
+        const ball = elements.find((b) => b !== target && b.type === "ball" && Math.hypot(b.x - target.x, b.y - target.y) < BALL_ATTACH_RADIUS);
+        if (ball) target = ball; else return; // sin balón cerca, no hay nada que mover con un pase/tiro
+      }
+      usedAsTarget.add(target);
+      moves.push({ target, dx: ex - target.x, dy: ey - target.y, carriesCompanion: el.type === "arrow" || el.type === "dribble" });
+    });
+    moves.forEach(({ target, dx, dy, carriesCompanion }) => {
+      if (carriesCompanion && (target.type === "player" || target.type === "defender")) {
+        const ball = elements.find((b) => b !== target && b.type === "ball" && Math.hypot(b.x - target.x, b.y - target.y) < BALL_ATTACH_RADIUS);
+        if (ball) { ball.x += dx; ball.y += dy; }
+      }
+      target.x += dx; target.y += dy;
+    });
+    return elements.filter((el) => !DROPPED_LINE_TYPES.includes(el.type));
+  }
+
+  document.getElementById("copy-step-btn").addEventListener("click", () => {
+    const idx = COURT_IDS.indexOf(currentStep);
+    if (idx >= COURT_IDS.length - 1) return;
+    const nextStep = COURT_IDS[idx + 1];
+    // A petición de Dani: avisar antes de reemplazar -- si el diagrama de
+    // destino ya tenía algo dibujado, "Copy to next diagram" lo sustituía
+    // en silencio (así quedó decidido en la ronda 30, para que usar el
+    // botón dos veces no acumulara duplicados), pero sustituir sin avisar
+    // significa que un diagrama ya trabajado se puede perder sin querer.
+    if ((diagram[nextStep] || []).length > 0 && !confirm(`${stepTabLabel(COURT_IDS.indexOf(nextStep), nextStep)} already has something drawn on it. Replace it with a copy of ${stepTabLabel(idx, currentStep)}?`)) return;
+    const cloned = JSON.parse(JSON.stringify(currentElements()));
+    diagram[nextStep] = resolveMovementForCopy(cloned);
+    // Dani (voz, 2026-10-04): si vas a copiar lo dibujado a la siguiente
+    // pista, lo lógico es que la siguiente tenga el MISMO tipo de pista --
+    // si no, las posiciones (guardadas como fracción 0-1 del ancho/alto)
+    // se reinterpretan sobre una forma distinta y el dibujo copiado queda
+    // descolocado. Mismo criterio que "+ Add step" en Jugadas (play_design.html),
+    // que ya hace esto. Si el usuario había elegido OTRO tipo a propósito
+    // para la siguiente pista, esto se lo pisa -- pero es lo más seguro
+    // por defecto al encadenar una secuencia, que es justo para lo que
+    // existe este botón.
+    diagramCourtTypes[nextStep] = diagramCourtTypes[currentStep];
+    currentStep = nextStep;
+    buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
+  });
+
+  // -----------------------------------------------------------------------
+  // Club + logo
+  // -----------------------------------------------------------------------
+  async function loadMyOrganization() {
+    const { data: userData } = await supabaseClient.auth.getUser();
+    currentUserId = userData.user.id;
+    const { data: profRow } = await supabaseClient.from("profiles").select("full_name, is_platform_controller").eq("id", userData.user.id).maybeSingle();
+    isPlatformController = !!(profRow && profRow.is_platform_controller);
+    pivotUpdateSidebarUser((profRow && profRow.full_name) || userData.user.email, isPlatformController ? "Platform admin" : null);
+    // Dani, 2026-09-30 ("de nuevo salen los pinches carnales" / "aparecen en
+    // otros clubes"): faltaba .eq("user_id", ...) aquí -- ver el mismo
+    // comentario en assessment.html/loadMyOrganization. Sin este filtro, un
+    // platform controller recibía aquí la fila de CUALQUIER club de la
+    // plataforma, no solo los suyos.
+    const { data, error } = await supabaseClient
+      .from("memberships").select("organization_id, role, status, organizations(name, is_active)").eq("status", "active").eq("user_id", currentUserId);
+    myOrgIds = new Set((data || []).map((m) => m.organization_id));
+    if ((error || !data || data.length === 0) && !isPlatformController) {
+      showMessage("You're not an active member of any club yet.", "error");
+      return null;
+    }
+    const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
+    if (!chosen) { showMessage("You're not an active member of any club yet.", "error"); await pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supabaseClient }); return null; }
+    await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
+    currentOrgId = chosen.organization_id;
+    myRole = chosen.role;
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
+    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
+    return currentOrgId;
+  }
+
+  let creatorNames = {}; // user_id -> full_name, para "Created by" (ver openExercise)
+
+  async function loadExercises() {
+    // Las 2 consultas no dependen una de otra -- se lanzan a la vez
+    // (Promise.all) en vez de una detrás de otra.
+    // 2026-09-30 (Dani, mismo arreglo que Training builder): visible_exercises()
+    // filtra por los 4 círculos reales sin el atajo de platform controller;
+    // pivotFilterVisibleRows quita además mis propios ejercicios de OTRO
+    // club (no son "de otro club" de verdad -- antes salían marcados con
+    // 🌐 en "Start from an existing exercise" como si lo fueran).
+    const [{ data, error }, { data: favRows }] = await Promise.all([
+      supabaseClient.rpc("visible_exercises").select("*").order("number"),
+      supabaseClient.from("exercise_favorites").select("exercise_id").eq("user_id", currentUserId),
+    ]);
+    if (error) { console.error(error); return; }
+    allExercises = pivotFilterVisibleRows(data || [], currentOrgId, myOrgIds);
+    populateStartFromSelect();
+
+    myFavoriteIds = new Set((favRows || []).map((r) => r.exercise_id));
+    if (currentExId) els.favorite.checked = myFavoriteIds.has(currentExId);
+
+    // "Created by" -- consulta aparte (no un join embebido de PostgREST)
+    // porque no hay garantía de que exercises.created_by tenga una relación
+    // de clave foránea declarada hacia profiles; esto funciona siempre.
+    const creatorIds = Array.from(new Set(allExercises.map((e) => e.created_by).filter(Boolean)));
+    if (creatorIds.length > 0) {
+      const { data: creators } = await supabaseClient.from("profiles").select("id, full_name").in("id", creatorIds);
+      creatorNames = {};
+      (creators || []).forEach((p) => { creatorNames[p.id] = p.full_name; });
+    }
+    updateNumberHint();
+  }
+
+  function resetForm() {
+    els.number.value = ""; els.name.value = ""; els.difficulty.value = "1"; els.favorite.checked = false;
+    els.tags.value = ""; els.objectives.value = ""; els.description.value = ""; els.variants.value = ""; els.visibility.value = "team";
+    els.language.value = "en"; currentTranslationGroupId = null;
+    setCheckedValues("age", []); setCheckedValues("categories", []); setCheckedValues("material", []);
+    diagram = {}; currentStep = "court_1";
+    diagramCourtTypes = defaultDiagramCourtTypes();
+    pointCounters.nextPlayerNum = 1; pointCounters.nextDefenderNum = 1;
+  }
+
+  function nextNumber() {
+    // seulement les exercices du club actuel -- sinon les modèles partagés
+    // (jusqu'au numéro 99) feraient exploser la numérotation de tout
+    // nouveau club à "100" dès le premier exercice
+    return allExercises
+      .filter((e) => e.organization_id === currentOrgId)
+      .reduce((max, e) => Math.max(max, e.number || 0), 0) + 1;
+  }
+
+  // A petición de Dani: "no tiene demasiado sentido el número si no
+  // sabemos dónde está el conteo" -- un texto junto a "Number" con cuántos
+  // ejercicios tiene ya el club, para que el número asignado tenga
+  // contexto. Mismo filtro que nextNumber() (solo el club actual, no los
+  // ejercicios compartidos de otros clubes) para que la cifra y el número
+  // asignado cuadren entre sí.
+  function updateNumberHint() {
+    if (!els.numberHint) return;
+    const count = allExercises.filter((e) => e.organization_id === currentOrgId).length;
+    els.numberHint.textContent = count === 0
+      ? "— your library is empty so far"
+      : `— ${count} exercise${count === 1 ? "" : "s"} already in your library`;
+  }
+
+  function resetPdfPreview() {
+    document.getElementById("pdf-preview-frame").style.display = "none";
+    document.getElementById("pdf-preview-empty").style.display = "block";
+  }
+
+  function newExercise() {
+    currentExId = null;
+    resetForm();
+    els.number.value = nextNumber();
+    buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
+    els.editorArea.style.display = "block";
+    document.getElementById("delete-ex-btn").style.display = "none";
+    document.getElementById("save-ex-btn").style.display = "inline-block";
+    [els.number, els.name, els.difficulty, els.favorite, els.tags, els.objectives, els.description, els.variants, els.language, els.visibility]
+      .forEach((el) => (el.disabled = false));
+    resetPdfPreview();
+    document.getElementById("ex-created-by").style.display = "none";
+  }
+
+  function openExercise(id) {
+    const e = allExercises.find((ex) => ex.id === id);
+    if (!e) return;
+    currentExId = id;
+    currentTranslationGroupId = e.translation_group_id || null;
+    els.number.value = e.number || ""; els.name.value = e.name; els.difficulty.value = String(e.difficulty || 1);
+    els.favorite.checked = myFavoriteIds.has(e.id);
+    els.tags.value = (e.tags || []).join("; ");
+    els.objectives.value = (e.objectives || []).join("\n");
+    els.description.value = e.description || ""; els.variants.value = e.variants || "";
+    els.visibility.value = e.visibility || "team";
+    els.language.value = e.language || "en";
+    const createdByEl = document.getElementById("ex-created-by");
+    const creatorName = e.created_by ? creatorNames[e.created_by] : null;
+    if (creatorName) { createdByEl.textContent = `Created by ${creatorName}`; createdByEl.style.display = "block"; }
+    else { createdByEl.style.display = "none"; }
+    setCheckedValues("age", e.age); setCheckedValues("categories", e.categories); setCheckedValues("material", e.material);
+    diagram = e.diagram || {};
+    diagramCourtTypes = Object.assign(defaultDiagramCourtTypes(), e.court_types || {});
+    currentStep = "court_1";
+    // Continue la numérotation là où l'ejercicio l'avait laissée --
+    // même logique que Play design.
+    pointCounters.nextPlayerNum = 1; pointCounters.nextDefenderNum = 1;
+    Object.values(diagram).forEach((elements) => (elements || []).forEach((el) => {
+      const n = parseInt(el.label, 10);
+      if (isNaN(n)) return;
+      if (el.type === "player" && n >= pointCounters.nextPlayerNum) pointCounters.nextPlayerNum = n + 1;
+      if (el.type === "defender" && n >= pointCounters.nextDefenderNum) pointCounters.nextDefenderNum = n + 1;
+    }));
+    buildStepTabs(); resizeCanvasForStep(); syncCourtTypeSelect(); render();
+    els.editorArea.style.display = "block";
+    resetPdfPreview();
+    const owned = e.organization_id === currentOrgId;
+    document.getElementById("delete-ex-btn").style.display = (owned && canDelete()) ? "inline-block" : "none";
+    // Un ejercicio compartido por otro club se mira, pero no se edita ni
+    // se guarda aquí -- antes solo se escondía "Delete", pero "Save" y
+    // los campos seguían activos: si alguien escribía y guardaba,
+    // Supabase lo rechazaba con un error de permisos en vez de
+    // impedirlo limpiamente desde la interfaz.
+    document.getElementById("save-ex-btn").style.display = owned ? "inline-block" : "none";
+    [els.number, els.name, els.difficulty, els.favorite, els.tags, els.objectives, els.description, els.variants, els.language, els.visibility]
+      .forEach((el) => (el.disabled = !owned));
+    if (!owned) showMessage("This exercise belongs to another club — you can look, but not edit or save changes.", "success");
+  }
+
+  // Dani, test funcional ronda 30 (hallazgo ALTO nº4): dos clics rápidos
+  // en "Save exercise" veían ambos `currentExId` vacío (solo se rellena
+  // DESPUÉS del insert) y creaban dos fichas duplicadas -- se
+  // deshabilita el botón de forma síncrona mientras se guarda.
+  async function saveExercise() {
+    const saveBtn = document.getElementById("save-ex-btn");
+    if (saveBtn.disabled) return;
+    const name = els.name.value.trim();
+    if (!name) { showMessage("Give the exercise a name first.", "error"); return; }
+    // Le matériel visible sur le schéma (cônes, plots, ballons) s'ajoute
+    // automatiquement, comme dans l'app de bureau -- sinon la fiche
+    // pourrait montrer des cônes sur le dessin sans les lister.
+    const checkedMaterial = getCheckedValues("material");
+    const inferredMaterial = materialFromDiagram(diagram);
+    const material = [...checkedMaterial];
+    inferredMaterial.forEach((m) => { if (!material.includes(m)) material.push(m); });
+    setCheckedValues("material", material);
+    const payload = {
+      organization_id: currentOrgId,
+      number: els.number.value ? parseInt(els.number.value, 10) : nextNumber(),
+      name,
+      difficulty: parseInt(els.difficulty.value, 10),
+      age: getCheckedValues("age"),
+      categories: getCheckedValues("categories"),
+      material,
+      tags: els.tags.value.split(";").map((t) => t.trim()).filter(Boolean),
+      objectives: els.objectives.value.split("\n").map((t) => t.trim()).filter(Boolean).slice(0, 4),
+      description: els.description.value.trim() || null,
+      variants: els.variants.value.trim() || null,
+      visibility: els.visibility.value,
+      language: els.language.value,
+      diagram,
+      // Dani (voz, 2026-10-04): el tipo de pista de cada uno de los 5
+      // diagramas (antes fijo, ver court-diagram.js COURT_TYPES) ahora se
+      // guarda por ejercicio -- columna nueva, step90_exercise_diagram_court_types.sql.
+      court_types: diagramCourtTypes,
+    };
+    // Un ejercicio nuevo, escrito desde cero, empieza su propio grupo de
+    // traducción (de momento con un solo idioma dentro). Solo cuando se
+    // crea a partir de "Duplicate as translation" en la Library ese
+    // grupo viene heredado del original -- así es como varias filas se
+    // reconocen entre sí como "el mismo ejercicio, en otro idioma".
+    if (currentTranslationGroupId) payload.translation_group_id = currentTranslationGroupId;
+    const originalLabel = saveBtn.textContent;
+    saveBtn.disabled = true; saveBtn.textContent = "Saving…";
+    try {
+      let error;
+      if (currentExId) {
+        // Chaque modification d'une fiche déjà existante fait avancer sa
+        // version (jamais à la création) -- comme dans l'app de bureau.
+        const existing = allExercises.find((e) => e.id === currentExId);
+        payload.version = (existing && existing.version ? existing.version : 1) + 1;
+        ({ error } = await supabaseClient.from("exercises").update(payload).eq("id", currentExId));
+      } else {
+        // "Created by" (a petición de Dani, sección "¿dónde se ve?") --
+        // faltaba esto: el insert nunca guardaba quién lo creó, así que el
+        // campo nunca tenía nada que mostrar. Solo se pone al CREAR, nunca
+        // al editar -- así el autor original no cambia si otra persona del
+        // club edita el ejercicio después.
+        payload.created_by = currentUserId;
+        const { data, error: insErr } = await supabaseClient.from("exercises").insert(payload).select("id, translation_group_id").single();
+        error = insErr;
+        if (!error) { currentExId = data.id; currentTranslationGroupId = data.translation_group_id; }
+      }
+      if (error) throw error;
+      // Favorito personal (tabla exercise_favorites, no una columna
+      // compartida en la fila del ejercicio) -- ver library.html para el
+      // resto de este cambio.
+      const wasFav = myFavoriteIds.has(currentExId);
+      const isFav = els.favorite.checked;
+      if (isFav && !wasFav) {
+        await supabaseClient.from("exercise_favorites").insert({ user_id: currentUserId, exercise_id: currentExId });
+      } else if (!isFav && wasFav) {
+        await supabaseClient.from("exercise_favorites").delete().eq("user_id", currentUserId).eq("exercise_id", currentExId);
+      }
+      showMessage("Exercise saved.", "success");
+      await loadExercises();
+    } catch (err) {
+      showMessage(err.message || "Couldn't save that exercise.", "error");
+    } finally {
+      saveBtn.disabled = false; saveBtn.textContent = originalLabel;
+    }
+  }
+
+  async function deleteExercise() {
+    if (!currentExId || !confirm("Delete this exercise?")) return;
+    const { error } = await supabaseClient.from("exercises").delete().eq("id", currentExId);
+    if (error) { showMessage(error.message, "error"); return; }
+    els.editorArea.style.display = "block"; newExercise();
+    currentExId = null;
+    await loadExercises();
+  }
+
+  // -----------------------------------------------------------------------
+  // Export PDF -- portada con toda la información, y una página por cada
+  // paso del diagrama que tenga algo dibujado.
+  // -----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
+  // PDF fiel al modelo real del programa de escritorio (pdf_builder.py):
+  // UNA sola página, cabecera con número/nombre, columna izquierda con
+  // categorías/material marcados con check, objetivos, dificultad en
+  // estrellas; columna derecha con 4 pistas pequeñas (pasos 1-4);
+  // columna central con descripción/variantes arriba y la 5ª pista abajo.
+  // -----------------------------------------------------------------------
+  async function loadLogoDataUrl(orgId) {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`);
+      if (!resp.ok) return null;
+      const blob = await resp.blob();
+      const rawDataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+      if (!rawDataUrl) return null;
+      // El archivo se llama "logo.png" pero Settings lo sube en formato
+      // WEBP de verdad (más ligero) -- el <img> del navegador no tiene
+      // problema porque mira el Content-Type real, no la extensión, pero
+      // jsPDF no sabe leer WEBP y el logo salía como una mancha negra en
+      // el PDF. Aquí se deja que el propio navegador decodifique la
+      // imagen (sí entiende WEBP) y se vuelve a codificar como PNG de
+      // verdad antes de dársela a jsPDF.
+      return await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch (e2) { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = rawDataUrl;
+      });
+    } catch (e) { return null; }
+  }
+
+  async function loadPdfSections(orgId) {
+    try {
+      const { data } = await supabaseClient.from("organizations").select("pdf_sections").eq("id", orgId).single();
+      return (data && data.pdf_sections) || {};
+    } catch (e) { return {}; }
+  }
+
+  const PDF_LABELS = {
+    en: { number: "EXERCISE N°:", name: "NAME:", age: "AGE:", category: "CATEGORY:", material: "MATERIAL:", objectives: "OBJECTIVES:", difficulty: "DIFFICULTY:", description: "DESCRIPTION:", variants: "VARIANTS:" },
+    fr: { number: "EXERCICE N°:", name: "NOM DE L'EXERCICE:", age: "ÂGE:", category: "CATÉGORIE:", material: "MATÉRIEL:", objectives: "OBJECTIFS:", difficulty: "DIFFICULTÉ:", description: "DESCRIPTION:", variants: "VARIANTES:" },
+    es: { number: "EJERCICIO N°:", name: "NOMBRE:", age: "EDAD:", category: "CATEGORÍA:", material: "MATERIAL:", objectives: "OBJETIVOS:", difficulty: "DIFICULTAD:", description: "DESCRIPCIÓN:", variants: "VARIANTES:" },
+  };
+
+  async function loadPdfLabels() {
+    // Las etiquetas del PDF siguen el idioma de la pantalla (EN/FR/ES).
+    return PDF_LABELS[(window.pivotI18n && pivotI18n.lang) || "en"] || PDF_LABELS.en;
+  }
+
+  async function buildExercisePdfDoc() {
+    const { jsPDF } = window.jspdf;
+    const PAGE_W = 496.8, PAGE_H = 720, MARGIN = 14, BOTTOM = PAGE_H - MARGIN;
+    const DARK = 30, GREY = 130, ACCENT = [236, 103, 24];
+    const doc = new jsPDF({ unit: "pt", format: [PAGE_W, PAGE_H] });
+    const L = await loadPdfLabels();
+
+    function sectionFrame(x0, y0, x1, y1, title) {
+      doc.setDrawColor(GREY); doc.setLineWidth(0.8);
+      doc.rect(x0, y0, x1 - x0, y1 - y0);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
+      const barW = Math.max(doc.getTextWidth(title) + 14, 70);
+      doc.setFillColor(ACCENT[0], ACCENT[1], ACCENT[2]);
+      doc.rect(x0 + 4, y0 - 0.1, barW, 14, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.text(title, x0 + 7, y0 + 10.5);
+      doc.setTextColor(DARK);
+    }
+
+    // ---------- Cabecera : logo (derecha, grande) + nombre del club a su
+    // lado (no debajo, para no invadir la columna derecha) ----------
+    doc.setTextColor(DARK);
+    const logoSize = 76;
+    const logoX = PAGE_W - MARGIN - logoSize, logoY = 8;
+    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
+    if (logoDataUrl) {
+      try { doc.addImage(logoDataUrl, logoX, logoY, logoSize, logoSize); } catch (e) { /* logo inválido, se ignora */ }
+    }
+    const clubName = (els.orgName.textContent || "").trim();
+
+    const labelX = MARGIN;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(13);
+    doc.text(L.number, labelX, 36);
+    const numLabelW = doc.getTextWidth(L.number);
+    doc.setDrawColor(DARK); doc.setLineWidth(0.8);
+    doc.line(labelX + numLabelW + 8, 40, 260, 40);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(14);
+    doc.text(String(els.number.value || ""), labelX + numLabelW + 14, 37);
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+    doc.text(L.name, labelX, 58);
+    const nameLabelW = doc.getTextWidth(L.name);
+    const nameLineEnd = logoX - 10;
+    doc.line(labelX + nameLabelW + 8, 62, nameLineEnd, 62);
+    let nameFs = 13; doc.setFont("helvetica", "normal"); doc.setFontSize(nameFs);
+    const name = els.name.value || "";
+    const nameMaxW = nameLineEnd - (labelX + nameLabelW + 14) - 6;
+    while (nameFs > 7 && doc.getTextWidth(name) > nameMaxW) { nameFs -= 0.5; doc.setFontSize(nameFs); }
+    doc.text(name, labelX + nameLabelW + 14, 59);
+
+    if (clubName) {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(GREY);
+      let clubFs = 7.5; doc.setFontSize(clubFs);
+      const clubMaxW = logoSize + 6;
+      while (clubFs > 5.5 && doc.getTextWidth(clubName) > clubMaxW) { clubFs -= 0.3; doc.setFontSize(clubFs); }
+      doc.text(clubName, logoX + logoSize / 2, logoY + logoSize + 3, { align: "center" });
+      doc.setTextColor(DARK);
+    }
+
+    const top = 90, leftX0 = MARGIN, leftX1 = 170, midX0 = 178, midX1 = 352, rightX0 = 360, rightX1 = PAGE_W - MARGIN;
+
+    // ---------- Colonne gauche : les 4 listes complètes (toutes les
+    // catégories/matériel/âges possibles, cochés ou pas) -- comme dans le
+    // vrai PDF de l'app de bureau. Le nombre de lignes ne dépend JAMAIS
+    // de ce qui est coché (toujours 17 âges, 14 catégories, 13
+    // matériels, 4 objectifs), donc la hauteur de chaque ligne est fixe,
+    // une fois pour toutes -- plus de "ça se décale" selon ce qui est
+    // sélectionné. L'âge est en 2 colonnes pour ne pas prendre toute la
+    // page à lui seul.
+    // ----------
+    const TITLE_H = 16, PAD = 6, GAP = 8, DIFF_BODY_H = 20;
+    const ageChecked = getCheckedValues("age");
+    const categoriesChecked = getCheckedValues("categories");
+    const materialChecked = [...getCheckedValues("material")];
+    materialFromDiagram(diagram).forEach((m) => { if (!materialChecked.includes(m)) materialChecked.push(m); });
+
+    const ageRows = Math.ceil(AGE_GROUPS.length / 3);
+    const nRows = ageRows + CATEGORIES.length + MATERIALS.length + 4;
+    const varTitles = (TITLE_H + PAD) * 4;
+    const fixedTotal = DIFF_BODY_H + TITLE_H + PAD;
+    const avail = BOTTOM - top - fixedTotal - varTitles - GAP * 4;
+    const rowH = avail / nRows;
+
+    let ly = top;
+    function drawFixedList(title, allLabels, checkedLabels) {
+      const bodyH = allLabels.length * rowH;
+      const y0 = ly, y1 = ly + TITLE_H + bodyH + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, title);
+      let ry = y0 + TITLE_H + PAD / 2;
+      allLabels.forEach((label) => {
+        doc.setDrawColor(DARK); doc.setLineWidth(0.6);
+        doc.rect(leftX0 + 7, ry + 2, 7, 7);
+        if (checkedLabels.includes(label)) {
+          doc.setLineWidth(0.8);
+          doc.line(leftX0 + 7, ry + 2, leftX0 + 14, ry + 9);
+          doc.line(leftX0 + 7, ry + 9, leftX0 + 14, ry + 2);
+        }
+        doc.setFont("helvetica", "normal");
+        let fs = 7.2; doc.setFontSize(fs);
+        const maxw = leftX1 - (leftX0 + 18) - 4;
+        while (fs > 5.5 && doc.getTextWidth(label) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
+        doc.text(label, leftX0 + 18, ry + rowH / 2 + 2.5);
+        ry += rowH;
+      });
+      ly = y1 + GAP;
+    }
+
+    // Âge : 2 colonnes -- même patron que les listes normales, mais
+    // deux cases par ligne au lieu d'une (17 âges en 1 colonne ne
+    // rentraient pas).
+    {
+      const y0 = ly, y1 = ly + TITLE_H + ageRows * rowH + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, L.age);
+      const colW = (leftX1 - leftX0 - 14) / 3;
+      AGE_GROUPS.forEach((label, i) => {
+        const col = i % 3, row = Math.floor(i / 3);
+        const cx = leftX0 + 7 + col * colW;
+        const ry = y0 + TITLE_H + PAD / 2 + row * rowH;
+        doc.setDrawColor(DARK); doc.setLineWidth(0.6);
+        doc.rect(cx, ry + 2, 7, 7);
+        if (ageChecked.includes(label)) {
+          doc.setLineWidth(0.8);
+          doc.line(cx, ry + 2, cx + 7, ry + 9);
+          doc.line(cx, ry + 9, cx + 7, ry + 2);
+        }
+        doc.setFont("helvetica", "normal");
+        let fs = 7.4; doc.setFontSize(fs);
+        const maxw = colW - 11;
+        while (fs > 5.5 && doc.getTextWidth(label) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
+        doc.text(label, cx + 10, ry + rowH / 2 + 2.5);
+      });
+      ly = y1 + GAP;
+    }
+
+    drawFixedList(L.category, CATEGORIES, categoriesChecked);
+    drawFixedList(L.material, MATERIALS, materialChecked);
+
+    // Objectifs : 4 lignes fixes, une seule taille de police pour les 4
+    // (avant, chaque ligne rétrécissait à sa propre taille).
+    {
+      const objectives = els.objectives.value.split("\n").map((t) => t.trim()).filter(Boolean).slice(0, 4);
+      const y0 = ly, y1 = ly + TITLE_H + 4 * rowH + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, L.objectives);
+      const maxw = leftX1 - (leftX0 + 20) - 10;
+      doc.setFont("helvetica", "normal");
+      let sharedFs = 7.6;
+      objectives.forEach((obj) => {
+        let fs = sharedFs; doc.setFontSize(fs);
+        while (fs > 5.5 && doc.getTextWidth(obj) > maxw) { fs -= 0.3; doc.setFontSize(fs); }
+        if (fs < sharedFs) sharedFs = fs;
+      });
+      let ry = y0 + TITLE_H + PAD / 2;
+      for (let i = 0; i < 4; i++) {
+        doc.setDrawColor(DARK); doc.setLineWidth(0.6);
+        doc.rect(leftX0 + 7, ry + 2, 8, 8);
+        doc.line(leftX0 + 20, ry + rowH / 2 + 3.5, leftX1 - 8, ry + rowH / 2 + 3.5);
+        const obj = objectives[i];
+        if (obj) {
+          doc.setLineWidth(0.9);
+          doc.line(leftX0 + 7, ry + 2, leftX0 + 15, ry + 10);
+          doc.line(leftX0 + 7, ry + 10, leftX0 + 15, ry + 2);
+          doc.setFont("helvetica", "normal"); doc.setFontSize(sharedFs);
+          doc.text(obj, leftX0 + 20, ry + rowH / 2 + 2);
+        }
+        ry += rowH;
+      }
+      ly = y1 + GAP;
+    }
+
+    // Difficulté : étoiles bien plus grandes -- avant, trop petites pour
+    // se voir d'un coup d'œil.
+    {
+      const y0 = ly, y1 = ly + TITLE_H + DIFF_BODY_H + PAD;
+      sectionFrame(leftX0, y0, leftX1, y1, L.difficulty);
+      const cy = y0 + TITLE_H + PAD / 2 + 15;
+      const filled = Math.max(0, Math.min(3, parseInt(els.difficulty.value, 10) || 1));
+      doc.setFont("helvetica", "normal"); doc.setFontSize(36);
+      [leftX0 + 34, leftX0 + 86, leftX0 + 138].forEach((cx, i) => {
+        if (i < filled) doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); else doc.setTextColor(190, 190, 190);
+        doc.text(i < filled ? "*" : "-", cx - 5, cy + 8);
+      });
+      doc.setTextColor(DARK);
+      ly = y1 + GAP;
+    }
+
+    // ---------- Colonne droite : 4 petites pistes (pasos 1-4) ----------
+    const rightW = rightX1 - rightX0;
+    const halfH = rightW / 1.06;
+    const courtRects = {};
+    let cy0 = top;
+    [1, 2, 3].forEach((i) => {
+      courtRects["court_" + i] = [rightX0, cy0, rightX1, cy0 + halfH];
+      cy0 += halfH + 8;
+    });
+    const vH = Math.min(BOTTOM - cy0, rightW / 0.5233);
+    const vW = vH * 0.5233;
+    courtRects.court_4 = [rightX1 - vW, cy0, rightX1, cy0 + vH];
+
+    // ---------- Colonne centrale : description/variantes + pista 5 ----------
+    const midW = midX1 - midX0;
+    const c5H = midW / 1.883;
+    courtRects.court_5 = [midX0, BOTTOM - c5H, midX1, BOTTOM];
+
+    function drawTextBox(x0, y0, x1, y1, title, text) {
+      sectionFrame(x0, y0, x1, y1, title);
+      if (!text) return;
+      const innerX0 = x0 + 7, innerY0 = y0 + 20, innerX1 = x1 - 7, innerY1 = y1 - 6;
+      const maxW = innerX1 - innerX0;
+      const sizes = [9, 8.5, 8, 7.5, 7, 6.5, 6];
+      for (const fs of sizes) {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(fs);
+        const lines = doc.splitTextToSize(text, maxW);
+        const lh = fs * 1.15;
+        if (lines.length * lh <= innerY1 - innerY0) { doc.text(lines, innerX0, innerY0 + fs * 0.8); return; }
+      }
+      doc.setFontSize(5.6);
+      const lines = doc.splitTextToSize(text, maxW);
+      doc.text(lines, innerX0, innerY0 + 5);
+    }
+
+    const variantsText = (els.variants.value || "").trim();
+    const textBottom = courtRects.court_5[1] - GAP;
+    let descBottom = textBottom;
+    if (variantsText) {
+      const varH = 118;
+      drawTextBox(midX0, textBottom - varH, midX1, textBottom, L.variants, variantsText);
+      descBottom = textBottom - varH - GAP;
+    }
+    drawTextBox(midX0, top, midX1, descBottom, L.description, (els.description.value || "").trim());
+
+    // ---------- Les 5 pistes : capture du canvas déjà utilisé pour dessiner,
+    // plus un petit badge numéroté (1 à 5) en bas à gauche de chacune --
+    // comme dans le PDF de l'app de bureau, pour repérer "l'étape 3" d'un
+    // coup d'œil.
+    const savedStep = currentStep;
+    for (const [cid, rect] of Object.entries(courtRects)) {
+      const [x0, y0, x1, y1] = rect;
+      currentStep = cid;
+      resizeCanvasForStep();
+      render();
+      const imgData = els.canvas.toDataURL("image/png");
+      const w = x1 - x0, h = y1 - y0;
+      const canvasAR = els.canvas.width / els.canvas.height, rectAR = w / h;
+      let dw = w, dh = h, dx = x0, dy = y0;
+      if (canvasAR > rectAR) { dh = w / canvasAR; dy = y0 + (h - dh) / 2; }
+      else { dw = h * canvasAR; dx = x0 + (w - dw) / 2; }
+      doc.addImage(imgData, "PNG", dx, dy, dw, dh);
+      doc.setDrawColor(GREY); doc.setLineWidth(0.6);
+      doc.rect(x0, y0, w, h);
+
+      const stepNum = COURT_IDS.indexOf(cid) + 1;
+      const badgeR = 7, badgeCx = x0 + badgeR + 3, badgeCy = y1 - badgeR - 3;
+      doc.setFillColor(DARK); doc.setDrawColor(DARK);
+      doc.circle(badgeCx, badgeCy, badgeR, "F");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(255, 255, 255);
+      doc.text(String(stepNum), badgeCx, badgeCy + 3, { align: "center" });
+      doc.setTextColor(DARK);
+    }
+    currentStep = savedStep;
+    resizeCanvasForStep();
+    render();
+
+    // La vraie marque PlayPivot (le même "Pi[v]ot[.]" que dans la barre du
+    // haut du site), en bas à gauche -- avant, c'était juste un mot gris
+    // générique, ça ne ressemblait pas au logo réel.
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+    doc.setTextColor(DARK); doc.text("PlayPi", MARGIN, BOTTOM + 11);
+    const w1 = doc.getTextWidth("PlayPi");
+    doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text("v", MARGIN + w1, BOTTOM + 11);
+    const w2 = doc.getTextWidth("v");
+    doc.setTextColor(DARK); doc.text("ot", MARGIN + w1 + w2, BOTTOM + 11);
+    const w3 = doc.getTextWidth("ot");
+    doc.setTextColor(ACCENT[0], ACCENT[1], ACCENT[2]); doc.text(".", MARGIN + w1 + w2 + w3, BOTTOM + 11);
+    doc.setTextColor(DARK);
+
+    return doc;
+  }
+
+  async function exportExercisePdf() {
+    try {
+      const doc = await buildExercisePdfDoc();
+      doc.save(`${(els.name.value || _t("exercise||file name word")).replace(/\s+/g, "_")}.pdf`);
+    } catch (err) {
+      console.error("Export PDF error:", err);
+      showMessage("Couldn't generate that PDF: " + (err.message || "unknown error"), "error");
+    }
+  }
+
+  // Comme dans l'app de bureau (l'onglet "Aperçu PDF") : voir le PDF
+  // avant de le télécharger, dans un nouvel onglet du navigateur, sans
+  // rien enregistrer sur le disque.
+  // Le bouton "Update PDF" à gauche remplace l'ancien "Preview PDF" qui
+  // ouvrait un nouvel onglet -- maintenant il met à jour l'aperçu
+  // directement dans la page, sans rien ouvrir ailleurs.
+  async function updatePdfPreview() {
+    const btn = document.getElementById("update-pdf-btn");
+    const original = btn.textContent;
+    btn.textContent = "Rendering…"; btn.disabled = true;
+    try {
+      const doc = await buildExercisePdfDoc();
+      const url = doc.output("bloburl");
+      const frame = document.getElementById("pdf-preview-frame");
+      frame.src = url;
+      frame.style.display = "block";
+      document.getElementById("pdf-preview-empty").style.display = "none";
+    } finally {
+      btn.textContent = original; btn.disabled = false;
+    }
+  }
+  document.getElementById("update-pdf-btn").addEventListener("click", updatePdfPreview);
+
+  document.getElementById("save-ex-btn").addEventListener("click", saveExercise);
+  document.getElementById("pdf-ex-btn").addEventListener("click", exportExercisePdf);
+  document.getElementById("delete-ex-btn").addEventListener("click", deleteExercise);
+
+  document.getElementById("help-btn").addEventListener("click", () => {
+    const box = document.getElementById("help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.innerHTML = `
+      <strong>How to use Create exercise</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li>This page always shows a ready-to-fill exercise — the "Number" field at the top is assigned automatically the moment you land here, and it never changes no matter which of the 3 buttons below you use. No need to click anything first. The small text next to "Number" shows how many exercises your club already has, so the number has some context — it only counts your own club's exercises, not ones shared by other clubs.</li>
+        <li><strong>How to use "Fill in with AI", step by step:</strong>
+          <ol style="margin:6px 0 0; padding-left:18px; line-height:1.7;">
+            <li>Click the "Fill in with AI" button to open the section.</li>
+            <li>Click "📋 Copy this template" — it's copied to your clipboard.</li>
+            <li>Open any AI chat (ChatGPT, Claude…) in another tab, paste the template, and replace the very last line ("The exercise is about: …") with your own idea.</li>
+            <li>Send it. If your idea was vague, the AI will ask you questions first — answer them in that same chat.</li>
+            <li>Once the AI gives you the final sheet, copy its whole reply and paste it into the box on this page.</li>
+            <li>Click "Fill from AI reply" — the form fills in below. Review everything, <strong>draw the diagram yourself</strong> (the AI never touches that), then Save.</li>
+          </ol>
+        </li>
+        <li><strong>"📎 Copy my last exercise"</strong> — before describing a new idea to the AI, paste this in the chat first. It shows the AI a real exercise you already made, so it keeps the same style.</li>
+        <li><strong>"Fill in from a photo"</strong> — take or upload a photo of a paper sheet, whiteboard, or notes; it reads the text and drops it all into "Description" as one block, in whatever order it read it (it doesn't know how to reorganize it). This just recognizes letters, it doesn't understand the exercise — you still pick Name, Category, Material, etc. yourself, and <strong>draw the diagram by hand</strong>, using the photo as reference. Runs entirely on your device (nothing sent anywhere), so it works even without setting anything up.</li>
+        <li><strong>"Start from existing exercise"</strong> (also at the top) — pick one from the dropdown and "Use as starting point": copies everything, including the diagram, into this new exercise. The original is untouched.</li>
+        <li>Every one of the 3 buttons above shows a short explainer the first time anyone at your club clicks it — reopen any of them anytime with the "❔" link next to it.</li>
+        <li>Placing a player or defender on the diagram numbers them automatically (1, 2, 3…) — attack and defense count separately, same as Play design. Double-click one to change its label by hand.</li>
+        <li>Anything you place on the diagram (cones, marker cones, balls) is added to Material automatically when you save — no need to double-list it.</li>
+        <li><strong>Court diagram section</strong> — 5 diagrams, each independent — they're not steps you have to fill in order. Each one has its own "This diagram's court" dropdown (half court / vertical / full court) — they start half/half/half/vertical/full by default, but pick whatever you need for each, including all 5 the same, if that's clearer for what you're drawing. Pick a tool, click the court to place a player/defender/cone/etc, or click-drag to draw a movement, pass, screen, or zone.</li>
+        <li><strong>Color</strong> picker lets you distinguish sequences (e.g. move 1 in black, move 2 in red).</li>
+        <li><strong>Copy to next diagram</strong> duplicates everything into the next diagram — handy when you ARE drawing a sequence: draw diagram 1, copy it forward, then just move a couple of things for diagram 2, instead of starting from scratch each time. Any movement/dribble/pass/shot arrow is applied first (the player or ball lands where the arrow pointed) and doesn't carry over itself, so diagram 2 starts from the result, ready for its own arrows.</li>
+        <li><strong>🗑 Delete element</strong> — pick "Move/Select", click the player/arrow/zone/etc. you want gone, then this button (or Del/Backspace on a keyboard) removes just that one.</li>
+        <li><strong>Export PDF</strong> downloads the exercise sheet straight away: your club's logo and name, number, name, only the categories/material you actually picked, objectives, difficulty stars, description, variants, and all 5 diagrams — same one-page sheet as the desktop app.</li>
+        <li><strong>Numbering</strong> — the next free number in your own club is filled in automatically; nobody has to track it by hand. <strong>Language</strong> — this page always edits one language at a time; to add a translation of an exercise, use "Duplicate as translation" in the Library, which creates a linked copy in another language.</li>
+        <li>Editing an existing exercise bumps its version number (v1 at creation) — visible in the Library, handy for tracking which ones changed recently.</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole club, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them).</li>
+      </ul>`;
+    box.style.display = "block";
+  });
+
+  // El "Help" del menú lateral todavía no tiene su propia sección aquí --
+  // de momento manda al Dashboard, que sí sabe abrir "Contact us" directamente.
+
+  els.logoutBtn.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    pivotInitSidebarChrome();
+    const orgId = await loadMyOrganization();
+    if (orgId) {
+      pivotInitTopbarWidgets();
+      await loadExercises();
+      const params = new URLSearchParams(window.location.search);
+      const wantedId = params.get("id");
+      if (wantedId && allExercises.some((e) => e.id === wantedId)) openExercise(wantedId);
+      else newExercise();
+    }
+  }
+  init();
+</script>
+
+</body>
+</html>

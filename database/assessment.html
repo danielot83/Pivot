@@ -1,0 +1,1810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/x-icon" href="./favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https://eeucbnhqsnfitzwzghtg.supabase.co;
+  connect-src 'self' https://eeucbnhqsnfitzwzghtg.supabase.co https://cdn.jsdelivr.net;
+  object-src 'none'; base-uri 'none'; form-action 'none'" />
+<title>PlayPivot | Basketball Player Assessment</title>
+<meta name="description" content="Evaluate basketball players across technical skills, basketball IQ, personality and attitude to track their development over time." />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #ec6718; --accent-deep: #b85012; --accent-tint: #fdefe7;
+    --navy: #080026; --navy-hover: #191235; --sidebar-w: 244px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; font-size: 14px; }
+    @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+  h1, h2, h3, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  a { color: inherit; }
+
+  .logotype { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .logotype-img { height: 28px; width: auto; display: block; }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
+  .nav-btn:hover { border-color: var(--accent); }
+  .back-link { display: inline-block; font-size: 13.5px; color: var(--muted); text-decoration: none; }
+  .back-link:hover { color: var(--ink); }
+
+  h1 { font-size: 23px; margin: 8px 0 4px; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+
+  /* Dani (voz, 2026-10-04): "cuando des a salvar, que te vuelve para
+     arriba" -- antes .msg vivia arriba del todo de la pagina y
+     showMessage() hacia scrollIntoView, asi que CUALQUIER mensaje (hasta
+     "Guardado correctamente") arrastraba el scroll entero hacia arriba,
+     lejos de donde estabas (p.ej. el boton Save, al final de un
+     formulario largo). Ahora .msg flota fijo cerca de abajo de la
+     pantalla -- se ve sin mover el scroll para nada, asi que
+     showMessage() ya no necesita (ni hace) scrollIntoView. */
+  .msg { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); margin: 0; padding: 12px 18px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; z-index: 400; max-width: min(460px, calc(100vw - 32px)); box-shadow: 0 10px 28px rgba(0,0,0,.18); }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
+
+  /* -------- barre latérale : arbre + critères -------- */
+  .side-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .side-card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 10px; }
+  .tree-season { font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  .tree-season:first-child { margin-top: 0; }
+  .tree-team-row { display: flex; align-items: center; }
+  .tree-team { display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 8px; margin: 1px 0; border-radius: 6px; font-size: 13px; color: var(--ink); cursor: pointer; flex: 1; }
+  .tree-team:hover { background: var(--paper); }
+  .tree-team.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .tree-new { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
+  .tree-new, .tree-example { font-size: 12.5px; color: var(--accent-deep); background: none; border: none; cursor: pointer; padding: 6px 8px; text-align: left; width: 100%; }
+  .toggle-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: var(--ink); }
+  .toggle-row input { width: auto; margin-top: 2px; }
+
+  .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 16px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .field input, .field select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 14.5px; min-width: 140px; }
+  .spacer { flex: 1; }
+  .btn { padding: 8px 15px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  .heights-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .heights-row .field input { min-width: 100px; }
+
+  .sector-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 22px; margin-bottom: 14px; }
+  .sector-card h3 { font-size: 15px; margin: 0 0 2px; }
+  .sector-card .avg { font-size: 13px; color: var(--accent-deep); font-weight: 600; margin-bottom: 12px; }
+  .group-title { font-size: 12px; font-weight: 600; color: var(--muted); margin: 12px 0 5px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .criterion-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 13px; }
+  .criterion-row.advanced { display: none; }
+  .criterion-row.advanced.show { display: flex; }
+  .criterion-row select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; width: 60px; }
+
+  .comments-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 22px; margin-bottom: 16px; }
+  .comments-card label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
+  .comments-card label:first-child { margin-top: 0; }
+  .comments-card textarea { width: 100%; min-height: 50px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; font-family: inherit; resize: vertical; }
+
+  .history-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 0; }
+  .history-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 18px; font-size: 13px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .history-row:last-child { border-bottom: none; }
+  .history-row:hover { background: var(--paper); }
+  .history-row .tot { color: var(--accent-deep); font-weight: 600; }
+  .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 13px; }
+
+  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--ink); margin-bottom: 12px; }
+
+  /* ---------------------------------------------------------------------
+     App shell: sidebar (fixed on desktop/tablet, off-canvas on mobile)
+     + main content column. Same shell as dashboard.html/roster.html.
+     --------------------------------------------------------------------- */
+  .app-shell { display: flex; min-height: 100vh; align-items: stretch; }
+
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0; background: var(--navy); color: #fff;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; z-index: 100;
+  }
+  .sidebar-header { padding: 22px 20px 18px; display: flex; align-items: center; justify-content: space-between; background: transparent; }
+  .sidebar-logo-img { height: 24px; width: auto; display: block; }
+  .sidebar-close-btn { display: none; background: none; border: none; color: #b5b2be; font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; }
+
+  .sidebar-nav { display: block; padding: 4px 12px; background: transparent; }
+  .sidebar-section-gap { height: 14px; }
+  .sidebar-link {
+    display: block; padding: 9px 12px; border-radius: 8px; background: transparent;
+    color: #dad9de; text-decoration: none; font-size: 15px; font-weight: 500;
+    white-space: nowrap; margin-bottom: 2px;
+  }
+  .sidebar-link svg { width: 17px; height: 17px; vertical-align: -4px; margin-right: 10px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .sidebar-link:hover { background: var(--navy-hover); color: #fff; }
+  .sidebar-link.active { background: var(--accent); color: #fff; }
+  .sidebar-divider { height: 1px; background: #211a3c; margin: 10px 20px; }
+
+  .sidebar-footer { margin-top: auto; padding: 8px 12px 16px; background: transparent; }
+  .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 10px 10px; margin-top: 6px; border-radius: 10px; background: #140d31; }
+  .sidebar-user-avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14.5px;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-user-info { flex: 1; min-width: 0; }
+  .sidebar-user-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-role { font-size: 14px; color: #848092; }
+  .sidebar-logout-btn { background: none; border: none; color: #848092; cursor: pointer; padding: 5px; flex-shrink: 0; border-radius: 6px; }
+  .sidebar-logout-btn:hover { color: #fff; background: #191235; }
+  .sidebar-logout-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; display: block; }
+
+  .mobile-topbar { display: none; }
+  .sidebar-overlay { display: none; }
+
+  @media (max-width: 767px) {
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: 0 0 40px rgba(0,0,0,0.3); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-close-btn { display: block; }
+    .mobile-topbar {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--card);
+      border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 40;
+    }
+    .mobile-topbar img { height: 22px; }
+    .hamburger-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink); padding: 4px; line-height: 1; }
+    .sidebar-overlay {
+      display: block; position: fixed; inset: 0; background: rgba(8,0,38,0.5); z-index: 90;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+  }
+
+  .main-content { flex: 1; min-width: 0; }
+
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 28px 32px 4px; flex-wrap: wrap; max-width: 1080px; margin: 0 auto; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .icon-btn {
+    width: 58px; height: 58px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); position: relative;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .icon-badge {
+    position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 10px;
+    font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
+    justify-content: center; padding: 0 3px;
+  }
+
+  /* ---------------------------------------------------------------------
+     Teams & Seasons -- misma tarjeta que en Roster/Attendance/Match day/
+     Training builder, agregada abajo del todo por ahora (este módulo se
+     va a reorganizar más adelante, esto es para que ya quede
+     interconectado con las otras páginas via localStorage).
+     --------------------------------------------------------------------- */
+  .team-bar-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
+  .team-bar-card h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 12px; }
+  .team-bar-card .tree-new {
+    font-size: 14px; color: var(--accent-deep); background: none; border: 1px dashed var(--accent-deep); border-radius: 100px;
+    cursor: pointer; padding: 7px 14px; text-align: left; width: auto;
+  }
+  .tsc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .tsc-header-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-deep); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .tsc-header-title { font-size: 16px; font-weight: 700; margin: 0; }
+  .tsc-header-sub { font-size: 13px; color: var(--muted); margin: 1px 0 0; }
+  .tsc-step-label { font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 0 0 10px; }
+  .cascade-option {
+    display: block; width: 100%; text-align: left; background: none; border: none; padding: 9px 14px;
+    font-size: 14px; color: var(--ink); cursor: pointer; border-bottom: 1px solid var(--line);
+  }
+  .cascade-option:last-child { border-bottom: none; }
+  .cascade-option:hover { background: var(--paper); }
+  .cascade-back { background: none; border: none; color: var(--accent-deep); font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 0; }
+  .season-pill {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; cursor: pointer;
+    text-align: left; min-width: 110px;
+  }
+  .season-pill strong { display: block; font-size: 14px; }
+  .season-pill span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .season-pill.active { background: var(--accent-tint); border-color: var(--accent); }
+  .season-pill.active span { color: var(--accent-deep); font-weight: 600; }
+  .season-pill-new { color: var(--accent-deep); font-weight: 600; border-style: dashed; display: flex; align-items: center; justify-content: center; }
+  .tsc-selected-card {
+    background: var(--accent-tint); border-radius: 10px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .tsc-selected-card > .icon { width: 96px; height: 96px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; overflow: hidden; background: var(--card); }
+  .tsc-selected-card > .icon img, .tsc-selected-card > .icon svg { width: 100%; height: 100%; object-fit: contain; }
+  .tsc-selected-name { font-weight: 700; font-size: 16px; color: var(--ink); }
+  .tsc-selected-sub { font-size: 13px; color: var(--accent-deep); margin-top: 2px; margin-bottom: 10px; }
+  .tsc-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 16px; }
+  .tsc-chip { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+  .tsc-chip .icon { color: var(--accent-deep); flex-shrink: 0; }
+  .tsc-chip strong { display: block; font-size: 14.5px; }
+  .tsc-chip span { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .tsc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 700px) { .tsc-cols { grid-template-columns: 1fr; } }
+  .tree-folder-leaf-action {
+    display: inline-flex; align-items: center; gap: 4px; background: none; border: none; color: var(--accent-deep);
+    font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 5px 8px; border-radius: 6px; flex-shrink: 0;
+  }
+  .tree-folder-leaf-action:hover { background: rgba(0,0,0,0.06); }
+  .team-pill-del { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; color: var(--muted); font-size: 11px; background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0; }
+  .team-pill-del:hover { background: rgba(0,0,0,0.08); color: #991b1b; }
+
+  /* ---------------------------------------------------------------------
+     Seguimiento (tracking): un criterio libre (con su unidad) por el que
+     el entrenador va añadiendo mediciones fechadas -- gráfica de línea
+     mínima (sparkline, sin librería) + tabla, una tarjeta por criterio.
+     --------------------------------------------------------------------- */
+  .tracking-group { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  .tracking-group-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tracking-group-head strong { font-size: 14.5px; }
+  .tracking-unit { font-size: 12px; color: var(--muted); margin-left: 6px; }
+  .tracking-group-right { display: flex; align-items: center; gap: 10px; }
+  .tracking-sparkline { display: block; }
+  .tracking-last { font-size: 13.5px; font-weight: 700; color: var(--accent-deep); white-space: nowrap; }
+  .tracking-delta { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .tracking-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .tracking-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .tracking-table td { padding: 5px 6px; border-bottom: 1px solid var(--line); }
+  .tracking-table tr:last-child td { border-bottom: none; }
+  .tracking-del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 4px; }
+  .tracking-del-btn:hover { background: rgba(0,0,0,0.06); color: #991b1b; }
+</style>
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//playpivot.app/analytics/matomo/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '1']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+</head>
+<body>
+
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">☰</button>
+  <img src="./playpivot-logo.png" alt="PlayPivot" />
+</div>
+
+<div class="app-shell">
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo-negativo.png" alt="PlayPivot" class="sidebar-logo-img" /></a>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close menu">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div id="sidebar-admin-badge" style="display:none; font-size:13.5px; font-weight:700; letter-spacing:0.05em; color:var(--accent); padding:0 12px 6px;">⚡ PLATFORM ADMIN</div>
+
+      <div style="padding:8px 12px 12px;">
+        <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
+      </div>
+      <a href="./dashboard.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+      <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
+      <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
+      <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
+      <a href="./stats.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
+      <a href="./exercises.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg>Exercise creator</a>
+      <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
+      <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
+      <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
+      <a href="./play_library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21V7"/><path d="M4 5c2-1 5-1 8 2 3-3 6-3 8-2v13c-2-1-5-1-8 2-3-3-6-3-8-2Z"/></svg>Playbook</a>
+      <a href="./assessment.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-divider"></div>
+      <nav class="sidebar-nav" style="padding:0;">
+        <a href="./settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
+        <a href="./help.html" id="sidebar-help-link" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
+      </nav>
+      <div class="sidebar-user" id="sidebar-user">
+        <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">—</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">—</div>
+        </div>
+        <button class="sidebar-logout-btn" id="logout-btn" title="Log out">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<div class="topbar" style="align-items:center;">
+  <div></div>
+  <div class="topbar-right">
+    <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
+    <div id="org-name-big" style="display:none;"></div>
+  </div>
+</div>
+
+<div class="wrap" style="max-width:1080px; margin:0 auto; padding:0 32px;">
+
+  <a class="back-link" href="./dashboard.html">&larr; Back to dashboard</a>
+  <h1 style="display:flex; align-items:center; justify-content:space-between;">
+    Player assessment
+    <button id="help-btn" title="What's this module for?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+  </h1>
+  <div class="help-box" id="help-box"></div>
+  <p class="sub" id="current-selection">Pick a season/team above.</p>
+
+  <div class="msg" id="msg"></div>
+
+  <!-- Módulo 1: Teams & Seasons -- subido aquí arriba (antes vivía al final de la
+       página) a petición de Dani: "teams and seasons arriba como siempre", igual
+       que en Roster/Attendance/Match day/Training builder. -->
+  <div class="team-bar-card">
+    <div class="tsc-header">
+      <div class="tsc-header-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+      <div>
+        <p class="tsc-header-title">Teams &amp; Seasons</p>
+        <p class="tsc-header-sub">Manage your teams and seasons.</p>
+      </div>
+      <div style="flex:1;"></div>
+      <button class="tree-new" id="new-team-btn" style="margin-bottom:0;">+ New season/team</button>
+    </div>
+
+    <div class="tsc-cols">
+      <div>
+        <p class="tsc-step-label">1. Select team</p>
+        <div id="team-gender-category-select" style="position:relative;"></div>
+      </div>
+      <div>
+        <p class="tsc-step-label">2. Select season</p>
+        <div id="season-picker"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;" id="tsc-step3-wrap">
+    <p class="tsc-step-label">3. Team info</p>
+    <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
+      <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
+      <div style="flex:1; min-width:0;">
+        <div class="tsc-selected-name" id="tsc-selected-name"></div>
+        <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
+        <div class="tsc-chips" id="tsc-chips">
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 5 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3 3 0 0 0-2.2-2.9"/><path d="M14.5 4.9a3.2 3.2 0 0 1 0 6.2"/></svg></span><div><strong id="tsc-chip-players">0</strong><span>Players</span></div></div>
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.3 4 4.8"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.3-4 4.8"/></svg></span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg></span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
+      </div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit</button>
+        <button class="team-pill-del" id="tsc-delete-btn" title="Delete this team/season"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- Criteria: antes vivía en una columna izquierda fija, aparte -- subida aquí
+       arriba, primera tarjeta después de Teams & Seasons, a petición de Dani
+       ("la parte de criteria arriba"). Mismo contenido, solo cambia el envoltorio
+       (de .side-card, pensado para una columna estrecha, a .team-bar-card, igual
+       que el resto de tarjetas de la página ahora que todo es una sola columna). -->
+  <div class="team-bar-card">
+    <h2>Criteria</h2>
+    <label class="toggle-row">
+      <input type="checkbox" id="advanced-toggle" />
+      <span>Show advanced criteria too (18 more, tactical/IQ-focused)</span>
+    </label>
+    <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); line-height:1.7;">
+      <strong style="color:var(--ink); font-size:12px;">What each score means</strong><br>
+      <strong>1</strong> — Needs a lot of work<br>
+      <strong>2</strong> — Below what's expected<br>
+      <strong>3</strong> — Meets expectations<br>
+      <strong>4</strong> — Above what's expected<br>
+      <strong>5</strong> — Excellent for this level
+    </div>
+  </div>
+
+  <!-- Datos de ejemplo quitados de en medio a petición de Dani ("quitar example
+       data") -- mismo patrón que training.html: el contenedor se deja en el DOM
+       (oculto) para no tocar renderExampleDataCard(), reactivar es quitar este
+       display:none. -->
+  <div class="team-bar-card" id="example-data-card" style="display:none"></div>
+
+  <!-- Módulo: elegir jugador -- antes era una barra de herramientas suelta,
+       ahora en su propia tarjeta para que la página se vea homogénea con el
+       resto (siempre tarjetas .team-bar-card apiladas). -->
+  <div class="team-bar-card">
+    <h2>Player</h2>
+    <div class="toolbar" style="margin-bottom:0;">
+      <div class="field">
+        <label for="player-select">Player</label>
+        <select id="player-select"><option value="">Pick a season/team first</option></select>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-secondary" id="new-tracking-shortcut-btn">+ New tracking measurement</button>
+      <button class="btn btn-primary" id="new-btn">+ New assessment</button>
+    </div>
+  </div>
+
+    <div id="form-area" style="display:none">
+      <div class="toolbar">
+        <div class="field"><label for="date">Date</label><input id="date" type="date" /></div>
+        <div class="field"><label for="location">Location</label><input id="location" type="text" placeholder="Optional" /></div>
+        <div class="field"><label for="assess-visibility">Who can see it?</label>
+          <select id="assess-visibility">
+            <option value="private">🔒 Only me</option>
+            <option value="team">👥 Whole club</option>
+            <option value="association">🤝 My club association</option>
+          </select>
+          <!-- A petición de Dani, 2026-09-30 ("deberíamos poner un aviso de
+               revisa la confidencialidad... esto es común para todos"): se
+               añade el recordatorio de que el valor por defecto (👥 Whole
+               club) comparte con todo el club, para que se revise a
+               conciencia en vez de dejarlo pasar sin mirar. Mismo texto
+               corto en Exercise creator, Play design, Training builder y
+               Library (notebooks). -->
+          <p class="hint" style="margin:2px 0 0; font-size:11.5px;">Shared with your whole club by default — pick 🔒 Only me above if you'd rather keep it private. No "PlayPivot Community" option here on purpose — an evaluation is always about a real player.</p>
+        </div>
+        <div class="field"><label for="assess-language">Language</label>
+          <select id="assess-language">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="side-card" style="margin-bottom:16px;">
+        <a href="#" id="ai-toggle-link" style="font-size:13px; font-weight:600; color:var(--accent-deep); text-decoration:none;">▸ Fill in with AI</a>
+        <div id="ai-section" style="display:none; margin-top:12px;">
+          <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;">
+            Copy this prompt into any AI chat (describe the player when it asks), then paste its reply below.
+          </p>
+          <button class="btn btn-secondary" id="copy-ai-prompt-btn" style="margin-bottom:10px;">Copy prompt</button>
+          <textarea id="ai-response-input" placeholder="Paste the AI's reply here…" style="width:100%; min-height:100px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit;"></textarea>
+          <button class="btn btn-primary" id="fill-from-ai-btn" style="margin-top:8px;">Fill from AI reply</button>
+        </div>
+      </div>
+
+      <div class="heights-row">
+        <div class="field"><label for="height_player">Player height (cm)</label><input id="height_player" type="text" /></div>
+        <div class="field"><label for="height_father">Father's height (cm)</label><input id="height_father" type="text" /></div>
+        <div class="field"><label for="height_mother">Mother's height (cm)</label><input id="height_mother" type="text" /></div>
+      </div>
+
+      <div id="sectors-container"></div>
+
+      <div class="sector-card">
+        <h3>Sector averages, at a glance</h3>
+        <p style="font-size:12.5px; color:var(--muted); margin:0 0 14px;">
+          Each bar shows the average of that sector's criteria (0 to 5). Updates live as you fill in scores above — the same chart appears on the generated PDF.
+        </p>
+        <div id="chart-container" style="display:flex; align-items:flex-end; gap:24px; height:120px; padding:0 10px;"></div>
+      </div>
+
+      <div class="comments-card">
+        <label for="positive_points">Positive points</label>
+        <textarea id="positive_points"></textarea>
+        <label for="negative_points">Points to watch</label>
+        <textarea id="negative_points"></textarea>
+        <label for="to_improve">To work on next</label>
+        <textarea id="to_improve"></textarea>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn btn-primary" id="save-btn">Save assessment</button>
+        <button class="btn btn-secondary" id="pdf-btn">Generate PDF</button>
+        <button class="btn btn-secondary" id="excel-btn">Export history to Excel</button>
+        <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
+        <div class="spacer"></div>
+        <button class="btn btn-secondary" id="delete-btn" style="display:none">Delete</button>
+      </div>
+    </div>
+
+    <h2 style="font-size:15px; margin: 24px 0 10px;">Past assessments</h2>
+    <div class="history-card" id="history-card">
+      <div class="empty-state" id="history-empty">Pick a player above to see their assessment history.</div>
+    </div>
+
+  <!-- Tracking (llamado "Seguimiento" hasta 2026-09-18, traducido a petición
+       de Dani para que quede en inglés como el resto de la app) -- a
+       petición de Dani -- distinto del sistema de evaluación de
+       arriba (36 criterios fijos, nota 1-5, una foto puntual). Aquí el
+       entrenador define SU PROPIO criterio libre (nombre + unidad -- "no una
+       nota, un valor que hay que decidir antes: tiempo, canastas, nota, peso,
+       distancia etc." -- el resultado en sí siempre es numérico, input
+       type="number", eso no ha cambiado), y va añadiendo mediciones fechadas
+       para ver la evolución. Cada criterio+unidad se agrupa en su propia
+       tarjeta, con una tabla y una gráfica de línea mínima (sparkline, SVG a
+       mano, sin librería) -- no se etiqueta como "mejora"/"empeora" porque no
+       hay forma de saber en código si subir es bueno (canastas) o malo
+       (tiempo de sprint): solo se muestra el valor y el cambio respecto a la
+       medición anterior, el entrenador es quien lo interpreta. 2026-09-18: se
+       añadió también un botón "+ New tracking measurement" junto a "+ New
+       assessment" arriba, en la tarjeta de elegir jugador -- antes esta
+       tarjeta era el único punto de entrada y quedaba escondida debajo de
+       Past assessments. -->
+    <div class="team-bar-card" id="tracking-card" style="margin-top:20px;">
+      <h2 style="margin:0 0 4px;">Tracking</h2>
+      <p class="hint" style="font-size:12.5px; color:var(--muted); margin:0 0 14px;">
+        Define your own criterion with its unit (e.g. "Sprint 20m" in seconds, "Free throws in a row" in made shots, "Weight" in kg) and add dated measurements to see if it improves or gets worse over time.
+      </p>
+      <div id="tracking-empty" class="empty-state">Pick a player above to see or add their tracking.</div>
+      <div id="tracking-groups"></div>
+      <button class="btn btn-secondary" id="add-tracking-btn" style="display:none;">+ Add measurement</button>
+
+      <div id="tracking-form" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
+        <div class="toolbar">
+          <div class="field" style="flex:1; min-width:200px;">
+            <label for="tracking-criterion">Criterion</label>
+            <input id="tracking-criterion" type="text" list="tracking-criterion-list" placeholder="e.g. Sprint 20m, Free throws, Weight" />
+            <datalist id="tracking-criterion-list"></datalist>
+          </div>
+          <div class="field">
+            <label for="tracking-unit">Unit</label>
+            <input id="tracking-unit" type="text" placeholder="e.g. sec, kg, made shots" style="min-width:130px;" />
+          </div>
+          <div class="field">
+            <label for="tracking-date">Date</label>
+            <input id="tracking-date" type="date" />
+          </div>
+          <div class="field">
+            <label for="tracking-result">Result</label>
+            <input id="tracking-result" type="number" step="any" style="min-width:100px;" />
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label for="tracking-evaluation">Notes (optional)</label>
+          <textarea id="tracking-evaluation" style="width:100%; min-height:44px; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea>
+        </div>
+        <div class="toolbar" style="margin-bottom:0;">
+          <button class="btn btn-primary" id="save-tracking-btn">Save measurement</button>
+          <button class="btn btn-secondary" id="cancel-tracking-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+</div>
+
+<footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; font-size:14.5px; color:var(--muted); max-width:1080px; margin-left:auto; margin-right:auto;">
+  <span>© 2026 PlayPivot. All rights reserved.</span>
+  <a href="./privacy.html" style="color:var(--muted); text-decoration:none;">Privacy Policy</a>
+  <a href="./privacy.html#use" style="color:var(--muted); text-decoration:none;">Terms of Use</a>
+</footer>
+</main>
+</div><!-- /app-shell -->
+
+<script src="./i18n.js?v=2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="org-switcher.js"></script>
+<script src="sidebar-widgets.js"></script>
+<script src="team-tree.js"></script>
+<script src="example-data.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const VISIBILITY_ICONS = { private: "🔒", team: "👥", association: "🤝", community: "🌐" };
+  function escapeHtml(str) { return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+  function filterByCategory(query, category) {
+    return category ? query.eq("team_category", category) : query.is("team_category", null);
+  }
+  function filterByGender(query, gender) {
+    return gender ? query.eq("team_gender", gender) : query.is("team_gender", null);
+  }
+
+  // ---------------------------------------------------------------------
+  // Les 36 critères. "basic": true = suffisamment simple à juger pour un
+  // coach débutant -- allégé encore par rapport à la première version
+  // (moins de critères de dribble/tir en base pour que ce soit vraiment
+  // plus facile).
+  // ---------------------------------------------------------------------
+  const CRITERIA = {
+    technique: { label: "Technique", groups: {
+      dribble: { label: "Dribble", items: [
+        { text: "Looks at the ball", basic: true },
+        { text: "Dribbles with right hand", basic: true },
+        { text: "Dribbles with left hand", basic: true },
+        { text: "Changes of direction", basic: false },
+      ]},
+      tir: { label: "Shooting", items: [
+        { text: "Shooting technique", basic: true },
+        { text: "Balance / footwork for the shot", basic: false },
+        { text: "Speed of execution", basic: false },
+        { text: "Free throw", basic: true },
+      ]},
+      passe: { label: "Passing", items: [
+        { text: "Passing technique", basic: true },
+        { text: "Passing out of the dribble", basic: false },
+        { text: "Catching passes", basic: true },
+      ]},
+      defense: { label: "Defense", items: [
+        { text: "Defensive stance", basic: true },
+        { text: "On-ball defense (strong side)", basic: false },
+        { text: "Off-ball defense (weak side)", basic: false },
+      ]},
+    }},
+    intelligence: { label: "Basketball IQ", groups: {
+      sans_ballon: { label: "Off the ball", items: [
+        { text: "Getting open, back door cuts", basic: false },
+        { text: "Spacing", basic: false },
+        { text: "Rebounding", basic: true },
+        { text: "Setting screens (U18)", basic: false },
+      ]},
+      avec_ballon: { label: "With the ball", items: [
+        { text: "Uses the dribble effectively", basic: true },
+        { text: "Reads the defense", basic: false },
+        { text: "Shot selection", basic: false },
+      ]},
+      defense: { label: "Defense", items: [
+        { text: "Anticipation", basic: false },
+        { text: "Reading the offense", basic: false },
+        { text: "Help defense", basic: false },
+        { text: "Defending screens", basic: false },
+        { text: "Character, motivation, determination", basic: true },
+      ]},
+      divers: { label: "Other", items: [
+        { text: "Pace of play", basic: false },
+        { text: "Tactical choices", basic: false },
+        { text: "Influence on the game", basic: false },
+      ]},
+    }},
+    personnalite: { label: "Personality", groups: {
+      attitude: { label: "General attitude", items: [
+        { text: "Towards teammates / coaches", basic: true },
+        { text: "Towards their own mistakes", basic: true },
+        { text: "Towards referees", basic: true },
+      ]},
+    }},
+    comportement: { label: "Behaviour", groups: {
+      comportement: { label: "", items: [
+        { text: "Motivation, willing to sacrifice time for the sport, willing to push their limits", basic: true },
+        { text: "Tactical discipline: follows the coach's instructions, pays attention when others are corrected", basic: true },
+        { text: "Team integration: helps and supports teammates", basic: true },
+        { text: "Adaptability: can adapt quickly to a new role", basic: true },
+      ]},
+    }},
+  };
+  const SECTOR_ORDER = ["technique", "intelligence", "personnalite", "comportement"];
+
+  function emptyRatings() {
+    const r = {};
+    for (const sectKey in CRITERIA) {
+      r[sectKey] = {};
+      for (const grpKey in CRITERIA[sectKey].groups) {
+        r[sectKey][grpKey] = CRITERIA[sectKey].groups[grpKey].items.map(() => null);
+      }
+    }
+    return r;
+  }
+  function sectorAverage(ratings, sectKey) {
+    let sum = 0, count = 0;
+    const groups = ratings[sectKey] || {};
+    for (const grpKey in groups) {
+      (groups[grpKey] || []).forEach((v) => { if (v !== null && v !== undefined) { sum += v; count++; } });
+    }
+    return count > 0 ? sum / count : null;
+  }
+
+  const els = {
+    orgName: document.getElementById("org-name-big"),
+    orgLogo: document.getElementById("org-logo-big"),
+    logoutBtn: document.getElementById("logout-btn"),
+    currentSelection: document.getElementById("current-selection"),
+    playerSelect: document.getElementById("player-select"),
+    date: document.getElementById("date"),
+    location: document.getElementById("location"),
+    visibility: document.getElementById("assess-visibility"),
+    language: document.getElementById("assess-language"),
+    heightPlayer: document.getElementById("height_player"),
+    heightFather: document.getElementById("height_father"),
+    heightMother: document.getElementById("height_mother"),
+    newBtn: document.getElementById("new-btn"),
+    formArea: document.getElementById("form-area"),
+    advancedToggle: document.getElementById("advanced-toggle"),
+    sectorsContainer: document.getElementById("sectors-container"),
+    positivePoints: document.getElementById("positive_points"),
+    negativePoints: document.getElementById("negative_points"),
+    toImprove: document.getElementById("to_improve"),
+    saveBtn: document.getElementById("save-btn"),
+    cancelBtn: document.getElementById("cancel-btn"),
+    deleteBtn: document.getElementById("delete-btn"),
+    historyCard: document.getElementById("history-card"),
+    historyEmpty: document.getElementById("history-empty"),
+    msg: document.getElementById("msg"),
+  };
+
+  let currentOrgId = null;
+  let myRole = null;
+  let isPlatformController = false;
+  const canDelete = () => myRole === "admin" || myRole === "coach";
+  let currentSeason = null;
+  let currentTeam = null;
+  let currentTeamCategory = "";
+  let currentTeamGender = "";
+  let logoRequestToken = 0;
+  let teamPlayers = [];
+  let currentRatings = emptyRatings();
+  let trackingEntries = [];
+  let editingId = null;
+
+  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; }
+  function clearMessage() { els.msg.className = "msg"; els.msg.textContent = ""; }
+
+  // ---------------------------------------------------------------------
+  // Arbre saison / équipe (même logique que roster.html/training.html)
+  // ---------------------------------------------------------------------
+  async function loadTree() {
+    const { data, error } = await supabaseClient.from("players").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
+    if (error) { showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error"); console.error("loadTree error:", error); return; }
+    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
+    const rows = mergeTeamRows(data, teamRows);
+
+    // Igual que en Roster/Training builder: si todavía no hay nada elegido,
+    // se recupera el último equipo usado en este club (compartido entre
+    // Roster/Attendance/Match day/etc. via la misma key de localStorage),
+    // o si no hay nada guardado, el primero disponible.
+    if (!currentSeason && !currentTeam && rows.length > 0) {
+      let restored = null;
+      try {
+        const saved = JSON.parse(localStorage.getItem(`pivot-roster-last-${currentOrgId}`) || "null");
+        if (saved && rows.some((r) => r.season === saved.season && r.team === saved.team && (r.team_category || "") === (saved.category || "") && (r.team_gender || "") === (saved.gender || ""))) restored = { season: saved.season, team: saved.team, team_category: saved.category || "", team_gender: saved.gender || "" };
+      } catch (e) { /* localStorage ilegible -- no pasa nada, se cae al primero de la lista */ }
+      const fallback = restored || [...rows].sort((a, b) => a.team.localeCompare(b.team) || b.season.localeCompare(a.season) || (a.team_category || "").localeCompare(b.team_category || ""))[0];
+      currentSeason = fallback.season;
+      currentTeam = fallback.team;
+      currentTeamCategory = fallback.team_category || "";
+      currentTeamGender = fallback.team_gender || "";
+    }
+
+    document.getElementById("new-team-btn").onclick = async () => {
+      const created = await promptNewTeam(supabaseClient, currentOrgId, els.orgName.textContent);
+      if (!created) return;
+      currentTeamCategory = created.team_category || "";
+      currentTeamGender = created.team_gender || "";
+      selectSeasonTeam(created.season, created.team);
+    };
+
+    renderTeamGenderCategoryDropdown("team-gender-category-select", rows, { team: currentTeam, team_category: currentTeamCategory, team_gender: currentTeamGender }, (team, category, gender) => {
+      currentTeam = team; currentTeamCategory = category || ""; currentTeamGender = gender || "";
+      const seasonsForThis = [...new Set(rows.filter((r) => r.team === team && (r.team_category || "") === (category || "") && (r.team_gender || "") === (gender || "")).map((r) => r.season))].sort().reverse();
+      selectSeasonTeam(seasonsForThis.includes(currentSeason) ? currentSeason : seasonsForThis[0], team);
+    });
+
+    const seasonsForCurrent = currentTeam
+      ? [...new Set(rows.filter((r) => r.team === currentTeam && (r.team_category || "") === (currentTeamCategory || "") && (r.team_gender || "") === (currentTeamGender || "")).map((r) => r.season))].sort().reverse()
+      : [];
+    renderSeasonPicker("season-picker", seasonsForCurrent, currentSeason, (season) => selectSeasonTeam(season, currentTeam), currentTeam ? async () => {
+      const created = await promptNewTeam(supabaseClient, currentOrgId, currentTeam);
+      if (!created) return;
+      currentTeamCategory = created.team_category || "";
+      currentTeamGender = created.team_gender || "";
+      selectSeasonTeam(created.season, created.team);
+    } : null);
+
+    updateSelectedSummaryCard();
+  }
+
+  function updateSelectedSummaryCard() {
+    const card = document.getElementById("tsc-selected-card");
+    const chips = document.getElementById("tsc-chips");
+    const wrap = document.getElementById("tsc-step3-wrap");
+    if (!currentTeam) { wrap.style.display = "none"; card.style.display = "none"; chips.style.display = "none"; return; }
+    wrap.style.display = "block"; card.style.display = "flex"; chips.style.display = "flex";
+    document.getElementById("tsc-selected-name").textContent = currentTeam;
+    document.getElementById("tsc-selected-sub").textContent = `Season ${currentSeason}`;
+    document.getElementById("tsc-chip-category").textContent = currentTeamCategory || "—";
+    document.getElementById("tsc-chip-gender").textContent = currentTeamGender || "—";
+    const playersChip = document.getElementById("tsc-chip-players");
+    if (playersChip) playersChip.textContent = teamPlayers.length;
+
+    const BALL_ICON_HTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg>`;
+    const iconEl = document.getElementById("tsc-selected-icon");
+    iconEl.innerHTML = BALL_ICON_HTML;
+    logoRequestToken++;
+    const myLogoToken = logoRequestToken;
+    const teamLogoUrl = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/teams/${encodeURIComponent(currentTeam)}.png?t=${Date.now()}`;
+    const teamImg = new Image();
+    teamImg.onload = () => { if (myLogoToken === logoRequestToken) iconEl.innerHTML = `<img src="${teamLogoUrl}" alt="" />`; };
+    teamImg.src = teamLogoUrl;
+  }
+
+  function openEditTeamDialog() {
+    const team = currentTeam, season = currentSeason, oldCategory = currentTeamCategory, oldGender = currentTeamGender;
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
+        <h3 style="margin:0 0 16px; font-size:17px;">Edit team</h3>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
+        <input id="edit-team-name" type="text" value="${escapeHtml(team)}" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category</label>
+        <select id="edit-team-category" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+          ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}" ${c === (oldCategory || "") ? "selected" : ""}>${c || "No category"}</option>`).join("")}
+        </select>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
+        <select id="edit-team-gender" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+          ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}" ${g === (oldGender || "") ? "selected" : ""}>${g}</option>`).join("")}
+        </select>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
+        <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Leave empty to keep the current one. No logo of its own? Shows a plain ball icon.</p>
+        <input id="edit-team-logo" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:18px;" />
+        <p id="edit-team-error" style="display:none; margin:0 0 10px; font-size:12.5px; color:#991b1b;"></p>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button id="edit-team-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
+          <button id="edit-team-save" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    document.getElementById("edit-team-cancel").addEventListener("click", close);
+
+    document.getElementById("edit-team-save").addEventListener("click", async () => {
+      const errorEl = document.getElementById("edit-team-error");
+      const newName = document.getElementById("edit-team-name").value.trim();
+      if (!newName) { errorEl.textContent = "Team name can't be empty."; errorEl.style.display = "block"; return; }
+      const newCategory = document.getElementById("edit-team-category").value;
+      const newGender = document.getElementById("edit-team-gender").value;
+      const logoFile = document.getElementById("edit-team-logo").files[0];
+      const saveBtn = document.getElementById("edit-team-save");
+      saveBtn.disabled = true; saveBtn.textContent = "Saving…";
+      try {
+        if (newCategory !== (oldCategory || "") || newGender !== (oldGender || "")) {
+          await filterByGender(filterByCategory(
+            supabaseClient.from("players").update({ team_category: newCategory || null, team_gender: newGender || null })
+              .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+            oldCategory
+          ), oldGender);
+          await filterByGender(filterByCategory(
+            supabaseClient.from("teams").update({ team_category: newCategory || null, team_gender: newGender || null })
+              .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+            oldCategory
+          ), oldGender);
+          currentTeamCategory = newCategory; currentTeamGender = newGender;
+        }
+        if (newName !== team) {
+          await supabaseClient.from("players").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("teams").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("matches").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("trainings").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("plays").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("events").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          currentTeam = newName;
+        }
+        if (logoFile) {
+          if (logoFile.size > 8 * 1024 * 1024) throw new Error("That image is over 8 MB — pick a smaller one.");
+          const blob = await fileToSquareLogoBlob(logoFile, 400);
+          const { error: logoErr } = await supabaseClient.storage.from("logos").upload(`${currentOrgId}/teams/${encodeURIComponent(currentTeam)}.png`, blob, { upsert: true, contentType: "image/webp" });
+          if (logoErr) throw logoErr;
+        }
+        try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season: currentSeason, team: currentTeam, category: currentTeamCategory || "", gender: currentTeamGender || "" })); } catch (e) { /* no pasa nada */ }
+        close();
+        await loadTree();
+        await loadPlayersIntoSelect();
+        showMessage("Team updated.", "success");
+      } catch (err) {
+        errorEl.textContent = err.message || "Couldn't save those changes.";
+        errorEl.style.display = "block";
+        saveBtn.disabled = false; saveBtn.textContent = "Save";
+      }
+    });
+  }
+
+  document.getElementById("tsc-edit-btn").addEventListener("click", openEditTeamDialog);
+  document.getElementById("tsc-delete-btn").addEventListener("click", () => deleteTeamSeason(currentSeason, currentTeam, currentTeamCategory));
+
+  async function deleteTeamSeason(season, team, category) {
+    const gender = currentTeamGender;
+    if (!confirm(_t(`Remove "{label}" ({season}) and all its players? This can't be undone.`, { label: `${team}${category ? " (" + category + ")" : ""}${gender ? " " + _t(gender) : ""}`, season }))) return;
+    const { error } = await filterByGender(filterByCategory(
+      supabaseClient.from("players").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      category
+    ), gender);
+    if (error) { showMessage(error.message, "error"); return; }
+    await filterByGender(filterByCategory(
+      supabaseClient.from("teams").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      category
+    ), gender);
+
+    const { data: stillExists } = await supabaseClient.from("players").select("id").eq("organization_id", currentOrgId).eq("team", team).limit(1);
+    const { data: stillExistsTeams } = await supabaseClient.from("teams").select("season").eq("organization_id", currentOrgId).eq("team", team).limit(1);
+    if ((!stillExists || stillExists.length === 0) && (!stillExistsTeams || stillExistsTeams.length === 0)) {
+      try { await resetTeamLogoToBall(supabaseClient, currentOrgId, team); } catch (e) { /* no bloquea el borrado del equipo */ }
+    }
+
+    if (season === currentSeason && team === currentTeam && (category || "") === (currentTeamCategory || "")) {
+      currentSeason = null; currentTeam = null; currentTeamCategory = ""; currentTeamGender = "";
+      els.formArea.style.display = "none";
+      els.currentSelection.textContent = "Pick a season/team above.";
+      els.playerSelect.innerHTML = '<option value="">Pick a season/team first</option>';
+    }
+    showMessage(_t(`"{label}" ({season}) removed.`, { label: `${team}${category ? " (" + category + ")" : ""}`, season }), "success");
+    await loadTree();
+  }
+
+  async function selectSeasonTeam(season, team) {
+    currentSeason = season;
+    currentTeam = team;
+    els.currentSelection.textContent = `${team} — ${season}`;
+    try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team, category: currentTeamCategory || "", gender: currentTeamGender || "" })); } catch (e) { /* no pasa nada si el storage está lleno/bloqueado */ }
+    els.formArea.style.display = "none";
+    await loadTree();
+    await loadPlayersIntoSelect();
+  }
+
+  // ---------------------------------------------------------------------
+  // Club + logo
+  // ---------------------------------------------------------------------
+  async function loadMyOrganization() {
+    const { data: userData } = await supabaseClient.auth.getUser();
+    const { data: profRow } = await supabaseClient.from("profiles").select("full_name, is_platform_controller").eq("id", userData.user.id).maybeSingle();
+    isPlatformController = !!(profRow && profRow.is_platform_controller);
+    pivotUpdateSidebarUser((profRow && profRow.full_name) || userData.user.email, isPlatformController ? "Platform admin" : null);
+    // Dani, 2026-09-30 ("de nuevo salen los pinches carnales" / "aparecen en
+    // otros clubes"): faltaba .eq("user_id", ...) aquí -- la policy de
+    // SELECT de `memberships` deja ver TODAS las filas de la tabla a un
+    // platform controller (para poder gestionar cuentas/clubes desde Admin
+    // general), no solo las suyas. Sin este filtro, cualquier persona con
+    // ese permiso (Dani) recibía aquí la fila de CUALQUIER club del
+    // plataforma entero, y este selector de club las trataba todas como
+    // "mis clubes" -- podía acabar viendo/seleccionando un club ajeno sin
+    // ser miembro de verdad. Mismo filtro que ya tenían attendance.html,
+    // match.html, play_design.html y roster.html -- aquí faltaba.
+    const { data, error } = await supabaseClient
+      .from("memberships").select("organization_id, role, status, organizations(name, is_active)").eq("status", "active").eq("user_id", userData.user.id);
+    if ((error || !data || data.length === 0) && !isPlatformController) {
+      showMessage("You're not an active member of any club yet.", "error");
+      return null;
+    }
+    const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
+    if (!chosen) { showMessage("You're not an active member of any club yet.", "error"); await pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supabaseClient }); return null; }
+    await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
+    currentOrgId = chosen.organization_id;
+    myRole = chosen.role;
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
+    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
+    return currentOrgId;
+  }
+
+  async function loadPlayersIntoSelect() {
+    els.playerSelect.innerHTML = "";
+    if (!currentSeason || !currentTeam) {
+      els.playerSelect.innerHTML = '<option value="">Pick a season/team first</option>';
+      teamPlayers = [];
+      const playersChip = document.getElementById("tsc-chip-players");
+      if (playersChip) playersChip.textContent = "0";
+      return;
+    }
+    // Dani, test funcional ronda 30 (hallazgo BAJO): esto filtraba
+    // `active = true`, así que un jugador marcado inactivo en Roster
+    // desaparecía también de aquí -- sus evaluaciones seguían en la
+    // base, pero no había forma de verlas desde la UI sin reactivarlo
+    // primero. Se sigue contando solo a los activos en el chip de
+    // "Players" (ese número describe el roster actual del equipo), pero
+    // el desplegable ahora también ofrece a los inactivos, al final de
+    // la lista y marcados como tales, para poder revisar su historial
+    // sin tener que reactivarlos.
+    const { data, error } = await filterByGender(filterByCategory(
+      supabaseClient
+        .from("players").select("id, first_name, last_name, active")
+        .eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam),
+      currentTeamCategory
+    ), currentTeamGender).order("last_name");
+    teamPlayers = data || [];
+    const playersChip = document.getElementById("tsc-chip-players");
+    if (playersChip) playersChip.textContent = teamPlayers.filter((p) => p.active).length;
+    if (error || !data || data.length === 0) {
+      els.playerSelect.innerHTML = '<option value="">No players in this team yet — add some in Roster</option>';
+      return;
+    }
+    const active = data.filter((p) => p.active);
+    const inactive = data.filter((p) => !p.active);
+    active.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.first_name} ${p.last_name}`;
+      els.playerSelect.appendChild(opt);
+    });
+    if (inactive.length > 0) {
+      const group = document.createElement("optgroup");
+      group.label = _t("Inactive");
+      inactive.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = `${p.first_name} ${p.last_name} ${_t("(inactive)")}`;
+        group.appendChild(opt);
+      });
+      els.playerSelect.appendChild(group);
+    }
+    loadHistory();
+    loadTracking();
+  }
+
+  // ---------------------------------------------------------------------
+  // EXAMPLE_TEAMS/makeExampleRatings/DEFAULT_PATTERN vienen de
+  // example-data.js (mismos Bulls/Celtics que el resto de páginas).
+  // ---------------------------------------------------------------------
+
+  async function loadExampleTeam(key) {
+    const ex = EXAMPLE_TEAMS[key];
+    if (!currentOrgId) { showMessage("Join or create a club first.", "error"); return; }
+    if (!confirm(_t("Load {team} ({season}) with a sample assessment for each player?", { team: ex.team, season: ex.season }))) return;
+    try {
+      await supabaseClient.from("players").delete()
+        .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
+      const rows = ex.players.map((p) => ({ ...p, organization_id: currentOrgId, season: ex.season, team: ex.team }));
+      const { data: inserted, error } = await supabaseClient.from("players").insert(rows).select("id, last_name");
+      if (error) throw error;
+
+      const assessmentRows = (inserted || []).map((p) => {
+        const [center, spread] = ex.patterns[p.last_name] || DEFAULT_PATTERN;
+        return {
+          organization_id: currentOrgId, player_id: p.id, date: ex.date,
+          ratings: makeExampleRatings(center, spread),
+          positive_points: "Example assessment, for demo purposes.",
+        };
+      });
+      const { error: aErr } = await supabaseClient.from("player_assessments").insert(assessmentRows);
+      if (aErr) throw aErr;
+
+      currentTeamCategory = ""; currentTeamGender = "";
+      await selectSeasonTeam(ex.season, ex.team);
+      showMessage(_t("{n} example players and assessments loaded.", { n: ex.players.length }), "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't load the example data.", "error");
+    }
+  }
+
+  async function removeExampleTeam(key) {
+    const ex = EXAMPLE_TEAMS[key];
+    if (!currentOrgId) return;
+    if (!confirm(_t("Remove {team} ({season}) and all its data? Can't be undone.", { team: ex.team, season: ex.season }))) return;
+    const { error } = await supabaseClient.from("players").delete()
+      .eq("organization_id", currentOrgId).eq("season", ex.season).eq("team", ex.team);
+    if (error) { showMessage(error.message, "error"); return; }
+    if (currentSeason === ex.season && currentTeam === ex.team) {
+      currentSeason = null; currentTeam = null; currentTeamCategory = ""; currentTeamGender = "";
+      els.currentSelection.textContent = "Pick a season/team above.";
+      els.playerSelect.innerHTML = '<option value="">Pick a season/team first</option>';
+    }
+    showMessage(_t("{team} removed.", { team: ex.team }), "success");
+    await loadTree();
+  }
+
+  renderExampleDataCard("example-data-card", { onLoad: loadExampleTeam, onRemove: removeExampleTeam });
+
+  // ---------------------------------------------------------------------
+  // Formulaire des critères
+  // ---------------------------------------------------------------------
+  function buildForm() {
+    els.sectorsContainer.innerHTML = "";
+    SECTOR_ORDER.forEach((sectKey) => {
+      const sect = CRITERIA[sectKey];
+      const card = document.createElement("div");
+      card.className = "sector-card";
+      card.innerHTML = `<h3>${sect.label}</h3><div class="avg" id="avg-${sectKey}">Average: —</div>`;
+      Object.keys(sect.groups).forEach((grpKey) => {
+        const grp = sect.groups[grpKey];
+        if (grp.label) {
+          const gt = document.createElement("div");
+          gt.className = "group-title";
+          gt.textContent = grp.label;
+          card.appendChild(gt);
+        }
+        grp.items.forEach((item, i) => {
+          const row = document.createElement("div");
+          row.className = "criterion-row" + (item.basic ? "" : " advanced");
+          row.innerHTML = `
+            <span>${item.text}</span>
+            <select data-sector="${sectKey}" data-group="${grpKey}" data-index="${i}">
+              <option value="">—</option>
+              <option value="1">1</option><option value="2">2</option>
+              <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          `;
+          const select = row.querySelector("select");
+          select.addEventListener("change", () => {
+            const v = select.value ? parseInt(select.value, 10) : null;
+            currentRatings[sectKey][grpKey][i] = v;
+            updateAverages();
+          });
+          card.appendChild(row);
+        });
+      });
+      els.sectorsContainer.appendChild(card);
+    });
+  }
+  function buildChart() {
+    const container = document.getElementById("chart-container");
+    container.innerHTML = "";
+    SECTOR_ORDER.forEach((sectKey) => {
+      const col = document.createElement("div");
+      col.style.cssText = "flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;";
+      const valueLabel = document.createElement("div");
+      valueLabel.id = `chart-value-${sectKey}`;
+      valueLabel.style.cssText = "font-size:12px; font-weight:700; color:var(--accent-deep);";
+      valueLabel.textContent = "—";
+      const bar = document.createElement("div");
+      bar.id = `chart-bar-${sectKey}`;
+      bar.style.cssText = "width:36px; height:0px; background:var(--accent); border-radius:4px 4px 0 0; transition:height 0.15s;";
+      const barTrack = document.createElement("div");
+      barTrack.style.cssText = "flex:1; display:flex; align-items:flex-end;";
+      barTrack.appendChild(bar);
+      const label = document.createElement("div");
+      label.style.cssText = "font-size:11px; color:var(--muted); text-align:center;";
+      label.textContent = CRITERIA[sectKey].label;
+      col.appendChild(valueLabel);
+      col.appendChild(barTrack);
+      col.appendChild(label);
+      container.appendChild(col);
+    });
+  }
+
+  function updateAverages() {
+    SECTOR_ORDER.forEach((sectKey) => {
+      const avg = sectorAverage(currentRatings, sectKey);
+      const el = document.getElementById(`avg-${sectKey}`);
+      if (el) el.textContent = avg !== null ? _t("Average: {avg} / 5", { avg: avg.toFixed(1) }) : _t("Average: —");
+      const bar = document.getElementById(`chart-bar-${sectKey}`);
+      const valueLabel = document.getElementById(`chart-value-${sectKey}`);
+      if (bar) bar.style.height = `${((avg || 0) / 5) * 80}px`;
+      if (valueLabel) valueLabel.textContent = avg !== null ? avg.toFixed(1) : "—";
+    });
+  }
+  function fillFormFromRatings() {
+    document.querySelectorAll("#sectors-container select").forEach((select) => {
+      const sectKey = select.dataset.sector, grpKey = select.dataset.group, i = parseInt(select.dataset.index, 10);
+      const v = currentRatings[sectKey][grpKey][i];
+      select.value = v === null || v === undefined ? "" : String(v);
+    });
+    updateAverages();
+  }
+  function applyAdvancedVisibility() {
+    const show = els.advancedToggle.checked;
+    document.querySelectorAll(".criterion-row.advanced").forEach((row) => row.classList.toggle("show", show));
+  }
+  els.advancedToggle.addEventListener("change", applyAdvancedVisibility);
+
+  // ---------------------------------------------------------------------
+  // Historique / sauvegarde
+  // ---------------------------------------------------------------------
+  async function loadHistory() {
+    const playerId = els.playerSelect.value;
+    els.historyCard.innerHTML = "";
+    if (!playerId) { els.historyCard.appendChild(els.historyEmpty); return; }
+    const { data, error } = await supabaseClient
+      .from("player_assessments").select("id, date, location, ratings, visibility")
+      .eq("player_id", playerId).order("date", { ascending: false });
+    if (error || !data || data.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No assessments yet for this player.";
+      els.historyCard.appendChild(empty);
+      return;
+    }
+    data.forEach((row) => {
+      const sectorAvgs = SECTOR_ORDER.map((s) => sectorAverage(row.ratings, s)).filter((v) => v !== null);
+      const tot = sectorAvgs.length ? sectorAvgs.reduce((a, b) => a + b, 0).toFixed(1) : "—";
+      const div = document.createElement("div");
+      div.className = "history-row";
+      div.innerHTML = `<span>${VISIBILITY_ICONS[row.visibility || "team"] || ""} ${row.date}${row.location ? " — " + escapeHtml(row.location) : ""}</span><span class="tot">TOT ${tot}</span>`;
+      div.addEventListener("click", () => openExisting(row.id));
+      els.historyCard.appendChild(div);
+    });
+  }
+
+  function openNew() {
+    if (!els.playerSelect.value) { showMessage("Pick a player first.", "error"); return; }
+    editingId = null;
+    currentRatings = emptyRatings();
+    els.date.value = new Date().toISOString().slice(0, 10);
+    els.location.value = "";
+    els.visibility.value = "team";
+    els.language.value = "en";
+    els.heightPlayer.value = ""; els.heightFather.value = ""; els.heightMother.value = "";
+    els.positivePoints.value = ""; els.negativePoints.value = ""; els.toImprove.value = "";
+    document.getElementById("ai-response-input").value = "";
+    document.getElementById("ai-section").style.display = "none";
+    document.getElementById("ai-toggle-link").textContent = "▸ Fill in with AI";
+    els.deleteBtn.style.display = "none";
+    els.formArea.style.display = "block";
+    fillFormFromRatings();
+    applyAdvancedVisibility();
+  }
+
+  async function openExisting(id) {
+    const { data, error } = await supabaseClient.from("player_assessments").select("*").eq("id", id).single();
+    if (error) { showMessage(error.message, "error"); return; }
+    editingId = id;
+    currentRatings = data.ratings;
+    els.date.value = data.date;
+    els.location.value = data.location || "";
+    els.visibility.value = data.visibility || "team";
+    els.language.value = data.language || "en";
+    els.heightPlayer.value = data.height_player || "";
+    els.heightFather.value = data.height_father || "";
+    els.heightMother.value = data.height_mother || "";
+    els.positivePoints.value = data.positive_points || "";
+    els.negativePoints.value = data.negative_points || "";
+    els.toImprove.value = data.to_improve || "";
+    els.deleteBtn.style.display = canDelete() ? "inline-block" : "none";
+    els.formArea.style.display = "block";
+    fillFormFromRatings();
+    applyAdvancedVisibility();
+  }
+
+  // -----------------------------------------------------------------------
+  // PDF vectoriel de l'évaluation en cours à l'écran (même si elle n'est
+  // pas encore sauvegardée) -- texte et graphique dessinés directement,
+  // avec le même graphique en barres par secteur que sur l'app de bureau.
+  // -----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
+  // Export Excel de tout l'historique du joueur sélectionné -- une ligne
+  // par évaluation, avec les moyennes par secteur et le TOT.
+  // -----------------------------------------------------------------------
+  async function exportHistoryToExcel() {
+    const playerId = els.playerSelect.value;
+    if (!playerId) { showMessage("Pick a player first.", "error"); return; }
+    const playerName = els.playerSelect.options[els.playerSelect.selectedIndex].textContent;
+
+    const { data, error } = await supabaseClient
+      .from("player_assessments").select("*").eq("player_id", playerId).order("date");
+    if (error) { showMessage(error.message, "error"); return; }
+    if (!data || data.length === 0) { showMessage("No assessments yet for this player.", "error"); return; }
+
+    const rows = data.map((row) => {
+      const out = { [_t("date||assessment export column")]: row.date, [_t("location||assessment export column")]: row.location || "" };
+      SECTOR_ORDER.forEach((s) => {
+        const avg = sectorAverage(row.ratings, s);
+        out[_t(CRITERIA[s].label)] = avg !== null ? Number(avg.toFixed(2)) : "";
+      });
+      const sectorAvgs = SECTOR_ORDER.map((s) => sectorAverage(row.ratings, s)).filter((v) => v !== null);
+      out[_t("TOT||assessment export column")] = sectorAvgs.length ? Number(sectorAvgs.reduce((a, b) => a + b, 0).toFixed(2)) : "";
+      out[_t("Positive points")] = row.positive_points || "";
+      out[_t("Points to watch")] = row.negative_points || "";
+      out[_t("To improve||assessment export column")] = row.to_improve || "";
+      return out;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, _t("Assessments||sheet name"));
+    XLSX.writeFile(wb, `${playerName.replace(/\s+/g, "_")}_${_t("assessments||file name word")}.xlsx`);
+  }
+
+  async function loadLogoDataUrl(orgId) {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${orgId}/logo.png`);
+      if (!resp.ok) return null;
+      const blob = await resp.blob();
+      const rawDataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+      if (!rawDataUrl) return null;
+      // El archivo se llama "logo.png" pero Settings lo sube en formato
+      // WEBP de verdad (más ligero) -- el <img> del navegador no tiene
+      // problema porque mira el Content-Type real, no la extensión, pero
+      // jsPDF no sabe leer WEBP y el logo salía como una mancha negra en
+      // el PDF. Aquí se deja que el propio navegador decodifique la
+      // imagen (sí entiende WEBP) y se vuelve a codificar como PNG de
+      // verdad antes de dársela a jsPDF.
+      return await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch (e2) { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = rawDataUrl;
+      });
+    } catch (e) { return null; }
+  }
+
+  async function generatePdf() {
+    const playerName = els.playerSelect.options[els.playerSelect.selectedIndex]
+      ? els.playerSelect.options[els.playerSelect.selectedIndex].textContent
+      : _t("Player||PDF fallback name");
+    const logoDataUrl = await loadLogoDataUrl(currentOrgId);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+    const accent = [210, 20, 20];
+    const ink = [26, 26, 26];
+    const muted = [130, 130, 136];
+    const pageW = 842, pageH = 595;
+    const marginX = 36;
+
+    if (logoDataUrl) {
+      try { doc.addImage(logoDataUrl, "PNG", pageW - marginX - 36, 22, 36, 36); } catch (e) {}
+    }
+
+    let y = 38;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(...ink);
+    doc.text(els.orgName.textContent || "PlayPivot", marginX, y);
+    y += 16;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(...muted);
+    doc.text(`${_t("Player assessment")} — ${playerName}`, marginX, y);
+    y += 13;
+    doc.setFontSize(9);
+    let subLine = `${els.date.value || ""}${els.location.value ? " — " + els.location.value : ""}`;
+    if (els.heightPlayer.value || els.heightFather.value || els.heightMother.value) {
+      subLine += "   ·   " + _t("Height: {player} cm (father {father}, mother {mother})", { player: els.heightPlayer.value || "—", father: els.heightFather.value || "—", mother: els.heightMother.value || "—" });
+    }
+    doc.text(subLine, marginX, y);
+    y += 8;
+    doc.setDrawColor(...accent); doc.setLineWidth(1);
+    doc.line(marginX, y, pageW - marginX, y);
+    const criteriaTop = y + 14;
+
+    // -- critères par secteur/groupe, sur deux colonnes équilibrées --
+    const colW = (pageW - marginX * 2 - 30) / 2;
+    const leftSectors = ["technique", "personnalite"];
+    const rightSectors = ["intelligence", "comportement"];
+
+    function drawColumn(sectorKeys, colX) {
+      let cy = criteriaTop;
+      sectorKeys.forEach((sectKey) => {
+        const sect = CRITERIA[sectKey];
+        const avg = sectorAverage(currentRatings, sectKey);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(...ink);
+        doc.text(_t(sect.label), colX, cy);
+        doc.setTextColor(...accent);
+        doc.text(avg !== null ? avg.toFixed(1) : "—", colX + colW - 20, cy);
+        cy += 12;
+        Object.keys(sect.groups).forEach((grpKey) => {
+          const grp = sect.groups[grpKey];
+          if (grp.label) {
+            doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...muted);
+            doc.text(_t(grp.label).toUpperCase(), colX, cy);
+            cy += 9;
+          }
+          grp.items.forEach((item, i) => {
+            const val = currentRatings[sectKey][grpKey][i];
+            if (!els.advancedToggle.checked && !item.basic) return; // n'affiche pas les avancés si la case n'est pas cochée
+            doc.setFont("helvetica", "normal"); doc.setFontSize(7.8); doc.setTextColor(...ink);
+            const lines = doc.splitTextToSize(_t(item.text), colW - 26);
+            doc.text(lines, colX, cy);
+            doc.setTextColor(...accent); doc.setFont("helvetica", "bold");
+            doc.text(val !== null && val !== undefined ? String(val) : "—", colX + colW - 14, cy);
+            cy += lines.length * 8.5 + 2.5;
+          });
+        });
+        cy += 6;
+      });
+      return cy;
+    }
+    drawColumn(leftSectors, marginX);
+    drawColumn(rightSectors, marginX + colW + 30);
+    doc.setDrawColor(230, 230, 230); doc.setLineWidth(0.5);
+    doc.line(marginX + colW + 15, criteriaTop - 8, marginX + colW + 15, pageH - 130);
+
+    // -- graphique en barres par secteur, en bas de page --
+    const chartTop = pageH - 118, chartHeight = 60, chartLeft = marginX, chartWidth = pageW - marginX * 2 - 260;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(...ink);
+    doc.text(_t("Sector averages"), marginX, chartTop - 10);
+    const barGap = 16, barWidth = (chartWidth - barGap * (SECTOR_ORDER.length - 1)) / SECTOR_ORDER.length;
+    SECTOR_ORDER.forEach((sectKey, i) => {
+      const avg = sectorAverage(currentRatings, sectKey) || 0;
+      const bx = chartLeft + i * (barWidth + barGap);
+      const barH = (avg / 5) * chartHeight;
+      doc.setFillColor(...accent);
+      doc.rect(bx, chartTop + chartHeight - barH, barWidth, barH, "F");
+      doc.setFontSize(7); doc.setTextColor(...ink);
+      doc.text(_t(CRITERIA[sectKey].label), bx, chartTop + chartHeight + 11, { maxWidth: barWidth });
+      doc.setTextColor(...accent); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+      doc.text(avg ? avg.toFixed(1) : "—", bx, chartTop + chartHeight - barH - 3);
+      doc.setFont("helvetica", "normal");
+    });
+
+    // -- remarques, à côté du graphique --
+    let cy2 = chartTop - 10;
+    const notesX = chartLeft + chartWidth + 20;
+    [[_t("Positive||PDF notes label"), els.positivePoints.value], [_t("To watch||PDF notes label"), els.negativePoints.value], [_t("Next||PDF notes label"), els.toImprove.value]]
+      .forEach(([label, text]) => {
+        if (!text) return;
+        doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...muted);
+        doc.text(label.toUpperCase(), notesX, cy2);
+        cy2 += 9;
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.8); doc.setTextColor(...ink);
+        const lines = doc.splitTextToSize(text, 190).slice(0, 3);
+        doc.text(lines, notesX, cy2);
+        cy2 += lines.length * 9 + 6;
+      });
+
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...muted);
+    doc.text(_t("Generated by PlayPivot on {date}", { date: new Date().toISOString().slice(0, 10) }), marginX, pageH - 14);
+
+    doc.save(`${playerName.replace(/\s+/g, "_")}_${els.date.value || _t("assessment||file name word")}.pdf`);
+  }
+
+  // Dani, test funcional ronda 30 (hallazgo ALTO nº4): dos clics rápidos
+  // en "Save" disparaban dos guardados antes de que el primero
+  // terminara -- como `editingId` solo pasa a valer algo DESPUÉS del
+  // `await` (y encima nunca se rellena tras un insert exitoso), ambos
+  // clics veían `editingId` vacío y ambos insertaban, duplicando la
+  // evaluación. Se deshabilita el botón de forma síncrona mientras se
+  // guarda, igual que "Edit team" más arriba en este archivo.
+  async function saveAssessment() {
+    if (els.saveBtn.disabled) return;
+    clearMessage();
+    const playerId = els.playerSelect.value;
+    if (!playerId) { showMessage("Pick a player first.", "error"); return; }
+    const payload = {
+      organization_id: currentOrgId, player_id: playerId,
+      date: els.date.value, location: els.location.value.trim() || null,
+      visibility: els.visibility.value,
+      language: els.language.value,
+      height_player: els.heightPlayer.value.trim() || null,
+      height_father: els.heightFather.value.trim() || null,
+      height_mother: els.heightMother.value.trim() || null,
+      ratings: currentRatings,
+      positive_points: els.positivePoints.value.trim() || null,
+      negative_points: els.negativePoints.value.trim() || null,
+      to_improve: els.toImprove.value.trim() || null,
+    };
+    const originalLabel = els.saveBtn.textContent;
+    els.saveBtn.disabled = true; els.saveBtn.textContent = "Saving…";
+    try {
+      let error;
+      if (editingId) ({ error } = await supabaseClient.from("player_assessments").update(payload).eq("id", editingId));
+      else ({ error } = await supabaseClient.from("player_assessments").insert(payload));
+      if (error) throw error;
+      els.formArea.style.display = "none";
+      await loadHistory();
+      showMessage("Assessment saved.", "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't save that assessment.", "error");
+    } finally {
+      els.saveBtn.disabled = false; els.saveBtn.textContent = originalLabel;
+    }
+  }
+
+  async function deleteAssessment() {
+    if (!editingId || !confirm("Delete this assessment?")) return;
+    const { error } = await supabaseClient.from("player_assessments").delete().eq("id", editingId);
+    if (error) { showMessage(error.message, "error"); return; }
+    els.formArea.style.display = "none";
+    await loadHistory();
+  }
+
+  // -----------------------------------------------------------------------
+  // Seguimiento (tracking) -- nuevo a petición de Dani: distinto de la
+  // evaluación de arriba (criterios fijos, nota 1-5). Aquí el criterio lo
+  // define el propio entrenador (texto libre) junto con su unidad ("no una
+  // nota, un valor que hay que decidir antes: tiempo, canastas, nota, peso,
+  // distancia etc."), y cada fecha nueva añade una medición (resultado
+  // numérico + nota opcional) a ese mismo criterio -- así se ve la evolución.
+  // Tabla nueva: player_tracking_entries (ver database/step74_player_tracking.sql).
+  // -----------------------------------------------------------------------
+  async function loadTracking() {
+    const playerId = els.playerSelect.value;
+    const groupsEl = document.getElementById("tracking-groups");
+    const emptyEl = document.getElementById("tracking-empty");
+    const addBtn = document.getElementById("add-tracking-btn");
+    groupsEl.innerHTML = "";
+    document.getElementById("tracking-form").style.display = "none";
+    if (!playerId) {
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "Pick a player above to see or add their tracking.";
+      addBtn.style.display = "none";
+      trackingEntries = [];
+      return;
+    }
+    addBtn.style.display = "inline-block";
+    const { data, error } = await supabaseClient
+      .from("player_tracking_entries")
+      .select("id, criterion, unit, date, result, evaluation")
+      .eq("player_id", playerId)
+      .order("date");
+    if (error) {
+      // La tabla puede no existir todavía si Dani no ha corrido step74 -- se
+      // avisa igual que en otras rondas, sin romper el resto de la página.
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "Couldn't load tracking — run database/step74_player_tracking.sql in Supabase first if you haven't yet.";
+      trackingEntries = [];
+      return;
+    }
+    trackingEntries = data || [];
+    renderTrackingGroups();
+  }
+
+  function buildSparkline(values) {
+    if (values.length < 2) return "";
+    const w = 100, h = 30, pad = 3;
+    const min = Math.min(...values), max = Math.max(...values);
+    const range = max - min || 1;
+    const pts = values.map((v, i) => {
+      const x = pad + (i * (w - pad * 2)) / (values.length - 1);
+      const y = h - pad - ((v - min) / range) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const lastXY = pts[pts.length - 1].split(",");
+    return `<svg class="tracking-sparkline" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">
+      <polyline points="${pts.join(" ")}" fill="none" stroke="var(--accent-deep)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="${lastXY[0]}" cy="${lastXY[1]}" r="2.6" fill="var(--accent)" />
+    </svg>`;
+  }
+
+  function renderTrackingGroups() {
+    const groupsEl = document.getElementById("tracking-groups");
+    const emptyEl = document.getElementById("tracking-empty");
+    groupsEl.innerHTML = "";
+    if (trackingEntries.length === 0) {
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "No measurements tracked yet for this player.";
+      return;
+    }
+    emptyEl.style.display = "none";
+    const groups = {};
+    const order = [];
+    trackingEntries.forEach((e) => {
+      const key = `${e.criterion}__${e.unit || ""}`;
+      if (!groups[key]) { groups[key] = { criterion: e.criterion, unit: e.unit, entries: [] }; order.push(key); }
+      groups[key].entries.push(e);
+    });
+    order.forEach((key) => {
+      const g = groups[key];
+      g.entries.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+      const last = g.entries[g.entries.length - 1];
+      const prev = g.entries.length > 1 ? g.entries[g.entries.length - 2] : null;
+      const delta = prev !== null ? last.result - prev.result : null;
+      const deltaRounded = delta === null ? null : Math.round(delta * 100) / 100;
+      const deltaStr = deltaRounded === null ? "" : (deltaRounded > 0 ? "+" : "") + deltaRounded;
+      const card = document.createElement("div");
+      card.className = "tracking-group";
+      const rowsHtml = g.entries.slice().reverse().map((e) => `
+            <tr>
+              <td>${escapeHtml(e.date)}</td>
+              <td>${e.result}${g.unit ? " " + escapeHtml(g.unit) : ""}</td>
+              <td>${e.evaluation ? escapeHtml(e.evaluation) : ""}</td>
+              <td><button type="button" class="tracking-del-btn" data-id="${e.id}" title="Delete this measurement">✕</button></td>
+            </tr>`).join("");
+      card.innerHTML = `
+        <div class="tracking-group-head">
+          <div><strong>${escapeHtml(g.criterion)}</strong>${g.unit ? `<span class="tracking-unit">${escapeHtml(g.unit)}</span>` : ""}</div>
+          <div class="tracking-group-right">
+            ${buildSparkline(g.entries.map((e) => e.result))}
+            <span class="tracking-last">${last.result}${g.unit ? " " + escapeHtml(g.unit) : ""}</span>
+            ${delta !== null ? `<span class="tracking-delta">${escapeHtml(_t("{delta} vs previous", { delta: deltaStr }))}</span>` : ""}
+          </div>
+        </div>
+        <table class="tracking-table">
+          <thead><tr><th>Date</th><th>Result</th><th>Notes</th><th></th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>`;
+      groupsEl.appendChild(card);
+    });
+    groupsEl.querySelectorAll(".tracking-del-btn").forEach((btn) => {
+      btn.addEventListener("click", () => deleteTrackingEntry(btn.dataset.id));
+    });
+  }
+
+  function updateTrackingCriterionList() {
+    const list = document.getElementById("tracking-criterion-list");
+    const names = Array.from(new Set(trackingEntries.map((e) => e.criterion)));
+    list.innerHTML = names.map((n) => `<option value="${escapeHtml(n)}"></option>`).join("");
+  }
+
+  function openTrackingForm() {
+    if (!els.playerSelect.value) { showMessage("Pick a player first.", "error"); return; }
+    document.getElementById("tracking-criterion").value = "";
+    document.getElementById("tracking-unit").value = "";
+    document.getElementById("tracking-date").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("tracking-result").value = "";
+    document.getElementById("tracking-evaluation").value = "";
+    updateTrackingCriterionList();
+    document.getElementById("tracking-form").style.display = "block";
+  }
+  document.getElementById("add-tracking-btn").addEventListener("click", openTrackingForm);
+  // Atajo a petición de Dani (2026-09-18): "+ New tracking measurement"
+  // junto a "+ New assessment" arriba, para que Tracking no dependa de
+  // bajar hasta el final de la página para encontrarlo -- hace scroll hasta
+  // la tarjeta y abre el mismo formulario que "+ Add measurement" de abajo.
+  document.getElementById("new-tracking-shortcut-btn").addEventListener("click", () => {
+    if (!els.playerSelect.value) { showMessage("Pick a player first.", "error"); return; }
+    document.getElementById("tracking-card").scrollIntoView({ behavior: "smooth", block: "start" });
+    openTrackingForm();
+  });
+  document.getElementById("cancel-tracking-btn").addEventListener("click", () => {
+    document.getElementById("tracking-form").style.display = "none";
+  });
+  document.getElementById("tracking-criterion").addEventListener("input", () => {
+    const name = document.getElementById("tracking-criterion").value.trim();
+    const unitField = document.getElementById("tracking-unit");
+    if (unitField.value.trim()) return;
+    const match = trackingEntries.find((e) => e.criterion === name);
+    if (match) unitField.value = match.unit || "";
+  });
+  document.getElementById("save-tracking-btn").addEventListener("click", async () => {
+    const playerId = els.playerSelect.value;
+    if (!playerId) { showMessage("Pick a player first.", "error"); return; }
+    const criterion = document.getElementById("tracking-criterion").value.trim();
+    const unit = document.getElementById("tracking-unit").value.trim();
+    const date = document.getElementById("tracking-date").value;
+    const resultRaw = document.getElementById("tracking-result").value;
+    const evaluation = document.getElementById("tracking-evaluation").value.trim();
+    if (!criterion) { showMessage("Name the criterion you're tracking.", "error"); return; }
+    if (!date) { showMessage("Pick a date.", "error"); return; }
+    if (resultRaw === "") { showMessage("Enter a result.", "error"); return; }
+    const result = parseFloat(resultRaw);
+    if (Number.isNaN(result)) { showMessage("Result must be a number.", "error"); return; }
+    try {
+      const { error } = await supabaseClient.from("player_tracking_entries").insert({
+        organization_id: currentOrgId, player_id: playerId,
+        criterion, unit: unit || null, date, result, evaluation: evaluation || null,
+      });
+      if (error) throw error;
+      document.getElementById("tracking-form").style.display = "none";
+      await loadTracking();
+      showMessage("Measurement saved.", "success");
+    } catch (err) {
+      showMessage(err.message || "Couldn't save that measurement.", "error");
+    }
+  });
+
+  async function deleteTrackingEntry(id) {
+    if (!confirm("Delete this measurement?")) return;
+    const { error } = await supabaseClient.from("player_tracking_entries").delete().eq("id", id);
+    if (error) { showMessage(error.message, "error"); return; }
+    await loadTracking();
+  }
+
+  // -----------------------------------------------------------------------
+  // Aide IA : on ne peut pas appeler une IA directement depuis cette page,
+  // donc le principe est copier/coller -- même logique que le bloc IA de
+  // suivi.py côté application de bureau (prompt prêt, puis un bloc de
+  // réponse qu'on relit pour remplir le formulaire).
+  // -----------------------------------------------------------------------
+  function buildAiPrompt() {
+    const lines = [
+      "You're helping a basketball coach evaluate a player. I'll describe the player and what I've seen from them.",
+      "",
+      "IMPORTANT — do not score anything yet. First, ask me clarifying questions (age, position, what stood out, weaknesses, how many times you've seen them play...) until you're genuinely confident enough to rate EVERY criterion below. If after asking you still don't have enough to judge a specific criterion, say so and ask one more targeted question about it rather than guessing — only leave a criterion out as a last resort, and tell me which ones and why.",
+      "",
+      "You can ask your questions in whatever language I'm writing to you in — reply in that same language for the conversation. But once (and only once) I confirm you have enough, your FINAL reply must contain ONLY lines in this exact format, nothing else, no matter what language we spoke in:",
+      "key: score",
+      "",
+      "Score each from 1 (needs a lot of work) to 5 (excellent).",
+      "",
+    ];
+    // Dani, test funcional ronda 30 (hallazgo MEDIO nº10): esto pedía
+    // (y parseAiResponse más abajo aplicaba) los 36 criterios SIEMPRE,
+    // sin mirar "Show advanced criteria" -- si la casilla estaba
+    // apagada, hasta la mitad de las notas que la IA devolvía quedaban
+    // invisibles en el formulario (esa sección ni se dibuja), pero
+    // igual contaban en sectorAverage()/overallAverage() y, por tanto,
+    // en el PDF -- el propio texto del botón invita a "revisar antes de
+    // guardar", pero no había forma de revisar lo que no se veía. Ahora
+    // el prompt (y lo que se acepta de la respuesta) respeta la misma
+    // casilla que ya decide qué se DIBUJA -- mismo criterio, línea
+    // 1333 de este archivo.
+    SECTOR_ORDER.forEach((sectKey) => {
+      const sect = CRITERIA[sectKey];
+      Object.keys(sect.groups).forEach((grpKey) => {
+        sect.groups[grpKey].items.forEach((item, i) => {
+          if (!els.advancedToggle.checked && !item.basic) return;
+          lines.push(`${sectKey}.${grpKey}.${i}: ${item.text}`);
+        });
+      });
+    });
+    return lines.join("\n");
+  }
+
+  function parseAiResponse(text) {
+    const found = {};
+    text.split("\n").forEach((line) => {
+      const m = line.match(/^([a-z_]+)\.([a-z_]+)\.(\d+)\s*:\s*(\d)/i);
+      if (!m) return;
+      const [, sectKey, grpKey, idx, score] = m;
+      if (!currentRatings[sectKey] || !currentRatings[sectKey][grpKey]) return;
+      const i = parseInt(idx, 10), v = Math.max(1, Math.min(5, parseInt(score, 10)));
+      const item = CRITERIA[sectKey] && CRITERIA[sectKey].groups[grpKey] && CRITERIA[sectKey].groups[grpKey].items[i];
+      if (!item) return;
+      if (!els.advancedToggle.checked && !item.basic) return; // no aplicar (ni contar) lo que no se puede ver ni revisar
+      currentRatings[sectKey][grpKey][i] = v;
+      found[`${sectKey}.${grpKey}.${idx}`] = v;
+    });
+    return Object.keys(found).length;
+  }
+
+  document.getElementById("ai-toggle-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    const section = document.getElementById("ai-section");
+    const open = section.style.display === "block";
+    section.style.display = open ? "none" : "block";
+    e.target.textContent = open ? "▸ Fill in with AI" : "▾ Fill in with AI";
+  });
+
+  document.getElementById("copy-ai-prompt-btn").addEventListener("click", async () => {
+    const text = buildAiPrompt();
+    try {
+      await navigator.clipboard.writeText(text);
+      showMessage("Prompt copied — paste it into any AI chat.", "success");
+    } catch (e) {
+      showMessage("Couldn't copy automatically — select and copy the prompt manually.", "error");
+    }
+  });
+
+  document.getElementById("fill-from-ai-btn").addEventListener("click", () => {
+    const text = document.getElementById("ai-response-input").value;
+    if (!text.trim()) { showMessage("Paste the AI's reply first.", "error"); return; }
+    const count = parseAiResponse(text);
+    if (count === 0) { showMessage("Couldn't find any recognizable scores in that text.", "error"); return; }
+    fillFormFromRatings();
+    applyAdvancedVisibility();
+    showMessage(_t("Filled in {n} criteria from the AI reply — review before saving.", { n: count }), "success");
+  });
+
+  els.newBtn.addEventListener("click", openNew);
+  els.cancelBtn.addEventListener("click", () => { els.formArea.style.display = "none"; });
+  els.saveBtn.addEventListener("click", saveAssessment);
+  document.getElementById("pdf-btn").addEventListener("click", generatePdf);
+  document.getElementById("excel-btn").addEventListener("click", exportHistoryToExcel);
+  els.deleteBtn.addEventListener("click", deleteAssessment);
+  els.playerSelect.addEventListener("change", () => { els.formArea.style.display = "none"; loadHistory(); loadTracking(); });
+
+  document.getElementById("help-btn").addEventListener("click", () => {
+    const box = document.getElementById("help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.innerHTML = `
+      <strong>How to use Player assessment</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+        <li><strong>Pick a season/team</strong> above, then a player — the list updates to match.</li>
+        <li><strong>Show advanced criteria</strong> (Criteria card) reveals 18 more tactical/IQ-focused criteria on top of the 18 basic ones — leave it off for a quicker, simpler evaluation.</li>
+        <li><strong>Heights</strong> (player, father, mother) are optional, used to get a feel for likely adult height.</li>
+        <li><strong>Fill in with AI</strong> — copy a ready-made prompt into any AI chat, describe the player, paste its reply back in, and it fills the scores in for you to review.</li>
+        <li><strong>Click "+ New assessment"</strong>, fill in what you can (blank stays blank, it's not forced to a random score), Save.</li>
+        <li>Sector averages update live as you fill each one in, both on screen and in the exported PDF.</li>
+        <li><strong>Past assessments</strong> below are clickable — opens that one back up to review or edit.</li>
+        <li><strong>Tracking</strong>, below Past assessments (or jump straight there with <strong>+ New tracking measurement</strong>, next to New assessment above) — a different kind of tracking: define your own criterion with its unit (e.g. "Sprint 20m" in seconds, "Free throws in a row" in made shots, "Weight" in kg) and add dated measurements over time — the result itself is always a number. Each criterion gets its own mini chart and table — this is for things that don't fit the 1-5 scoring above.</li>
+        <li><strong>Who can see it</strong> — 🔒 only you, 👥 your whole club, 🤝 your club association (needs approval), or 🌐 every club on PlayPivot (view only for them). An assessment is a real player's evaluation, so think before sharing beyond your club.</li>
+        <li>A <strong>player account</strong> never sees "Whole club" assessments in bulk, even from their own club — that would mean seeing every other player's evaluation.</li>
+      </ul>`;
+    box.style.display = "block";
+  });
+
+els.logoutBtn.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    pivotInitSidebarChrome();
+    buildForm();
+    buildChart();
+    const orgId = await loadMyOrganization();
+    if (orgId) await loadTree();
+  }
+  init();
+</script>
+
+</body>
+</html>

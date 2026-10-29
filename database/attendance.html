@@ -1,0 +1,1487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/x-icon" href="./favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https://eeucbnhqsnfitzwzghtg.supabase.co;
+  connect-src 'self' https://eeucbnhqsnfitzwzghtg.supabase.co https://cdn.jsdelivr.net;
+  object-src 'none'; base-uri 'none'; form-action 'none'" />
+<title>PlayPivot | Basketball Training Attendance</title>
+<meta name="description" content="Track player attendance, training participation and availability to keep your basketball team organized and prepared." />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #ec6718; --accent-deep: #b85012; --accent-tint: #fdefe7;
+    --navy: #080026; --navy-hover: #191235; --sidebar-w: 244px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; font-size: 14px; }
+  @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+  h1, h2, h3, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  a { color: inherit; }
+
+  .app-shell { display: flex; min-height: 100vh; align-items: stretch; }
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0; background: var(--navy); color: #fff;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; z-index: 100;
+  }
+  .sidebar-header { padding: 22px 20px 18px; display: flex; align-items: center; justify-content: space-between; background: transparent; }
+  .sidebar-logo-img { height: 24px; width: auto; display: block; }
+  .sidebar-close-btn { display: none; background: none; border: none; color: #b5b2be; font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; }
+  .sidebar-nav { display: block; padding: 4px 12px; background: transparent; }
+  .sidebar-link {
+    display: block; padding: 9px 12px; border-radius: 8px; background: transparent;
+    color: #dad9de; text-decoration: none; font-size: 15px; font-weight: 500;
+    white-space: nowrap; margin-bottom: 2px;
+  }
+  .sidebar-link svg { width: 17px; height: 17px; vertical-align: -4px; margin-right: 10px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .sidebar-link:hover { background: var(--navy-hover); color: #fff; }
+  .sidebar-link.active { background: var(--accent); color: #fff; }
+  .sidebar-divider { height: 1px; background: #211a3c; margin: 10px 20px; }
+  .sidebar-footer { margin-top: auto; padding: 8px 12px 16px; background: transparent; }
+  .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 10px 10px; margin-top: 6px; border-radius: 10px; background: #140d31; }
+  .sidebar-user-avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14.5px;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-user-info { flex: 1; min-width: 0; }
+  .sidebar-user-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-role { font-size: 14px; color: #848092; }
+  .sidebar-logout-btn { background: none; border: none; color: #848092; cursor: pointer; padding: 5px; flex-shrink: 0; border-radius: 6px; }
+  .sidebar-logout-btn:hover { color: #fff; background: #191235; }
+  .sidebar-logout-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; display: block; }
+  .mobile-topbar { display: none; }
+  .sidebar-overlay { display: none; }
+  @media (max-width: 767px) {
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: 0 0 40px rgba(0,0,0,0.3); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-close-btn { display: block; }
+    .mobile-topbar {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--card);
+      border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 40;
+    }
+    .mobile-topbar img { height: 22px; }
+    .hamburger-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink); padding: 4px; line-height: 1; }
+    .sidebar-overlay {
+      display: block; position: fixed; inset: 0; background: rgba(8,0,38,0.5); z-index: 90;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+  }
+  .main-content { flex: 1; min-width: 0; }
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 28px 32px 4px; flex-wrap: wrap; max-width: 1080px; margin: 0 auto; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .icon-btn {
+    width: 58px; height: 58px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); position: relative;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .icon-badge {
+    position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 10px;
+    font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
+    justify-content: center; padding: 0 3px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 32px 60px; }
+  .conv-row:hover, .new-msg-person-row:hover { background: var(--paper); }
+  .hint { font-size: 14px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
+  .nav-btn:hover { border-color: var(--accent); }
+
+  h1 { font-size: 23px; margin: 0 0 4px; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+  /* Dani (voz, 2026-10-04): "cuando des a salvar, que te vuelve para
+     arriba" -- antes .msg vivia arriba del todo de la pagina y
+     showMessage() hacia scrollIntoView, asi que CUALQUIER mensaje (hasta
+     "Guardado correctamente") arrastraba el scroll entero hacia arriba,
+     lejos de donde estabas (p.ej. el boton Save, al final de un
+     formulario largo). Ahora .msg flota fijo cerca de abajo de la
+     pantalla -- se ve sin mover el scroll para nada, asi que
+     showMessage() ya no necesita (ni hace) scrollIntoView. */
+  .msg { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); margin: 0; padding: 12px 18px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; z-index: 400; max-width: min(460px, calc(100vw - 32px)); box-shadow: 0 10px 28px rgba(0,0,0,.18); }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
+  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 14.5px; color: var(--ink); margin-bottom: 12px; }
+
+  .team-bar-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
+
+  /* -------- selector nuevo: Teams & Seasons (igual que Roster) -------- */
+  .tsc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .tsc-header-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-deep); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .tsc-header-title { font-size: 16px; font-weight: 700; margin: 0; }
+  .tsc-header-sub { font-size: 13px; color: var(--muted); margin: 1px 0 0; }
+  .tsc-step-label { font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 0 0 10px; }
+  .cascade-option {
+    display: block; width: 100%; text-align: left; background: none; border: none; padding: 9px 14px;
+    font-size: 14px; color: var(--ink); cursor: pointer; border-bottom: 1px solid var(--line);
+  }
+  .cascade-option:last-child { border-bottom: none; }
+  .cascade-option:hover { background: var(--paper); }
+  .cascade-back { background: none; border: none; color: var(--accent-deep); font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 0; }
+  .season-pill {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; cursor: pointer;
+    text-align: left; min-width: 110px;
+  }
+  .season-pill strong { display: block; font-size: 14px; }
+  .season-pill span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .season-pill.active { background: var(--accent-tint); border-color: var(--accent); }
+  .season-pill.active span { color: var(--accent-deep); font-weight: 600; }
+  .season-pill-new { color: var(--accent-deep); font-weight: 600; border-style: dashed; display: flex; align-items: center; justify-content: center; }
+  .tsc-selected-card {
+    background: var(--accent-tint); border-radius: 10px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .tsc-selected-card > .icon { width: 96px; height: 96px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; overflow: hidden; background: var(--card); }
+  .tsc-selected-card > .icon img, .tsc-selected-card > .icon svg { width: 100%; height: 100%; object-fit: contain; }
+  .tsc-selected-name { font-weight: 700; font-size: 16px; color: var(--ink); }
+  .tsc-selected-sub { font-size: 13px; color: var(--accent-deep); margin-top: 2px; margin-bottom: 10px; }
+  .tsc-chips {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 16px;
+  }
+  .tsc-chip { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+  .tsc-chip .icon { color: var(--accent-deep); flex-shrink: 0; }
+  .tsc-chip strong { display: block; font-size: 14.5px; }
+  .tsc-chip span { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .tsc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 700px) { .tsc-cols { grid-template-columns: 1fr; } }
+  .team-bar-card h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 12px; }
+  .tree-new { font-size: 14px; color: var(--accent-deep); background: none; border: 1px dashed var(--accent-deep); border-radius: 100px; cursor: pointer; padding: 7px 14px; text-align: left; margin-bottom: 10px; }
+  details.tree-folder { margin-bottom: 2px; }
+  details.tree-folder > summary { cursor: pointer; list-style: none; padding: 8px 10px; border-radius: 8px; font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  details.tree-folder > summary::-webkit-details-marker { display: none; }
+  details.tree-folder > summary::before { content: "▸"; color: var(--muted); font-size: 12px; transition: transform 0.15s; }
+  details.tree-folder[open] > summary::before { transform: rotate(90deg); }
+  details.tree-folder > summary:hover { background: var(--paper); }
+  details.tree-folder-season > summary { font-size: 15px; }
+  details.tree-folder-team { margin: 2px 0 2px 22px; }
+  details.tree-folder-team > summary { font-size: 14px; font-weight: 500; }
+  .tree-folder-leaf-row { display: flex; align-items: center; gap: 4px; margin: 1px 0 1px 44px; }
+  details.tree-folder-season > .tree-folder-leaf-row { margin-left: 22px; }
+  .tree-folder-leaf { flex: 1; text-align: left; background: none; border: none; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: var(--ink); cursor: pointer; }
+  .tree-folder-leaf:hover { background: var(--paper); }
+  .tree-folder-leaf.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+  .active-row { background: var(--accent-tint); border-radius: 8px; padding-right: 6px; }
+  .active-row .tree-folder-leaf.active { background: none; }
+  .tree-folder-leaf-action {
+    display: inline-flex; align-items: center; gap: 4px; background: none; border: none; color: var(--accent-deep);
+    font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 5px 8px; border-radius: 6px; flex-shrink: 0;
+  }
+  .tree-folder-leaf-action:hover { background: rgba(0,0,0,0.06); }
+  .team-pill-del { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; color: var(--muted); font-size: 12px; background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0; }
+  .team-pill-del:hover { background: rgba(0,0,0,0.08); color: #991b1b; }
+
+  .attendance-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 0; overflow-x: auto; }
+  table.attendance-table { border-collapse: collapse; font-size: 14.5px; white-space: nowrap; }
+  table.attendance-table th, table.attendance-table td { padding: 0; border-bottom: 1px solid var(--line); }
+  .att-player-col { position: sticky; left: 0; background: var(--card); z-index: 2; padding: 10px 16px !important; text-align: left; border-right: 1px solid var(--line); min-width: 160px; }
+  th.att-player-col { z-index: 3; }
+  .att-date-head { padding: 8px 6px !important; text-align: center; vertical-align: bottom; min-width: 58px; }
+  .att-date-head .att-type-icon { display: block; font-size: 14px; margin-bottom: 2px; }
+  .att-date-head .att-date-label { display: block; font-size: 11px; font-weight: 700; }
+  .att-date-head .att-sub-label { display: block; font-size: 9.5px; font-weight: 500; opacity: 0.85; max-width: 70px; overflow: hidden; text-overflow: ellipsis; margin: 0 auto; }
+  .att-type-match { background: var(--accent-tint); color: var(--accent-deep); }
+  .att-type-training { background: #e7e5f5; color: var(--navy); }
+  .att-type-event { background: #dcfce7; color: #16a34a; }
+  .att-cell { text-align: center; padding: 4px !important; }
+  .att-status-btn {
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper);
+    cursor: pointer; font-size: 13px; font-weight: 700; color: var(--muted); margin: 0 auto; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .att-status-btn:hover { border-color: var(--accent); }
+  .att-status-present { background: #dcfce7; border-color: #86efac; color: #166534; }
+  .att-status-absent { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+  .att-status-excused { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+  .att-status-late { background: var(--accent-tint); border-color: #fbbf7a; color: var(--accent-deep); }
+  /* Presente con otro rol (staff): cuenta como presente pero NO como partido jugado/asistido. */
+  .att-status-coach { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+  .att-status-ot { background: #ede9fe; border-color: #c4b5fd; color: #5b21b6; font-size: 12px; }
+  /* Dani 2026-10-27: con muchas fechas la grilla se hacía enorme -> filtro por tipo,
+     modo compacto y flechas para desplazarse. */
+  .att-viewbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .att-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 100px; overflow: hidden; background: var(--card); }
+  .att-seg button { border: none; background: none; padding: 7px 13px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; }
+  .att-seg button + button { border-left: 1px solid var(--line); }
+  .att-seg button:hover { background: var(--paper); }
+  .att-seg button.active { background: var(--accent-tint); color: var(--accent-deep); }
+  .att-seg button .n { font-weight: 500; opacity: 0.8; margin-left: 3px; }
+  .att-nav { display: inline-flex; gap: 6px; margin-left: auto; align-items: center; }
+  .att-nav button { border: 1px solid var(--line); background: var(--card); border-radius: 8px; min-width: 34px; height: 32px; font-size: 15px; font-weight: 700; color: var(--ink); cursor: pointer; padding: 0 10px; }
+  .att-nav button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-deep); }
+  .att-nav button:disabled { opacity: 0.35; cursor: default; }
+  .att-nav .att-nav-txt { font-size: 13px; font-weight: 600; }
+  .att-compact-toggle { border: 1px solid var(--line); background: var(--card); border-radius: 8px; height: 32px; padding: 0 12px; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+  .att-compact-toggle.on { background: var(--accent-tint); color: var(--accent-deep); border-color: var(--accent); }
+  table.attendance-table.att-compact { font-size: 13px; }
+  table.attendance-table.att-compact .att-player-col { min-width: 120px; padding: 5px 10px !important; }
+  table.attendance-table.att-compact .att-date-head { min-width: 34px; padding: 5px 2px !important; }
+  table.attendance-table.att-compact .att-date-head .att-sub-label { display: none; }
+  table.attendance-table.att-compact .att-date-head .att-type-icon { font-size: 12px; margin-bottom: 0; }
+  table.attendance-table.att-compact .att-date-head .att-date-label { font-size: 10px; }
+  table.attendance-table.att-compact .att-cell { padding: 2px !important; }
+  table.attendance-table.att-compact .att-status-btn { width: 28px; height: 24px; font-size: 11.5px; border-radius: 6px; }
+  .att-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .att-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .att-legend .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+</style>
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//playpivot.app/analytics/matomo/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '1']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+</head>
+<body>
+
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">☰</button>
+  <img src="./playpivot-logo.png" alt="PlayPivot" />
+</div>
+
+<div class="app-shell">
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo-negativo.png" alt="PlayPivot" class="sidebar-logo-img" /></a>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close menu">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div id="sidebar-admin-badge" style="display:none; font-size:12px; font-weight:700; letter-spacing:0.05em; color:var(--accent); padding:0 12px 6px;">⚡ PLATFORM ADMIN</div>
+
+      <div style="padding:8px 12px 12px;">
+        <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
+      </div>
+      <a href="./dashboard.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+      <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
+      <a href="./attendance.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
+      <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
+      <a href="./stats.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
+      <a href="./exercises.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg>Exercise creator</a>
+      <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
+      <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
+      <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
+      <a href="./play_library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21V7"/><path d="M4 5c2-1 5-1 8 2 3-3 6-3 8-2v13c-2-1-5-1-8 2-3-3-6-3-8-2Z"/></svg>Playbook</a>
+      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-divider"></div>
+      <nav class="sidebar-nav" style="padding:0;">
+        <a href="./settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
+        <a href="./help.html" id="sidebar-help-link" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
+      </nav>
+      <div class="sidebar-user" id="sidebar-user">
+        <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">—</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">—</div>
+        </div>
+        <button class="sidebar-logout-btn" id="logout-btn" title="Log out">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<div class="topbar" style="align-items:center;">
+  <div></div>
+  <div class="topbar-right">
+    <div id="pending-requests-widget" style="position:relative; display:none;">
+      <button id="pending-requests-btn" class="icon-btn" aria-label="Pending requests">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
+        <span class="icon-badge" id="pending-requests-count" style="display:none;"></span>
+      </button>
+      <div id="pending-requests-panel" style="display:none; position:absolute; top:44px; right:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
+    </div>
+    <div id="messages-widget" style="position:relative;">
+      <button id="messages-btn" class="icon-btn" aria-label="Messages">
+        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+        <span class="icon-badge" id="messages-count" style="display:none;"></span>
+      </button>
+      <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
+    </div>
+    <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
+    <div id="org-name-big" style="display:none;"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <h1 style="display:flex; align-items:center; gap:10px;">
+    Attendance
+    <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+  </h1>
+  <div class="help-box" id="help-box"></div>
+  <div class="msg" id="msg"></div>
+
+  <div class="team-bar-card">
+    <div class="tsc-header">
+      <div class="tsc-header-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+      <div>
+        <p class="tsc-header-title">Teams &amp; Seasons</p>
+        <p class="tsc-header-sub">Manage your teams and seasons.</p>
+      </div>
+      <div style="flex:1;"></div>
+      <button class="tree-new" id="new-team-btn" style="margin-bottom:0;">+ New season/team</button>
+    </div>
+
+    <div class="tsc-cols">
+      <div>
+        <p class="tsc-step-label">1. Select team</p>
+        <div id="team-gender-category-select" style="position:relative;"></div>
+      </div>
+      <div>
+        <p class="tsc-step-label">2. Select season</p>
+        <div id="season-picker"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;" id="tsc-step3-wrap">
+    <p class="tsc-step-label">3. Team info</p>
+    <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
+      <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
+      <div style="flex:1; min-width:0;">
+        <div class="tsc-selected-name" id="tsc-selected-name"></div>
+        <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
+        <div class="tsc-chips" id="tsc-chips">
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 5 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3 3 0 0 0-2.2-2.9"/><path d="M14.5 4.9a3.2 3.2 0 0 1 0 6.2"/></svg></span><div><strong id="tsc-chip-players">0</strong><span>Players</span></div></div>
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.3 4 4.8"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.3-4 4.8"/></svg></span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
+        <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg></span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
+      </div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="tree-folder-leaf-action" id="tsc-edit-btn">✎ Edit</button>
+        <button class="team-pill-del" id="tsc-delete-btn" title="Delete this team/season"><svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M18 7l-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/></svg></button>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div id="attendance-empty" class="team-bar-card" style="text-align:center; color:var(--muted); padding:40px 20px;">
+    Pick a team above to see its attendance grid.
+  </div>
+
+  <div id="attendance-wrap" style="display:none;">
+    <div class="toolbar" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+      <button class="btn btn-primary" id="add-player-btn">+ Add player</button>
+      <button class="btn btn-secondary" id="add-event-btn">+ Add match / training / event</button>
+      <div class="columns-menu" style="position:relative;">
+        <button class="btn btn-secondary" id="columns-btn">Columns ▾</button>
+        <div class="columns-panel" id="columns-panel" style="display:none; position:absolute; top:100%; right:0; margin-top:6px; z-index:5; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px 14px; box-shadow:0 4px 14px rgba(0,0,0,0.08); min-width:180px;"></div>
+      </div>
+      <div style="flex:1;"></div>
+      <button class="btn btn-secondary" id="export-excel-btn">Export to Excel</button>
+      <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
+      <button class="btn btn-secondary" id="import-btn">Import from Excel</button>
+      <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none" />
+    </div>
+
+    <div class="att-viewbar" id="att-viewbar">
+      <div class="att-seg" id="att-seg" role="group" aria-label="Show"></div>
+      <div class="att-nav">
+        <button type="button" class="att-compact-toggle" id="att-compact-btn" title="Smaller columns so more dates fit on screen">Compact</button>
+        <button type="button" id="att-scroll-start" title="Go to the first date" aria-label="First date">⇤</button>
+        <button type="button" id="att-scroll-left" title="Scroll left" aria-label="Scroll left">◀</button>
+        <button type="button" id="att-scroll-right" title="Scroll right" aria-label="Scroll right">▶</button>
+        <button type="button" id="att-scroll-end" title="Go to the latest date" aria-label="Latest date">⇥</button>
+        <button type="button" id="att-scroll-today" class="att-nav-txt" title="Jump to today">Today</button>
+      </div>
+    </div>
+    <div class="attendance-card" id="attendance-card">
+      <table class="attendance-table" id="attendance-table"></table>
+    </div>
+    <p id="attendance-cols-hint" class="hint" style="display:none; margin-top:8px;">No matches, trainings, or events for this team yet — add one with the button above and it'll show up as a column here.</p>
+    <div class="att-legend">
+      <span><span class="dot" style="background:#dcfce7; border:1px solid #86efac;"></span>Present</span>
+      <span><span class="dot" style="background:#fef2f2; border:1px solid #fca5a5;"></span>Absent</span>
+      <span><span class="dot" style="background:#fef9c3; border:1px solid #fde047;"></span>Excused</span>
+      <span><span class="dot" style="background:var(--accent-tint); border:1px solid #fbbf7a;"></span>Late</span>
+      <span title="Present, but in another role: doesn't count as a match played or attended"><span class="dot" style="background:#dbeafe; border:1px solid #93c5fd;"></span>Coach</span>
+      <span title="Present, but in another role: doesn't count as a match played or attended"><span class="dot" style="background:#ede9fe; border:1px solid #c4b5fd;"></span>Table official (OT)</span>
+      <span style="margin-left:auto;">Click a cell to cycle through the states.</span>
+    </div>
+  </div>
+
+  <div style="margin-top:32px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+    <span style="font-size:14px; color:var(--muted);">🐛 Found a bug or something not working right?</span>
+    <button class="nav-btn" id="contact-support-btn" title="Send a message straight to the PlayPivot admin">💬 Contact us</button>
+  </div>
+
+</div><!-- /wrap -->
+
+<footer style="margin-top:24px; padding:20px 32px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--muted); max-width:1080px; margin-left:auto; margin-right:auto;">
+  <span>© 2026 PlayPivot. All rights reserved.</span>
+  <a href="./privacy.html" style="color:var(--muted); text-decoration:none;">Privacy Policy</a>
+  <a href="./privacy.html#use" style="color:var(--muted); text-decoration:none;">Terms of Use</a>
+</footer>
+</main>
+</div><!-- /app-shell -->
+
+<script src="./i18n.js?v=2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="org-switcher.js"></script>
+<script src="sidebar-widgets.js"></script>
+<script src="team-tree.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function escapeHtml(str) {
+    return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function showMessage(text, type) {
+    const el = document.getElementById("msg");
+    el.textContent = (type === "error" ? "⚠ " : "✓ ") + text;
+    el.className = "msg " + type;
+  }
+  function filterByCategory(query, category) {
+    return category ? query.eq("team_category", category) : query.is("team_category", null);
+  }
+  function filterByGender(query, gender) {
+    return gender ? query.eq("team_gender", gender) : query.is("team_gender", null);
+  }
+
+  let currentOrgId = null;
+  let currentUserId = null;
+  let canValidateAssociations = false;
+  let isPlatformController = false;
+  let filterSeason = null, filterTeam = null, filterTeamCategory = "", filterTeamGender = "";
+  let logoRequestToken = 0; // se incrementa cada vez que se pide un logo -- para descartar respuestas viejas que llegan tarde
+  let lastTreeRows = [];
+
+  // A petición de Dani: dos equipos del mismo club pueden llamarse igual
+  // (p.ej. "DEL basket Saint Sulpice" en U8 y en U10) -- los nombres de los
+  // ficheros exportados (PDF/Excel) usaban solo el nombre del equipo y
+  // pisaban un fichero con el otro. Esta función arma un nombre que incluye
+  // también categoría y género cuando existen.
+  function teamFileLabel() {
+    return [filterTeam, filterTeamCategory, filterTeamGender].filter(Boolean).join(" ");
+  }
+
+  const els = {
+    orgName: document.getElementById("org-name-big"),
+    orgLogo: document.getElementById("org-logo-big"),
+    logoutBtn: document.getElementById("logout-btn"),
+  };
+
+  async function loadMyOrganization() {
+    const { data: userData } = await supabaseClient.auth.getUser();
+    currentUserId = userData.user.id;
+    const { data: profRow } = await supabaseClient.from("profiles").select("full_name, is_platform_controller, is_association_validator").eq("id", currentUserId).maybeSingle();
+    isPlatformController = !!(profRow && profRow.is_platform_controller);
+    canValidateAssociations = isPlatformController || !!(profRow && profRow.is_association_validator);
+    pivotUpdateSidebarUser((profRow && profRow.full_name) || userData.user.email, isPlatformController ? "Platform admin" : null);
+    const { data, error } = await supabaseClient
+      .from("memberships").select("organization_id, role, status, organizations(name, is_active)").eq("status", "active").eq("user_id", currentUserId);
+    if ((error || !data || data.length === 0) && !isPlatformController) {
+      showMessage("You're not an active member of any club yet.", "error");
+      return null;
+    }
+    const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
+    if (!chosen) { showMessage("You're not an active member of any club yet.", "error"); await pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supabaseClient }); return null; }
+    await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
+    currentOrgId = chosen.organization_id;
+    if (!isPlatformController) pivotUpdateSidebarUser(null, chosen.role === "admin" ? "Club admin" : "Coach");
+    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
+    return currentOrgId;
+  }
+
+  async function loadTree() {
+    const { data: playerRows, error } = await supabaseClient.from("players").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
+    if (error) { showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error"); console.error("loadTree error:", error); return; }
+    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
+    const rows = mergeTeamRows(playerRows, teamRows);
+    lastTreeRows = rows;
+
+    // Mismo "recordar el último equipo" que Roster, y con la MISMA
+    // llave de localStorage -- así que si elegiste un equipo en Roster,
+    // Attendance ya lo tiene listo al entrar, y viceversa.
+    if (!filterSeason && !filterTeam && rows.length > 0) {
+      let restored = null;
+      try {
+        const saved = JSON.parse(localStorage.getItem(`pivot-roster-last-${currentOrgId}`) || "null");
+        if (saved && rows.some((r) => r.season === saved.season && r.team === saved.team && (r.team_category || "") === (saved.category || "") && (r.team_gender || "") === (saved.gender || ""))) restored = { season: saved.season, team: saved.team, team_category: saved.category || "", team_gender: saved.gender || "" };
+      } catch (e) { /* stockage illisible -- pas grave */ }
+      const fallback = restored || [...rows].sort((a, b) => a.team.localeCompare(b.team) || b.season.localeCompare(a.season) || (a.team_category || "").localeCompare(b.team_category || ""))[0];
+      filterSeason = fallback.season;
+      filterTeam = fallback.team;
+      filterTeamCategory = fallback.team_category || "";
+      filterTeamGender = fallback.team_gender || "";
+    }
+
+    document.getElementById("new-team-btn").onclick = async () => {
+      const created = await promptNewTeam(supabaseClient, currentOrgId, els.orgName.textContent);
+      if (!created) return;
+      filterTeamCategory = created.team_category || "";
+      filterTeamGender = created.team_gender || "";
+      selectSeasonTeam(created.season, created.team);
+    };
+
+    renderTeamGenderCategoryDropdown("team-gender-category-select", rows, { team: filterTeam, team_category: filterTeamCategory, team_gender: filterTeamGender }, (team, category, gender) => {
+      filterTeam = team; filterTeamCategory = category || ""; filterTeamGender = gender || "";
+      const seasonsForThis = [...new Set(rows.filter((r) => r.team === team && (r.team_category || "") === (category || "") && (r.team_gender || "") === (gender || "")).map((r) => r.season))].sort().reverse();
+      selectSeasonTeam(seasonsForThis.includes(filterSeason) ? filterSeason : seasonsForThis[0], team);
+    });
+
+    const seasonsForCurrent = filterTeam
+      ? [...new Set(rows.filter((r) => r.team === filterTeam && (r.team_category || "") === (filterTeamCategory || "") && (r.team_gender || "") === (filterTeamGender || "")).map((r) => r.season))].sort().reverse()
+      : [];
+    renderSeasonPicker("season-picker", seasonsForCurrent, filterSeason, (season) => selectSeasonTeam(season, filterTeam), filterTeam ? async () => {
+      const created = await promptNewTeam(supabaseClient, currentOrgId, filterTeam);
+      if (!created) return;
+      filterTeamCategory = created.team_category || "";
+      filterTeamGender = created.team_gender || "";
+      selectSeasonTeam(created.season, created.team);
+    } : null);
+
+    updateSelectedSummaryCard();
+  }
+
+  function updateSelectedSummaryCard() {
+    const card = document.getElementById("tsc-selected-card");
+    const chips = document.getElementById("tsc-chips");
+    const wrap = document.getElementById("tsc-step3-wrap");
+    if (!filterTeam) { wrap.style.display = "none"; card.style.display = "none"; chips.style.display = "none"; return; }
+    wrap.style.display = "block"; card.style.display = "flex"; chips.style.display = "flex";
+    document.getElementById("tsc-selected-name").textContent = filterTeam;
+    document.getElementById("tsc-selected-sub").textContent = `Season ${filterSeason}`;
+    document.getElementById("tsc-chip-category").textContent = filterTeamCategory || "—";
+    document.getElementById("tsc-chip-gender").textContent = filterTeamGender || "—";
+
+    const iconEl = document.getElementById("tsc-selected-icon");
+    iconEl.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg>`;
+    // Ficha de "esta llamada es la más reciente" -- si cambiás de
+    // equipo rápido, una respuesta vieja que llega tarde ya no puede
+    // pisar lo que se ve ahora.
+    logoRequestToken++;
+    const myLogoToken = logoRequestToken;
+    const teamLogoUrl = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/teams/${encodeURIComponent(filterTeam)}.png?t=${Date.now()}`;
+    const teamImg = new Image();
+    teamImg.onload = () => { if (myLogoToken === logoRequestToken) iconEl.innerHTML = `<img src="${teamLogoUrl}" alt="" />`; };
+    teamImg.src = teamLogoUrl;
+  }
+
+  // -----------------------------------------------------------------------
+  // Un solo botón "✎ Edit" -- nombre, categoría, género y logo, todo en
+  // el mismo cuadro (igual que Roster).
+  // -----------------------------------------------------------------------
+  function openEditTeamDialog() {
+    const team = filterTeam, season = filterSeason, oldCategory = filterTeamCategory, oldGender = filterTeamGender;
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:380px; width:100%; padding:24px 26px;">
+        <h3 style="margin:0 0 16px; font-size:17px;">Edit team</h3>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team name</label>
+        <input id="edit-team-name" type="text" value="${escapeHtml(team)}" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Category</label>
+        <select id="edit-team-category" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+          ${TEAM_CATEGORY_OPTIONS.map((c) => `<option value="${c}" ${c === (oldCategory || "") ? "selected" : ""}>${c || "No category"}</option>`).join("")}
+        </select>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Gender</label>
+        <select id="edit-team-gender" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px;">
+          ${TEAM_GENDER_OPTIONS.map((g) => `<option value="${g}" ${g === (oldGender || "") ? "selected" : ""}>${g}</option>`).join("")}
+        </select>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Team logo (optional)</label>
+        <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Leave empty to keep the current one. No logo of its own? Shows a plain ball icon.</p>
+        <p style="margin:0 0 6px; font-size:11.5px; color:var(--muted);">Any PNG, JPG or WebP works — we'll crop it to a square and try to remove a plain background automatically. For best results, use a square-ish image with a plain, solid-colored background (a busy photo background won't get removed cleanly). If you'd rather remove the background yourself first, <a href="https://www.remove.bg" target="_blank" rel="noopener" style="color:var(--accent-deep);">remove.bg</a> is a quick free option.</p>
+        <input id="edit-team-logo" type="file" accept="image/png,image/jpeg,image/webp" style="width:100%; font-size:13px; margin-bottom:18px;" />
+        <p id="edit-team-error" style="display:none; margin:0 0 10px; font-size:12.5px; color:#991b1b;"></p>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button id="edit-team-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
+          <button id="edit-team-save" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    document.getElementById("edit-team-cancel").addEventListener("click", close);
+
+    document.getElementById("edit-team-save").addEventListener("click", async () => {
+      const errorEl = document.getElementById("edit-team-error");
+      const newName = document.getElementById("edit-team-name").value.trim();
+      if (!newName) { errorEl.textContent = "Team name can't be empty."; errorEl.style.display = "block"; return; }
+      const newCategory = document.getElementById("edit-team-category").value;
+      const newGender = document.getElementById("edit-team-gender").value;
+      const logoFile = document.getElementById("edit-team-logo").files[0];
+      const saveBtn = document.getElementById("edit-team-save");
+      saveBtn.disabled = true; saveBtn.textContent = "Saving…";
+      try {
+        if (newCategory !== (oldCategory || "") || newGender !== (oldGender || "")) {
+          await filterByGender(filterByCategory(
+            supabaseClient.from("players").update({ team_category: newCategory || null, team_gender: newGender || null })
+              .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+            oldCategory
+          ), oldGender);
+          await filterByGender(filterByCategory(
+            supabaseClient.from("teams").update({ team_category: newCategory || null, team_gender: newGender || null })
+              .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+            oldCategory
+          ), oldGender);
+          filterTeamCategory = newCategory; filterTeamGender = newGender;
+        }
+        if (newName !== team) {
+          await supabaseClient.from("players").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("teams").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("matches").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("trainings").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("plays").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          await supabaseClient.from("events").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+          filterTeam = newName;
+        }
+        if (logoFile) {
+          if (logoFile.size > 8 * 1024 * 1024) throw new Error("That image is over 8 MB — pick a smaller one.");
+          const blob = await fileToSquareLogoBlob(logoFile, 400);
+          const { error: logoErr } = await supabaseClient.storage.from("logos").upload(`${currentOrgId}/teams/${encodeURIComponent(filterTeam)}.png`, blob, { upsert: true, contentType: "image/webp" });
+          if (logoErr) throw logoErr;
+        }
+        try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season: filterSeason, team: filterTeam, category: filterTeamCategory || "", gender: filterTeamGender || "" })); } catch (e) { /* pas grave */ }
+        close();
+        await loadTree();
+        await loadAttendanceGrid();
+        showMessage("Team updated.", "success");
+      } catch (err) {
+        errorEl.textContent = err.message || "Couldn't save those changes.";
+        errorEl.style.display = "block";
+        saveBtn.disabled = false; saveBtn.textContent = "Save";
+      }
+    });
+  }
+
+  document.getElementById("tsc-edit-btn").addEventListener("click", openEditTeamDialog);
+  document.getElementById("tsc-delete-btn").addEventListener("click", () => deleteTeam(filterSeason, filterTeam, filterTeamCategory));
+
+  function selectSeasonTeam(season, team) {
+    filterSeason = season; filterTeam = team;
+    try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team, category: filterTeamCategory || "", gender: filterTeamGender || "" })); } catch (e) { /* pas grave */ }
+    loadTree();
+    loadAttendanceGrid();
+  }
+
+  async function deleteTeam(season, team, category) {
+    const gender = filterTeamGender;
+    const teamLabel = `${team}${category ? " (" + category + ")" : ""}${gender ? " " + _t(gender) : ""}`;
+    if (!confirm(_t(`Remove "{label}" ({season}) and all its players? This can't be undone.`, { label: teamLabel, season }))) return;
+    const { error } = await filterByGender(filterByCategory(
+      supabaseClient.from("players").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      category
+    ), gender);
+    if (error) { showMessage(error.message, "error"); return; }
+    await filterByGender(filterByCategory(
+      supabaseClient.from("teams").delete().eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      category
+    ), gender);
+
+    // Si ya no queda NINGUNA fila con este nombre de equipo (ninguna
+    // temporada/categoría/género), reseteamos su logo al balón --
+    // así, si más adelante se reutiliza el mismo nombre, no aparece un
+    // logo viejo que ya no corresponde a nada.
+    const { data: stillExists } = await supabaseClient.from("players").select("id").eq("organization_id", currentOrgId).eq("team", team).limit(1);
+    const { data: stillExistsTeams } = await supabaseClient.from("teams").select("season").eq("organization_id", currentOrgId).eq("team", team).limit(1);
+    if ((!stillExists || stillExists.length === 0) && (!stillExistsTeams || stillExistsTeams.length === 0)) {
+      try { await resetTeamLogoToBall(supabaseClient, currentOrgId, team); } catch (e) { /* si falla, no es motivo para trabar el borrado del equipo */ }
+    }
+
+    if (season === filterSeason && team === filterTeam && (category || "") === (filterTeamCategory || "")) { filterSeason = null; filterTeam = null; filterTeamCategory = ""; filterTeamGender = ""; }
+    showMessage(_t(`"{label}" ({season}) removed.`, { label: `${team}${category ? " (" + category + ")" : ""}`, season }), "success");
+    await loadTree();
+    await loadAttendanceGrid();
+  }
+
+  async function editTeamCategory(season, team, oldCategory) {
+    const next = prompt(`Team category for "${team}" (e.g. U8) — leave blank to remove it:`, oldCategory || "");
+    if (next === null) return;
+    const gender = filterTeamGender;
+    const { error } = await filterByGender(filterByCategory(
+      supabaseClient.from("players").update({ team_category: next.trim() || null })
+        .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      oldCategory
+    ), gender);
+    if (error) { showMessage(error.message, "error"); return; }
+    await filterByGender(filterByCategory(
+      supabaseClient.from("teams").update({ team_category: next.trim() || null })
+        .eq("organization_id", currentOrgId).eq("season", season).eq("team", team),
+      oldCategory
+    ), gender);
+    if (season === filterSeason && team === filterTeam) { filterTeamCategory = next.trim(); }
+    await loadTree();
+    await loadAttendanceGrid();
+    showMessage("Team category updated.", "success");
+  }
+
+  async function renameTeam(team) {
+    const next = prompt(`New name for "${team}" — this renames it everywhere (every season, every category, every gender), since a team keeps the same name across years:`, team);
+    if (next === null || !next.trim() || next.trim() === team) return;
+    const newName = next.trim();
+    const { error } = await supabaseClient.from("players").update({ team: newName })
+      .eq("organization_id", currentOrgId).eq("team", team);
+    if (error) { showMessage(error.message, "error"); return; }
+    await supabaseClient.from("teams").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+    await supabaseClient.from("matches").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+    await supabaseClient.from("trainings").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+    await supabaseClient.from("plays").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+    await supabaseClient.from("events").update({ team: newName }).eq("organization_id", currentOrgId).eq("team", team);
+    if (team === filterTeam) {
+      filterTeam = newName;
+      try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season: filterSeason, team: filterTeam, category: filterTeamCategory || "", gender: filterTeamGender || "" })); } catch (e) { /* pas grave */ }
+    }
+    await loadTree();
+    await loadAttendanceGrid();
+    showMessage("Team renamed.", "success");
+  }
+
+  // -----------------------------------------------------------------------
+  // La grilla: filas = jugadores del equipo elegido, columnas = fechas de
+  // partidos + entrenos + eventos de ESE equipo (calculadas al vuelo,
+  // igual que hace el Calendario -- no hay que "crear" nada aparte).
+  // -----------------------------------------------------------------------
+  async function loadAttendanceGrid() {
+    document.getElementById("attendance-empty").style.display = filterTeam ? "none" : "block";
+    document.getElementById("attendance-wrap").style.display = filterTeam ? "block" : "none";
+    if (!filterTeam) return;
+
+    const [{ data: players }, { data: matches }, { data: trainings }, { data: events }] = await Promise.all([
+      filterByGender(filterByCategory(supabaseClient.from("players").select("id, first_name, last_name").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam).eq("active", true), filterTeamCategory), filterTeamGender).order("last_name"),
+      filterByGender(filterByCategory(supabaseClient.from("matches").select("id, date, opponent").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam), filterTeamCategory), filterTeamGender),
+      filterByGender(filterByCategory(supabaseClient.from("trainings").select("id, date, title").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam), filterTeamCategory), filterTeamGender),
+      filterByGender(filterByCategory(supabaseClient.from("events").select("id, date, title").eq("organization_id", currentOrgId).eq("season", filterSeason).eq("team", filterTeam), filterTeamCategory), filterTeamGender),
+    ]);
+
+    // Siempre se traen los 3 tipos (aunque el filtro esté en "solo
+    // entrenos"), así cambiar de filtro es instantáneo y los contadores
+    // de los botones son siempre correctos.
+    const allCols = [
+      ...(matches || []).map((m) => ({ type: "match", id: m.id, date: m.date, label: m.opponent ? _t("vs {team}", { team: m.opponent }) : _t("Match"), icon: "🏀" })),
+      ...(trainings || []).map((t) => ({ type: "training", id: t.id, date: t.date, label: t.title || _t("Training"), icon: "⏱" })),
+      ...(events || []).map((e) => ({ type: "event", id: e.id, date: e.date, label: e.title || _t("Event"), icon: "📌" })),
+    ].sort((a, b) => String(a.date).localeCompare(String(b.date)) || (TYPE_ORDER[a.type] - TYPE_ORDER[b.type]));
+
+    // Dani 2026-10-27: con muchas fechas y jugadores, la consulta de
+    // asistencia se podía quedar corta (Supabase devuelve como mucho 1000
+    // filas por consulta y una lista larga de ids en la URL puede fallar
+    // sin avisar) y las celdas salían vacías. Se pide por trozos y paginado.
+    const idsOf = (t) => allCols.filter((c) => c.type === t).map((c) => c.id);
+    const [mRows, tRows, eRows] = await Promise.all([
+      fetchAttendanceChunked("match_id", idsOf("match")),
+      fetchAttendanceChunked("training_id", idsOf("training")),
+      fetchAttendanceChunked("event_id", idsOf("event")),
+    ]);
+    const attendanceByKey = {};
+    [...mRows, ...tRows, ...eRows].forEach((a) => {
+      const key = `${a.match_id || a.training_id || a.event_id}|${a.player_id}`;
+      attendanceByKey[key] = a;
+    });
+
+    lastGridData = { players: players || [], allCols, cols: [], attendanceByKey };
+    applyColumnFilter();
+  }
+  const TYPE_ORDER = { match: 0, training: 1, event: 2 };
+
+  async function fetchAttendanceChunked(column, ids) {
+    const out = [];
+    const CHUNK = 40, PAGE = 1000;
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const slice = ids.slice(i, i + CHUNK);
+      let from = 0;
+      for (;;) {
+        const { data, error } = await supabaseClient.from("attendance").select("*").in(column, slice).order("id").range(from, from + PAGE - 1);
+        if (error) { showMessage("Couldn't load part of the attendance: " + (error.message || "try again."), "error"); break; }
+        out.push(...(data || []));
+        if (!data || data.length < PAGE) break;
+        from += PAGE;
+      }
+    }
+    return out;
+  }
+
+  // Aplica el filtro de tipos (Todo / Partidos / Entrenos / Eventos) sobre
+  // lo ya cargado -- sin volver a pedir nada a la base de datos.
+  function applyColumnFilter() {
+    if (!lastGridData) return;
+    const { players, allCols, attendanceByKey } = lastGridData;
+    const cols = allCols.filter((c) => visibleEventTypes[c.type]);
+    lastGridData.cols = cols;
+    renderViewBar();
+    renderAttendanceTable(players, cols, attendanceByKey);
+    updateScrollButtons();
+  }
+  let lastGridData = null;
+
+  const STATUS_CYCLE = [null, "present", "absent", "excused", "late", "coach", "ot"];
+  // Letras de las celdas según el idioma (EN P/A/E/L · FR P/A/E/R · ES P/A/J/T)
+  const STATUS_LABEL = { present: _t("P||status letter: present"), absent: _t("A||status letter: absent"), excused: _t("E||status letter: excused"), late: _t("L||status letter: late"), coach: _t("C||status letter: coach"), ot: _t("OT||status letter: table official") };
+  const STATUS_CLASS = { present: "att-status-present", absent: "att-status-absent", excused: "att-status-excused", late: "att-status-late", coach: "att-status-coach", ot: "att-status-ot" };
+  const TYPE_CLASS = { match: "att-type-match", training: "att-type-training", event: "att-type-event" };
+
+  function renderAttendanceTable(players, cols, attendanceByKey) {
+    const table = document.getElementById("attendance-table");
+    if (players.length === 0) {
+      table.innerHTML = `<tr><td style="padding:20px; color:var(--muted);">No active players for this team yet — add them above, or in Roster.</td></tr>`;
+      return;
+    }
+
+    let thead = `<thead><tr><th class="att-player-col">Player</th>`;
+    cols.forEach((c) => {
+      const d = new Date(c.date + "T00:00:00");
+      const dateLabel = d.toLocaleDateString(undefined, { day: "2-digit", month: "short" });
+      thead += `<th class="att-date-head ${TYPE_CLASS[c.type]}" title="${escapeHtml(c.label)} — ${c.date}">
+        <span class="att-type-icon">${c.icon}</span>
+        <span class="att-date-label">${dateLabel}</span>
+        <span class="att-sub-label">${escapeHtml(c.label)}</span>
+      </th>`;
+    });
+    thead += `</tr></thead>`;
+
+    let tbody = "<tbody>";
+    players.forEach((p) => {
+      tbody += `<tr><td class="att-player-col">${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</td>`;
+      cols.forEach((c) => {
+        const key = `${c.id}|${p.id}`;
+        const record = attendanceByKey[key];
+        const status = record ? record.status : null;
+        tbody += `<td class="att-cell">
+          <button type="button" class="att-status-btn ${status ? STATUS_CLASS[status] : ""}" data-event-type="${c.type}" data-event-id="${c.id}" data-player-id="${p.id}" data-record-id="${record ? record.id : ""}" data-status="${status || ""}">${status ? STATUS_LABEL[status] : "—"}</button>
+        </td>`;
+      });
+      tbody += `</tr>`;
+    });
+    tbody += "</tbody>";
+
+    table.innerHTML = thead + tbody;
+    table.classList.toggle("att-compact", isCompactNow(cols.length));
+
+    const hint = document.getElementById("attendance-cols-hint");
+    if (hint) hint.style.display = cols.length === 0 ? "block" : "none";
+
+    table.querySelectorAll(".att-status-btn").forEach((btn) => {
+      btn.addEventListener("click", () => cycleAttendance(btn));
+    });
+  }
+
+  async function cycleAttendance(btn) {
+    const eventType = btn.dataset.eventType;
+    const eventId = btn.dataset.eventId;
+    const playerId = btn.dataset.playerId;
+    const currentStatus = btn.dataset.status || null;
+    const nextIndex = (STATUS_CYCLE.indexOf(currentStatus) + 1) % STATUS_CYCLE.length;
+    const nextStatus = STATUS_CYCLE[nextIndex];
+
+    btn.disabled = true;
+    try {
+      if (nextStatus === null) {
+        if (btn.dataset.recordId) {
+          const { error } = await supabaseClient.from("attendance").delete().eq("id", btn.dataset.recordId);
+          if (error) throw error;
+        }
+        btn.dataset.recordId = "";
+      } else {
+        const eventCol = eventType === "match" ? "match_id" : eventType === "training" ? "training_id" : "event_id";
+        // Los índices únicos de "attendance" son parciales (uno por
+        // tipo de evento), y el upsert de Supabase no sabe combinar
+        // bien con ese tipo de índice ("no unique or exclusion
+        // constraint..."). En vez de upsert, primero preguntamos si ya
+        // existe la fila, y según eso actualizamos o creamos.
+        let recordId = btn.dataset.recordId || null;
+        if (recordId) {
+          const { error } = await supabaseClient.from("attendance").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", recordId);
+          if (error) throw error;
+        } else {
+          const { data: existing } = await supabaseClient.from("attendance").select("id").eq(eventCol, eventId).eq("player_id", playerId).maybeSingle();
+          if (existing) {
+            const { error } = await supabaseClient.from("attendance").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", existing.id);
+            if (error) throw error;
+            recordId = existing.id;
+          } else {
+            const payload = { organization_id: currentOrgId, player_id: playerId, status: nextStatus, created_by: currentUserId, [eventCol]: eventId };
+            const { data, error } = await supabaseClient.from("attendance").insert(payload).select("id").single();
+            if (error) throw error;
+            recordId = data.id;
+          }
+        }
+        btn.dataset.recordId = recordId;
+      }
+      btn.dataset.status = nextStatus || "";
+      btn.className = "att-status-btn" + (nextStatus ? " " + STATUS_CLASS[nextStatus] : "");
+      btn.textContent = nextStatus ? STATUS_LABEL[nextStatus] : "—";
+      // Dani 2026-09-17 (ronda30): esto solo tocaba el botón en pantalla y
+      // la base de datos -- `lastGridData.attendanceByKey`, que es de donde
+      // leen los exports a Excel/PDF, se rellena una sola vez en
+      // loadAttendanceGrid() y nunca se actualizaba aquí. Resultado: el
+      // export usaba el estado de ANTES del último clic. Se mantiene
+      // sincronizado el mismo objeto que leen los exports.
+      if (lastGridData && lastGridData.attendanceByKey) {
+        const key = `${eventId}|${playerId}`;
+        if (nextStatus === null) {
+          delete lastGridData.attendanceByKey[key];
+        } else {
+          lastGridData.attendanceByKey[key] = { id: btn.dataset.recordId, player_id: playerId, status: nextStatus };
+        }
+      }
+    } catch (err) {
+      showMessage(err.message || "Couldn't save that — try again.", "error");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById("help-btn").addEventListener("click", () => {
+    const box = document.getElementById("help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.innerHTML = `
+      <strong>How to use Attendance — step by step</strong>
+      <p style="margin:8px 0 4px; font-weight:600;">1. Pick a team</p>
+      <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
+        <li>Use the tree above (Team → Category → Season) — same one as Roster, and it's the exact same teams. Create, rename, or delete a team here and it shows up in Roster too, and the other way around.</li>
+      </ol>
+      <p style="margin:8px 0 4px; font-weight:600;">2. The dates fill in on their own</p>
+      <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
+        <li>Every match, training, and event already scheduled for this team shows up as a column automatically — nothing to set up.</li>
+        <li><strong>Orange 🏀</strong> = match, <strong>navy ⏱</strong> = training, <strong>green 📌</strong> = event — same colors as the Calendar.</li>
+        <li>Nothing scheduled yet? Click <strong>"+ Add match / training / event"</strong> — it creates the real thing, so it shows up in the Calendar and its own module too.</li>
+      </ol>
+      <p style="margin:8px 0 4px; font-weight:600;">3. Mark attendance</p>
+      <ol style="margin:0 0 10px; padding-left:18px; line-height:1.7;">
+        <li>Click a cell to cycle through the states: blank → Present → Absent → Excused → Late → Coach → Table official (OT) → back to blank.</li>
+        <li>Coach and OT mean the person was there in another role: it counts as present for trainings and events, but not as a match played or attended.</li>
+      </ol>
+      <p style="margin:8px 0 4px; font-weight:600;">4. The rest</p>
+      <ul style="margin:0; padding-left:18px; line-height:1.7;">
+        <li><strong>+ Add player</strong> — just first and last name; they're added to Roster too.</li>
+        <li><strong>Columns ▾</strong> — choose which types of dates show up (matches / trainings / events).</li>
+        <li><strong>Export to Excel or PDF</strong> — the grid you're looking at, as a file.</li>
+        <li><strong>Import from Excel</strong> — brings in a list of names for the team you have selected.</li>
+      </ul>`;
+    box.style.display = "block";
+  });
+
+document.getElementById("logout-btn").addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
+  // -----------------------------------------------------------------------
+  // Columns ▾ -- acá no hay atributos de jugador que mostrar/ocultar (eso
+  // es cosa de Roster), así que sirve para elegir qué TIPOS de fecha
+  // aparecen como columnas -- partidos / entrenos / eventos.
+  // -----------------------------------------------------------------------
+  function loadVisibleEventTypes() {
+    try { return Object.assign({ match: true, training: true, event: true }, JSON.parse(localStorage.getItem("pivot_attendance_types") || "null") || {}); }
+    catch (e) { return { match: true, training: true, event: true }; }
+  }
+  let visibleEventTypes = loadVisibleEventTypes();
+
+  function renderColumnsPanel() {
+    const panel = document.getElementById("columns-panel");
+    panel.innerHTML = "";
+    [["match", "🏀 Matches"], ["training", "⏱ Trainings"], ["event", "📌 Events"]].forEach(([key, label]) => {
+      const row = document.createElement("label");
+      row.style.cssText = "display:flex; align-items:center; gap:8px; font-size:14px; padding:4px 0; cursor:pointer;";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = visibleEventTypes[key];
+      cb.addEventListener("change", () => {
+        visibleEventTypes[key] = cb.checked;
+        try { localStorage.setItem("pivot_attendance_types", JSON.stringify(visibleEventTypes)); } catch (e) {}
+        applyColumnFilter();
+      });
+      row.appendChild(cb);
+      row.appendChild(document.createTextNode(label));
+      panel.appendChild(row);
+    });
+  }
+  renderColumnsPanel();
+
+  // -----------------------------------------------------------------------
+  // Barra de vista (Dani 2026-10-27): filtro Todo / Partidos / Entrenos /
+  // Eventos con contadores, modo compacto y flechas para desplazarse por
+  // las fechas cuando hay muchas columnas.
+  // -----------------------------------------------------------------------
+  function saveVisibleEventTypes() {
+    try { localStorage.setItem("pivot_attendance_types", JSON.stringify(visibleEventTypes)); } catch (e) {}
+  }
+  function currentFilterKey() {
+    const v = visibleEventTypes;
+    if (v.match && v.training && v.event) return "all";
+    if (v.match && !v.training && !v.event) return "match";
+    if (!v.match && v.training && !v.event) return "training";
+    if (!v.match && !v.training && v.event) return "event";
+    return "custom";
+  }
+  function renderViewBar() {
+    const seg = document.getElementById("att-seg");
+    const all = (lastGridData && lastGridData.allCols) || [];
+    const n = (t) => all.filter((c) => c.type === t).length;
+    const key = currentFilterKey();
+    const items = [["all", "All", all.length], ["match", "🏀 Matches", n("match")], ["training", "⏱ Trainings", n("training")], ["event", "📌 Events", n("event")]];
+    seg.innerHTML = items.map(([k, label, count]) => `<button type="button" data-filter="${k}" class="${key === k ? "active" : ""}">${label}<span class="n">${count}</span></button>`).join("");
+    seg.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+      const k = b.dataset.filter;
+      visibleEventTypes = { match: k === "all" || k === "match", training: k === "all" || k === "training", event: k === "all" || k === "event" };
+      saveVisibleEventTypes();
+      renderColumnsPanel();
+      applyColumnFilter();
+    }));
+    const cb = document.getElementById("att-compact-btn");
+    cb.classList.toggle("on", isCompactNow(lastGridData ? lastGridData.cols.length : 0));
+    document.getElementById("att-viewbar").style.display = all.length ? "flex" : "none";
+  }
+
+  // Compacto: si la persona lo eligió, se respeta; si no, se activa solo
+  // cuando hay más de 10 fechas.
+  const COMPACT_AUTO_THRESHOLD = 10;
+  function getCompactPref() {
+    try { const v = localStorage.getItem("pivot_attendance_compact"); return v === "1" ? true : v === "0" ? false : null; } catch (e) { return null; }
+  }
+  function isCompactNow(colCount) {
+    const pref = getCompactPref();
+    return pref === null ? colCount > COMPACT_AUTO_THRESHOLD : pref;
+  }
+  document.getElementById("att-compact-btn").addEventListener("click", () => {
+    const now = isCompactNow(lastGridData ? lastGridData.cols.length : 0);
+    try { localStorage.setItem("pivot_attendance_compact", now ? "0" : "1"); } catch (e) {}
+    applyColumnFilter();
+  });
+
+  // Flechas: se desplazan ~ 5 columnas; ⇤/⇥ van al principio/final; "Today"
+  // centra la fecha más cercana a hoy.
+  function attCard() { return document.getElementById("attendance-card"); }
+  function scrollStep() { const card = attCard(); return Math.max(120, Math.round(card.clientWidth * 0.6)); }
+  function updateScrollButtons() {
+    const card = attCard();
+    if (!card) return;
+    const max = card.scrollWidth - card.clientWidth;
+    const atStart = card.scrollLeft <= 1, atEnd = card.scrollLeft >= max - 1;
+    const noScroll = max <= 1;
+    document.getElementById("att-scroll-left").disabled = noScroll || atStart;
+    document.getElementById("att-scroll-start").disabled = noScroll || atStart;
+    document.getElementById("att-scroll-right").disabled = noScroll || atEnd;
+    document.getElementById("att-scroll-end").disabled = noScroll || atEnd;
+    document.getElementById("att-scroll-today").disabled = noScroll;
+  }
+  function scrollCardTo(x) { attCard().scrollTo({ left: x, behavior: "smooth" }); }
+  document.getElementById("att-scroll-left").addEventListener("click", () => scrollCardTo(attCard().scrollLeft - scrollStep()));
+  document.getElementById("att-scroll-right").addEventListener("click", () => scrollCardTo(attCard().scrollLeft + scrollStep()));
+  document.getElementById("att-scroll-start").addEventListener("click", () => scrollCardTo(0));
+  document.getElementById("att-scroll-end").addEventListener("click", () => scrollCardTo(attCard().scrollWidth));
+  document.getElementById("att-scroll-today").addEventListener("click", () => {
+    if (!lastGridData || !lastGridData.cols.length) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const cols = lastGridData.cols;
+    let idx = 0, best = Infinity;
+    cols.forEach((c, i) => { const d = Math.abs(new Date(c.date) - new Date(today)); if (d < best) { best = d; idx = i; } });
+    const th = attCard().querySelectorAll("thead .att-date-head")[idx];
+    if (!th) return;
+    const card = attCard();
+    const playerW = card.querySelector("th.att-player-col").offsetWidth;
+    scrollCardTo(th.offsetLeft - playerW - (card.clientWidth - playerW - th.offsetWidth) / 2);
+  });
+  attCard().addEventListener("scroll", updateScrollButtons, { passive: true });
+  window.addEventListener("resize", updateScrollButtons);
+
+  document.getElementById("columns-btn").addEventListener("click", () => {
+    const panel = document.getElementById("columns-panel");
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.composedPath().includes(document.querySelector(".columns-menu"))) document.getElementById("columns-panel").style.display = "none";
+  });
+
+  // -----------------------------------------------------------------------
+  // + Add player -- igual que Roster (mismo jugador, misma tabla), pero
+  // acá solo pedimos nombre y apellido, que es todo lo que Attendance
+  // necesita mostrar. El jugador queda idéntico en Roster también.
+  // -----------------------------------------------------------------------
+  document.getElementById("add-player-btn").addEventListener("click", () => {
+    if (!filterTeam) return;
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:360px; width:100%; padding:24px 26px;">
+        <h3 style="margin:0 0 14px; font-size:17px;">Add a player to ${escapeHtml(filterTeam)}</h3>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">First name</label>
+        <input id="new-player-first" type="text" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Last name</label>
+        <input id="new-player-last" type="text" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:18px; font-size:14px; box-sizing:border-box;" />
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button id="new-player-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
+          <button id="new-player-save" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;">Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById("new-player-first").focus();
+    const close = () => overlay.remove();
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    document.getElementById("new-player-cancel").addEventListener("click", close);
+    document.getElementById("new-player-save").addEventListener("click", async () => {
+      const first = document.getElementById("new-player-first").value.trim();
+      const last = document.getElementById("new-player-last").value.trim();
+      if (!first || !last) { showMessage("First and last name are both needed.", "error"); return; }
+      const { error } = await supabaseClient.from("players").insert({
+        organization_id: currentOrgId, season: filterSeason, team: filterTeam, team_category: filterTeamCategory || null, team_gender: filterTeamGender || null,
+        first_name: first, last_name: last,
+      });
+      if (error) { showMessage(error.message, "error"); return; }
+      close();
+      showMessage(`${first} ${last} added — they're in Roster too now.`, "success");
+      await loadAttendanceGrid();
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Import from Excel -- mismo lector flexible de columnas que Roster
+  // (reconoce inglés, francés, columna combinada "Apellido, Nombre"...),
+  // pero acá solo nos quedamos con nombre y apellido -- lo demás del
+  // archivo (dorsal, categoría, etc.) se ignora a propósito.
+  // -----------------------------------------------------------------------
+  const HEADER_ALIASES = {
+    first_name: ["first_name", "prenom", "prénom", "firstname", "first name", "given name", "nombre", "nombres", "primer nombre"],
+    last_name: ["last_name", "nom", "lastname", "last name", "surname", "family name", "nom de famille", "apellido", "apellidos"],
+    combined_name: ["contacts", "nom complet", "name", "joueur", "joueuse", "player", "full name", "jugador", "jugadora", "nombre completo", "nombre y apellido", "nombre y apellidos", "apellidos y nombre"],
+  };
+  function normalizeHeader(h) {
+    return String(h || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+  function buildFieldMap(headers) {
+    const map = {};
+    headers.forEach((h) => {
+      const norm = normalizeHeader(h);
+      for (const field in HEADER_ALIASES) {
+        if (HEADER_ALIASES[field].some((alias) => normalizeHeader(alias) === norm)) { map[h] = field; break; }
+      }
+    });
+    return map;
+  }
+
+  async function importFromExcel(file) {
+    let payloadBase;
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
+      if (rawRows.length === 0) { showMessage("That file doesn't have any rows.", "error"); return; }
+
+      const fieldMap = buildFieldMap(Object.keys(rawRows[0]));
+      payloadBase = [];
+      rawRows.forEach((raw) => {
+        const r = {};
+        for (const header in raw) { const field = fieldMap[header]; if (field) r[field] = raw[header]; }
+        let first_name = r.first_name ? String(r.first_name).trim() : "";
+        let last_name = r.last_name ? String(r.last_name).trim() : "";
+        if ((!first_name || !last_name) && r.combined_name) {
+          const combined = String(r.combined_name).trim();
+          if (combined.includes(",")) {
+            const [ln, fn] = combined.split(",");
+            last_name = last_name || (ln || "").trim();
+            first_name = first_name || (fn || "").trim();
+          } else {
+            const parts = combined.split(" ").filter(Boolean);
+            first_name = first_name || parts.shift() || "";   // igual que Roster: la primera palabra es el nombre
+            last_name = last_name || parts.join(" ");
+          }
+        }
+        // Un solo campo con nombre y apellido (p. ej. columna "Nombre" con "Ana Pérez")
+        if (first_name && !last_name && !r.combined_name && first_name.includes(" ")) {
+          const parts = first_name.split(" ");
+          first_name = parts.shift() || "";      // "Ana Pérez García" -> nombre "Ana", apellidos "Pérez García"
+          last_name = parts.join(" ");
+        }
+        if (!first_name || !last_name) return;
+        payloadBase.push({ first_name, last_name });
+      });
+
+      if (payloadBase.length === 0) { showMessage("Couldn't find any usable name column.", "error"); return; }
+    } catch (err) {
+      showMessage(err.message || "Couldn't read that Excel file.", "error");
+      return;
+    }
+
+    const target = await promptImportTarget(lastTreeRows, { season: filterSeason, team: filterTeam, team_category: filterTeamCategory, team_gender: filterTeamGender }, payloadBase.length);
+    if (!target) return;
+
+    const payload = payloadBase.map((p) => ({
+      organization_id: currentOrgId, season: target.season, team: target.team, team_category: target.team_category || null, team_gender: target.team_gender || null, ...p,
+    }));
+
+    try {
+      const { error } = await supabaseClient.from("players").insert(payload);
+      if (error) throw error;
+      showMessage(`${payload.length} players imported.`, "success");
+      filterSeason = target.season; filterTeam = target.team; filterTeamCategory = target.team_category || ""; filterTeamGender = target.team_gender || "";
+      await loadTree();
+      await loadAttendanceGrid();
+    } catch (err) {
+      showMessage(err.message || "Couldn't save those players.", "error");
+    }
+  }
+  document.getElementById("import-btn").addEventListener("click", () => document.getElementById("import-file-input").click());
+  document.getElementById("import-file-input").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (file) importFromExcel(file);
+  });
+
+  // -----------------------------------------------------------------------
+  // Export -- misma idea que Roster (info del club arriba, columnas
+  // legibles), adaptado a lo que Attendance realmente muestra: nombre +
+  // una columna por fecha con el estado.
+  // -----------------------------------------------------------------------
+  document.getElementById("export-excel-btn").addEventListener("click", () => {
+    if (!lastGridData) return;
+    const { players, cols, attendanceByKey } = lastGridData;
+    const STATUS_TEXT = { present: _t("Present"), absent: _t("Absent"), excused: _t("Excused"), late: _t("Late"), coach: _t("Coach"), ot: _t("Table official (OT)") };
+    const infoRows = [
+      [els.orgName.textContent || "PlayPivot"],
+      [_t("Team: {team} — Season: {season}", { team: filterTeam + (filterTeamCategory ? " (" + filterTeamCategory + ")" : ""), season: filterSeason })],
+      [_t("Generated {date}", { date: new Date().toISOString().slice(0, 10) })],
+      [],
+    ];
+    const headerRow = [_t("Player"), ...cols.map((c) => `${c.icon} ${c.date} — ${c.label}`)];
+    const dataRows = players.map((p) => [
+      `${p.first_name} ${p.last_name}`,
+      ...cols.map((c) => { const r = attendanceByKey[`${c.id}|${p.id}`]; return r ? STATUS_TEXT[r.status] : ""; }),
+    ]);
+    const ws = XLSX.utils.aoa_to_sheet([...infoRows, headerRow, ...dataRows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, _t("Attendance"));
+    XLSX.writeFile(wb, `${teamFileLabel()}_${filterSeason}_${_t("attendance||file name word")}.xlsx`);
+  });
+
+  document.getElementById("export-pdf-btn").addEventListener("click", async () => {
+    if (!lastGridData) return;
+    const { players, cols, attendanceByKey } = lastGridData;
+    const STATUS_LETTER = STATUS_LABEL;
+    const logoDataUrl = await loadLogoDataUrlSimple();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+    const accent = [236, 103, 24], navy = [8, 0, 38], ink = [26, 26, 26], muted = [130, 130, 136];
+    const pageW = 842, pageH = 595, marginX = 36, contentW = pageW - marginX * 2;
+    // Dani 2026-10-27: antes todas las fechas se metían en UNA página
+    // (columnas apretadas y encimadas con muchas fechas, y con muchos
+    // jugadores las filas se salían de la hoja). Ahora se reparte en
+    // páginas: máx. ~20 fechas por página y las filas que quepan, y cada
+    // fecha lleva su tipo (M partido / T entreno / E evento).
+    const nameColW = 130, minDateColW = 28, rowH = 16, headerH = 30, bottomPad = 34;
+    const TYPE_LETTER = { match: _t("M||type letter: match"), training: _t("T||type letter: training"), event: _t("E||type letter: event") };
+    const TYPE_RGB = { match: accent, training: navy, event: [22, 163, 74] };
+    const colsPerPage = Math.max(1, Math.min(20, Math.floor((contentW - nameColW) / minDateColW)));
+    const colChunks = [];
+    for (let i = 0; i < Math.max(cols.length, 1); i += colsPerPage) colChunks.push(cols.slice(i, i + colsPerPage));
+    let firstPage = true;
+    const drawPageTop = () => {
+      let y0 = 30;
+      if (logoDataUrl) { try { doc.addImage(logoDataUrl, "PNG", pageW - marginX - 52, 20, 52, 52); } catch (e) {} }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.setTextColor(...navy);
+      doc.text(els.orgName.textContent || "PlayPivot", marginX, y0 + 8);
+      y0 += 24;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...accent);
+      doc.text(_t("Attendance — {team} — {season}", { team: filterTeam + (filterTeamCategory ? " (" + filterTeamCategory + ")" : ""), season: filterSeason }), marginX, y0);
+      y0 += 10;
+      doc.setDrawColor(...accent); doc.setLineWidth(2);
+      doc.line(marginX, y0, pageW - marginX, y0);
+      return y0 + 22;
+    };
+    const drawFooter = () => {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...muted);
+      doc.text(["present", "absent", "excused", "late"].map((k) => STATUS_LABEL[k] + " " + _t(k.charAt(0).toUpperCase() + k.slice(1)).toLowerCase()).concat([STATUS_LABEL.coach + " " + _t("Coach").toLowerCase(), STATUS_LABEL.ot + " " + _t("Table official (OT)").toLowerCase()]).join(" · ") + "    |    " + ["match", "training", "event"].map((k) => TYPE_LETTER[k] + " " + _t(k.charAt(0).toUpperCase() + k.slice(1)).toLowerCase()).join(" · "), marginX, pageH - 24);
+      doc.text(_t("Generated by PlayPivot on {date}", { date: new Date().toISOString().slice(0, 10) }), marginX, pageH - 14);
+    };
+    colChunks.forEach((chunk, ci) => {
+      let rowStart = 0;
+      do {
+        if (!firstPage) doc.addPage();
+        firstPage = false;
+        let y = drawPageTop();
+        const rowsFit = Math.max(1, Math.floor((pageH - y - headerH - bottomPad) / rowH));
+        const dateColW = chunk.length ? Math.min(60, (contentW - nameColW) / chunk.length) : 60;
+        // cabecera: tipo + fecha
+        doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
+        let x = marginX + nameColW;
+        chunk.forEach((c) => {
+          doc.setTextColor(...TYPE_RGB[c.type]);
+          doc.text(TYPE_LETTER[c.type], x, y - 8);
+          doc.setTextColor(...muted);
+          doc.text(String(c.date).slice(5), x, y + 2);
+          x += dateColW;
+        });
+        if (colChunks.length > 1) { doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...muted); doc.text(_t("Dates {from}–{to} of {total}", { from: ci * colsPerPage + 1, to: ci * colsPerPage + chunk.length, total: cols.length }), marginX, y + 2); }
+        y += 6;
+        doc.setDrawColor(225, 225, 225); doc.setLineWidth(0.5); doc.line(marginX, y, pageW - marginX, y);
+        y += rowH * 0.8;
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+        players.slice(rowStart, rowStart + rowsFit).forEach((p, i) => {
+          if ((rowStart + i) % 2 === 1) { doc.setFillColor(250, 250, 250); doc.rect(marginX, y - rowH * 0.7, contentW, rowH, "F"); }
+          doc.setTextColor(...ink);
+          doc.text(`${p.first_name} ${p.last_name}`, marginX, y);
+          let x2 = marginX + nameColW;
+          chunk.forEach((c) => {
+            const r = attendanceByKey[`${c.id}|${p.id}`];
+            doc.text(r ? STATUS_LETTER[r.status] : "—", x2, y);
+            x2 += dateColW;
+          });
+          y += rowH;
+        });
+        drawFooter();
+        rowStart += rowsFit;
+      } while (rowStart < players.length);
+    });
+    doc.save(`${teamFileLabel()}_${filterSeason}_${_t("attendance||file name word")}.pdf`);
+  });
+
+  async function loadLogoDataUrlSimple() {
+    try {
+      const url = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      const rawDataUrl = await new Promise((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = () => resolve(null); r.readAsDataURL(blob); });
+      if (!rawDataUrl) return null;
+      // El archivo se llama "logo.png" pero Settings lo sube en formato
+      // WEBP de verdad (más ligero) -- el <img> del navegador no tiene
+      // problema porque mira el Content-Type real, no la extensión, pero
+      // jsPDF no sabe leer WEBP y el logo salía como una mancha negra en
+      // el PDF. Aquí se deja que el propio navegador decodifique la
+      // imagen (sí entiende WEBP) y se vuelve a codificar como PNG de
+      // verdad antes de dársela a jsPDF.
+      return await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch (e2) { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = rawDataUrl;
+      });
+    } catch (e) { return null; }
+  }
+
+  // -----------------------------------------------------------------------
+  // + Add match / training / event -- mismo formulario que el popup del
+  // Calendario en el Dashboard, con el equipo ya fijo (el que tenés
+  // elegido acá arriba). Crea la fila real en matches/trainings/events,
+  // así que aparece en el Calendario y en Match day/Training builder
+  // también, sin nada más que hacer.
+  // -----------------------------------------------------------------------
+  document.getElementById("add-event-btn").addEventListener("click", () => {
+    if (!filterTeam) return;
+    let selectedType = null;
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(20,20,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:16px;";
+    overlay.innerHTML = `
+      <div style="background:var(--card); border-radius:12px; max-width:400px; width:100%; padding:24px 26px;">
+        <h3 style="margin:0 0 4px; font-size:17px;">Add for ${escapeHtml(filterTeam)}${filterTeamCategory ? " (" + escapeHtml(filterTeamCategory) + ")" : ""}</h3>
+        <p style="margin:0 0 14px; font-size:12.5px; color:var(--muted);">This creates the real thing — shows up in the Calendar and its own module too.</p>
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Date</label>
+        <input id="ev-date" type="date" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:14px; font-size:14px; box-sizing:border-box;" />
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+          <button type="button" class="ev-type-btn" data-type="match" style="flex:1; padding:9px; border-radius:6px; border:1px solid var(--line); background:none; cursor:pointer; font-size:13.5px;">🏀 Match</button>
+          <button type="button" class="ev-type-btn" data-type="training" style="flex:1; padding:9px; border-radius:6px; border:1px solid var(--line); background:none; cursor:pointer; font-size:13.5px;">⏱ Training</button>
+          <button type="button" class="ev-type-btn" data-type="event" style="flex:1; padding:9px; border-radius:6px; border:1px solid var(--line); background:none; cursor:pointer; font-size:13.5px;">📌 Event</button>
+        </div>
+        <div id="ev-fields"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px;">
+          <button id="ev-cancel" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:1px solid var(--line); background:none; color:var(--ink); cursor:pointer;">Cancel</button>
+          <button id="ev-save" style="padding:9px 16px; border-radius:6px; font-size:13.5px; font-weight:600; border:none; background:var(--accent); color:#fff; cursor:pointer;" disabled>Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    document.getElementById("ev-cancel").addEventListener("click", close);
+
+    const FIELDS = {
+      match: `<label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Opponent</label>
+        <input id="ev-opponent" type="text" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:6px; font-size:14px; box-sizing:border-box;" />`,
+      training: `<label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Title</label>
+        <input id="ev-title" type="text" placeholder="e.g. Shooting drills" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:6px; font-size:14px; box-sizing:border-box;" />`,
+      event: `<label style="display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:4px;">Comment / title</label>
+        <input id="ev-title" type="text" placeholder="e.g. Team photo day" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:6px; font-size:14px; box-sizing:border-box;" />`,
+    };
+    overlay.querySelectorAll(".ev-type-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectedType = btn.dataset.type;
+        overlay.querySelectorAll(".ev-type-btn").forEach((b) => { b.style.background = b === btn ? "var(--accent-tint)" : "none"; b.style.borderColor = b === btn ? "var(--accent)" : "var(--line)"; });
+        document.getElementById("ev-fields").innerHTML = FIELDS[selectedType];
+        document.getElementById("ev-save").disabled = false;
+      });
+    });
+
+    document.getElementById("ev-save").addEventListener("click", async () => {
+      const dateVal = document.getElementById("ev-date").value;
+      if (!dateVal) { showMessage("Pick a date.", "error"); return; }
+      const saveBtn = document.getElementById("ev-save");
+      saveBtn.disabled = true; saveBtn.textContent = "Saving…";
+      try {
+        if (selectedType === "match") {
+          const opponent = document.getElementById("ev-opponent").value.trim();
+          if (!opponent) throw new Error("Opponent is required.");
+          const { error } = await supabaseClient.from("matches").insert({ organization_id: currentOrgId, date: dateVal, opponent, team: filterTeam, season: filterSeason, team_category: filterTeamCategory || null, team_gender: filterTeamGender || null });
+          if (error) throw error;
+        } else {
+          const title = document.getElementById("ev-title").value.trim();
+          if (!title) throw new Error(selectedType === "training" ? "Title is required." : "Please write a comment/title.");
+          const table = selectedType === "training" ? "trainings" : "events";
+          const { error } = await supabaseClient.from(table).insert({ organization_id: currentOrgId, date: dateVal, title, team: filterTeam, season: filterSeason, team_category: filterTeamCategory || null, team_gender: filterTeamGender || null });
+          if (error) throw error;
+        }
+        close();
+        showMessage("Added — it'll show up in the Calendar and its module too.", "success");
+        await loadAttendanceGrid();
+      } catch (err) {
+        saveBtn.disabled = false; saveBtn.textContent = "Save";
+        showMessage(err.message || "Couldn't save that.", "error");
+      }
+    });
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    pivotInitSidebarChrome();
+    const orgId = await loadMyOrganization();
+    pivotInitTopbarWidgets();
+    if (orgId) { await loadTree(); await loadAttendanceGrid(); }
+  }
+  init();
+</script>
+
+</body>
+</html>

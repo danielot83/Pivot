@@ -1,0 +1,311 @@
+// =============================================================================
+// Pertenecer a más de un club a la vez -- una sola fuente de verdad,
+// incluida en cada página (como modules-grid.js), para no repetir la
+// misma lógica 10 veces.
+//
+// Antes, cada página pedía SOLO la primera membresía activa
+// (".limit(1)") -- alguien en dos clubes solo veía uno, el que la
+// consulta devolviera primero, sin ningún orden fijo, y sin ninguna
+// forma de cambiar. Esto guarda cuál club está activo en localStorage
+// (dura entre páginas, por persona, en este navegador) y dibuja un
+// selector si hay más de una opción.
+//
+// Para el platform admin: una única opción especial "⚡ Admin (all
+// clubs)" arriba del todo en el mismo desplegable -- elegirla entra a
+// la vista de Admin general (estadísticas de toda la plataforma); elegir
+// cualquier club entra a su vista normal, como cualquier otra persona.
+// Ya no hay un desplegable Mine/All aparte -- esta única opción hace lo
+// mismo de forma más clara.
+// =============================================================================
+
+const PIVOT_ACTIVE_ORG_KEY = "pivot_active_org_id";
+const PIVOT_ADMIN_VIEW_VALUE = "__admin__";
+
+// Defensa en profundidad (revisión de seguridad de Stefano, 2026-09-16,
+// HIGH-2 "related, lower risk"): el nombre del club es texto libre que
+// cualquier admin de club puede poner (Settings), y este fichero lo mete
+// sin escapar en innerHTML. Hoy no es explotable porque el navegador, en
+// modo "dentro de un <select>", descarta casi cualquier etiqueta inyectada
+// -- pero si algún día este HTML se saca de dentro de un <select>, se
+// vuelve explotable en el acto. Escapado ya, por si acaso.
+function pivotEscapeHtml(str) {
+  return String(str == null ? "" : str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+function pivotGetStoredOrgId() {
+  try { return localStorage.getItem(PIVOT_ACTIVE_ORG_KEY); } catch (e) { return null; }
+}
+
+function pivotSetStoredOrgId(orgId) {
+  try { localStorage.setItem(PIVOT_ACTIVE_ORG_KEY, orgId); } catch (e) { /* almacenamiento no disponible, no pasa nada grave */ }
+}
+
+/**
+ * Dani 2026-09-29, captura del selector de club: el mismo club (p. ej.
+ * "DEL basket Saint Sulpice") salía repetido varias veces en la lista --
+ * "porque tengo todos esos equipos? algo falla".
+ *
+ * No es un dato corrupto: desde step81_team_scoped_join_request_uniqueness
+ * una persona puede tener legítimamente varias filas en `memberships`
+ * para el MISMO club, una por cada equipo del que es coach dentro de ese
+ * club (antes de ese cambio solo podía haber una fila por club en total).
+ * Pero este selector decide "¿en qué CLUB estoy viendo la app?", no "¿en
+ * qué equipo?" -- eso ya lo elige un desplegable aparte dentro de cada
+ * página (Team & Season). Enseñar el mismo club N veces aquí no distingue
+ * nada (elegir cualquiera de las N entradas lleva al mismo club) y solo
+ * confunde -- se deja una sola entrada por club, prefiriendo la fila con
+ * role="admin" si existe (mismo criterio que ya se usaba para decidir si
+ * la barra lateral dice "Club admin" o "Coach"), si no la primera que
+ * llegue.
+ */
+function pivotDedupeMembershipsByOrg(memberships) {
+  const byOrg = new Map();
+  (memberships || []).forEach((m) => {
+    // Dani 2026-09-29 ("me siguen apareciendo pinches carnales... se han
+    // borrado algunos"): "Remove whole club" (Admin general, dashboard.html)
+    // pone organizations.is_active=false pero nunca toca `memberships` --
+    // así que cualquier miembro de un club "borrado" (Dani incluido)
+    // seguía viéndolo exactamente igual en este selector, como si la
+    // desactivación no hubiera hecho nada. Se ignoran aquí las membresías
+    // de un club desactivado. Solo se excluye cuando el join trae
+    // is_active===false EXPLÍCITO -- si la consulta de una página todavía
+    // no pide ese campo (undefined), no se filtra nada, para no romper en
+    // seco una página que aún no lo seleccione.
+    if (m.organizations && m.organizations.is_active === false) return;
+    const existing = byOrg.get(m.organization_id);
+    if (!existing || (m.role === "admin" && existing.role !== "admin")) {
+      byOrg.set(m.organization_id, m);
+    }
+  });
+  return Array.from(byOrg.values());
+}
+
+/**
+ * Dani, 2026-09-29 (captura de "Team org chart" mostrando "COACH · DEL
+ * BASKET SAINT SULPICE" -- el nombre del club, no un equipo real): una
+ * membresía acotada a un equipo se distingue de otra con el MISMO
+ * team_name por su categoría/género (step85_membership_team_category_gender.sql),
+ * no por team_name a secas -- team_name es el nombre genérico del
+ * "equipo" (step53), que en más de un club es literalmente el nombre del
+ * club (dos equipos, mismo nombre, distinta categoría). Usada por
+ * loadDashOrgChart() (dashboard.html) y loadOrgChart() (settings.html),
+ * palabra por palabra, para que ambas listas digan siempre lo mismo.
+ *
+ * @param {{team_name?: string, team_category?: string, team_gender?: string}} m
+ * @returns {string} p.ej. "U8", "U8 Boys", el team_name si no hay
+ *   categoría, o "whole club" si la membresía no está acotada a nada.
+ */
+function pivotMembershipScopeLabel(m) {
+  const catGender = [m && m.team_category, m && m.team_gender].filter(Boolean).join(" ");
+  if (catGender) return catGender;
+  if (m && m.team_name) return m.team_name;
+  return "whole club";
+}
+
+// Solo para MOSTRAR (los datos y las comparaciones siguen usando el texto en inglés de arriba):
+// "whole club" y el género (Male/Female/Mixed) se traducen; la categoría y el nombre del equipo son datos
+// del club y no se tocan.
+function pivotScopeShown(label) {
+  if (typeof _t !== "function") return label;
+  if (label === "whole club") return _t("whole club");
+  return String(label).replace(/\b(Male|Female|Mixed)\b/g, (g) => _t(g));
+}
+
+/**
+ * A partir de la lista de membresías activas de la persona, decide qué
+ * está activo ahora mismo -- lo guardado la última vez si todavía es
+ * válido, si no la primera membresía de la lista -- y lo guarda para la
+ * próxima página.
+ *
+ * Para el platform admin: si lo guardado es "__admin__" Y la página que
+ * llama pasa `supportsAdminView: true`, devuelve un objeto especial
+ * { is_admin_view: true } en vez de un club concreto -- hoy en día solo
+ * el Dashboard pasa eso (tiene su propia vista de Admin general). El
+ * resto de páginas NO lo pasan (options por defecto = false), así que
+ * aquí se ignora el "__admin__" guardado y se cae directamente al
+ * primer club real de la persona, como estaba pensado desde el
+ * principio pero nunca se llegó a aplicar.
+ *
+ * BUG arreglado (2026-09-08, a raíz de que a Dani no le dejaba
+ * seleccionar ejercicios en Library): antes, CUALQUIER página con el
+ * selector de club (no solo el Dashboard) podía terminar con
+ * organization_id="__admin__" y role=undefined en cuanto Dani, como
+ * platform admin, hubiera elegido alguna vez "⚡ Admin (all clubs)" --
+ * ese valor se queda guardado en el navegador y viaja a la siguiente
+ * página que se visite. Con role=undefined, cualquier comprobación de
+ * permisos (canDelete(), "is this exercise mine", etc.) fallaba en
+ * silencio en TODA esa página, sin ningún error visible -- por eso el
+ * borrado en lote (y probablemente otras cosas) no hacía nada.
+ *
+ * Devuelve { organization_id, organizations, role } o { is_admin_view:
+ * true } (solo si supportsAdminView), o null si no hay ninguna opción
+ * disponible.
+ */
+async function pivotResolveActiveOrg(memberships, options) {
+  options = options || {};
+  const isPlatformController = !!options.isPlatformController;
+  const supportsAdminView = !!options.supportsAdminView;
+  const stored = pivotGetStoredOrgId();
+  memberships = pivotDedupeMembershipsByOrg(memberships);
+
+  if (isPlatformController && supportsAdminView && stored === PIVOT_ADMIN_VIEW_VALUE) {
+    return { is_admin_view: true, organization_id: PIVOT_ADMIN_VIEW_VALUE };
+  }
+
+  const ownMatch = (memberships || []).find((m) => m.organization_id === stored);
+  if (ownMatch) return ownMatch;
+
+  if (!memberships || memberships.length === 0) {
+    // Nada propio -- si es platform admin Y esta página sabe mostrar la
+    // vista de Admin general, que caiga ahí en vez de quedarse sin
+    // ningún sitio a donde ir. Si la página no la soporta, no hay nada
+    // razonable a lo que caer -- se deja en manos de quien llama (cada
+    // página ya sabe mostrar "no eres miembro de ningún club todavía").
+    if (isPlatformController && supportsAdminView) {
+      pivotSetStoredOrgId(PIVOT_ADMIN_VIEW_VALUE);
+      return { is_admin_view: true, organization_id: PIVOT_ADMIN_VIEW_VALUE };
+    }
+    return null;
+  }
+  const chosen = memberships[0];
+  pivotSetStoredOrgId(chosen.organization_id);
+  return chosen;
+}
+
+/**
+ * Dani, 2026-09-30 (Training builder: "en mi otro equipo, en Dell... esos
+ * son los entrenamientos de Dell, se supone que no los tengo compartidos
+ * con otros equipos, entonces no deberían de verse"): un módulo con
+ * partido/entrenamiento/ejercicio/jugada "compartida por otro club" solo
+ * ANTES filtraba por organization_id !== currentOrgId, sin mirar
+ * `visibility` en absoluto -- así que CUALQUIER fila de otro club que la
+ * consulta llegara a traer (por RLS, o por el bypass de
+ * is_platform_controller(), o simplemente porque la persona también es
+ * miembro activo de ESE otro club) se enseñaba como si fuera
+ * "compartida", aunque su círculo real fuera private/team (nunca pensado
+ * para salir de su propio club).
+ *
+ * Esta función decide, para una lista ya traída de la base de datos (con
+ * al menos `organization_id` y `visibility` en cada fila), qué filas
+ * tienen sentido enseñar en la pantalla de trabajo normal de UN club/
+ * equipo concreto:
+ *   - Del club activo ahora mismo (currentOrgId): siempre se enseña,
+ *     cualquier círculo -- es mi propio contenido en este club.
+ *   - 'community' (🌐 PlayPivot Community) de CUALQUIER club: siempre se
+ *     enseña, sea o no uno de mis propios clubes -- es de verdad público,
+ *     cualquier otra persona en PlayPivot lo vería igual de "compartido
+ *     por otro club" aunque no sepa que los dos clubes los administro yo.
+ *   - De CUALQUIER OTRO club del que también soy miembro (myOrgIds), con
+ *     círculo 'private' o 'team': NUNCA se enseña aquí -- no es "de otro
+ *     club" de verdad, es mi propio club EN OTRO SITIO, y esos dos
+ *     círculos nunca fueron pensados para salir de su propio club. Debe
+ *     ser invisible en este contexto, tal como pidió Dani ("no es que no
+ *     tengas acceso, es que no se pueden ver").
+ *   - 'association' de un club de verdad ajeno (no uno de los míos): se
+ *     enseña -- si la fila llegó hasta aquí sin ser mío ni 'community',
+ *     solo puede ser porque visible_trainings()/visible_matches()/
+ *     visible_exercises()/visible_plays()/visible_notebooks() (base de
+ *     datos) confirmó un shares_association_with() real, no solo que soy
+ *     miembro de ese club (si lo fuera, ya habría entrado en el caso de
+ *     arriba).
+ *   - 'private'/'team' de un club de verdad ajeno: nunca debería llegar
+ *     hasta aquí si la consulta está bien hecha, pero se descarta también
+ *     aquí por si acaso, como defensa en profundidad.
+ *
+ * @param {Array<{organization_id: string, visibility?: string}>} rows
+ * @param {string} currentOrgId
+ * @param {Iterable<string>} myOrgIds -- todos los organization_id de mis
+ *   propias membresías activas (incluido currentOrgId)
+ */
+function pivotFilterVisibleRows(rows, currentOrgId, myOrgIds) {
+  const myOtherOrgIds = new Set(Array.from(myOrgIds || []).filter((id) => id !== currentOrgId));
+  return (rows || []).filter((r) => {
+    if (r.organization_id === currentOrgId) return true;
+    if (r.visibility === "community") return true;
+    if (myOtherOrgIds.has(r.organization_id)) return false;
+    return r.visibility === "association";
+  });
+}
+
+/**
+ * Dibuja el selector: los propios clubes de la persona, más "⚡ Admin
+ * (all clubs)" arriba del todo si es platform admin Y esta página sabe
+ * mostrar esa vista (supportsAdminView -- hoy en día solo el
+ * Dashboard), más dos opciones siempre presentes al final: crear un
+ * club nuevo, o pedir unirse a otro. Por eso el selector ya nunca se
+ * esconde del todo -- hasta con un solo club, sirve para añadir uno
+ * más.
+ *
+ * Antes esta opción aparecía en TODAS las páginas para un platform
+ * admin, aunque solo el Dashboard supiera qué hacer si la elegías --
+ * elegirla en cualquier otra página dejaba esa página (y cualquier otra
+ * que visitaras después) sin club real seleccionado. Ahora solo se
+ * ofrece donde tiene sentido.
+ */
+function pivotRenderOrgSwitcher(containerId, memberships, activeOrgId, options) {
+  options = options || {};
+  const isPlatformController = !!options.isPlatformController;
+  const supportsAdminView = !!options.supportsAdminView;
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  const list = pivotDedupeMembershipsByOrg(memberships);
+  el.style.display = "block";
+  const optionsHtml = list
+    .map((m) => `<option value="${m.organization_id}" ${m.organization_id === activeOrgId ? "selected" : ""}>${pivotEscapeHtml((m.organizations && m.organizations.name) || "?")}</option>`)
+    .join("");
+
+  const extras = `<option value="__create__">+ Create a new club</option><option value="__join__">+ Join a club</option>`;
+
+  if (isPlatformController && supportsAdminView) {
+    const adminSelected = activeOrgId === PIVOT_ADMIN_VIEW_VALUE ? "selected" : "";
+    el.innerHTML = `<option value="${PIVOT_ADMIN_VIEW_VALUE}" ${adminSelected}>⚡ Admin (all clubs)</option>` + optionsHtml + extras;
+  } else {
+    el.innerHTML = optionsHtml + extras;
+  }
+
+  el.onchange = () => {
+    // BUG arreglado (2026-09-15, a raíz de que a Nico -- coach nuevo -- no
+    // le funcionaba pedir acceso a un club desde Settings): window.
+    // pivotCreateClub_ / window.pivotOpenJoinClubModal_ solo existen dentro
+    // de dashboard.html -- en CUALQUIER otra página (Settings, Training
+    // builder, Roster...), elegir "+ Create a new club"/"+ Join a club"
+    // en este mismo desplegable no hacía absolutamente nada: el prompt()
+    // pedía el nombre igual, pero al no existir la función, el `&&` cortaba
+    // en silencio -- sin ningún error ni aviso, como si no hubiera pasado
+    // nada. Ahora, si no estamos en el Dashboard (esas funciones no
+    // existen todavía), se manda ahí con un parámetro en la URL que
+    // termina la misma acción nada más cargar -- en vez de perder el clic.
+    if (el.value === "__create__") {
+      el.value = activeOrgId || "";
+      if (window.pivotCreateClub_) {
+        const name = prompt("Name of your new club:");
+        if (name && name.trim()) window.pivotCreateClub_(name.trim());
+      } else {
+        window.location.href = "./dashboard.html?openClubAction=create";
+      }
+      return;
+    }
+    if (el.value === "__join__") {
+      el.value = activeOrgId || "";
+      // Nico (coach), vía Dani, 2026-09-16: el prompt() de "nombre exacto
+      // del club" (y luego el equipo) se sustituyó por un modal con
+      // desplegables (dashboard.html: openJoinClubModal / team-tree.js).
+      // Ese modal solo existe en dashboard.html -- aquí, si ya estamos en
+      // esa página, lo abrimos directamente; si no (exercises.html,
+      // library.html, play_library.html no cargan team-tree.js), mandamos
+      // a dashboard.html con el mismo parámetro de siempre, que ahora abre
+      // el modal en vez del prompt().
+      if (window.pivotOpenJoinClubModal_) {
+        window.pivotOpenJoinClubModal_();
+      } else {
+        window.location.href = "./dashboard.html?openClubAction=join";
+      }
+      return;
+    }
+    pivotSetStoredOrgId(el.value);
+    window.location.reload();
+  };
+}
