@@ -1130,11 +1130,16 @@
     els.matchPickerArea.style.display = allMatchesCache.length ? "block" : "none";
     const selected = selectedMatchIds || new Set(allMatchesCache.map((m) => m.id));
     const n = allMatchesCache.length, k = selected.size;
-    els.matchPickerSummary.textContent = k === n ? `Matches included: all (${n})` : `Matches included: ${k} of ${n} — choose specific matches ▾`;
+    // Qué partidos tienen stats de jugadores guardadas (con datos reales): así se ve de un vistazo
+    // si un jugador "falta" porque el partido no tiene sus stats, no porque la página no lo lea.
+    const withStatsIds = new Set(allPlayerStatsCache.filter(hasRealPlayData).map((r) => r.match_id));
+    const nWith = allMatchesCache.filter((m) => withStatsIds.has(m.id)).length;
+    els.matchPickerSummary.textContent = (k === n ? `Matches included: all (${n})` : `Matches included: ${k} of ${n} — choose specific matches ▾`) + ` · ` + _t(`{n} with player stats`, { n: nWith });
     els.matchPickerList.innerHTML = allMatchesCache.map((m) => `
       <label class="match-picker-row">
         <input type="checkbox" data-id="${escapeHtml(m.id)}" ${selected.has(m.id) ? "checked" : ""}>
         <span class="mp-opp">${formatDateDisplay(m.date)} — ${escapeHtml(m.opponent || "(no opponent set)")}</span>
+        ${withStatsIds.has(m.id) ? "" : `<span class="mp-score" title="${escapeHtml(_t("This match has no player stats saved (open it in Match day and import or type them)."))}">${escapeHtml(_t("no player stats"))}</span>`}
         <span class="mp-score">${m.team_score != null && m.opponent_score != null ? `${m.team_score}–${m.opponent_score}` : "—"}</span>
       </label>
     `).join("");
