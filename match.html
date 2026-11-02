@@ -803,6 +803,7 @@
     // todo el mundo las necesita, y así ningún club ve la tabla más
     // apretada de golpe. Se activan desde el mismo menú "Columns ▾".
     { key: "periods_played", label: "Periods", default: false },
+    { key: "periods_sub", label: "Sub periods", default: false },
     { key: "made_1", label: "1PM", default: false },
     { key: "made_2", label: "2PM", default: false },
     { key: "made_3", label: "3PM", default: false },
@@ -874,6 +875,7 @@
     { key: "assists", label: "Ast", default: true },
     { key: "fouls", label: "Fouls", default: true },
     { key: "periods_played", label: "Periods", default: false },
+    { key: "periods_sub", label: "Sub periods", default: false },
     { key: "made_1", label: "1PM", default: false },
     { key: "made_2", label: "2PM", default: false },
     { key: "made_3", label: "3PM", default: false },
@@ -1558,7 +1560,7 @@
     els.matchVisibility.value = "team";
     els.matchLanguage.value = "en"; currentTranslationGroupId = null;
     statsByPlayer = {};
-    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} }));
+    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, periods_sub: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} }));
     matchGhostPlayers = []; // partido nuevo, sin historial todavía -- nadie puede ser "fantasma"
     attendanceByPlayer = {};
     opponentStats = [];
@@ -1594,9 +1596,9 @@
 
     const { data: statRows } = await supabaseClient.from("match_player_stats").select("*").eq("match_id", id);
     statsByPlayer = {};
-    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} }));
+    teamPlayers.forEach((p) => (statsByPlayer[p.id] = { called_up: false, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, periods_sub: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} }));
     (statRows || []).forEach((s) => {
-      statsByPlayer[s.player_id] = { called_up: s.called_up, started: s.started, minutes: s.minutes, points: s.points, rebounds: s.rebounds, assists: s.assists, fouls: s.fouls, periods_played: s.periods_played ?? null, made_1: s.made_1 ?? 0, made_2: s.made_2 ?? 0, made_3: s.made_3 ?? 0, custom_stats: s.custom_stats || {} };
+      statsByPlayer[s.player_id] = { called_up: s.called_up, started: s.started, minutes: s.minutes, points: s.points, rebounds: s.rebounds, assists: s.assists, fouls: s.fouls, periods_played: s.periods_played ?? null, periods_sub: s.periods_sub ?? null, made_1: s.made_1 ?? 0, made_2: s.made_2 ?? 0, made_3: s.made_3 ?? 0, custom_stats: s.custom_stats || {} };
     });
 
     // Jugadores con estadísticas reales en ESTE partido que ya no están en
@@ -1668,7 +1670,8 @@
       case "rebounds": return `<td class="editable" data-player="${p.id}" data-field="rebounds">${s.rebounds ?? 0}</td>`;
       case "assists": return `<td class="editable" data-player="${p.id}" data-field="assists">${s.assists ?? 0}</td>`;
       case "fouls": return `<td class="editable" data-player="${p.id}" data-field="fouls">${s.fouls ?? 0}</td>`;
-      case "periods_played": return `<td class="editable" data-player="${p.id}" data-field="periods_played" title="How many periods/quarters this player was on court">${s.periods_played ?? ""}</td>`;
+      case "periods_played": return `<td class="editable" data-player="${p.id}" data-field="periods_played" title="Periods this player played as a starter of the period (mark X on the sheet)">${s.periods_played ?? ""}</td>`;
+      case "periods_sub": return `<td class="editable" data-player="${p.id}" data-field="periods_sub" title="Periods this player came on as a substitution (mark with a dot on the sheet)">${s.periods_sub ?? ""}</td>`;
       case "made_1": return `<td class="editable" data-player="${p.id}" data-field="made_1" title="1-point shots made">${s.made_1 ?? 0}</td>`;
       case "made_2": return `<td class="editable" data-player="${p.id}" data-field="made_2" title="2-point shots made">${s.made_2 ?? 0}</td>`;
       case "made_3": return `<td class="editable" data-player="${p.id}" data-field="made_3" title="3-point shots made">${s.made_3 ?? 0}</td>`;
@@ -1727,7 +1730,7 @@
   // "TOTAL", en la primera columna "Player" visible (o en la primera
   // columna de la tabla si "Player" está oculta).
   // -----------------------------------------------------------------------
-  const SUMMABLE_STAT_KEYS = new Set(["minutes", "points", "rebounds", "assists", "fouls", "periods_played", "made_1", "made_2", "made_3"]);
+  const SUMMABLE_STAT_KEYS = new Set(["minutes", "points", "rebounds", "assists", "fouls", "periods_played", "periods_sub", "made_1", "made_2", "made_3"]);
   function buildTotalRowCells(cols, dataRows) {
     let labelPlaced = false;
     const cells = cols.map((col) => {
@@ -1829,7 +1832,8 @@
       case "rebounds": return `<td class="editable" data-opp="${i}" data-field="rebounds">${row.rebounds ?? 0}</td>`;
       case "assists": return `<td class="editable" data-opp="${i}" data-field="assists">${row.assists ?? 0}</td>`;
       case "fouls": return `<td class="editable" data-opp="${i}" data-field="fouls">${row.fouls ?? 0}</td>`;
-      case "periods_played": return `<td class="editable" data-opp="${i}" data-field="periods_played" title="How many periods/quarters this player was on court">${row.periods_played ?? ""}</td>`;
+      case "periods_played": return `<td class="editable" data-opp="${i}" data-field="periods_played" title="Periods this player played as a starter of the period (mark X on the sheet)">${row.periods_played ?? ""}</td>`;
+      case "periods_sub": return `<td class="editable" data-opp="${i}" data-field="periods_sub" title="Periods this player came on as a substitution (mark with a dot on the sheet)">${row.periods_sub ?? ""}</td>`;
       case "made_1": return `<td class="editable" data-opp="${i}" data-field="made_1" title="1-point shots made">${row.made_1 ?? 0}</td>`;
       case "made_2": return `<td class="editable" data-opp="${i}" data-field="made_2" title="2-point shots made">${row.made_2 ?? 0}</td>`;
       case "made_3": return `<td class="editable" data-opp="${i}" data-field="made_3" title="3-point shots made">${row.made_3 ?? 0}</td>`;
@@ -1906,7 +1910,7 @@
 
   document.getElementById("add-opponent-row-btn").addEventListener("click", () => {
     if (!currentMatchId && !els.matchArea.classList.contains("open")) { showMessage("Open or start a match first.", "error"); return; }
-    opponentStats.push({ player_name: "", jersey_number: "", started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} });
+    opponentStats.push({ player_name: "", jersey_number: "", started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, periods_sub: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} });
     renderOpponentStats();
   });
 
@@ -1944,7 +1948,7 @@
     matchGhostPlayers = matchGhostPlayers
       .concat([{ ...data, __ghost: true }])
       .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`));
-    statsByPlayer[data.id] = { called_up: true, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} };
+    statsByPlayer[data.id] = { called_up: true, started: false, minutes: null, points: 0, rebounds: 0, assists: 0, fouls: 0, periods_played: null, periods_sub: null, made_1: 0, made_2: 0, made_3: 0, custom_stats: {} };
     renderCallupTable();
     showMessage(_t("{first} {last} added for this match.", { first: first_name, last: last_name }), "success");
   });
@@ -2006,6 +2010,7 @@
     // opcionales: si la hoja no las trae, todo sigue funcionando exactamente
     // igual que antes (ver presentFields más abajo).
     periods_played: ["periods played", "periods_played", "períodos jugados", "periodos jugados", "cuartos jugados", "q jugados", "quarters played", "periodes jouees"],
+    periods_sub: ["sub periods", "periods sub", "periods as sub", "periods as substitute", "substitute periods", "periods as sub (dot)", "periodos cambio", "periodos de cambio", "periodos como cambio", "periodos suplente", "periodes remplacant", "periodes de changement", "periodes en remplacement", "periodes de remplacement"],
     // Dani, ronda 32: "1 pt" / "2 pts" / "3 pts" (las cabeceras que trae la
     // reconstrucción de ChatGPT a partir de una foto de feuille de marque)
     // no coincidían con ningún alias de antes -- se añaden junto a los
@@ -2095,6 +2100,7 @@
       if (presentFields.has("assists")) row.assists = r.assists ? parseInt(r.assists, 10) : 0;
       if (presentFields.has("fouls")) row.fouls = r.fouls ? parseInt(r.fouls, 10) : 0;
       if (presentFields.has("periods_played")) row.periods_played = r.periods_played ? parseInt(r.periods_played, 10) : null;
+      if (presentFields.has("periods_sub")) row.periods_sub = r.periods_sub ? parseInt(r.periods_sub, 10) : null;
       if (presentFields.has("made_1")) row.made_1 = r.made_1 ? parseInt(r.made_1, 10) : 0;
       if (presentFields.has("made_2")) row.made_2 = r.made_2 ? parseInt(r.made_2, 10) : 0;
       if (presentFields.has("made_3")) row.made_3 = r.made_3 ? parseInt(r.made_3, 10) : 0;
@@ -2125,7 +2131,7 @@
       // false si la fila sigue exactamente como la dejó la plantilla
       // (nombre + dorsal, nada más). Se usa más abajo para no contar esas
       // filas como "jugó" -- ver classifyAndBuildMatchRows.
-      const STAT_DATA_KEYS = ["started", "minutes", "points", "rebounds", "assists", "fouls", "periods_played", "made_1", "made_2", "made_3"];
+      const STAT_DATA_KEYS = ["started", "minutes", "points", "rebounds", "assists", "fouls", "periods_played", "periods_sub", "made_1", "made_2", "made_3"];
       row.has_stat_data = STAT_DATA_KEYS.some((k) => presentFields.has(k) && String(r[k] || "").trim() !== "")
         || Object.keys(rCustom).some((k) => String(rCustom[k] || "").trim() !== "");
       rows.push(row);
@@ -2288,12 +2294,30 @@
           matchedRows: [...byName, ...byNumber],
           stillUnmatched,
           rate: rawRows.length > 0 ? (byName.length + byNumber.length) / rawRows.length : 0,
+          nameRate: rawRows.length > 0 ? byName.length / rawRows.length : 0,
         };
       })
       .filter((b) => b.rawRows.length > 0);
 
+    // Dani 2026-11-02 (hoja Swiss Basketball Mini DEL vs Morges): en un club de
+    // minibasket los dorsales (1-18) se repiten casi siempre entre los dos equipos,
+    // así que el equipo RIVAL también llegaba a >=50% de "match" solo por dorsal, los
+    // dos bloques contaban como "nuestros" (nada quedaba como rival, y las faltas /
+    // períodos del rival pisaban a jugadores propios con el mismo dorsal). Ahora, si
+    // varios bloques pasan el umbral, solo cuenta como nuestro el que gana CLARAMENTE
+    // (por nombres, o por nombre+dorsal con >=20 puntos de ventaja); si van parejos
+    // (p.ej. un amistoso entre dos equipos del propio club) se mantiene lo de siempre.
+    const confident = perBlock.filter((b) => b.rate >= OWN_TEAM_MATCH_RATE);
+    if (confident.length >= 2) {
+      const best = confident.slice().sort((x, y) => (y.nameRate - x.nameRate) || (y.rate - x.rate))[0];
+      confident.forEach((b) => {
+        if (b === best) return;
+        if (best.nameRate - b.nameRate >= 0.25 || (best.rate - b.rate >= 0.2 && best.nameRate >= b.nameRate)) b.demoted = true;
+      });
+    }
+
     const isSingleBlock = perBlock.length <= 1;
-    const hasConfidentBlock = perBlock.some((b) => b.rate >= OWN_TEAM_MATCH_RATE);
+    const hasConfidentBlock = perBlock.some((b) => b.rate >= OWN_TEAM_MATCH_RATE && !b.demoted);
     const playerRows = [];
     const opponentRows = [];
     let unmatchedCount = 0;
@@ -2312,7 +2336,7 @@
     let ownBlockCount = 0;
 
     perBlock.forEach((b, idx) => {
-      if (isSingleBlock || b.rate >= OWN_TEAM_MATCH_RATE) {
+      if (isSingleBlock || (b.rate >= OWN_TEAM_MATCH_RATE && !b.demoted)) {
         // Único bloque de la hoja (de siempre, nada nuevo aquí), o
         // claramente nuestro equipo (nombre + dorsal juntos).
         // Dani, ronda 44: de las filas que SÍ matchearon con el roster,
@@ -2376,7 +2400,7 @@
     const info = {};
     for (let i = 0; i < firstHeaderIdx && i < sheetRows.length; i++) {
       const row = sheetRows[i];
-      const label = normalizeMatchHeader(row[0]);
+      const label = normalizeMatchHeader(row[0]).replace(/\s*:\s*$/, ""); // "Équipe A:" (con dos puntos) también vale
       const value = String(row[1] || "").trim();
       if (!label || !value) continue;
       for (const field in GENERAL_INFO_ALIASES) {
@@ -2638,6 +2662,7 @@
       { header: "Ast", field: "assists" },
       { header: _t("Fouls||template column header"), field: "fouls" },
       { header: _t("Periods played||template column header"), field: "periods_played" },
+      { header: _t("Periods as sub||template column header"), field: "periods_sub" },
     ];
     return [...base, ...matchFields.map((f) => ({ header: f.label, field: "custom:" + f.key }))];
   }
@@ -2851,6 +2876,8 @@
       "",
       "Rules: \"N°\" is the jersey number. \"Starter\" is whether that player started the game (was in the opening five) -- write \"Y\" if the sheet marks them as a starter, leave it blank otherwise (don't guess if the sheet doesn't say). \"1 pt\"/\"2 pts\"/\"3 pts\" are shots MADE of each value (not attempts) -- fill them in whenever the sheet tracks them separately. For any player who actually took part in the game, ALWAYS fill in \"Points total\" too, with the real total for that player (add up 1 pt/2 pts/3 pts yourself if you filled those in, or your best read of a running score if that's all the sheet has) -- never leave \"Points total\" blank just because you filled in the breakdown, a blank cell there is read as zero. The one exception: if a player is listed (name/jersey number) but never actually entered the game -- every stat column genuinely blank on the sheet itself, or pre-filled from my roster but untouched -- leave EVERY stat cell in their row blank, including \"Points total\": don't invent a \"0\" just to fill it in. A row with every stat cell blank is read as \"didn't play\"; a row with at least one real number, even a deliberate 0, is read as \"played\" -- so a made-up zero would wrongly mark someone as having played when they didn't. One player per row, don't merge or skip rows, keep the header row as given. If you're unsure about a specific number for someone who DID play, still give your best guess rather than leaving it empty, but you can add a short confidence note in a line starting with \"NOTES:\" at the very end, outside both tables.",
       "",
+      "Periods columns (only if the sheet has a per-period grid, like the Swiss Basketball Mini sheet with periods 1 to 6 per player): \"Periods played\" = the number of periods where the player's box has a normal mark (X or a tick) -- i.e. they were on court as one of the players who START that period. \"Periods as sub\" = the number of periods where the player's box has only a DOT (a small point, meaning a substitution/change during that period). NEVER add the dots into \"Periods played\" -- keep the two numbers separate. Sanity check you should do before answering: for each team, the sum of \"Periods played\" over all players must equal (number of periods) x (players on court per period, e.g. 6 x 4 = 24 in Mini basketball); if your total is higher, you counted dots as normal marks, so re-read the grid.",
+      "",
       "Some official federation sheets don't have a simple per-player points column at all -- instead they have a \"running score\" grid: one column of small numbered boxes PER TEAM, filled in order as the game goes, one box per point scored (not per basket). If you see one of these, read it using the standard FIBA scorer convention: a diagonal slash through a box = a 2-point field goal; a small filled dot (•) = a free throw (1 point); a circled jersey number next to the slash = a 3-point field goal instead of a 2. The ink color often alternates by quarter (e.g. red for Q1/Q3, blue or black for Q2/Q4) -- that's only for the human scorer's own reference, ignore it, it doesn't change the stats. For each player, count how many points their marked boxes add up to (1 per dot, 2 per plain slash, 3 per slash-with-circle) to get \"1 pt\"/\"2 pts\"/\"3 pts\"/\"Points total\" -- same columns as above, this is just a different way of reading the same information, not a different table. Afterwards, double-check your own reading: add up all of Team A's player points and compare to Team A's final score (same for Team B) -- if your count doesn't match the final score printed on the sheet, don't silently force it to match; say so in the \"NOTES:\" line instead so it gets double-checked by hand.",
     ].join("\n");
   }
@@ -2881,6 +2908,10 @@
         if (cells.length && cells[cells.length - 1] === "") cells = cells.slice(0, -1);
         return cells;
       }
+      // Dani 2026-11-02: tablas pegadas desde Excel / chat con TABULADORES (\t) entre columnas
+      // (celdas vacías incluidas). Antes la línea entera caía en una sola celda y no se
+      // reconocía ninguna cabecera.
+      if (raw.includes("\t")) return raw.replace(/\s+$/, "").split("\t").map((c) => c.trim());
       if (line.includes(":")) {
         const idx = line.indexOf(":");
         return [line.slice(0, idx).trim(), line.slice(idx + 1).trim()];
@@ -3089,6 +3120,7 @@
     { value: "assists", label: "Assists" },
     { value: "fouls", label: "Fouls" },
     { value: "periods_played", label: "Periods played" },
+    { value: "periods_sub", label: "Periods as sub (dot)" },
     { value: "made_1", label: "1-point shots made" },
     { value: "made_2", label: "2-point shots made" },
     { value: "made_3", label: "3-point shots made" },
@@ -3352,7 +3384,7 @@
       // celda (ver makeCellEditable/commit), así que su sola presencia ya
       // es motivo suficiente para guardar la fila.
       const playerRows = Object.keys(statsByPlayer)
-        .filter((pid) => statsByPlayer[pid].called_up || statsByPlayer[pid].started || statsByPlayer[pid].minutes || statsByPlayer[pid].points || statsByPlayer[pid].rebounds || statsByPlayer[pid].assists || statsByPlayer[pid].fouls || statsByPlayer[pid].periods_played || statsByPlayer[pid].made_1 || statsByPlayer[pid].made_2 || statsByPlayer[pid].made_3 || (statsByPlayer[pid].custom_stats && Object.keys(statsByPlayer[pid].custom_stats).length > 0))
+        .filter((pid) => statsByPlayer[pid].called_up || statsByPlayer[pid].started || statsByPlayer[pid].minutes || statsByPlayer[pid].points || statsByPlayer[pid].rebounds || statsByPlayer[pid].assists || statsByPlayer[pid].fouls || statsByPlayer[pid].periods_played || statsByPlayer[pid].periods_sub || statsByPlayer[pid].made_1 || statsByPlayer[pid].made_2 || statsByPlayer[pid].made_3 || (statsByPlayer[pid].custom_stats && Object.keys(statsByPlayer[pid].custom_stats).length > 0))
         .map((pid) => ({ player_id: pid, ...statsByPlayer[pid] }));
       // Dani (voz, ronda 35): "mismo analisis que el nuestro" -- se manda
       // todo lo que ahora puede traer una fila de rival (antes se
@@ -3371,6 +3403,7 @@
           assists: r.assists || 0,
           fouls: r.fouls || 0,
           periods_played: r.periods_played ?? null,
+          periods_sub: r.periods_sub ?? null,
           made_1: r.made_1 || 0,
           made_2: r.made_2 || 0,
           made_3: r.made_3 || 0,
@@ -3541,7 +3574,7 @@
     // usa EXACTAMENTE `orderedVisibleCallupColumns()`/
     // `orderedVisibleOpponentColumns()` -- las mismas columnas, en el
     // mismo orden, que cada tabla muestra en Match day en ese momento.
-    const SUMMABLE_PDF_KEYS = new Set(["minutes", "points", "rebounds", "assists", "fouls", "periods_played", "made_1", "made_2", "made_3"]);
+    const SUMMABLE_PDF_KEYS = new Set(["minutes", "points", "rebounds", "assists", "fouls", "periods_played", "periods_sub", "made_1", "made_2", "made_3"]);
 
     // Une el registro de un jugador propio (roster + stats + asistencia) o
     // de un jugador rival (una sola fila libre) en la misma forma, para
@@ -3553,7 +3586,7 @@
         jersey_number: p.jersey_number || "", player_name: `${p.first_name} ${p.last_name}`.trim(),
         called_up: !!s.called_up, presentLabel: badge ? badge.label : "", started: !!s.started,
         minutes: s.minutes, points: s.points, rebounds: s.rebounds, assists: s.assists, fouls: s.fouls,
-        periods_played: s.periods_played, made_1: s.made_1, made_2: s.made_2, made_3: s.made_3, custom_stats: s.custom_stats,
+        periods_played: s.periods_played, periods_sub: s.periods_sub, made_1: s.made_1, made_2: s.made_2, made_3: s.made_3, custom_stats: s.custom_stats,
       };
     }
     function normalizeOpponentRec(r) {
@@ -3562,7 +3595,7 @@
         jersey_number: r.jersey_number || "", player_name: r.player_name || "",
         called_up: false, presentLabel: "", started: !!r.started,
         minutes: r.minutes, points: r.points, rebounds: r.rebounds, assists: r.assists, fouls: r.fouls,
-        periods_played: r.periods_played, made_1: r.made_1, made_2: r.made_2, made_3: r.made_3, custom_stats: r.custom_stats,
+        periods_played: r.periods_played, periods_sub: r.periods_sub, made_1: r.made_1, made_2: r.made_2, made_3: r.made_3, custom_stats: r.custom_stats,
       };
     }
 
@@ -3584,6 +3617,7 @@
         case "assists": return rec.assists ?? 0;
         case "fouls": return rec.fouls ?? 0;
         case "periods_played": return rec.periods_played ?? "";
+        case "periods_sub": return rec.periods_sub ?? "";
         case "made_1": return rec.made_1 ?? 0;
         case "made_2": return rec.made_2 ?? 0;
         case "made_3": return rec.made_3 ?? 0;
