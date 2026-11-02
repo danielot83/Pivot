@@ -470,7 +470,7 @@
           </div>
         </div>
       </div>
-      <p class="hint" style="margin:0 0 14px;">Click a column header to sort. GP only counts matches the player actually got on the court for (called up alone doesn't count). "Average" shows per-game numbers, "Totals" the season sum.</p>
+      <p class="hint" style="margin:0 0 14px;">Click a column header to sort. GP counts matches the player actually played: either they have stats saved for it, or they're marked Present/Late in the attendance for that match (called up alone doesn't count). Averages only use the matches that have stats saved. "Average" shows per-game numbers, "Totals" the season sum.</p>
       <div class="table-scroll">
         <table id="player-table">
           <thead><tr id="player-table-head"></tr></thead>
@@ -615,6 +615,7 @@
   // volver a pedir nada a Supabase.
   let allMatchesCache = [];
   let allPlayerStatsCache = [];
+  let allMatchAttendanceCache = []; // asistencia (presente/tarde) a partidos: también cuenta como "jugó" para PJ
   let allOpponentStatsCache = [];
   let playersByIdCache = {};
 
@@ -980,7 +981,12 @@
     allPlayerStatsCache = playerStats;
     allOpponentStatsCache = opponentStats;
 
-    const playerIds = [...new Set(playerStats.map((r) => r.player_id))];
+    // Dani 2026-11-02: un jugador marcado Presente en un partido cuenta como que jugó ese partido (PJ) aunque
+    // ese partido no tenga estadísticas individuales guardadas (p.ej. partidos viejos solo con asistencia).
+    allMatchAttendanceCache = matchIds.length
+      ? (await fetchAttendanceChunked("match_id", matchIds)).filter((a) => ["present", "late"].includes(a.status))
+      : [];
+    const playerIds = [...new Set([...playerStats.map((r) => r.player_id), ...allMatchAttendanceCache.map((a) => a.player_id)])];
     playersByIdCache = {};
     if (playerIds.length) {
       const { data: players } = await supabaseClient.from("players").select("id, first_name, last_name, jersey_number").in("id", playerIds);
@@ -1188,7 +1194,7 @@
 
     renderTrendSection(visibleMatches, visiblePlayerStats, visibleOpponentStats);
 
-    lastPlayerRows = computePlayerAverages(visiblePlayerStats, playersByIdCache);
+    lastPlayerRows = computePlayerAverages(visiblePlayerStats, playersByIdCache, allMatchAttendanceCache.filter((a) => visibleIds.has(a.match_id)));
     renderPlayerSection();
     setupColumnsMenu("player-columns-btn", "player-columns-panel", `pivot_stats_player_cols_${currentOrgId}`, () => visiblePlayerStatKeys, (v) => { visiblePlayerStatKeys = v; }, renderPlayerSection);
 
@@ -1310,13 +1316,21 @@
   // sacado de players (no solo del roster actual: un jugador que ya no
   // está en el equipo pero jugó partidos esta temporada sigue contando).
   // -----------------------------------------------------------------------
-  function computePlayerAverages(playerStats, playersById) {
+  function computePlayerAverages(playerStats, playersById, attendedRows) {
     const realRows = playerStats.filter(hasRealPlayData);
     const byPlayer = {};
+    const newBucket = () => ({ gp: 0, sg: 0, played: new Set(), gs: 0, sums: {}, counts: {}, custom: {}, customCounts: {} });
+    // gp (PJ) = partidos con stats reales O con asistencia Presente/Tarde; sg = solo los que tienen stats
+    // (las medias de puntos/rebotes/... se dividen por sg, para no diluirlas con partidos sin stats).
+    (attendedRows || []).forEach((a) => {
+      byPlayer[a.player_id] = byPlayer[a.player_id] || newBucket();
+      byPlayer[a.player_id].played.add(a.match_id);
+    });
     realRows.forEach((r) => {
-      byPlayer[r.player_id] = byPlayer[r.player_id] || { gp: 0, gs: 0, sums: {}, counts: {}, custom: {}, customCounts: {} };
+      byPlayer[r.player_id] = byPlayer[r.player_id] || newBucket();
       const b = byPlayer[r.player_id];
-      b.gp++;
+      b.sg++;
+      b.played.add(r.match_id);
       if (r.started) b.gs++;
       ALWAYS_ZERO_FIELDS.forEach((f) => { b.sums[f] = (b.sums[f] || 0) + (r[f] || 0); });
       OPTIONAL_FIELDS.forEach((f) => {
@@ -1335,7 +1349,7 @@
         player_id: playerId,
         jersey_number: p ? p.jersey_number : "",
         name: p ? `${p.first_name} ${p.last_name}` : "(player no longer on record)",
-        gp: b.gp,
+        gp: b.played.size,
         gs: b.gs,
       };
       // "_avg" = media por partido; "_total" = suma de la temporada. Para
@@ -1343,8 +1357,8 @@
       // registró ese dato (un total de 0 sería engañoso, igual que ya
       // pasaba con la media).
       ALWAYS_ZERO_FIELDS.forEach((f) => {
-        row[f + "_avg"] = b.gp ? b.sums[f] / b.gp : null;
-        row[f + "_total"] = b.gp ? b.sums[f] : null;
+        row[f + "_avg"] = b.sg ? b.sums[f] / b.sg : null;
+        row[f + "_total"] = b.sg ? b.sums[f] : null;
       });
       OPTIONAL_FIELDS.forEach((f) => {
         row[f + "_avg"] = b.counts[f] ? b.sums[f] / b.counts[f] : null;

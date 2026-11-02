@@ -1,6 +1,7 @@
-# Entrega 57 — Emparejar jugadores por nombre parecido + Stats muestra qué partidos tienen datos
+# Entrega 58 — Stats: PJ cuenta también la asistencia "Presente" a partidos
 
-Sube: `match.html`, `stats.html`, `i18n-fr.js`, `i18n-es.js`. Sin SQL nuevo.
+Sube: `stats.html`, `i18n-fr.js`, `i18n-es.js` (junto con las de la entrega 57 si aún no las subiste: `match.html`). Sin SQL.
 
-- **Import (match.html):** si un jugador del archivo no coincide exacto con tu plantilla, ahora se compara palabra por palabra (sin tildes, con 1 letra de diferencia, o nombre corto como Max/Maximilien, Nico/Nicolas). Solo se empareja si hay UN único candidato. Si dudas entre dos (dos Lucas) NO adivina: lo avisa con los nombres entre los que dudó. Los emparejados "por parecido" salen en el mensaje para que los revises.
-- **Stats (stats.html):** el desplegable de partidos dice cuántos tienen stats de jugadores, y marca "sin stats de jugadores" los que no tienen. Así se ve si un jugador falta porque ese partido no tiene sus stats guardadas.
+- **PJ** = partidos con estadísticas guardadas **o** marcado Presente/Tarde en la asistencia de ese partido. Así un jugador que jugó partidos que solo tienen asistencia (sin stats individuales) ya aparece con sus partidos.
+- Las **medias** de puntos/rebotes/etc. solo se dividen entre los partidos que tienen estadísticas (no se diluyen con los que no tienen). Si un jugador no tiene ninguna stat guardada, sale "—".
+- Si Max (u otro) sale Ausente en los partidos del 01 nov, es porque el import anterior no lo encontró en la plantilla y marcó Ausente a quien no encontró. Con la entrega 57 (`match.html`), vuelve a importar esos partidos y quedará Presente.
