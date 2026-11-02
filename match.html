@@ -2327,6 +2327,7 @@
     // más preciso si TODAS las filas de "nuestro" bloque resultan vacías
     // (plantilla recién descargada, reimportada sin tocar nada).
     let blankMatchedCount = 0;
+    const unmatchedOwn = []; // filas de TU equipo en el archivo que no están en el roster (antes se descartaban en silencio)
     // Dani, ronda 32: posición (0 = primer bloque de la hoja, 1 = segundo...)
     // del bloque que resultó ser "nuestro equipo" -- para poder relacionarlo
     // con "Équipe A"/"Équipe B" del bloque de información general más
@@ -2353,6 +2354,7 @@
         blankMatchedCount += b.matchedRows.length - withData.length;
         playerRows.push(...withData.map(({ has_stat_data, ...rest }) => rest));
         unmatchedCount += b.stillUnmatched.length;
+        b.stillUnmatched.forEach((r) => unmatchedOwn.push(String(r.raw_name || "").trim() + (r.jersey_number ? " #" + r.jersey_number : "")));
         ownBlockPosition = idx;
         ownBlockCount++;
       } else if (hasConfidentBlock) {
@@ -2377,7 +2379,7 @@
       }
     });
 
-    return { playerRows, opponentRows, unmatchedCount, blankMatchedCount, ownBlockPosition: ownBlockCount === 1 ? ownBlockPosition : null };
+    return { playerRows, opponentRows, unmatchedCount, blankMatchedCount, unmatchedOwn, ownBlockPosition: ownBlockCount === 1 ? ownBlockPosition : null };
   }
 
   // Dani, ronda 32: a petición tuya -- la hoja que generó ChatGPT trae,
@@ -2536,7 +2538,7 @@
     }
   }
 
-  async function importParsedStatsIntoMatch(playerRows, opponentRows, generalInfo) {
+  async function importParsedStatsIntoMatch(playerRows, opponentRows, generalInfo, unmatchedOwn) {
     opponentRows = opponentRows || [];
     const matchId = await promptMatchTarget(allMatchesCache, playerRows.length + opponentRows.length);
     if (!matchId) return false;
@@ -2599,6 +2601,8 @@
       let message = parts.length ? `Imported stats for ${parts.join(" and ")}.` : "Import complete.";
       if (presentApplied) message += " Updated Present too.";
       if (generalInfoApplied) message += " Also filled in general info.";
+      // Jugadores del archivo que no están en el roster: antes se perdían sin avisar y luego "faltaban" en Stats.
+      if (unmatchedOwn && unmatchedOwn.length) message += " " + _t("WARNING: {n} player(s) in the file are not on this team's roster, so they were NOT imported: {names}. Add them in Roster (or fix the spelling) and import again.", { n: unmatchedOwn.length, names: unmatchedOwn.join(", ") });
       showMessage(message, "success");
       if (currentMatchId === matchId) await openMatch(matchId);
       await loadMatchesList();
@@ -2791,7 +2795,7 @@
       }
       throw new Error(result.unmatchedCount > 0 ? `Found ${result.unmatchedCount} row(s), but none matched a name in ${currentTeam}'s roster.` : "Couldn't find a usable player name column.");
     }
-    return { playerRows, opponentRows, generalInfo };
+    return { playerRows, opponentRows, generalInfo, unmatchedOwn: result.unmatchedOwn || [] };
   }
 
   document.getElementById("import-stats-file-input").addEventListener("change", async (e) => {
@@ -2814,7 +2818,7 @@
       return;
     }
 
-    await importParsedStatsIntoMatch(parsed.playerRows, parsed.opponentRows, parsed.generalInfo);
+    await importParsedStatsIntoMatch(parsed.playerRows, parsed.opponentRows, parsed.generalInfo, parsed.unmatchedOwn);
   });
 
   // -----------------------------------------------------------------------
@@ -2953,7 +2957,7 @@
       showMessage((err.message || "Couldn't read that reply.") + " Use the template above so the AI replies in the right format.", "error");
       return;
     }
-    await importParsedStatsIntoMatch(parsed.playerRows, parsed.opponentRows, parsed.generalInfo);
+    await importParsedStatsIntoMatch(parsed.playerRows, parsed.opponentRows, parsed.generalInfo, parsed.unmatchedOwn);
   });
 
   function openAiMatchGuideModal() {

@@ -713,13 +713,14 @@
     { id: "made_2", label: "2PM", short: "2PM" },
     { id: "made_3", label: "3PM", short: "3PM" },
     { id: "periods_played", label: "Periods played", short: "Per" },
+    { id: "periods_sub", label: "Periods as sub", short: "Sub" },
   ];
   // "points/rebounds/assists/fouls" siempre traen 0 por defecto en la BD
   // (nunca null) -- los demás son opcionales de verdad (pueden faltar en
   // hojas viejas), así que se promedian solo sobre los partidos donde sí
   // se registró ese dato en concreto.
   const ALWAYS_ZERO_FIELDS = ["points", "rebounds", "assists", "fouls"];
-  const OPTIONAL_FIELDS = ["minutes", "made_1", "made_2", "made_3", "periods_played"];
+  const OPTIONAL_FIELDS = ["minutes", "made_1", "made_2", "made_3", "periods_played", "periods_sub"];
 
   function allStatDefs() {
     return STAT_DEFS.concat(matchFields.map((f) => ({ id: "custom:" + f.key, label: f.label, short: f.label, customKey: f.key })));
@@ -1235,6 +1236,7 @@
     if ((r.made_1 || 0) !== 0 || (r.made_2 || 0) !== 0 || (r.made_3 || 0) !== 0) return true;
     if (r.minutes !== null && r.minutes !== undefined) return true;
     if (r.periods_played !== null && r.periods_played !== undefined) return true;
+    if (r.periods_sub !== null && r.periods_sub !== undefined) return true;
     if (r.custom_stats && Object.keys(r.custom_stats).length > 0) return true;
     return false;
   }
