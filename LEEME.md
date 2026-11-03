@@ -1,7 +1,7 @@
-# Entrega 58 — Stats: PJ cuenta también la asistencia "Presente" a partidos
+# Entrega 59 — Importar con un partido nuevo sin guardar
 
-Sube: `stats.html`, `i18n-fr.js`, `i18n-es.js` (junto con las de la entrega 57 si aún no las subiste: `match.html`). Sin SQL.
+Sube: `match.html`, `i18n-fr.js`, `i18n-es.js`. Sin SQL.
 
-- **PJ** = partidos con estadísticas guardadas **o** marcado Presente/Tarde en la asistencia de ese partido. Así un jugador que jugó partidos que solo tienen asistencia (sin stats individuales) ya aparece con sus partidos.
-- Las **medias** de puntos/rebotes/etc. solo se dividen entre los partidos que tienen estadísticas (no se diluyen con los que no tienen). Si un jugador no tiene ninguna stat guardada, sale "—".
-- Si Max (u otro) sale Ausente en los partidos del 01 nov, es porque el import anterior no lo encontró en la plantilla y marcó Ausente a quien no encontró. Con la entrega 57 (`match.html`), vuelve a importar esos partidos y quedará Presente.
+- Si estás en un partido **nuevo sin guardar** y pulsas "Import stats from Excel", "Import from a photo" o "Fill from AI reply", ahora sale un aviso claro: "Guarda primero el partido", con botones **Cancelar** y **Guardar el partido ahora**. Al guardar, te dice que vuelvas a pulsar el botón de importar.
+- Antes, ese caso podía ofrecerte importar en OTRO partido ya guardado, o decir "no hay partidos".
+- Al importar con un partido guardado abierto, el selector "¿Para qué partido?" ahora ya viene con ese partido seleccionado.
