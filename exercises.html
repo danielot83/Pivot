@@ -537,6 +537,7 @@
         <button class="btn btn-primary" id="save-ex-btn">Save exercise</button>
         <button class="btn btn-secondary" id="pdf-ex-btn">Export PDF</button>
         <button class="btn btn-secondary" id="delete-ex-btn" style="display:none; color:#991b1b;">Delete</button>
+        <button class="btn btn-secondary" id="new-after-save-btn" style="display:none;" title="Clears the form so you can start another exercise (keeps your last language and sharing choice)">＋ New exercise</button>
       </div>
     </div>
   </div>
@@ -622,6 +623,7 @@
   let isPlatformController = false;
   let myFavoriteIds = new Set(); // ids favoritos DE ESTE usuario (exercise_favorites), no la vieja columna compartida
   const canDelete = () => myRole === "admin" || myRole === "coach";
+  let exerciseDirty = false; // hay cambios sin guardar en el formulario (para el botón "New exercise")
   let currentExId = null;
   let currentTranslationGroupId = null;
   let allExercises = [];
@@ -1568,10 +1570,26 @@
     updateNumberHint();
   }
 
+  function lastPrefsKey() { return `pivot_ex_last_prefs_${currentOrgId || ""}`; }
+  function loadLastExercisePrefs() {
+    try { return JSON.parse(localStorage.getItem(lastPrefsKey())) || {}; } catch (e) { return {}; }
+  }
+  function saveLastExercisePrefs() {
+    try { localStorage.setItem(lastPrefsKey(), JSON.stringify({ language: els.language.value, visibility: els.visibility.value })); } catch (e) { /* sin almacenamiento: no pasa nada */ }
+  }
+  function hasSelectOption(sel, value) {
+    return !!value && [...sel.options].some((o) => o.value === value && !o.disabled);
+  }
+
   function resetForm() {
     els.number.value = ""; els.name.value = ""; els.difficulty.value = "1"; els.favorite.checked = false;
-    els.tags.value = ""; els.objectives.value = ""; els.description.value = ""; els.variants.value = ""; els.visibility.value = "team";
-    els.language.value = "en"; currentTranslationGroupId = null;
+    els.tags.value = ""; els.objectives.value = ""; els.description.value = ""; els.variants.value = "";
+    // Dani 2026-11-06: recordar el último idioma y la última opción de "¿Quién puede ver este ejercicio?"
+    // que se usaron, para no cambiarlos en cada ejercicio nuevo.
+    const lastPrefs = loadLastExercisePrefs();
+    els.visibility.value = hasSelectOption(els.visibility, lastPrefs.visibility) ? lastPrefs.visibility : "team";
+    els.language.value = hasSelectOption(els.language, lastPrefs.language) ? lastPrefs.language : "en";
+    currentTranslationGroupId = null;
     setCheckedValues("age", []); setCheckedValues("categories", []); setCheckedValues("material", []);
     diagram = {}; currentStep = "court_1";
     diagramCourtTypes = defaultDiagramCourtTypes();
@@ -1618,11 +1636,15 @@
       .forEach((el) => (el.disabled = false));
     resetPdfPreview();
     document.getElementById("ex-created-by").style.display = "none";
+    document.getElementById("new-after-save-btn").style.display = "none";
+    exerciseDirty = false;
   }
 
   function openExercise(id) {
     const e = allExercises.find((ex) => ex.id === id);
     if (!e) return;
+    document.getElementById("new-after-save-btn").style.display = "none";
+    exerciseDirty = false;
     currentExId = id;
     currentTranslationGroupId = e.translation_group_id || null;
     els.number.value = e.number || ""; els.name.value = e.name; els.difficulty.value = String(e.difficulty || 1);
@@ -1741,6 +1763,9 @@
         await supabaseClient.from("exercise_favorites").delete().eq("user_id", currentUserId).eq("exercise_id", currentExId);
       }
       showMessage("Exercise saved.", "success");
+      saveLastExercisePrefs();
+      exerciseDirty = false;
+      document.getElementById("new-after-save-btn").style.display = "inline-block";
       await loadExercises();
     } catch (err) {
       showMessage(err.message || "Couldn't save that exercise.", "error");
@@ -2133,6 +2158,20 @@
     }
   }
   document.getElementById("update-pdf-btn").addEventListener("click", updatePdfPreview);
+
+  // "＋ New exercise" (aparece tras guardar): limpia el formulario sin tener que refrescar la página.
+  // Si después de guardar se tocó algo, pregunta antes de descartarlo.
+  els.editorArea.addEventListener("input", () => { exerciseDirty = true; });
+  els.editorArea.addEventListener("change", () => { exerciseDirty = true; });
+  document.getElementById("court-canvas").addEventListener("pointerdown", () => { exerciseDirty = true; });
+  els.language.addEventListener("change", saveLastExercisePrefs);
+  els.visibility.addEventListener("change", saveLastExercisePrefs);
+  document.getElementById("new-after-save-btn").addEventListener("click", () => {
+    if (exerciseDirty && !confirm(_t("You have changes that aren't saved yet. Start a new exercise anyway?"))) return;
+    newExercise();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    showMessage("New exercise ready.", "success");
+  });
 
   document.getElementById("save-ex-btn").addEventListener("click", saveExercise);
   document.getElementById("pdf-ex-btn").addEventListener("click", exportExercisePdf);
