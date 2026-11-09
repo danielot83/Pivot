@@ -203,6 +203,60 @@
 
   /* -------- menu de columnas (tabla de convocatoria, igual que Roster) -------- */
   .columns-menu { position: relative; }
+  /* Cuadrícula de periodos (2026-11-07) */
+  .pg-overlay { position: fixed; inset: 0; background: rgba(8,0,38,.55); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .pg-modal { background: var(--card); border-radius: 14px; width: 100%; max-width: 640px; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+  .pg-head { padding: 16px 18px 10px; border-bottom: 1px solid var(--line); }
+  .pg-head h2 { margin: 0 0 6px; font-size: 17px; }
+  .pg-opts { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 13px; margin-top: 8px; }
+  .pg-opts input { width: 56px; padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
+  .pg-body { padding: 8px 18px; overflow: auto; flex: 1; }
+  .pg-table { border-collapse: collapse; width: 100%; }
+  .pg-table th, .pg-table td { padding: 5px 4px; text-align: center; font-size: 13px; }
+  .pg-table th:first-child, .pg-table td:first-child { text-align: left; padding-left: 0; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; position: sticky; left: 0; background: var(--card); }
+  .pg-table tbody tr { border-bottom: 1px solid var(--line); }
+  .pg-cell { width: 42px; height: 38px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); font-size: 17px; font-weight: 700; cursor: pointer; padding: 0; color: var(--ink); }
+  .pg-cell.x { background: #dcfce7; border-color: #86efac; color: #166534; }
+  .pg-cell.dot { background: var(--accent-tint); border-color: #fbbf7a; color: var(--accent-deep); }
+  .pg-sum { font-weight: 700; font-size: 12.5px; color: var(--muted); }
+  .pg-check td { font-size: 12px; font-weight: 700; padding-top: 8px; }
+  .pg-ok { color: #166534; } .pg-bad { color: #b91c1c; }
+  .pg-foot { display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
+  .pg-hint { font-size: 12px; color: var(--muted); padding: 8px 18px 0; }
+  /* Contador en directo */
+  .lv-overlay { position: fixed; inset: 0; background: rgba(8,0,38,.55); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .lv-modal { background: var(--card); border-radius: 12px; width: 100%; max-width: 760px; max-height: 94vh; overflow: auto; padding: 16px; box-sizing: border-box; }
+  .lv-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .lv-head h3 { margin: 0; font-size: 16px; }
+  .lv-total { font-weight: 700; color: var(--accent-deep, #b85012); }
+  .lv-players { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .lv-p { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 8px; text-align: left; cursor: pointer; font-size: 13px; color: var(--ink); min-height: 56px; filter: none; }
+  .lv-p b { display: block; font-size: 15px; }
+  .lv-p small { color: var(--muted); font-size: 11.5px; }
+  .lv-p.sel { background: var(--navy, #080026); border-color: var(--navy, #080026); color: #fff; }
+  .lv-p.sel small { color: #d8d6e6; }
+  .lv-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .lv-b { padding: 16px 8px; font-size: 18px; font-weight: 700; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); cursor: pointer; color: var(--ink); filter: none; min-height: 60px; }
+  .lv-b.pts { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .lv-b:disabled { opacity: .4; cursor: default; }
+  .lv-clock { display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; margin-bottom:6px; }
+  .lv-period { display:flex; align-items:center; gap:8px; }
+  .lv-period .btn { padding:8px 12px; width:auto; }
+  .lv-time { font-size:30px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:.02em; }
+  .lv-len { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; margin-left:auto; }
+  .lv-len input { width:56px; padding:5px 6px; }
+  .lv-sub { font-size:12.5px; margin:2px 0 8px; color:var(--muted); }
+  .lv-sub.warn { color:#b42318; font-weight:600; }
+  .lv-pwrap { display:flex; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card); }
+  .lv-pwrap.on { border-color:var(--accent); box-shadow:inset 3px 0 0 var(--accent); }
+  .lv-pwrap .lv-p { border:none; border-radius:0; flex:1; min-width:0; }
+  .lv-oc { border:none; border-left:1px solid var(--line); background:var(--paper); width:40px; font-size:16px; cursor:pointer; color:var(--muted); filter:none; }
+  .lv-pwrap.on .lv-oc { background:var(--accent); color:#fff; }
+  .lv-log { margin:10px 0 0; padding-left:18px; font-size:12.5px; color:var(--muted); min-height:18px; }
+  .lv-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .lv-hint { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+  @media (max-width: 520px) { .lv-overlay { padding: 0; } .lv-modal { max-width: none; max-height: none; height: 100%; border-radius: 0; } }
+  @media (max-width: 520px) { .pg-overlay { padding: 0; } .pg-modal { max-width: none; max-height: none; height: 100%; border-radius: 0; } .pg-cell { width: 38px; } }
   .columns-panel {
     display: none; position: absolute; top: 100%; right: 0; margin-top: 6px; z-index: 5;
     background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px;
@@ -261,6 +315,10 @@
   })();
 </script>
 <!-- End Matomo Code -->
+<link rel="stylesheet" href="./team-bar.css" />
+<link rel="stylesheet" href="./pivot-mobile.css" />
+<meta name="theme-color" content="#080026" />
+<link rel="manifest" href="./manifest.json" />
 </head>
 <body>
 
@@ -286,16 +344,20 @@
         <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
       </div>
       <a href="./dashboard.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+      <div class="sidebar-group">Team</div>
       <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
       <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
+      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+      <div class="sidebar-group">Games</div>
       <a href="./match.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
       <a href="./stats.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
+      <div class="sidebar-group">Training</div>
       <a href="./exercises.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg>Exercise creator</a>
       <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
       <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
+      <div class="sidebar-group">Plays</div>
       <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
       <a href="./play_library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21V7"/><path d="M4 5c2-1 5-1 8 2 3-3 6-3 8-2v13c-2-1-5-1-8 2-3-3-6-3-8-2Z"/></svg>Playbook</a>
-      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
     </nav>
 
     <div class="sidebar-footer">
@@ -479,6 +541,8 @@
           <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
             <p class="tsc-step-label" style="margin-bottom:2px; margin-top:0;">Call-up &amp; stats</p>
             <div class="columns-menu">
+              <button class="btn btn-secondary" id="live-btn" type="button">⏱ Live counter</button>
+              <button class="btn btn-secondary" id="periods-grid-btn" type="button">▦ Periods grid</button>
               <button class="btn btn-secondary" id="callup-columns-btn">Columns ▾</button>
               <div class="columns-panel" id="callup-columns-panel"></div>
             </div>
@@ -542,24 +606,11 @@
              arriba. Mismo criterio que ya usa Training builder. -->
         <div class="toolbar side-card" style="margin-top:16px;">
           <button class="btn btn-primary" id="save-match-btn">Save match details</button>
-          <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
-          <button class="btn btn-secondary" id="export-blank-pdf-btn">Print blank sheet</button>
-          <button class="btn btn-secondary" id="import-stats-btn" title="Reads player stats (yours and the opponent's, if the sheet has both), marks Present for who's in the file and Absent for the rest of the roster, and, if the file has a general-info block (competition, date, location, referee, teams, final score), fills in empty General info fields too -- never overwrites something already filled in, except the date.">Import stats from Excel</button>
-          <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
           <!-- Dani, ronda 34: "que cada equipo tuviera su modelo que
                funcione" -- esta plantilla se arma en el momento, con el
                roster real del equipo que tengas abierto (siempre al día,
                no un archivo fijo que se desactualiza), lista para
                rellenar a mano y volver a subir con el botón de arriba. -->
-          <button class="btn btn-secondary" id="download-template-btn" title="Descarga una plantilla .xlsx ya armada con el roster de este equipo -- rellenala durante el partido y subila con 'Import stats from Excel'. Un jugador que no juegue: dejá su fila en blanco, así no se marca como que jugó.">⬇️ Download Excel template</button>
-          <button class="btn btn-secondary" id="import-photo-btn">📷 Import from a photo</button>
-          <select id="import-photo-lang-select" title="Sheet text is mostly in" style="padding:8px 6px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
-            <option value="eng">EN</option>
-            <option value="fra">FR</option>
-            <option value="spa">ES</option>
-          </select>
-          <a href="#" id="photo-import-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; align-self:center;">❔ What this does</a>
-          <input type="file" id="import-photo-file-input" accept="image/*" capture="environment" style="display:none" />
           <!-- Dani (voz, ronda 35): "para las fotos asi... quiza podriamos
                poner algo igual que en los ejercicios para que extraiga
                toda esa informacion via IA" -- mismo patrón que "Fill in
@@ -612,7 +663,25 @@
                completo, para resubirlo con "Import stats from Excel" --
                la tabla de texto de siempre queda como alternativa, para
                planes gratuitos o chats sin esa función. -->
-          <button type="button" class="btn btn-secondary" id="ai-match-toggle-btn">🤖 Fill in with AI</button>
+          <div class="menu-wrap"><button type="button" class="btn btn-secondary" data-menu-toggle aria-expanded="false">⬇ Export ▾</button>
+            <div class="menu-panel">
+          <button class="btn btn-secondary menu-item" id="export-pdf-btn">Export to PDF</button>
+          <button class="btn btn-secondary menu-item" id="export-blank-pdf-btn">Print blank sheet</button>
+          <button class="btn btn-secondary menu-item" id="download-template-btn" title="Descarga una plantilla .xlsx ya armada con el roster de este equipo -- rellenala durante el partido y subila con 'Import stats from Excel'. Un jugador que no juegue: dejá su fila en blanco, así no se marca como que jugó.">⬇️ Download Excel template</button>
+            </div></div>
+          <div class="menu-wrap"><button type="button" class="btn btn-secondary" data-menu-toggle aria-expanded="false">⬆ Import ▾</button>
+            <div class="menu-panel">
+          <button class="btn btn-secondary menu-item" id="import-stats-btn" title="Reads player stats (yours and the opponent's, if the sheet has both), marks Present for who's in the file and Absent for the rest of the roster, and, if the file has a general-info block (competition, date, location, referee, teams, final score), fills in empty General info fields too -- never overwrites something already filled in, except the date.">Import stats from Excel</button>
+          <button class="btn btn-secondary menu-item" id="import-photo-btn">📷 Import from a photo</button>
+              <div class="menu-row"><select id="import-photo-lang-select" title="Sheet text is mostly in" style="padding:8px 6px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
+            <option value="eng">EN</option>
+            <option value="fra">FR</option>
+            <option value="spa">ES</option>
+          </select> <a href="#" id="photo-import-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; align-self:center;">❔ What this does</a></div>
+          <button type="button" class="btn btn-secondary menu-item" id="ai-match-toggle-btn">🤖 Fill in with AI</button>
+            </div></div>
+          <input type="file" id="import-stats-file-input" accept=".xlsx,.xls" style="display:none" />
+          <input type="file" id="import-photo-file-input" accept="image/*" capture="environment" style="display:none" />
           <div class="spacer"></div>
           <button class="btn btn-secondary" id="delete-match-btn" style="display:none; color:#991b1b;">Delete this match</button>
         </div>
@@ -659,6 +728,7 @@
 </div><!-- /app-shell -->
 
 <script src="./i18n.js?v=2"></script>
+<script src="./sw-register.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -1468,9 +1538,9 @@
   // pequeño cuadrito de color, nunca un logo o foto real del rival.
   function matchResultBadge(m) {
     if (m.team_score == null || m.opponent_score == null) return `<span class="present-badge present-unknown" title="No score yet">—</span>`;
-    if (m.team_score === m.opponent_score) return `<span class="present-badge present-other" title="Draw">D</span>`;
+    if (m.team_score === m.opponent_score) return `<span class="present-badge present-other" title="Draw">${_t("D||draw letter (record)")}</span>`;
     const won = m.team_score > m.opponent_score;
-    return `<span class="present-badge ${won ? "present-yes" : "present-no"}" title="${won ? "Win" : "Loss"}">${won ? "W" : "L"}</span>`;
+    return `<span class="present-badge ${won ? "present-yes" : "present-no"}" title="${won ? "Win" : "Loss"}">${won ? _t("W||win letter (record)") : _t("L||loss letter (record)")}</span>`;
   }
 
   async function loadMatchesList() {
@@ -1693,6 +1763,238 @@
     allPlayers.forEach((p) => { if (statsByPlayer[p.id]) statsByPlayer[p.id].called_up = next; });
     renderCallupTable();
   }
+
+  // -----------------------------------------------------------------------
+  // Cuadrícula de periodos (2026-11-07): jugadores × periodos. Un toque
+  // alterna vacío → X → punto. La X cuenta como periodo jugado y el punto
+  // como periodo como cambio (mismas dos columnas que ya existían). Avisa si
+  // un periodo no tiene el número esperado de X (4 por defecto, como en
+  // Mini). La cuadrícula vive solo mientras el partido está abierto: al
+  // aplicar, se escriben los dos totales en la tabla de convocatoria.
+  // -----------------------------------------------------------------------
+  const periodGridStore = {}; // matchKey -> { periods, perPeriod, cells: { playerId: [ "", "x", "dot", ... ] } }
+
+  function pgRows() {
+    const all = teamPlayers.concat(matchGhostPlayers);
+    const called = all.filter((p) => statsByPlayer[p.id] && statsByPlayer[p.id].called_up);
+    return called.length ? called : all;
+  }
+
+  function openPeriodsGrid() {
+    if (document.getElementById("pg-overlay")) return;
+    const rows = pgRows();
+    if (!rows.length) { showMessage(_t("There are no players to show yet."), "error"); return; }
+    const key = currentMatchId || "new";
+    let st = periodGridStore[key];
+    if (!st) {
+      const maxP = Math.max(4, ...rows.map((p) => ((statsByPlayer[p.id] || {}).periods_played || 0) + ((statsByPlayer[p.id] || {}).periods_sub || 0)));
+      st = periodGridStore[key] = { periods: Math.min(10, maxP), perPeriod: 4, cells: {} };
+    }
+    const ov = document.createElement("div");
+    ov.className = "pg-overlay"; ov.id = "pg-overlay";
+    ov.innerHTML = `<div class="pg-modal" role="dialog" aria-modal="true">
+      <div class="pg-head"><h2>Periods grid</h2>
+        <div class="pg-opts"><label>Periods <input type="number" id="pg-periods" min="1" max="10" value="${st.periods}"></label>
+        <label>Players on court per period <input type="number" id="pg-per" min="1" max="12" value="${st.perPeriod}"></label></div></div>
+      <div class="pg-hint">Tap a cell: empty → X (plays the period) → ● (comes on as a sub) → empty. Applying replaces "Periods played" and "Sub periods" for the players listed.</div>
+      <div class="pg-body"><table class="pg-table" id="pg-table"></table></div>
+      <div class="pg-foot"><button type="button" class="btn btn-secondary" id="pg-clear">Clear grid</button><div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary" id="pg-cancel">Close</button><button type="button" class="btn btn-primary" id="pg-apply">Apply to the table</button></div></div>
+    </div>`;
+    document.body.appendChild(ov);
+    const close = () => { ov.remove(); document.removeEventListener("keydown", onKey); };
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+    const cellsFor = (pid) => { const a = st.cells[pid] || (st.cells[pid] = []); while (a.length < st.periods) a.push(""); a.length = st.periods; return a; };
+    function render() {
+      const t = ov.querySelector("#pg-table");
+      let head = `<thead><tr><th>${escapeHtml(_t("Player"))}</th>` + Array.from({ length: st.periods }, (_, i) => `<th>${i + 1}</th>`).join("") + `<th class="pg-sum">X</th><th class="pg-sum">●</th></tr></thead>`;
+      let body = "<tbody>" + rows.map((p) => {
+        const c = cellsFor(p.id);
+        const x = c.filter((v) => v === "x").length, d = c.filter((v) => v === "dot").length;
+        return `<tr data-pid="${p.id}"><td data-i18n-skip>${p.jersey_number ? "#" + escapeHtml(p.jersey_number) + " " : ""}${escapeHtml(p.first_name || "")} ${escapeHtml(p.last_name || "")}</td>`
+          + c.map((v, i) => `<td><button type="button" class="pg-cell ${v}" data-i="${i}" aria-label="${i + 1}">${v === "x" ? "X" : v === "dot" ? "●" : ""}</button></td>`).join("")
+          + `<td class="pg-sum">${x}</td><td class="pg-sum">${d}</td></tr>`;
+      }).join("") + "</tbody>";
+      let foot = `<tfoot><tr class="pg-check"><td>${escapeHtml(_t("On court at the start"))}</td>` + Array.from({ length: st.periods }, (_, i) => {
+        const n = rows.filter((p) => cellsFor(p.id)[i] === "x").length;
+        return `<td class="${n === st.perPeriod ? "pg-ok" : "pg-bad"}">${n}/${st.perPeriod}${n === st.perPeriod ? " ✓" : ""}</td>`;
+      }).join("") + `<td></td><td></td></tr></tfoot>`;
+      t.innerHTML = head + body + foot;
+      t.querySelectorAll(".pg-cell").forEach((b) => b.addEventListener("click", () => {
+        const pid = b.closest("tr").dataset.pid, i = Number(b.dataset.i), a = cellsFor(pid);
+        a[i] = a[i] === "" ? "x" : a[i] === "x" ? "dot" : "";
+        render();
+      }));
+    }
+    ov.querySelector("#pg-periods").addEventListener("change", (e) => { st.periods = Math.max(1, Math.min(10, parseInt(e.target.value, 10) || 4)); e.target.value = st.periods; render(); });
+    ov.querySelector("#pg-per").addEventListener("change", (e) => { st.perPeriod = Math.max(1, Math.min(12, parseInt(e.target.value, 10) || 4)); e.target.value = st.perPeriod; render(); });
+    ov.querySelector("#pg-clear").addEventListener("click", () => { st.cells = {}; render(); });
+    ov.querySelector("#pg-cancel").addEventListener("click", close);
+    ov.querySelector("#pg-apply").addEventListener("click", () => {
+      let bad = 0;
+      for (let i = 0; i < st.periods; i++) if (rows.filter((p) => cellsFor(p.id)[i] === "x").length !== st.perPeriod) bad++;
+      rows.forEach((p) => {
+        const c = cellsFor(p.id);
+        const x = c.filter((v) => v === "x").length, d = c.filter((v) => v === "dot").length;
+        const s = statsByPlayer[p.id]; if (!s) return;
+        s.periods_played = x || null; s.periods_sub = d || null;
+      });
+      renderCallupTable(); renderCallupTotalRow();
+      close();
+      showMessage(bad ? _t("Applied. {n} period(s) don't have exactly the expected number of players on court — double-check them.", { n: bad }) : _t("Applied to Periods played and Sub periods. Use Columns ▾ to show them; remember to save the match."), bad ? "error" : "success");
+    });
+    render();
+  }
+  document.getElementById("periods-grid-btn").addEventListener("click", openPeriodsGrid);
+
+  // -----------------------------------------------------------------------
+  // Contador en directo: eliges jugador y pulsas +1/+2/+3, rebote, asistencia
+  // o falta durante el partido. Además: periodo actual (◀ ▶), reloj con
+  // inicio/pausa, jugadores EN PISTA (⇄) y minutos calculados solos mientras el
+  // reloj corre (se suman a la columna "Minutes" al pulsar Listo). Escribe en los
+  // mismos datos que la tabla de convocatoria (made_1/2/3 + points, rebounds,
+  // assists, fouls, minutes). Se guarda un borrador local cada pocos segundos
+  // (localStorage) por si se cierra la pestaña: al volver a abrir el contador
+  // ofrece recuperarlo. Las estadísticas definitivas se guardan, como siempre,
+  // con "Save match details".
+  // -----------------------------------------------------------------------
+  function openLiveCounter() {
+    if (document.getElementById("lv-overlay")) return;
+    const rows = teamPlayers.concat(matchGhostPlayers); // todos: al contar, el jugador se marca como convocado solo
+    if (!rows.length) { showMessage(_t("There are no players to show yet."), "error"); return; }
+    const KEY = "pivot-live-" + (currentOrgId || "o") + "-" + (currentMatchId || "new");
+    const num = (v) => v || 0;
+    const FIELDS = ["called_up", "started", "minutes", "points", "rebounds", "assists", "fouls", "made_1", "made_2", "made_3"];
+    const st0 = { period: 1, periodMin: 10, remaining: 600, running: false, onCourt: [], secs: {}, log: [], ts: 0, stats: null };
+    let S = Object.assign({}, st0);
+    // ¿hay un borrador sin terminar?
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && saved.stats && saved.log && saved.log.length) {
+          const when = new Date(saved.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          if (confirm(_t("Restore the unfinished live session from {time}?", { time: when }))) {
+            S = Object.assign({}, st0, saved, { running: false });
+            Object.keys(saved.stats).forEach((pid) => { if (statsByPlayer[pid]) FIELDS.forEach((f) => { if (saved.stats[pid][f] !== undefined) statsByPlayer[pid][f] = saved.stats[pid][f]; }); });
+          } else localStorage.removeItem(KEY);
+        }
+      }
+    } catch (e) { /* sin almacenamiento: no pasa nada */ }
+
+    const ov = document.createElement("div");
+    ov.className = "lv-overlay"; ov.id = "lv-overlay";
+    ov.innerHTML = `<div class="lv-modal" role="dialog" aria-modal="true">
+      <div class="lv-head"><h3>${_t("Live counter")}</h3><span class="lv-total" id="lv-total"></span></div>
+      <div class="lv-clock">
+        <div class="lv-period"><button type="button" class="btn btn-secondary" id="lv-pprev" aria-label="${_t("Previous period")}">◀</button><b id="lv-pnum"></b><button type="button" class="btn btn-secondary" id="lv-pnext" aria-label="${_t("Next period")}">▶</button></div>
+        <div class="lv-time" id="lv-time">10:00</div>
+        <button type="button" class="btn btn-primary" id="lv-run">▶ ${_t("Start clock")}</button>
+        <label class="lv-len">${_t("Period length (min)")} <input type="number" id="lv-len" min="1" max="60" step="1" /></label>
+      </div>
+      <p class="lv-sub" id="lv-oncourt-count"></p>
+      <div class="lv-players" id="lv-players"></div>
+      <div class="lv-btns">
+        <button type="button" class="lv-b pts" data-act="made_1" disabled>+1</button>
+        <button type="button" class="lv-b pts" data-act="made_2" disabled>+2</button>
+        <button type="button" class="lv-b pts" data-act="made_3" disabled>+3</button>
+        <button type="button" class="lv-b" data-act="rebounds" disabled>${_t("Rebound")}</button>
+        <button type="button" class="lv-b" data-act="assists" disabled>${_t("Assist")}</button>
+        <button type="button" class="lv-b" data-act="fouls" disabled>${_t("Foul")}</button>
+      </div>
+      <ol class="lv-log" id="lv-log"></ol>
+      <p class="lv-hint">${_t("Tap a player to select, ⇄ to put them on or off the court. Minutes count while the clock runs. Remember to save the match when you finish.")}</p>
+      <div class="lv-foot"><button type="button" class="btn btn-secondary" id="lv-undo">↶ ${_t("Undo last")}</button><button type="button" class="btn btn-primary" id="lv-done">${_t("Done")}</button></div>
+    </div>`;
+    document.body.appendChild(ov);
+    let sel = null, timer = null, lastTick = 0, lastSave = 0;
+    const fmt = (sec) => { sec = Math.max(0, Math.round(sec)); return String(Math.floor(sec / 60)).padStart(2, "0") + ":" + String(sec % 60).padStart(2, "0"); };
+    const nameOf = (p) => ((p.first_name || "") + " " + (p.last_name || "")).trim();
+    const ACT_LABEL = { made_1: "+1", made_2: "+2", made_3: "+3", rebounds: _t("Rebound"), assists: _t("Assist"), fouls: _t("Foul") };
+
+    function persist(force) {
+      const now = Date.now();
+      if (!force && now - lastSave < 3000) return;
+      lastSave = now;
+      try {
+        const stats = {}; rows.forEach((p) => { const s = statsByPlayer[p.id]; if (s) { stats[p.id] = {}; FIELDS.forEach((f) => (stats[p.id][f] = s[f])); } });
+        localStorage.setItem(KEY, JSON.stringify({ period: S.period, periodMin: S.periodMin, remaining: S.remaining, onCourt: S.onCourt, secs: S.secs, log: S.log.slice(-200), ts: now, stats }));
+      } catch (e) { /* ignorar */ }
+    }
+    function paint() {
+      ov.querySelector("#lv-players").innerHTML = rows.map((p) => {
+        const s = statsByPlayer[p.id] || {};
+        const on = S.onCourt.includes(p.id);
+        return `<div class="lv-pwrap${on ? " on" : ""}"><button type="button" class="lv-p${sel === p.id ? " sel" : ""}" data-pid="${p.id}"><b data-i18n-skip>${p.jersey_number ? "#" + escapeHtml(String(p.jersey_number)) + " " : ""}${escapeHtml(nameOf(p))}</b><small data-i18n-skip>${num(s.points)} pts · ${num(s.rebounds)} reb · ${num(s.assists)} ast · ${num(s.fouls)} f${S.secs[p.id] ? " · " + fmt(S.secs[p.id]) : ""}</small></button><button type="button" class="lv-oc" data-oc="${p.id}" aria-pressed="${on}" title="${_t("On court")}">⇄</button></div>`;
+      }).join("");
+      ov.querySelectorAll(".lv-b").forEach((b) => (b.disabled = !sel));
+      ov.querySelector("#lv-undo").disabled = !S.log.length;
+      ov.querySelector("#lv-total").textContent = _t("Team: {n} pts", { n: rows.reduce((a, p) => a + num((statsByPlayer[p.id] || {}).points), 0) });
+      ov.querySelector("#lv-pnum").textContent = _t("Period {n}", { n: S.period });
+      ov.querySelector("#lv-time").textContent = fmt(S.remaining);
+      ov.querySelector("#lv-len").value = S.periodMin;
+      const run = ov.querySelector("#lv-run"); run.textContent = (S.running ? "⏸ " : "▶ ") + _t(S.running ? "Pause clock" : "Start clock");
+      const oc = ov.querySelector("#lv-oncourt-count"); oc.textContent = _t("On court: {n}", { n: S.onCourt.length }) + (S.onCourt.length > 5 ? " — " + _t("more than 5 players on court") : "");
+      oc.classList.toggle("warn", S.onCourt.length > 5);
+      ov.querySelector("#lv-log").innerHTML = S.log.slice(-4).reverse().map((l) => { const p = rows.find((r) => r.id === l.pid); return `<li data-i18n-skip>P${l.per} · ${escapeHtml(p ? nameOf(p) : "")} · ${escapeHtml(ACT_LABEL[l.act] || l.act)}</li>`; }).join("");
+      persist(false);
+    }
+    function tick() {
+      const now = Date.now(); const dt = Math.min(120, (now - lastTick) / 1000); lastTick = now; // sin tope de 2 s: si el móvil duerme la pestaña, el reloj no pierde ese tiempo
+      if (!S.running) return;
+      S.remaining = Math.max(0, S.remaining - dt);
+      S.onCourt.forEach((pid) => (S.secs[pid] = (S.secs[pid] || 0) + dt));
+      if (S.remaining <= 0) { S.running = false; clearInterval(timer); timer = null; try { navigator.vibrate && navigator.vibrate(300); } catch (e) {} }
+      paint();
+    }
+    function setRunning(on) {
+      S.running = on; lastTick = Date.now();
+      if (on && !timer) timer = setInterval(tick, 500);
+      if (!on && timer) { clearInterval(timer); timer = null; }
+      paint();
+    }
+    function bump(pid, act, d) {
+      const st = statsByPlayer[pid]; if (!st) return;
+      if (act.startsWith("made_")) { const v = parseInt(act.slice(5), 10); st[act] = Math.max(0, num(st[act]) + d); st.points = Math.max(0, num(st.points) + d * v); }
+      else st[act] = Math.max(0, num(st[act]) + d);
+    }
+    ov.querySelector("#lv-players").addEventListener("click", (e) => {
+      const oc = e.target.closest(".lv-oc");
+      if (oc) { const pid = oc.dataset.oc; S.onCourt = S.onCourt.includes(pid) ? S.onCourt.filter((x) => x !== pid) : S.onCourt.concat(pid); paint(); return; }
+      const b = e.target.closest(".lv-p"); if (!b) return; sel = b.dataset.pid; paint();
+    });
+    ov.querySelector(".lv-btns").addEventListener("click", (e) => {
+      const b = e.target.closest(".lv-b"); if (!b || !sel) return;
+      const st = statsByPlayer[sel]; if (!st) return;
+      let firstCall = false;
+      if (!st.called_up) { st.called_up = true; firstCall = true; }
+      bump(sel, b.dataset.act, 1); S.log.push({ pid: sel, act: b.dataset.act, per: S.period, fc: firstCall }); persist(true); paint();
+    });
+    ov.querySelector("#lv-undo").addEventListener("click", () => {
+      const l = S.log.pop(); if (!l) return;
+      bump(l.pid, l.act, -1); if (l.fc && statsByPlayer[l.pid]) statsByPlayer[l.pid].called_up = false;
+      persist(true); paint();
+    });
+    ov.querySelector("#lv-run").addEventListener("click", () => { if (!S.running && S.remaining <= 0) S.remaining = S.periodMin * 60; setRunning(!S.running); });
+    ov.querySelector("#lv-pprev").addEventListener("click", () => { if (S.period > 1) { S.period--; setRunning(false); S.remaining = S.periodMin * 60; paint(); } });
+    ov.querySelector("#lv-pnext").addEventListener("click", () => { if (S.period < 10) { S.period++; setRunning(false); S.remaining = S.periodMin * 60; paint(); } });
+    ov.querySelector("#lv-len").addEventListener("change", (e) => { const v = Math.max(1, Math.min(60, parseInt(e.target.value, 10) || 10)); S.periodMin = v; if (!S.running) S.remaining = v * 60; paint(); });
+    const close = () => { if (timer) clearInterval(timer); document.removeEventListener("keydown", onKey); ov.remove(); renderCallupTable(); renderCallupTotalRow(); };
+    const onKey = (e) => { if (e.key === "Escape") { persist(true); close(); } };
+    document.addEventListener("keydown", onKey);
+    ov.querySelector("#lv-done").addEventListener("click", () => {
+      // minutos medidos con el reloj -> se SUMAN a lo que ya hubiera en "Minutes"
+      let tracked = 0;
+      Object.keys(S.secs).forEach((pid) => { const m = Math.round(S.secs[pid] / 60); const st = statsByPlayer[pid]; if (m > 0 && st) { st.minutes = num(st.minutes) + m; tracked++; if (!st.called_up) st.called_up = true; } });
+      try { localStorage.removeItem(KEY); } catch (e) {}
+      close();
+      showMessage(tracked ? _t("Live counter applied (minutes added for {n} player(s)). Remember to save the match.", { n: tracked }) : _t("Live counter applied to the table. Remember to save the match."), "success");
+    });
+    paint();
+  }
+  document.getElementById("live-btn").addEventListener("click", openLiveCounter);
+
 
   function renderCallupTable() {
     els.callupBody.innerHTML = "";
@@ -3930,5 +4232,6 @@
   init();
 </script>
 
+<script src="./menu-dropdown.js"></script>
 </body>
 </html>

@@ -225,6 +225,28 @@
   .example-data-card-bottom .tree-example { font-size: 12px; padding: 4px 9px; }
   .example-data-card-bottom select { font-size: 12px !important; padding: 5px 6px !important; }
 
+  /* Ficha del jugador (2026-11-07) */
+  .pp-overlay { position: fixed; inset: 0; background: rgba(8,0,38,.55); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .pp-modal { background: var(--card); border-radius: 14px; width: 100%; max-width: 720px; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+  .pp-head { padding: 16px 20px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .pp-head h2 { margin: 0; font-size: 20px; }
+  .pp-sub { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .pp-body { padding: 6px 20px 18px; overflow-y: auto; }
+  .pp-body h3 { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
+  .pp-kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 14px; font-size: 13.5px; }
+  .pp-kv small { display: block; color: var(--muted); font-size: 11.5px; }
+  .pp-tiles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pp-tile { border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; min-width: 84px; }
+  .pp-tile b { display: block; font-size: 20px; }
+  .pp-tile span { font-size: 11.5px; color: var(--muted); }
+  .pp-table-wrap { overflow-x: auto; }
+  .pp-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .pp-table th, .pp-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  .pp-table th:first-child, .pp-table td:first-child { text-align: left; }
+  .pp-table tfoot td { font-weight: 700; }
+  .pp-muted { color: var(--muted); font-size: 13.5px; }
+  .pp-note { font-size: 13.5px; margin: 4px 0; }
+  @media (max-width: 520px) { .pp-overlay { padding: 0; } .pp-modal { max-width: none; max-height: none; height: 100%; border-radius: 0; } }
   .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
   .btn { padding: 8px 14px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
   .btn-primary { background: var(--accent); color: #fff; }
@@ -285,6 +307,10 @@
   })();
 </script>
 <!-- End Matomo Code -->
+<link rel="stylesheet" href="./team-bar.css" />
+<link rel="stylesheet" href="./pivot-mobile.css" />
+<meta name="theme-color" content="#080026" />
+<link rel="manifest" href="./manifest.json" />
 </head>
 <body>
 
@@ -310,16 +336,20 @@
         <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
       </div>
       <a href="./dashboard.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+      <div class="sidebar-group">Team</div>
       <a href="./roster.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
       <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
+      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+      <div class="sidebar-group">Games</div>
       <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
       <a href="./stats.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
+      <div class="sidebar-group">Training</div>
       <a href="./exercises.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg>Exercise creator</a>
       <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
       <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
+      <div class="sidebar-group">Plays</div>
       <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
       <a href="./play_library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21V7"/><path d="M4 5c2-1 5-1 8 2 3-3 6-3 8-2v13c-2-1-5-1-8 2-3-3-6-3-8-2Z"/></svg>Playbook</a>
-      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
     </nav>
 
     <div class="sidebar-footer">
@@ -430,9 +460,12 @@
         <div class="columns-panel" id="columns-panel"></div>
       </div>
       <div class="spacer"></div>
-      <button class="btn btn-secondary" id="export-btn">Export to Excel</button>
-      <button class="btn btn-secondary" id="export-pdf-btn">Export to PDF</button>
-      <button class="btn btn-secondary" id="import-btn">Import from Excel</button>
+      <div class="menu-wrap"><button type="button" class="btn btn-secondary" data-menu-toggle aria-expanded="false">⇅ Import / Export ▾</button>
+        <div class="menu-panel">
+      <button class="btn btn-secondary menu-item" id="export-btn">Export to Excel</button>
+      <button class="btn btn-secondary menu-item" id="export-pdf-btn">Export to PDF</button>
+      <button class="btn btn-secondary menu-item" id="import-btn">Import from Excel</button>
+        </div></div>
       <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none" />
     </div>
 
@@ -488,6 +521,7 @@
 </div><!-- /app-shell -->
 
 <script src="./i18n.js?v=2"></script>
+<script src="./sw-register.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -1026,6 +1060,89 @@
     players.forEach((p) => els.body.appendChild(renderRow(p)));
   }
 
+
+  // -----------------------------------------------------------------------
+  // Ficha del jugador (2026-11-07): todo lo que la app sabe de un jugador en
+  // un solo sitio (datos, asistencia, partidos con estadísticas, evaluaciones).
+  // Solo lee; para editar siguen las celdas de la tabla.
+  // -----------------------------------------------------------------------
+  function ppEsc(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+  async function openPlayerProfile(p) {
+    if (document.getElementById("pp-overlay")) return;
+    const ov = document.createElement("div");
+    ov.className = "pp-overlay"; ov.id = "pp-overlay";
+    const fullName = `${p.first_name || ""} ${p.last_name || ""}`.trim();
+    const infoCols = COLUMN_DEFS.filter((c) => !["first_name", "last_name", "visibility"].includes(c.key));
+    const info = infoCols.map((c) => {
+      const v = p[c.key];
+      if (v === null || v === undefined || v === "") return "";
+      const shown = c.type === "checkbox" ? (v ? _t("Yes") : _t("No")) : formatCellValue(v, c);
+      return `<div><small>${ppEsc(_t(c.label))}</small>${ppEsc(shown)}</div>`;
+    }).join("");
+    ov.innerHTML = `<div class="pp-modal" role="dialog" aria-modal="true">
+      <div class="pp-head"><div><h2 data-i18n-skip>${p.jersey_number ? "#" + ppEsc(p.jersey_number) + " " : ""}${ppEsc(fullName)}</h2><div class="pp-sub" data-i18n-skip>${ppEsc(currentTeam || "")} · ${ppEsc(currentSeason || "")}</div></div>
+        <button type="button" class="btn btn-secondary" id="pp-close">Close</button></div>
+      <div class="pp-body">
+        <div class="pp-kv">${info}</div>
+        <div id="pp-att"><h3>Attendance</h3><div class="pp-muted">Loading…</div></div>
+        <div id="pp-stats"><h3>Matches</h3><div class="pp-muted">Loading…</div></div>
+        <div id="pp-assess"><h3>Assessments</h3><div class="pp-muted">Loading…</div></div>
+      </div></div>`;
+    document.body.appendChild(ov);
+    const close = () => { ov.remove(); document.removeEventListener("keydown", onKey); };
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+    ov.querySelector("#pp-close").addEventListener("click", close);
+    const fmt = (d) => new Date(d + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+
+    // ---- asistencia ----
+    try {
+      const { data: att } = await supabaseClient.from("attendance").select("status, match_id, training_id, event_id").eq("player_id", p.id);
+      const rows = att || [];
+      const by = { present: 0, late: 0, absent: 0, excused: 0, coach: 0, ot: 0 };
+      rows.forEach((r) => { if (by[r.status] !== undefined) by[r.status]++; });
+      const counted = by.present + by.late + by.absent + by.excused;
+      const pct = counted ? Math.round(((by.present + by.late) / counted) * 100) : null;
+      const tile = (n, label) => `<div class="pp-tile"><b>${n}</b><span>${ppEsc(label)}</span></div>`;
+      ov.querySelector("#pp-att").innerHTML = `<h3>${ppEsc(_t("Attendance"))}</h3>` + (rows.length === 0 ? `<div class="pp-muted">${ppEsc(_t("No attendance recorded for this player yet."))}</div>`
+        : `<div class="pp-tiles">${tile(pct === null ? "—" : pct + "%", _t("Attended (present or late)"))}${tile(by.present, _t("Present"))}${tile(by.late, _t("Late"))}${tile(by.absent, _t("Absent"))}${tile(by.excused, _t("Excused"))}${by.coach + by.ot ? tile(by.coach + by.ot, _t("Coach") + " / " + _t("OT||status letter: table official")) : ""}</div>`);
+    } catch (e) { ov.querySelector("#pp-att").innerHTML = `<h3>${ppEsc(_t("Attendance"))}</h3><div class="pp-muted">—</div>`; }
+
+    // ---- partidos ----
+    try {
+      const { data: st } = await supabaseClient.from("match_player_stats").select("match_id, minutes, points, rebounds, assists, fouls, periods_played, periods_sub, started").eq("player_id", p.id);
+      const stats = (st || []);
+      let matchesById = {};
+      if (stats.length) {
+        const { data: ms } = await supabaseClient.from("matches").select("id, date, opponent").in("id", stats.map((r) => r.match_id));
+        (ms || []).forEach((m) => { matchesById[m.id] = m; });
+      }
+      const list = stats.filter((r) => matchesById[r.match_id]).sort((a, b) => String(matchesById[a.match_id].date).localeCompare(String(matchesById[b.match_id].date)));
+      const num = (v) => (v === null || v === undefined ? 0 : Number(v) || 0);
+      const tot = (k) => list.reduce((a, r) => a + num(r[k]), 0);
+      const avg = (k) => (list.length ? (tot(k) / list.length).toFixed(1) : "—");
+      ov.querySelector("#pp-stats").innerHTML = `<h3>${ppEsc(_t("Matches"))}</h3>` + (list.length === 0 ? `<div class="pp-muted">${ppEsc(_t("No match stats saved for this player yet."))}</div>`
+        : `<div class="pp-table-wrap"><table class="pp-table"><thead><tr><th>${ppEsc(_t("Match"))}</th><th>${ppEsc(_t("MIN||player profile column"))}</th><th>${ppEsc(_t("PTS||player profile column"))}</th><th>${ppEsc(_t("REB||player profile column"))}</th><th>${ppEsc(_t("AST||player profile column"))}</th><th>${ppEsc(_t("PF||player profile column"))}</th><th>${ppEsc(_t("Per.||player profile column"))}</th></tr></thead><tbody>`
+          + list.map((r) => { const m = matchesById[r.match_id]; return `<tr><td data-i18n-skip>${ppEsc(fmt(m.date))} · ${ppEsc(m.opponent || "")}</td><td>${r.minutes ?? "—"}</td><td>${r.points ?? "—"}</td><td>${r.rebounds ?? "—"}</td><td>${r.assists ?? "—"}</td><td>${r.fouls ?? "—"}</td><td>${r.periods_played ?? "—"}${r.periods_sub ? " (" + r.periods_sub + ")" : ""}</td></tr>`; }).join("")
+          + `</tbody><tfoot><tr><td>${ppEsc(_t("Average per match"))}</td><td>${avg("minutes")}</td><td>${avg("points")}</td><td>${avg("rebounds")}</td><td>${avg("assists")}</td><td>${avg("fouls")}</td><td>${avg("periods_played")}</td></tr></tfoot></table></div>`);
+    } catch (e) { ov.querySelector("#pp-stats").innerHTML = `<h3>${ppEsc(_t("Matches"))}</h3><div class="pp-muted">—</div>`; }
+
+    // ---- evaluaciones ----
+    try {
+      const { data: as } = await supabaseClient.from("player_assessments").select("id, date, location, positive_points, negative_points, to_improve").eq("player_id", p.id).order("date", { ascending: false });
+      const list = (as || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      const last = list[0];
+      ov.querySelector("#pp-assess").innerHTML = `<h3>${ppEsc(_t("Assessments"))}</h3>` + (!last ? `<div class="pp-muted">${ppEsc(_t("No assessments yet for this player."))}</div>`
+        : `<div class="pp-note">${ppEsc(_t("{n} assessment(s) · latest: {date}", { n: list.length, date: fmt(last.date) }))}</div>`
+          + (last.positive_points ? `<div class="pp-note"><b>${ppEsc(_t("Positive points"))}:</b> <span data-i18n-skip>${ppEsc(last.positive_points)}</span></div>` : "")
+          + (last.negative_points ? `<div class="pp-note"><b>${ppEsc(_t("Points to watch"))}:</b> <span data-i18n-skip>${ppEsc(last.negative_points)}</span></div>` : "")
+          + (last.to_improve ? `<div class="pp-note"><b>${ppEsc(_t("To improve||assessment export column"))}:</b> <span data-i18n-skip>${ppEsc(last.to_improve)}</span></div>` : "")
+          + `<div class="pp-note"><a href="./assessment.html">${ppEsc(_t("Open in Player assessment"))} →</a></div>`);
+    } catch (e) { ov.querySelector("#pp-assess").innerHTML = `<h3>${ppEsc(_t("Assessments"))}</h3><div class="pp-muted">—</div>`; }
+  }
+
   function renderRow(p) {
     const tr = document.createElement("tr");
     if (!p.active) tr.className = "inactive-row";
@@ -1042,6 +1159,11 @@
     // -- actions --
     const actionsTd = document.createElement("td");
     actionsTd.className = "actions";
+    const profBtn = document.createElement("button");
+    profBtn.className = "profile-btn";
+    profBtn.textContent = "👤 Profile";
+    profBtn.addEventListener("click", () => openPlayerProfile(p));
+    actionsTd.appendChild(profBtn);
     if (canDelete()) {
       const delBtn = document.createElement("button");
       delBtn.textContent = "Delete";
@@ -1647,5 +1769,6 @@ els.logoutBtn.addEventListener("click", async () => {
   init();
 </script>
 
+<script src="./menu-dropdown.js"></script>
 </body>
 </html>

@@ -52,6 +52,19 @@
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
 
+  .stab-bar { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0 18px; border-bottom: 1px solid var(--line); }
+  .stab { padding: 10px 16px; border: none; background: none; border-bottom: 3px solid transparent; margin-bottom: -1px; font-weight: 600; font-size: 14.5px; color: var(--muted); cursor: pointer; }
+  .stab:hover { color: var(--ink); }
+  .stab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .stab-off { display: none !important; }
+  .sharing-row { display: grid !important; grid-template-columns: 210px auto minmax(0, 1fr); grid-template-areas: "label label label" "status status status" "select btn ."; gap: 6px 12px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line); }
+  .sharing-row:first-of-type { border-top: none; }
+  .sharing-row .sr-label { grid-area: label; }
+  .sharing-row .sr-label .hint { margin: 3px 0 0; font-size: 12.5px; }
+  .sharing-row .sharing-status { grid-area: status; font-size: 13px; color: var(--muted); }
+  .sharing-row select { grid-area: select; width: 100%; }
+  .sharing-row .apply-bulk-btn { grid-area: btn; }
+  @media (max-width: 760px) { .sharing-row { grid-template-columns: minmax(0, 1fr); grid-template-areas: "label" "status" "select" "btn"; } .sharing-row .apply-bulk-btn { justify-self: start; } }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 24px; margin-bottom: 20px; }
   .card h2 { font-size: 15px; margin: 0 0 4px; }
   .hint { font-size: 14px; color: var(--muted); margin: 0 0 16px; }
@@ -69,7 +82,7 @@
   .requirements { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; padding-left: 18px; }
   .requirements li { margin-bottom: 4px; }
 
-  .member-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .member-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; flex-wrap: wrap; border-bottom: 1px solid var(--line); font-size: 13.5px; }
   .member-row:last-child { border-bottom: none; }
   .member-info strong { display: block; }
   .member-info span { color: var(--muted); font-size: 12px; }
@@ -187,6 +200,9 @@
   })();
 </script>
 <!-- End Matomo Code -->
+<link rel="stylesheet" href="./pivot-mobile.css" />
+<meta name="theme-color" content="#080026" />
+<link rel="manifest" href="./manifest.json" />
 </head>
 <body>
 
@@ -212,16 +228,20 @@
         <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
       </div>
       <a href="./dashboard.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+      <div class="sidebar-group">Team</div>
       <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
       <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
+      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+      <div class="sidebar-group">Games</div>
       <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
       <a href="./stats.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
+      <div class="sidebar-group">Training</div>
       <a href="./exercises.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg>Exercise creator</a>
       <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
       <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
+      <div class="sidebar-group">Plays</div>
       <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
       <a href="./play_library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21V7"/><path d="M4 5c2-1 5-1 8 2 3-3 6-3 8-2v13c-2-1-5-1-8 2-3-3-6-3-8-2Z"/></svg>Playbook</a>
-      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
     </nav>
 
     <div class="sidebar-footer">
@@ -264,7 +284,14 @@
 
   <div class="msg" id="msg"></div>
 
-  <div class="card" id="logo-card">
+  <div class="stab-bar" id="stab-bar" role="tablist">
+    <button type="button" class="stab active" data-tab="club" role="tab">Club</button>
+    <button type="button" class="stab" data-tab="sharing" role="tab">Sharing</button>
+    <button type="button" class="stab" data-tab="exports" role="tab">Exports</button>
+    <button type="button" class="stab" data-tab="account" role="tab">Account &amp; legal</button>
+  </div>
+
+  <div class="card" id="logo-card" data-stab="club">
     <h2>Club logo <span style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">Admin only</span></h2>
     <p class="hint">Shown across PlayPivot wherever your club appears.</p>
 
@@ -291,14 +318,14 @@
     </ul>
   </div>
 
-  <div class="card" id="members-card" style="display:none">
+  <div class="card" id="members-card" data-stab="club" style="display:none">
     <h2>Members <span style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">Admin only</span></h2>
     <p class="hint">Change someone's role, block them (they keep their account but lose access to this club), or remove them for good. You can't demote, block, or remove the club's last admin. Someone asking to join for the first time shows up on the dashboard, not here.</p>
     <p id="members-scope-notice" style="display:none; font-size:12.5px; color:var(--accent-deep); background:var(--accent-tint); padding:8px 10px; border-radius:6px; margin-bottom:10px;"></p>
     <div id="members-list"></div>
   </div>
 
-  <div class="card" id="org-chart-card" style="display:none">
+  <div class="card" id="org-chart-card" data-stab="club" style="display:none">
     <details id="org-chart-details">
       <summary style="cursor:pointer; font-size:17px; font-weight:700; color:var(--ink);">Team org chart</summary>
       <p class="hint" style="margin:10px 0;">Who directs your team, and their role. Visible to everyone in the club — to change something here, use Members above.</p>
@@ -307,7 +334,7 @@
     </details>
   </div>
 
-  <div class="card" id="export-language-card" style="display:none">
+  <div class="card" id="export-language-card" data-stab="exports" style="display:none">
     <h2>Default exercise language</h2>
     <p class="hint">The exercise language the lists (Exercise library, Add from library) show first. PDFs and Excel files follow the language chosen at the top right (EN / FR / ES).</p>
     <select id="export-language-select">
@@ -317,7 +344,7 @@
     </select>
   </div>
 
-  <div class="card" id="pdf-sections-card" style="display:none">
+  <div class="card" id="pdf-sections-card" data-stab="exports" style="display:none">
     <h2>Exercise PDF — what to include</h2>
     <p class="hint">Turn off anything you don't want printed on an exercise sheet.</p>
     <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-age" /><label for="pdf-section-age">Age groups</label></div>
@@ -327,7 +354,7 @@
     <div class="checkbox-field" style="margin-bottom:8px;"><input type="checkbox" id="pdf-section-difficulty" /><label for="pdf-section-difficulty">Difficulty stars</label></div>
   </div>
 
-  <div class="card" id="validators-card" style="display:none">
+  <div class="card" id="validators-card" data-stab="club" style="display:none">
     <h2>Association validators <span style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;">Platform admin only</span></h2>
     <p class="hint">People who can approve or reject club association requests — a smaller power than yours, they can't block accounts or clubs. You're the only one who can grant or remove this.</p>
     <div id="validators-list" style="margin-bottom:12px;"></div>
@@ -337,69 +364,64 @@
     </div>
   </div>
 
-  <div class="card sharing-bulk-card" data-table="exercises" style="display:none">
-    <h2>Exercise sharing</h2>
-    <p class="hint">Sets every exercise in your library to the chosen circle at once. You can still pick one exercise by exercise in the Exercise creator.</p>
-    <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
-    <select class="bulk-visibility-select">
+  <div class="card" id="sharing-card" data-stab="sharing">
+    <h2>Sharing</h2>
+    <p class="hint">Choose who can see everything of each kind in one go. You can still pick one item at a time inside each module.</p>
+    <div class="sharing-bulk-card sharing-row" data-table="exercises">
+      <div class="sr-label"><strong>Exercise sharing</strong><p class="hint">Sets every exercise in your library to the chosen circle at once. You can still pick one exercise by exercise in the Exercise creator.</p></div>
+      <div class="sharing-status"></div>
+      <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
       <option value="team">👥 Whole club</option>
       <option value="association">🤝 My club association</option>
       <option value="community">🌐 PlayPivot Community</option>
-    </select>
-    <button class="btn btn-primary apply-bulk-btn">Set all exercises to this</button>
-  </div>
-
-  <div class="card sharing-bulk-card" data-table="plays" style="display:none">
-    <h2>Plays sharing</h2>
-    <p class="hint">Sets every play in your notebook to the chosen circle at once. You can still pick one play at a time in Play design.</p>
-    <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
-    <select class="bulk-visibility-select">
+      </select>
+      <button class="btn btn-primary apply-bulk-btn">Set all exercises to this</button>
+    </div>
+    <div class="sharing-bulk-card sharing-row" data-table="plays">
+      <div class="sr-label"><strong>Plays sharing</strong><p class="hint">Sets every play in your notebook to the chosen circle at once. You can still pick one play at a time in Play design.</p></div>
+      <div class="sharing-status"></div>
+      <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
       <option value="team">👥 Whole club</option>
       <option value="association">🤝 My club association</option>
       <option value="community">🌐 PlayPivot Community</option>
-    </select>
-    <button class="btn btn-primary apply-bulk-btn">Set all plays to this</button>
-  </div>
-
-  <div class="card sharing-bulk-card" data-table="matches" style="display:none">
-    <h2>Match reports sharing</h2>
-    <p class="hint">Match reports contain real player stats, so "PlayPivot Community" isn't offered here on purpose.</p>
-    <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
-    <select class="bulk-visibility-select">
+      </select>
+      <button class="btn btn-primary apply-bulk-btn">Set all plays to this</button>
+    </div>
+    <div class="sharing-bulk-card sharing-row" data-table="matches">
+      <div class="sr-label"><strong>Match reports sharing</strong><p class="hint">Match reports contain real player stats, so "PlayPivot Community" isn't offered here on purpose.</p></div>
+      <div class="sharing-status"></div>
+      <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
       <option value="team">👥 Whole club</option>
       <option value="association">🤝 My club association</option>
-    </select>
-    <button class="btn btn-primary apply-bulk-btn">Set all matches to this</button>
-  </div>
-
-  <div class="card sharing-bulk-card" data-table="trainings" style="display:none">
-    <h2>Training sessions sharing</h2>
-    <p class="hint">Sessions include real attendance, so "PlayPivot Community" isn't offered here on purpose. You can still pick one session at a time in Training builder.</p>
-    <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
-    <select class="bulk-visibility-select">
+      </select>
+      <button class="btn btn-primary apply-bulk-btn">Set all matches to this</button>
+    </div>
+    <div class="sharing-bulk-card sharing-row" data-table="trainings">
+      <div class="sr-label"><strong>Training sessions sharing</strong><p class="hint">Sessions include real attendance, so "PlayPivot Community" isn't offered here on purpose. You can still pick one session at a time in Training builder.</p></div>
+      <div class="sharing-status"></div>
+      <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
       <option value="team">👥 Whole club</option>
       <option value="association">🤝 My club association</option>
-    </select>
-    <button class="btn btn-primary apply-bulk-btn">Set all sessions to this</button>
-  </div>
-
-  <div class="card sharing-bulk-card" data-table="player_assessments" style="display:none">
-    <h2>Player assessments sharing</h2>
-    <p class="hint">Assessments are always a real player's evaluation, so "PlayPivot Community" isn't offered here on purpose.</p>
-    <div class="sharing-status" style="font-size:13px; color:var(--muted); margin-bottom:10px;"></div>
-    <select class="bulk-visibility-select">
+      </select>
+      <button class="btn btn-primary apply-bulk-btn">Set all sessions to this</button>
+    </div>
+    <div class="sharing-bulk-card sharing-row" data-table="player_assessments">
+      <div class="sr-label"><strong>Player assessments sharing</strong><p class="hint">Assessments are always a real player's evaluation, so "PlayPivot Community" isn't offered here on purpose.</p></div>
+      <div class="sharing-status"></div>
+      <select class="bulk-visibility-select">
       <option value="private">🔒 Only me</option>
       <option value="team">👥 Whole club</option>
       <option value="association">🤝 My club association</option>
-    </select>
-    <button class="btn btn-primary apply-bulk-btn">Set all assessments to this</button>
+      </select>
+      <button class="btn btn-primary apply-bulk-btn">Set all assessments to this</button>
+    </div>
   </div>
 
-  <div class="card" id="associations-card" style="display:none">
+  <div class="card" id="associations-card" data-stab="club" style="display:none">
     <h2>Club association</h2>
     <p class="hint">A middle circle between "just my club" and "everyone on PlayPivot" — a small group of clubs (e.g. a league) who agree to share content with each other. Needs approval from the PlayPivot platform controller before it becomes real.</p>
     <div id="associations-list" style="margin-bottom:14px;"></div>
@@ -415,13 +437,13 @@
     <p class="hint" style="margin-top:10px;">Already know the name of an existing association? Ask its members, then request to join it the same way — matching names request to join the same association instead of creating a new one.</p>
   </div>
 
-  <div class="card" id="legal-architecture-card">
+  <div class="card" id="legal-architecture-card" data-stab="account">
     <h2>Legal architecture</h2>
     <p class="hint">The full data-protection and legal-structure reference document — who's controller, who's processor, sub-processors, DPA contents, implementation plan. Open to everyone at your club, not just admins.</p>
     <a class="nav-btn" href="./legal-architecture.html" style="display:inline-block; text-decoration:none; text-align:center;">Open document →</a>
   </div>
 
-  <div class="card" id="delete-account-card">
+  <div class="card" id="delete-account-card" data-stab="account">
     <h2>Delete my account &amp; data</h2>
     <p class="hint">Choose what to remove. This isn't reversible, so we ask what exactly before doing anything.</p>
     <div id="delete-account-memberships" style="margin-bottom:12px;"></div>
@@ -440,6 +462,7 @@
 </div><!-- /app-shell -->
 
 <script src="./i18n.js?v=2"></script>
+<script src="./sw-register.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
 <script src="sidebar-widgets.js"></script>
@@ -1289,6 +1312,26 @@ els.logoutBtn.addEventListener("click", async () => {
     await loadDeleteAccountSection();
   }
   init();
+
+  // Pestañas de Ajustes (2026-11-06): Club · Compartir · Exportar · Cuenta y legal.
+  // Cada tarjeta lleva data-stab; las de otras pestañas se ocultan con una
+  // clase (no toca el display que ponen los roles).
+  (function initSettingsTabs() {
+    const TABS = ["club", "sharing", "exports", "account"];
+    const bar = document.getElementById("stab-bar");
+    if (!bar) return;
+    function show(tab) {
+      if (!TABS.includes(tab)) tab = "club";
+      document.querySelectorAll(".card[data-stab]").forEach((c) => c.classList.toggle("stab-off", c.dataset.stab !== tab));
+      bar.querySelectorAll(".stab").forEach((b) => { const on = b.dataset.tab === tab; b.classList.toggle("active", on); b.setAttribute("aria-selected", on ? "true" : "false"); });
+      try { sessionStorage.setItem("pivot-settings-tab", tab); } catch (e) {}
+    }
+    bar.addEventListener("click", (e) => { const b = e.target.closest(".stab"); if (!b) return; show(b.dataset.tab); try { history.replaceState(null, "", "#" + b.dataset.tab); } catch (e2) {} });
+    let initial = (location.hash || "").replace("#", "");
+    if (!TABS.includes(initial)) { try { initial = sessionStorage.getItem("pivot-settings-tab") || "club"; } catch (e) { initial = "club"; } }
+    window.showSettingsTab = show;
+    show(initial);
+  })();
 </script>
 
 </body>

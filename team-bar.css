@@ -1,0 +1,43 @@
+/* =============================================================================
+   Barra compacta de Equipo · Temporada (2026-11-06, revisión global)
+   La tarjeta de 3 pasos ocupaba ~370 px antes del contenido en cada módulo.
+   Esta hoja SOLO cambia el aspecto (los ids y el JS no cambian): selectores de
+   equipo y temporada en una fila, el botón "+ Nueva temporada/equipo" al lado, y
+   la información del equipo en una sola línea. Se carga después del CSS de cada
+   página. En navegadores sin :has() la tarjeta se ve como antes.
+   ============================================================================= */
+.team-bar-card:has(> .tsc-cols) {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px;
+  padding: 14px 18px; margin-bottom: 16px;
+}
+.team-bar-card:has(> .tsc-cols) > .tsc-cols { order: 1; flex: 1 1 440px; min-width: 0; gap: 16px; }
+.team-bar-card:has(> .tsc-cols) > .tsc-header { order: 2; flex: 0 0 auto; margin: 0; }
+.team-bar-card:has(> .tsc-cols) > #tsc-step3-wrap { order: 3; flex: 1 1 100%; margin-top: 0 !important; }
+.team-bar-card:has(> .tsc-cols) .tsc-header-icon,
+.team-bar-card:has(> .tsc-cols) .tsc-header > div:not([style]) { display: none; }
+.team-bar-card:has(> .tsc-cols) .tsc-header > div[style*="flex:1"] { display: none; }
+.team-bar-card:has(> .tsc-cols) .tsc-step-label {
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); margin: 0 0 4px;
+}
+.team-bar-card:has(> .tsc-cols) #tsc-step3-wrap > .tsc-step-label { display: none; }
+.team-bar-card:has(> .tsc-cols) .season-pill { padding: 6px 14px; min-width: 96px; }
+.team-bar-card:has(> .tsc-cols) .tsc-selected-card { padding: 8px 12px; gap: 12px; flex-wrap: wrap; }
+.team-bar-card:has(> .tsc-cols) .tsc-selected-card > .icon { width: 44px; height: 44px; border-radius: 8px; }
+.team-bar-card:has(> .tsc-cols) .tsc-selected-card > div[style*="flex:1"] {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 18px;
+}
+.team-bar-card:has(> .tsc-cols) .tsc-selected-sub { margin: 0; }
+.team-bar-card:has(> .tsc-cols) .tsc-chips { display: flex; flex-wrap: wrap; gap: 2px 16px; }
+.team-bar-card:has(> .tsc-cols) .tsc-chip { white-space: normal; }
+.team-bar-card:has(> .tsc-cols) .tsc-chip strong { display: inline; font-size: 13.5px; margin-right: 4px; }
+.team-bar-card:has(> .tsc-cols) .tsc-chip span:not(.icon) { display: inline; }
+.team-bar-card:has(> .tsc-cols) .tsc-chip { align-items: baseline; }
+.team-bar-card:has(> .tsc-cols) .tsc-chip .icon { align-self: center; }
+@media (max-width: 700px) {
+  .team-bar-card:has(> .tsc-cols) { padding: 12px; }
+  .team-bar-card:has(> .tsc-cols) > .tsc-cols { flex-basis: 100%; }
+  .team-bar-card:has(> .tsc-cols) > .tsc-header { order: 3; flex: 1 1 100%; }
+  .team-bar-card:has(> .tsc-cols) > .tsc-header .tree-new { width: 100%; }
+  .team-bar-card:has(> .tsc-cols) > #tsc-step3-wrap { order: 2; }
+}

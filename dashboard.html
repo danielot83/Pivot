@@ -166,6 +166,40 @@
   /* Stat cards v2: icon circle + number/label, matches the reference design */
   .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 8px; }
   @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+
+  /* Lo próximo / Pendiente (2026-11-06, revisión global) */
+  .upnext-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; margin: 0 0 14px; }
+  @media (max-width: 800px) { .upnext-row { grid-template-columns: minmax(0, 1fr); } }
+  .upnext-row .panel-card { min-width: 0; }
+  .gs-step { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); font-size: 14.5px; }
+  .gs-step:last-of-type { border-bottom: none; }
+  .gs-tick { flex: 0 0 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; }
+  .gs-step.done .gs-tick { background: #16a34a; border-color: #16a34a; }
+  .gs-step.done .gs-label { color: var(--muted); text-decoration: line-through; }
+  a.gs-step:hover .gs-label { color: var(--accent); }
+  .news-card summary { cursor: pointer; font-weight: 700; font-size: 14.5px; display: flex; align-items: center; gap: 10px; list-style: none; }
+  .news-card summary::-webkit-details-marker { display: none; }
+  .news-card summary::before { content: "▸"; color: var(--muted); }
+  .news-card[open] summary::before { content: "▾"; }
+  .news-new { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; background: var(--accent); color: #fff; border-radius: 100px; padding: 2px 8px; }
+  .news-item { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .news-item:last-child { border-bottom: none; }
+  .news-item strong { font-size: 14px; }
+  .news-item p { margin: 3px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+  .news-item small { color: var(--muted); font-size: 11.5px; }
+  .un-item { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); }
+  .un-item:last-child { border-bottom: none; }
+  a.un-item:hover { background: var(--paper); }
+  .un-when { flex: 0 0 74px; font-size: 12px; font-weight: 700; color: var(--accent); line-height: 1.25; }
+  .un-when small { display: block; font-weight: 500; color: var(--muted); font-size: 11.5px; }
+  .un-main { min-width: 0; flex: 1; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .un-main small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+  .un-kind { font-size: 11px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 100px; padding: 1px 8px; white-space: nowrap; }
+  .td-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); font-size: 14px; }
+  .td-item:last-child { border-bottom: none; }
+  a.td-item:hover { color: var(--accent); }
+  .td-count { flex: 0 0 auto; min-width: 26px; text-align: center; font-weight: 700; font-size: 13px; color: #b45309; background: #fef3c7; border-radius: 100px; padding: 2px 9px; }
+  .un-empty { color: var(--muted); font-size: 13.5px; padding: 6px 0; }
   .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
   .stat-icon-circle {
     width: 40px; height: 40px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-deep);
@@ -270,6 +304,9 @@
   })();
 </script>
 <!-- End Matomo Code -->
+<link rel="stylesheet" href="./pivot-mobile.css" />
+<meta name="theme-color" content="#080026" />
+<link rel="manifest" href="./manifest.json" />
 </head>
 <body>
 
@@ -310,16 +347,20 @@
         <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
       </div>
       <a href="./dashboard.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+      <div class="sidebar-group">Team</div>
       <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
       <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
+      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+      <div class="sidebar-group">Games</div>
       <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
       <a href="./stats.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
+      <div class="sidebar-group">Training</div>
       <a href="./exercises.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg>Exercise creator</a>
       <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
       <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
+      <div class="sidebar-group">Plays</div>
       <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
       <a href="./play_library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21V7"/><path d="M4 5c2-1 5-1 8 2 3-3 6-3 8-2v13c-2-1-5-1-8 2-3-3-6-3-8-2Z"/></svg>Playbook</a>
-      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
     </nav>
 
     <div class="sidebar-footer">
@@ -392,6 +433,31 @@
     <p class="section-label">Pending requests to approve</p>
     <div class="pending-card" id="pending-requests"></div>
   </div>
+
+  <div class="panel-card" id="gs-card" style="display:none; margin:0 0 14px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+      <h2 style="margin:0;">Getting started</h2>
+      <button type="button" class="btn btn-secondary" id="gs-dismiss-btn" style="padding:4px 10px; font-size:12px;">Hide</button>
+    </div>
+    <p class="hint" id="gs-progress" style="margin:0 0 6px;"></p>
+    <div id="gs-steps"></div>
+  </div>
+
+  <div class="upnext-row" id="upnext-row" style="display:none;">
+    <div class="panel-card">
+      <h2>Up next</h2>
+      <div id="upnext-list"></div>
+    </div>
+    <div class="panel-card">
+      <h2>To do</h2>
+      <div id="todo-list"></div>
+    </div>
+  </div>
+
+  <details class="panel-card news-card" id="news-card" style="display:none; margin:0 0 14px;">
+    <summary><span>What's new</span><span class="news-new" id="news-new-badge" style="display:none;">New</span></summary>
+    <div id="news-list" style="margin-top:8px;"></div>
+  </details>
 
   <p class="section-label">Your stats at a glance</p>
   <div class="stats-row">
@@ -489,6 +555,7 @@
 </div><!-- /app-shell -->
 
 <script src="./i18n.js?v=2"></script>
+<script src="./sw-register.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
 <script src="team-tree.js"></script>
@@ -2509,7 +2576,7 @@
           if (error) throw error;
         }
         overlay.remove();
-        await Promise.all([loadCalendar(), loadRecentActivity()]);
+        await Promise.all([loadCalendar(), loadRecentActivity(), loadUpNext()]);
         showMessage("Added to the calendar — and it'll show up in its module too.", "success");
       } catch (err) {
         saveBtn.disabled = false;
@@ -2564,6 +2631,7 @@
   };
 
   function timeAgo(iso) {
+    if (!iso || isNaN(new Date(iso).getTime())) return "";
     const diffMs = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diffMs / 60000);
     if (mins < 1) return "Just now";
@@ -2573,6 +2641,135 @@
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days}d ago`;
     return new Date(iso).toLocaleDateString("en-US");
+  }
+
+
+  // -----------------------------------------------------------------------
+  // "Up next" / "To do" (2026-11-06, revisión global): lo que un entrenador
+  // quiere ver al abrir la app -- lo próximo que viene y lo que se quedó
+  // sin hacer. Todo sale de las mismas tablas que el calendario; si una
+  // consulta falla, esa parte simplemente no se muestra.
+  // -----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
+  // "Getting started" (clubs nuevos) y "What's new" (2026-11-07).
+  // Los pasos se marcan solos según lo que ya existe en el club.
+  // -----------------------------------------------------------------------
+  async function loadGettingStarted() {
+    if (!currentOrgId) return;
+    const card = document.getElementById("gs-card");
+    try {
+      const key = "pivot-gs-hidden-" + currentOrgId;
+      let hidden = false; try { hidden = localStorage.getItem(key) === "1"; } catch (e) {}
+      const has = async (table) => { const r = await supabaseClient.from(table).select("id").eq("organization_id", currentOrgId).limit(1).then((x) => x, () => null); return !!(r && !r.error && r.data && r.data.length); };
+      const [pl, ex, tr, att, ma] = await Promise.all([has("players"), has("exercises"), has("trainings"), has("attendance"), has("matches")]);
+      const steps = [
+        { done: pl, label: _t("Create your team and add your players"), href: "./roster.html" },
+        { done: ex, label: _t("Create or pick your first exercises"), href: "./exercises.html" },
+        { done: tr, label: _t("Plan a training session"), href: "./training.html" },
+        { done: att, label: _t("Take attendance"), href: "./attendance.html" },
+        { done: ma, label: _t("Add a match"), href: "./match.html" },
+      ];
+      const doneN = steps.filter((x) => x.done).length;
+      if (doneN === steps.length || hidden) { card.style.display = "none"; return; }
+      document.getElementById("gs-progress").textContent = _t("{done} of {total} done", { done: doneN, total: steps.length });
+      document.getElementById("gs-steps").innerHTML = steps.map((x) => `<a class="gs-step${x.done ? " done" : ""}" href="${x.href}"><span class="gs-tick">${x.done ? "✓" : ""}</span><span class="gs-label">${escapeHtml(x.label)}</span></a>`).join("");
+      document.getElementById("gs-dismiss-btn").onclick = () => { try { localStorage.setItem(key, "1"); } catch (e) {} card.style.display = "none"; };
+      card.style.display = "";
+    } catch (err) { console.error("loadGettingStarted error:", err); card.style.display = "none"; }
+  }
+
+  // Novedades: lista estática (más reciente primero). El id de la primera
+  // entrada se guarda al abrir la tarjeta, y deja de salir "New".
+  const NEWS = [
+    { id: "2026-11-07-a", date: "2026-11-07", title: "Player profile", text: "In Roster, click a player's name to see attendance, matches, stats and assessments in one place." },
+    { id: "2026-11-07-b", date: "2026-11-07", title: "Periods grid in Match day", text: "Mark who plays each period with one tap; the app counts periods played and as sub, and warns if a period doesn't have exactly 4 on court." },
+    { id: "2026-11-07-c", date: "2026-11-07", title: "Training: duplicate and court mode", text: "Duplicate a session in one click, or open Court mode for a big screen with the current exercise and a timer." },
+    { id: "2026-11-06-a", date: "2026-11-06", title: "Take attendance", text: "In Attendance, tap \"Take attendance\" to mark a whole session from your phone, one player per row." },
+    { id: "2026-11-06-b", date: "2026-11-06", title: "Up next and To do", text: "The Dashboard now shows what's coming and what's missing: trainings without attendance, matches without score or stats." },
+    { id: "2026-11-06-c", date: "2026-11-06", title: "Cleaner Settings and Library", text: "Settings is split into tabs with one Sharing card, and every exercise in the Library shows a thumbnail of its diagram." },
+    { id: "2026-11-02-a", date: "2026-11-02", title: "Periods as sub", text: "Match day tracks how many periods each player started on the bench, and Stats shows it." },
+  ];
+  function renderNews() {
+    const card = document.getElementById("news-card");
+    const key = "pivot-news-seen";
+    let seen = ""; try { seen = localStorage.getItem(key) || ""; } catch (e) {}
+    document.getElementById("news-list").innerHTML = NEWS.map((n) => `<div class="news-item"><strong>${escapeHtml(_t(n.title))}</strong> <small>${escapeHtml(new Date(n.date + "T00:00:00").toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }))}</small><p>${escapeHtml(_t(n.text))}</p></div>`).join("");
+    const isNew = seen !== NEWS[0].id;
+    document.getElementById("news-new-badge").style.display = isNew ? "" : "none";
+    card.style.display = "";
+    card.ontoggle = () => { if (card.open) { try { localStorage.setItem(key, NEWS[0].id); } catch (e) {} document.getElementById("news-new-badge").style.display = "none"; } };
+  }
+
+  async function loadUpNext() {
+    if (!currentOrgId) return;
+    const row = document.getElementById("upnext-row");
+    try {
+      const pad = (n) => String(n).padStart(2, "0");
+      const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const now = new Date();
+      const today = ymd(now);
+      const from = ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 60));
+      const to = ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 30));
+      const [mRes, tRes, eRes] = await Promise.all([
+        supabaseClient.from("matches").select("id, date, opponent, season, team, team_category, team_gender, team_score, opponent_score").eq("organization_id", currentOrgId).gte("date", from).lte("date", to),
+        supabaseClient.from("trainings").select("id, date, title, season, team, team_category, team_gender").eq("organization_id", currentOrgId).gte("date", from).lte("date", to),
+        supabaseClient.from("events").select("id, date, title, season, team, team_category, team_gender").eq("organization_id", currentOrgId).gte("date", from).lte("date", to).then((r) => r, () => ({ data: [] })),
+      ]);
+      const real = (x) => !isExampleTeam(x.season, x.team);
+      const matches = ((mRes && mRes.data) || []).filter(real);
+      const trainings = ((tRes && tRes.data) || []).filter(real);
+      const events = ((eRes && eRes.data) || []).filter((e) => !e.team || real(e));
+
+      // ---- Up next ----
+      const upcoming = [];
+      matches.forEach((m) => { if (m.date >= today) upcoming.push({ type: "match", date: m.date, title: _t("vs {name}", { name: m.opponent || "?" }), team: m, href: "./match.html" }); });
+      trainings.forEach((t) => { if (t.date >= today) upcoming.push({ type: "training", date: t.date, title: t.title || _t("Training"), team: t, href: "./training.html" }); });
+      events.forEach((e) => { if (e.date >= today) upcoming.push({ type: "event", date: e.date, title: e.title || _t("Event"), team: e, href: null }); });
+      upcoming.sort((a, b) => a.date.localeCompare(b.date));
+      const dayDiff = (d) => Math.round((new Date(d + "T00:00:00") - new Date(today + "T00:00:00")) / 86400000);
+      const whenLabel = (d) => { const n = dayDiff(d); return n === 0 ? _t("Today") : n === 1 ? _t("Tomorrow") : _t("In {n} days", { n }); };
+      const kindLabel = { match: _t("Match"), training: _t("Training"), event: _t("Event") };
+      const teamText = (x) => x.team ? x.team + (x.team_category || x.team_gender ? ` (${[x.team_category, x.team_gender].filter(Boolean).join(", ")})` : "") : "";
+      const upEl = document.getElementById("upnext-list");
+      upEl.innerHTML = upcoming.length === 0
+        ? `<div class="un-empty">${escapeHtml(_t("Nothing scheduled in the next 30 days. Use the calendar below to add a match, training or event."))}</div>`
+        : upcoming.slice(0, 4).map((it) => {
+            const d = new Date(it.date + "T00:00:00");
+            const inner = `<div class="un-when">${escapeHtml(whenLabel(it.date))}<small>${escapeHtml(d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" }))}</small></div>
+              <div class="un-main"><span data-i18n-skip>${escapeHtml(it.title)}</span><small data-i18n-skip>${escapeHtml(teamText(it.team))}</small></div>
+              <span class="un-kind">${escapeHtml(kindLabel[it.type])}</span>`;
+            return it.href ? `<a class="un-item" href="${it.href}">${inner}</a>` : `<div class="un-item">${inner}</div>`;
+          }).join("");
+
+      // ---- To do ----
+      const pastTr = trainings.filter((t) => t.date < today).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 60);
+      const pastMa = matches.filter((m) => m.date < today).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 60);
+      const noScore = pastMa.filter((m) => m.team_score == null || m.opponent_score == null);
+      const scored = pastMa.filter((m) => m.team_score != null && m.opponent_score != null);
+      const [attTr, statsRes] = await Promise.all([
+        pastTr.length ? supabaseClient.from("attendance").select("training_id").in("training_id", pastTr.map((t) => t.id)).then((r) => r, () => null) : Promise.resolve(null),
+        scored.length ? supabaseClient.from("match_player_stats").select("match_id").in("match_id", scored.map((m) => m.id)).then((r) => r, () => null) : Promise.resolve(null),
+      ]);
+      const todo = [];
+      if (attTr && !attTr.error) {
+        const withAtt = new Set((attTr.data || []).map((r) => r.training_id));
+        const n = pastTr.filter((t) => !withAtt.has(t.id)).length;
+        if (n) todo.push({ label: _t("Past trainings without attendance"), n, href: "./attendance.html" });
+      }
+      if (noScore.length) todo.push({ label: _t("Matches without a final score"), n: noScore.length, href: "./match.html" });
+      if (statsRes && !statsRes.error) {
+        const withStats = new Set((statsRes.data || []).map((r) => r.match_id));
+        const n = scored.filter((m) => !withStats.has(m.id)).length;
+        if (n) todo.push({ label: _t("Matches without player stats"), n, href: "./match.html" });
+      }
+      document.getElementById("todo-list").innerHTML = todo.length === 0
+        ? `<div class="un-empty">${escapeHtml(_t("All caught up — nothing pending."))}</div>`
+        : todo.map((t) => `<a class="td-item" href="${t.href}"><span>${escapeHtml(t.label)}</span><span class="td-count">${t.n}</span></a>`).join("");
+      row.style.display = "";
+    } catch (err) {
+      console.error("loadUpNext error:", err);
+      row.style.display = "none";
+    }
   }
 
   async function loadRecentActivity() {
@@ -2846,6 +3043,9 @@
       await loadStats();
       await loadCalendar();
       await loadRecentActivity();
+      await loadUpNext();
+      await loadGettingStarted();
+      renderNews();
     }
     await loadPlatformStats();
     await loadMessagesWidget();
