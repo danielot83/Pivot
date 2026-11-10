@@ -3,12 +3,12 @@
    si falla la red, la última copia guardada. Solo se guardan ficheros de la propia
    app y las librerías de cdn.jsdelivr.net. Los datos (Supabase) NUNCA se guardan:
    sin conexión la app abre, pero no carga ni guarda datos hasta volver la red. */
-const CACHE = "playpivot-shell-v1";
+const CACHE = "playpivot-shell-v2"; // v2: añade security-guard.js y filtra qué se guarda
 const CORE = ["./dashboard.html", "./roster.html", "./attendance.html", "./training.html", "./match.html",
   "./stats.html", "./exercises.html", "./library.html", "./play_design.html", "./play_library.html", "./assessment.html",
   "./settings.html", "./compare.html", "./help.html", "./team-bar.css", "./pivot-mobile.css", "./i18n.js", "./i18n-fr.js",
   "./i18n-es.js", "./menu-dropdown.js", "./modules-grid.js", "./org-switcher.js", "./sidebar-widgets.js", "./team-tree.js",
-  "./court-diagram.js", "./exercise-categories.js", "./terms-version.js", "./manifest.json", "./favicon-192.png",
+  "./court-diagram.js", "./exercise-categories.js", "./terms-version.js", "./security-guard.js", "./manifest.json", "./favicon-192.png",
   "./favicon-32.png", "./playpivot-logo.png", "./playpivot-logo-negativo.png"];
 
 self.addEventListener("install", (e) => {
@@ -31,6 +31,9 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   const ours = url.origin === self.location.origin;
   if (!ours && url.hostname !== "cdn.jsdelivr.net") return; // Supabase y demás: directo a la red
+  // Solo ficheros estáticos de la app; nunca el rastreo de Matomo (cada visita tiene URL distinta y
+  // llenaría la caché) ni nada que no sea html/js/css/imagen/json.
+  if (ours && (url.pathname.indexOf("/analytics/") !== -1 || !/\.(?:html|js|css|png|jpe?g|webp|svg|ico|json|woff2?)$/i.test(url.pathname) && url.pathname !== "/" && !url.pathname.endsWith("/"))) return;
   e.respondWith((async () => {
     const c = await caches.open(CACHE);
     try {
