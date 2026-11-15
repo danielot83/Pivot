@@ -352,6 +352,7 @@
       <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
       <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
       <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+      <a href="./season.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M7 15h4M7 18h7"/></svg>Season plan</a>
       <div class="sidebar-group">Games</div>
       <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
       <a href="./stats.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
@@ -453,6 +454,12 @@
       <h2>To do</h2>
       <div id="todo-list"></div>
     </div>
+  </div>
+
+  <div class="panel-card" id="alerts-card" style="display:none; margin:0 0 14px;">
+    <h2>Heads up</h2>
+    <p class="hint" style="margin:0 0 6px;">Things worth a look this season, worked out from your attendance and assessments.</p>
+    <div id="alerts-list"></div>
   </div>
 
   <details class="panel-card news-card" id="news-card" style="display:none; margin:0 0 14px;">
@@ -2577,7 +2584,7 @@
           if (error) throw error;
         }
         overlay.remove();
-        await Promise.all([loadCalendar(), loadRecentActivity(), loadUpNext()]);
+        await Promise.all([loadCalendar(), loadRecentActivity(), loadUpNext(), loadAlerts()]);
         showMessage("Added to the calendar — and it'll show up in its module too.", "success");
       } catch (err) {
         saveBtn.disabled = false;
@@ -2682,6 +2689,9 @@
   // Novedades: lista estática (más reciente primero). El id de la primera
   // entrada se guarda al abrir la tarjeta, y deja de salir "New".
   const NEWS = [
+    { id: "2026-11-13-a", date: "2026-11-13", title: "Season plan", text: "A new page per team: objectives (global ones from PlayPivot and your own), % of training time and sessions per theme, what is still missing, tips, and a season report in PDF or Excel." },
+    { id: "2026-11-13-b", date: "2026-11-13", title: "Copy roster from another season", text: "In Roster, start a new season by copying players from a previous one in two clicks." },
+    { id: "2026-11-13-c", date: "2026-11-13", title: "Only what you measure", text: "Profiles, stats and comparisons now show only the stats you actually record, and Stats has a playing-time balance." },
     { id: "2026-11-07-a", date: "2026-11-07", title: "Player profile", text: "In Roster, click a player's name to see attendance, matches, stats and assessments in one place." },
     { id: "2026-11-07-b", date: "2026-11-07", title: "Periods grid in Match day", text: "Mark who plays each period with one tap; the app counts periods played and as sub, and warns if a period doesn't have exactly 4 on court." },
     { id: "2026-11-07-c", date: "2026-11-07", title: "Training: duplicate and court mode", text: "Duplicate a session in one click, or open Court mode for a big screen with the current exercise and a timer." },
@@ -2770,6 +2780,76 @@
     } catch (err) {
       console.error("loadUpNext error:", err);
       row.style.display = "none";
+    }
+  }
+
+
+  // -----------------------------------------------------------------------
+  // "Heads up" (alertas): solo la temporada actual -- (1) jugadores con 3 o
+  // más entrenos seguidos sin venir (ausente o excusado), mirando los
+  // últimos 90 días; (2) jugadores activos sin evaluación en 60 días (o
+  // nunca), agrupados por equipo. Si una consulta falla no se muestra.
+  // -----------------------------------------------------------------------
+  async function loadAlerts() {
+    const card = document.getElementById("alerts-card");
+    if (!currentOrgId || !card) return;
+    try {
+      const { current } = guessSeasonOptions();
+      const pad = (n) => String(n).padStart(2, "0");
+      const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const now = new Date(); const today = ymd(now);
+      const from90 = ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90));
+      const cut60 = ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 60));
+      const plRes = await supabaseClient.from("players").select("id, first_name, last_name, season, team, team_category, team_gender, active").eq("organization_id", currentOrgId).eq("season", current);
+      const players = ((plRes && plRes.data) || []).filter((p) => p.active !== false && !isExampleTeam(p.season, p.team));
+      if (!players.length) { card.style.display = "none"; return; }
+      const teamText = (x) => x.team + (x.team_category || x.team_gender ? ` (${[x.team_category, x.team_gender].filter(Boolean).join(", ")})` : "");
+      const alerts = [];
+
+      // 1) rachas de ausencias
+      const trRes = await supabaseClient.from("trainings").select("id, date, season, team").eq("organization_id", currentOrgId).eq("season", current).gte("date", from90).lte("date", today);
+      const trainings = (trRes && trRes.data) || [];
+      const dateOf = {}; trainings.forEach((t) => { dateOf[t.id] = t.date; });
+      let attRows = [];
+      const tids = trainings.map((t) => t.id);
+      for (let i = 0; i < tids.length; i += 40) {
+        const r = await supabaseClient.from("attendance").select("player_id, status, training_id").in("training_id", tids.slice(i, i + 40));
+        if (r && !r.error) attRows = attRows.concat(r.data || []);
+      }
+      const byPlayer = {};
+      attRows.forEach((a) => { if (dateOf[a.training_id]) (byPlayer[a.player_id] = byPlayer[a.player_id] || []).push({ d: dateOf[a.training_id], s: a.status }); });
+      const streaks = [];
+      players.forEach((p) => {
+        const rows = (byPlayer[p.id] || []).filter((r) => r.s !== "coach" && r.s !== "ot").sort((a, b) => b.d.localeCompare(a.d));
+        let n = 0;
+        for (const r of rows) { if (r.s === "absent" || r.s === "excused") n++; else break; }
+        if (n >= 3) streaks.push({ p, n });
+      });
+      streaks.sort((a, b) => b.n - a.n);
+      streaks.slice(0, 6).forEach(({ p, n }) => alerts.push({ href: "./attendance.html", label: _t("{name} has missed the last {n} trainings in a row", { name: `${p.first_name} ${p.last_name}`, n }), sub: teamText(p), n }));
+      if (streaks.length > 6) alerts.push({ href: "./attendance.html", label: _t("+ {n} more players with 3 or more missed trainings in a row", { n: streaks.length - 6 }), sub: "", n: streaks.length - 6 });
+
+      // 2) sin evaluación en 60 días
+      const ids = players.map((p) => p.id);
+      let asRows = []; let asOk = true;
+      for (let i = 0; i < ids.length; i += 40) {
+        const r = await supabaseClient.from("player_assessments").select("player_id, date").in("player_id", ids.slice(i, i + 40));
+        if (r && r.error) { asOk = false; break; }
+        asRows = asRows.concat((r && r.data) || []);
+      }
+      if (asOk) {
+        const last = {}; asRows.forEach((a) => { if (!last[a.player_id] || a.date > last[a.player_id]) last[a.player_id] = a.date; });
+        const byTeam = {};
+        players.forEach((p) => { if (!last[p.id] || last[p.id] < cut60) { const k = teamText(p); byTeam[k] = (byTeam[k] || 0) + 1; } });
+        Object.keys(byTeam).sort().forEach((k) => alerts.push({ href: "./assessment.html", label: _t(byTeam[k] === 1 ? "{n} player without an assessment in the last 60 days" : "{n} players without an assessment in the last 60 days", { n: byTeam[k] }), sub: k, n: byTeam[k] }));
+      }
+
+      if (!alerts.length) { card.style.display = "none"; return; }
+      document.getElementById("alerts-list").innerHTML = alerts.map((a) => `<a class="td-item" href="${a.href}"><span><span data-i18n-skip>${escapeHtml(a.label)}</span>${a.sub ? `<small class="hint" data-i18n-skip style="display:block;">${escapeHtml(a.sub)}</small>` : ""}</span><span class="td-count">${a.n}</span></a>`).join("");
+      card.style.display = "";
+    } catch (err) {
+      console.error("loadAlerts error:", err);
+      card.style.display = "none";
     }
   }
 
@@ -3045,6 +3125,7 @@
       await loadCalendar();
       await loadRecentActivity();
       await loadUpNext();
+      await loadAlerts();
       await loadGettingStarted();
       renderNews();
     }

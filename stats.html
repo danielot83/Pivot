@@ -339,6 +339,7 @@
       <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
       <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
       <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+      <a href="./season.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M7 15h4M7 18h7"/></svg>Season plan</a>
       <div class="sidebar-group">Games</div>
       <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
       <a href="./stats.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
@@ -514,6 +515,12 @@
       <div class="empty-state" id="att-table-empty" style="display:none;">No attendance recorded yet this season — fill it in under Attendance.</div>
     </div>
 
+    <div class="team-bar-card" data-stab="players" id="playtime-card">
+      <h2>Playing time balance</h2>
+      <p class="hint" style="margin:0 0 12px;" id="playtime-hint"></p>
+      <div id="playtime-area"></div>
+    </div>
+
     <div class="team-bar-card" data-stab="players">
       <div class="card-head-row">
         <h2 id="leaders-heading">Leaders</h2>
@@ -548,6 +555,7 @@
 </div>
 
 <script src="./i18n.js?v=2"></script>
+<script src="./stat-measured.js"></script>
 <script src="./sw-register.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
@@ -1286,32 +1294,31 @@
     playerStats.forEach((r) => { (byMatch[r.match_id] = byMatch[r.match_id] || []).push(r); });
     const gamesWithStats = Object.keys(byMatch);
 
+    // Solo cuentan los partidos donde esa estadística se midió de verdad
+    // (algún jugador con valor != 0; ver stat-measured.js). Si no hay ninguno
+    // devuelve null y el tile se oculta en vez de enseñar un 0 falso.
+    const measured = PPMeasured.measuredByMatch(playerStats);
     function teamAvgFor(field) {
       const perGame = [];
       gamesWithStats.forEach((mid) => {
         const rows = byMatch[mid];
-        const hasAny = rows.some((r) => r[field] !== null && r[field] !== undefined);
-        if (!hasAny) return;
-        perGame.push(rows.reduce((a, r) => a + (r[field] == null ? 0 : Number(r[field])), 0));
+        const vals = rows.map((r) => PPMeasured.value(measured, r, field)).filter((v) => v !== null);
+        if (!vals.length) return;
+        perGame.push(vals.reduce((a, v) => a + v, 0));
       });
       return average(perGame);
     }
-    function teamAvgCustom(key) {
-      const perGame = [];
-      gamesWithStats.forEach((mid) => {
-        const rows = byMatch[mid];
-        const hasAny = rows.some((r) => r.custom_stats && r.custom_stats[key] !== undefined && r.custom_stats[key] !== null);
-        if (!hasAny) return;
-        perGame.push(rows.reduce((a, r) => a + ((r.custom_stats && Number(r.custom_stats[key])) || 0), 0));
-      });
-      return average(perGame);
-    }
+    function teamAvgCustom(key) { return teamAvgFor("custom:" + key); }
     function teamAvgForDef(def) { return def.customKey ? teamAvgCustom(def.customKey) : teamAvgFor(def.id); }
 
     const diffClass = avgDiff == null ? "" : (avgDiff > 0 ? "pos" : (avgDiff < 0 ? "neg" : ""));
     const diffSign = avgDiff == null ? "" : (avgDiff > 0 ? "+" : "");
     const visible = visibleTeamStatKeys || new Set(allStatDefs().map((d) => d.id));
-    const tiles = allStatDefs().filter((d) => visible.has(d.id)).map((d) => `<div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgForDef(d))}</div><div class="stat-tile-label">${escapeHtml(d.label)}</div></div>`).join("");
+    // Tiles sin ningún dato medido: se ocultan solos (y se avisa debajo).
+    const tileDefs = allStatDefs().filter((d) => visible.has(d.id));
+    const withData = tileDefs.filter((d) => teamAvgForDef(d) !== null);
+    const hiddenNoData = tileDefs.length - withData.length;
+    const tiles = withData.map((d) => `<div class="stat-tile"><div class="stat-tile-value">${fmtAvg(teamAvgForDef(d))}</div><div class="stat-tile-label">${escapeHtml(d.label)}</div></div>`).join("");
 
     let html = `
       <div class="record-line">
@@ -1324,7 +1331,8 @@
         <div class="stat-tile"><div class="stat-tile-value ${diffClass}">${diffSign}${fmtAvg(avgDiff)}</div><div class="stat-tile-label">Point differential</div></div>
       </div>
       <p class="section-label">Team box-score totals per game (sum of all players' tracked stats — may be lower than the official score above if some matches are missing stats). Use "Columns ▾" above to hide stats you don't log.</p>
-      <div class="stat-tile-grid">${tiles || `<p class="hint">No columns selected — pick at least one from "Columns ▾".</p>`}</div>
+      <div class="stat-tile-grid">${tiles || `<p class="hint">${hiddenNoData ? "No box-score stats have been recorded for these matches yet." : `No columns selected — pick at least one from "Columns ▾".`}</p>`}</div>
+      ${hiddenNoData && tiles ? `<p class="hint">Stats nobody recorded in these matches are hidden automatically.</p>` : ""}
       <p class="hint" style="margin-top:12px;">No shooting percentage yet — the app only tracks shots <em>made</em> (1PM/2PM/3PM), not attempts. Averages above are makes, not accuracy.</p>
     `;
     els.teamRecordArea.innerHTML = html;
@@ -1339,6 +1347,10 @@
   // -----------------------------------------------------------------------
   function computePlayerAverages(playerStats, playersById, attendedRows) {
     const realRows = playerStats.filter(hasRealPlayData);
+    // "Medida" = algún jugador del partido tiene un valor distinto de 0 en esa
+    // estadística (ver stat-measured.js). Un partido donde solo se anotaron
+    // puntos NO mete ceros de rebotes/asistencias en las medias.
+    const measured = PPMeasured.measuredByMatch(playerStats);
     const byPlayer = {};
     const newBucket = () => ({ gp: 0, sg: 0, played: new Set(), gs: 0, sums: {}, counts: {}, custom: {}, customCounts: {} });
     // gp (PJ) = partidos con stats reales O con asistencia Presente/Tarde; sg = solo los que tienen stats
@@ -1353,13 +1365,13 @@
       b.sg++;
       b.played.add(r.match_id);
       if (r.started) b.gs++;
-      ALWAYS_ZERO_FIELDS.forEach((f) => { b.sums[f] = (b.sums[f] || 0) + (r[f] || 0); });
-      OPTIONAL_FIELDS.forEach((f) => {
-        if (r[f] !== null && r[f] !== undefined) { b.sums[f] = (b.sums[f] || 0) + Number(r[f]); b.counts[f] = (b.counts[f] || 0) + 1; }
+      ALWAYS_ZERO_FIELDS.concat(OPTIONAL_FIELDS).forEach((f) => {
+        const v = PPMeasured.value(measured, r, f);
+        if (v !== null) { b.sums[f] = (b.sums[f] || 0) + v; b.counts[f] = (b.counts[f] || 0) + 1; }
       });
       matchFields.forEach((f) => {
-        const v = r.custom_stats && r.custom_stats[f.key];
-        if (v !== undefined && v !== null) { b.custom[f.key] = (b.custom[f.key] || 0) + Number(v); b.customCounts[f.key] = (b.customCounts[f.key] || 0) + 1; }
+        const v = PPMeasured.value(measured, r, "custom:" + f.key);
+        if (v !== null) { b.custom[f.key] = (b.custom[f.key] || 0) + v; b.customCounts[f.key] = (b.customCounts[f.key] || 0) + 1; }
       });
     });
 
@@ -1377,11 +1389,7 @@
       // los campos opcionales, "total" también es null si nunca se
       // registró ese dato (un total de 0 sería engañoso, igual que ya
       // pasaba con la media).
-      ALWAYS_ZERO_FIELDS.forEach((f) => {
-        row[f + "_avg"] = b.sg ? b.sums[f] / b.sg : null;
-        row[f + "_total"] = b.sg ? b.sums[f] : null;
-      });
-      OPTIONAL_FIELDS.forEach((f) => {
+      ALWAYS_ZERO_FIELDS.concat(OPTIONAL_FIELDS).forEach((f) => {
         row[f + "_avg"] = b.counts[f] ? b.sums[f] / b.counts[f] : null;
         row[f + "_total"] = b.counts[f] ? b.sums[f] : null;
       });
@@ -1407,7 +1415,10 @@
   function playerColumns(mode) {
     const visible = visiblePlayerStatKeys || new Set(allStatDefs().map((d) => d.id));
     const fixed = PLAYER_FIXED_COLUMNS.map((c) => ({ id: c.key, field: c.key, label: c.label, sortable: c.sortable }));
-    const stats = allStatDefs().filter((d) => visible.has(d.id)).map((d) => ({ id: d.id, field: playerStatField(d, mode), label: d.short || d.label, sortable: true }));
+    // Columnas sin ningún dato medido en el equipo: se ocultan solas (si no
+    // hay filas todavía se dejan todas, para no vaciar la cabecera).
+    const hasData = (d) => !lastPlayerRows.length || lastPlayerRows.some((r) => r[playerStatField(d, mode)] != null);
+    const stats = allStatDefs().filter((d) => visible.has(d.id) && hasData(d)).map((d) => ({ id: d.id, field: playerStatField(d, mode), label: d.short || d.label, sortable: true }));
     return fixed.concat(stats);
   }
 
@@ -1503,10 +1514,43 @@
     renderStatsModeToggle(els.leaderStatsModeToggle);
     renderPlayerTable();
 
-    const leaderDefs = allStatDefs().filter((d) => (visiblePlayerStatKeys || new Set(allStatDefs().map((d2) => d2.id))).has(d.id));
+    const leaderDefs = allStatDefs().filter((d) => (visiblePlayerStatKeys || new Set(allStatDefs().map((d2) => d2.id))).has(d.id)
+      && (!lastPlayerRows.length || lastPlayerRows.some((r) => r[playerStatField(d, playerStatsMode)] != null)));
     if (leaderDefs.length && !leaderDefs.some((d) => d.id === leaderStatKey)) leaderStatKey = leaderDefs[0].id;
     renderStatPickerRow(els.leaderStatPicker, leaderStatKey, (key) => { leaderStatKey = key; renderPlayerSection(); }, leaderDefs);
     renderPlayerBarChart(leaderDefs);
+    renderPlayingTime();
+  }
+
+  // Reparto del tiempo de juego: periodos por partido (o minutos si no hay
+  // periodos) entre los jugadores con datos medidos. La bandera marca a quien
+  // está por debajo de la mitad de la media del equipo -- es un aviso para
+  // mirar (lesiones, incorporaciones tardías...), no un veredicto.
+  function renderPlayingTime() {
+    const area = document.getElementById("playtime-area"), hint = document.getElementById("playtime-hint");
+    if (!area) return;
+    const rows = lastPlayerRows || [];
+    const metric = rows.some((r) => r.periods_played_avg != null) ? "periods_played" : (rows.some((r) => r.minutes_avg != null) ? "minutes" : null);
+    if (!metric) {
+      hint.textContent = _t("Periods or minutes per player will show up here once you record them in Match day.");
+      area.innerHTML = ""; return;
+    }
+    const isPer = metric === "periods_played";
+    hint.textContent = isPer
+      ? _t("Periods played per match, from what you record in Match day. A flag marks players below half the team average — worth a look, not a verdict (injuries, late arrivals…).")
+      : _t("Minutes played per match, from what you record in Match day. A flag marks players below half the team average — worth a look, not a verdict (injuries, late arrivals…).");
+    const withData = rows.filter((r) => r[metric + "_avg"] != null).sort((a, b) => b[metric + "_avg"] - a[metric + "_avg"]);
+    const totalSum = withData.reduce((a, r) => a + (r[metric + "_total"] || 0), 0);
+    const mean = withData.reduce((a, r) => a + r[metric + "_avg"], 0) / (withData.length || 1);
+    const max = Math.max(...withData.map((r) => r[metric + "_avg"]), 0.0001);
+    const nodata = rows.filter((r) => r[metric + "_avg"] == null && r.gp > 0).length;
+    area.innerHTML = withData.map((r) => {
+      const v = r[metric + "_avg"], share = totalSum ? Math.round(((r[metric + "_total"] || 0) / totalSum) * 100) : 0;
+      const low = withData.length > 1 && v < mean * 0.5;
+      return `<div class="bar-row"><div class="bar-row-label" title="${escapeHtml(r.name)}">${escapeHtml(r.jersey_number ? `#${r.jersey_number} ` : "")}${escapeHtml(r.name)}</div>
+        <div class="bar-row-track"><div class="bar-row-fill" style="width:${Math.max(3, v / max * 100).toFixed(1)}%;${low ? "background:#b45309;" : ""}"></div></div>
+        <div class="bar-row-value">${fmtAvg(v)} · ${share}%${low ? ` <span title="${escapeHtml(_t("Below half the team average"))}">⚑</span>` : ""}</div></div>`;
+    }).join("") + `<p class="hint" style="margin-top:10px;">${escapeHtml(_t("Team average: {avg} per match. Share = percentage of all the {unit} recorded.", { avg: fmtAvg(mean), unit: isPer ? _t("periods") : _t("minutes") }))}${nodata ? " " + escapeHtml(_t(nodata === 1 ? "{n} player has played but has none recorded." : "{n} players have played but have none recorded.", { n: nodata })) : ""}</p>`;
   }
 
   // Redondea hacia arriba a un número "bonito" para los ticks del eje Y
@@ -1547,7 +1591,12 @@
       if (def.customKey) return rows.reduce((a, r) => a + ((r.custom_stats && Number(r.custom_stats[def.customKey])) || 0), 0);
       return rows.reduce((a, r) => a + (r[def.id] == null ? 0 : Number(r[def.id])), 0);
     }
-    const gamesWithStats = matches.filter((m) => byMatch[m.id]); // conserva el orden cronológico de `matches`
+    // Solo los partidos donde esa estadística se midió de verdad (si nadie
+    // anotó rebotes en un partido, no se dibuja un "0 rebotes" falso).
+    const measured = PPMeasured.measuredByMatch(playerStats);
+    const fieldId = def.customKey ? "custom:" + def.customKey : def.id;
+    const gated = !!def.customKey || PPMeasured.MATCH_FIELDS.indexOf(def.id) >= 0;
+    const gamesWithStats = matches.filter((m) => byMatch[m.id] && (!gated || (measured[m.id] && measured[m.id][fieldId]))); // conserva el orden cronológico de `matches`
     return {
       hasOpp,
       ownLabel: hasOpp ? _t("{stat} (own team)", { stat: _t(def.label) }) : _t(def.label), oppLabel: _t("{stat} (opponent)", { stat: _t(def.label) }),

@@ -3,12 +3,12 @@
    si falla la red, la última copia guardada. Solo se guardan ficheros de la propia
    app y las librerías de cdn.jsdelivr.net. Los datos (Supabase) NUNCA se guardan:
    sin conexión la app abre, pero no carga ni guarda datos hasta volver la red. */
-const CACHE = "playpivot-shell-v2"; // v2: añade security-guard.js y filtra qué se guarda
+const CACHE = "playpivot-shell-v3"; // v2: añade security-guard.js y filtra qué se guarda
 const CORE = ["./dashboard.html", "./roster.html", "./attendance.html", "./training.html", "./match.html",
   "./stats.html", "./exercises.html", "./library.html", "./play_design.html", "./play_library.html", "./assessment.html",
-  "./settings.html", "./compare.html", "./help.html", "./team-bar.css", "./pivot-mobile.css", "./i18n.js", "./i18n-fr.js",
+  "./settings.html", "./compare.html", "./season.html", "./help.html", "./team-bar.css", "./pivot-mobile.css", "./i18n.js", "./i18n-fr.js",
   "./i18n-es.js", "./menu-dropdown.js", "./modules-grid.js", "./org-switcher.js", "./sidebar-widgets.js", "./team-tree.js",
-  "./court-diagram.js", "./exercise-categories.js", "./terms-version.js", "./security-guard.js", "./manifest.json", "./favicon-192.png",
+  "./court-diagram.js", "./exercise-categories.js", "./terms-version.js", "./security-guard.js", "./stat-measured.js", "./manifest.json", "./favicon-192.png",
   "./favicon-32.png", "./playpivot-logo.png", "./playpivot-logo-negativo.png"];
 
 self.addEventListener("install", (e) => {

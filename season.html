@@ -1,0 +1,1238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/x-icon" href="./favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="./favicon-180.png" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https://eeucbnhqsnfitzwzghtg.supabase.co;
+  connect-src 'self' https://eeucbnhqsnfitzwzghtg.supabase.co https://cdn.jsdelivr.net;
+  object-src 'none'; base-uri 'none'; form-action 'none'" />
+<script src="./security-guard.js"></script>
+<title>PlayPivot | Season Plan</title>
+<meta name="description" content="Season averages per team, per player and per opponent, built from the matches you've already logged in Match day." />
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
+    --accent: #ec6718; --accent-deep: #b85012; --accent-tint: #fdefe7;
+    --navy: #080026; --navy-hover: #191235; --sidebar-w: 244px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; font-size: 14px; }
+    @font-face { font-family: "Sora"; src: url("./sora-regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Sora"; src: url("./sora-bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+  h1, h2, h3, .logotype { font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  a { color: inherit; }
+
+  .app-shell { display: flex; min-height: 100vh; align-items: stretch; }
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0; background: var(--navy); color: #fff;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; z-index: 100;
+  }
+  .sidebar-header { padding: 22px 20px 18px; display: flex; align-items: center; justify-content: space-between; background: transparent; }
+  .sidebar-logo-img { height: 24px; width: auto; display: block; }
+  .sidebar-close-btn { display: none; background: none; border: none; color: #b5b2be; font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; }
+  .sidebar-nav { display: block; padding: 4px 12px; background: transparent; }
+  .sidebar-link {
+    display: block; padding: 9px 12px; border-radius: 8px; background: transparent;
+    color: #dad9de; text-decoration: none; font-size: 15px; font-weight: 500;
+    white-space: nowrap; margin-bottom: 2px;
+  }
+  .sidebar-link svg { width: 17px; height: 17px; vertical-align: -4px; margin-right: 10px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .sidebar-link:hover { background: var(--navy-hover); color: #fff; }
+  .sidebar-link.active { background: var(--accent); color: #fff; }
+  .sidebar-divider { height: 1px; background: #211a3c; margin: 10px 20px; }
+  .sidebar-footer { margin-top: auto; padding: 8px 12px 16px; background: transparent; }
+  .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 10px 10px; margin-top: 6px; border-radius: 10px; background: #140d31; }
+  .sidebar-user-avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14.5px;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-user-info { flex: 1; min-width: 0; }
+  .sidebar-user-name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-role { font-size: 14px; color: #848092; }
+  .sidebar-logout-btn { background: none; border: none; color: #848092; cursor: pointer; padding: 5px; flex-shrink: 0; border-radius: 6px; }
+  .sidebar-logout-btn:hover { color: #fff; background: #191235; }
+  .sidebar-logout-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; display: block; }
+  .mobile-topbar { display: none; }
+  .sidebar-overlay { display: none; }
+  @media (max-width: 767px) {
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: 0 0 40px rgba(0,0,0,0.3); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-close-btn { display: block; }
+    .mobile-topbar {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--card);
+      border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 40;
+    }
+    .mobile-topbar img { height: 22px; }
+    .hamburger-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink); padding: 4px; line-height: 1; }
+    .sidebar-overlay {
+      display: block; position: fixed; inset: 0; background: rgba(8,0,38,0.5); z-index: 90;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+  }
+  .main-content { flex: 1; min-width: 0; }
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 28px 32px 4px; flex-wrap: wrap; max-width: 1080px; margin: 0 auto; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .icon-btn {
+    width: 58px; height: 58px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); position: relative;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .icon-badge {
+    position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff; font-size: 10px;
+    font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
+    justify-content: center; padding: 0 3px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 32px 60px; }
+  .hint { font-size: 14px; color: var(--muted); }
+  .nav-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 14px; border-radius: 6px; font-size: 13.5px; cursor: pointer; filter: grayscale(0.85); }
+  .nav-btn:hover { border-color: var(--accent); }
+
+  h1 { font-size: 23px; margin: 0 0 4px; display:flex; align-items:center; gap:10px; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+  .msg { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); margin: 0; padding: 12px 18px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; z-index: 400; max-width: min(460px, calc(100vw - 32px)); box-shadow: 0 10px 28px rgba(0,0,0,.18); }
+  .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
+  .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
+  .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 14.5px; color: var(--ink); margin-bottom: 12px; }
+
+  .team-bar-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
+  .team-bar-card h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 0 0 12px; }
+  .card-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .card-head-row h2 { margin: 0; }
+
+  /* -------- selector de equipo/temporada, mismo look que Match day/Roster pero sin crear/editar -------- */
+  .tsc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .tsc-header-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-deep); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .tsc-header-title { font-size: 16px; font-weight: 700; margin: 0; }
+  .tsc-header-sub { font-size: 13px; color: var(--muted); margin: 1px 0 0; }
+  .tsc-step-label { font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 0 0 10px; }
+  .cascade-option {
+    display: block; width: 100%; text-align: left; background: none; border: none; padding: 9px 14px;
+    font-size: 14px; color: var(--ink); cursor: pointer; border-bottom: 1px solid var(--line);
+  }
+  .cascade-option:last-child { border-bottom: none; }
+  .cascade-option:hover { background: var(--paper); }
+  .cascade-back { background: none; border: none; color: var(--accent-deep); font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 0; }
+  .season-pill {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; cursor: pointer;
+    text-align: left; min-width: 110px;
+  }
+  .season-pill strong { display: block; font-size: 14px; }
+  .season-pill span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .season-pill.active { background: var(--accent-tint); border-color: var(--accent); }
+  .season-pill.active span { color: var(--accent-deep); font-weight: 600; }
+  .tsc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 700px) { .tsc-cols { grid-template-columns: 1fr; } }
+
+  /* -------- tarjeta "equipo elegido" -- mismo estilo que Match day/Roster -------- */
+  .tsc-selected-card {
+    background: var(--accent-tint); border-radius: 10px; padding: 14px 18px; margin-top: 18px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .tsc-selected-card > .icon { width: 96px; height: 96px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; overflow: hidden; background: var(--card); }
+  .tsc-selected-card > .icon img, .tsc-selected-card > .icon svg { width: 100%; height: 100%; object-fit: contain; }
+  .tsc-selected-name { font-weight: 700; font-size: 16px; color: var(--ink); }
+  .tsc-selected-sub { font-size: 13px; color: var(--accent-deep); margin-top: 2px; margin-bottom: 10px; }
+  .tsc-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 16px; }
+  .tsc-chip { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+  .tsc-chip .icon { color: var(--accent-deep); flex-shrink: 0; }
+  .tsc-chip strong { display: block; font-size: 14.5px; }
+  .tsc-chip span { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  /* -------- qué partidos entran en las cuentas -------- */
+  .match-picker-summary-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .match-picker-toggle { cursor: pointer; color: var(--accent-deep); font-weight: 600; font-size: 13.5px; }
+  .match-picker-toggle summary { list-style: none; cursor: pointer; color: var(--accent-deep); font-weight: 600; font-size: 13.5px; }
+  .match-picker-toggle summary::-webkit-details-marker { display: none; }
+  .match-picker-actions { display: flex; gap: 14px; padding: 10px 2px 6px; font-size: 12.5px; }
+  .match-picker-actions button { background: none; border: none; color: var(--accent-deep); font-weight: 600; cursor: pointer; padding: 0; }
+  .match-picker-actions button:hover { text-decoration: underline; }
+  .match-picker-list { border: 1px solid var(--line); border-radius: 8px; max-height: 240px; overflow-y: auto; }
+  .match-picker-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
+  .match-picker-row:last-child { border-bottom: none; }
+  .match-picker-row:hover { background: var(--paper); }
+  .match-picker-row .mp-opp { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .match-picker-row .mp-score { color: var(--muted); font-size: 12.5px; flex-shrink: 0; }
+
+  /* -------- menú de columnas (qué stats se muestran) -------- */
+  .columns-menu { position: relative; }
+  .columns-panel {
+    display: none; position: absolute; top: 100%; right: 0; margin-top: 6px; z-index: 5;
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08); min-width: 220px; max-height: 360px; overflow-y: auto;
+  }
+  .columns-panel.open { display: block; }
+  .columns-panel label { display: flex; align-items: center; gap: 8px; font-size: 14.5px; padding: 4px 0; cursor: pointer; white-space: nowrap; }
+
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 14.5px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  /* -------- selector de qué estadística se grafica/rankea -------- */
+  .stab-bar { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0 16px; border-bottom: 1px solid var(--line); }
+  .stab { padding: 10px 18px; border: none; background: none; border-bottom: 3px solid transparent; margin-bottom: -1px; font-weight: 600; font-size: 14.5px; color: var(--muted); cursor: pointer; }
+  .stab:hover { color: var(--ink); }
+  .stab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .stab-off { display: none !important; }
+  .pill-choice-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pill-choice { padding: 6px 12px; border-radius: 100px; border: 1px solid var(--line); background: var(--card); font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+  .pill-choice:hover { border-color: var(--accent); }
+  .pill-choice.active { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-deep); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 14px; margin-bottom: 0; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { background: var(--paper); font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; }
+  tr:last-child td { border-bottom: none; }
+  .empty-state { text-align: center; padding: 24px 20px; color: var(--muted); font-size: 14px; }
+  .section-label { font-size: 14.5px; font-weight: 600; margin: 22px 0 10px; }
+  .section-label:first-child { margin-top: 0; }
+  .present-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+  .present-yes { background: #dcfce7; color: #166534; }
+  .present-no { background: #fef2f2; color: #991b1b; }
+  .present-other { background: #fef9c3; color: #854d0e; }
+  .present-unknown { background: var(--line); color: var(--muted); }
+
+  .att-pct-cell { white-space: nowrap; }
+  .att-pct-cell .att-pct-bar { display: inline-block; vertical-align: middle; width: 54px; height: 6px; border-radius: 3px; background: var(--line); margin-right: 8px; overflow: hidden; }
+  .att-pct-cell .att-pct-bar > i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  .att-pct-cell .att-pct-num { font-weight: 700; }
+  .att-pct-cell .att-pct-frac { color: var(--muted); font-size: 12.5px; margin-left: 6px; }
+  .table-scroll { overflow-x: auto; border-radius: 10px; }
+  .table-scroll table { margin-bottom: 0; }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--accent-deep); }
+  th.sortable .sort-arrow { font-size: 10px; margin-left: 3px; opacity: 0.7; }
+
+  .stat-tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px; margin-bottom: 4px; }
+  .stat-tile { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .stat-tile-value { font-size: 21px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+  .stat-tile-value.pos { color: #166534; }
+  .stat-tile-value.neg { color: #991b1b; }
+  .stat-tile-label { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 3px; }
+  .record-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .record-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 17px; }
+  .record-badge .w { color: #166534; }
+  .record-badge .l { color: #991b1b; }
+  .record-badge .d { color: #854d0e; }
+
+  .chart-legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
+  .chart-legend-item { display: flex; align-items: center; gap: 6px; }
+  .chart-legend-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+  /* Gráfico de tendencia: barras agrupadas en HTML/CSS normal, SIN SVG --
+     las alturas son % de CSS de toda la vida, nada que se pueda
+     distorsionar según el ancho real de la tarjeta (al contrario que el
+     <text>/<rect> dentro de un viewBox con preserveAspectRatio="none" que
+     dio tantos problemas en vueltas anteriores). trend-chart-grid tiene 2
+     columnas (etiquetas Y / área de barras) y trend-x-axis repite las
+     mismas 2 columnas debajo para que las fechas queden alineadas con sus
+     barras sin ningún cálculo de posición a mano. */
+  .trend-chart-grid { display: grid; grid-template-columns: 30px 1fr; column-gap: 8px; }
+  .trend-y-axis { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; text-align: right; padding-bottom: 1px; }
+  .trend-axis-label { font-size: 11px; color: var(--muted); white-space: nowrap; line-height: 1; }
+  .trend-plot { position: relative; }
+  .trend-gridlines { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
+  .trend-gridline { border-top: 1px solid var(--line); }
+  .trend-bars-row { position: relative; height: 100%; display: flex; align-items: flex-end; }
+  .trend-bar-group { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+  .trend-bar { width: 100%; max-width: 24px; min-height: 2px; border-radius: 4px 4px 0 0; position: relative; cursor: default; }
+  .trend-bar:hover, .trend-bar:focus-visible { filter: brightness(1.12); outline: none; }
+  .trend-bar-value { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 3px; font-size: 10.5px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+  .trend-x-axis { display: grid; grid-template-columns: 30px 1fr; column-gap: 8px; margin-top: 6px; }
+  /* Eje X: nombre del RIVAL en vertical (Dani: "que aparezca el equipo en
+     el eje X en vertical") en vez de la fecha -- la fecha sigue disponible
+     al pasar el mouse/tocar la barra (atributo title, sin cambios). El
+     texto rotado necesita poco ancho, así que ya no hace falta recortar
+     etiquetas ni anclarlas a izquierda/derecha como con las fechas
+     horizontales de antes -- cada una entra en su propia columna. */
+  .trend-x-labels { display: flex; align-items: flex-start; min-height: 92px; }
+  .trend-x-label { flex: 1 1 0; min-width: 0; display: flex; justify-content: center; }
+  .trend-x-label-text { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; color: var(--muted); white-space: nowrap; max-height: 92px; overflow: hidden; text-overflow: ellipsis; }
+  /* Controles de arriba del gráfico de tendencia: elegir varios stats a la
+     vez, incluir o no al rival, y Total vs Differential (margen partido a
+     partido). */
+  .trend-controls-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; }
+  .trend-opp-toggle { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink); cursor: pointer; user-select: none; }
+  .trend-opp-toggle input[type="checkbox"]:disabled + span { color: var(--muted); }
+  /* Un stat elegido = un mini-gráfico, apilados -- cada uno con su propia
+     escala (puntos y triples no caben en el mismo eje sin que uno aplaste
+     al otro), así que nunca se mezclan en un solo gráfico. */
+  .trend-mini-chart { margin-bottom: 26px; }
+  .trend-mini-chart:last-child { margin-bottom: 0; }
+  .trend-mini-title { font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  /* Modo "Differential": barra que crece hacia arriba (ganaste ese stat
+     ese partido) o hacia abajo (lo perdiste) desde una línea de cero en el
+     medio, en vez de dos barras lado a lado -- .trend-bar-group ya pone
+     align-items:flex-end + una sola fila, así que para este modo se
+     necesita el selector compuesto para pisarlo sin depender del orden en
+     la hoja de estilos. */
+  .trend-bar-group.trend-diff-group { flex-direction: column; align-items: stretch; height: 100%; gap: 0; }
+  .trend-diff-half { flex: 1 1 0; min-height: 0; display: flex; justify-content: center; width: 100%; }
+  .trend-diff-half-top { align-items: flex-end; }
+  .trend-diff-half-bottom { align-items: flex-start; }
+  .trend-bar-value-below { bottom: auto; top: 100%; margin-bottom: 0; margin-top: 3px; }
+  .trend-gridline-zero { border-top-color: var(--ink); border-top-width: 1.5px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .bar-row:last-child { margin-bottom: 0; }
+  .bar-row-label { width: 128px; flex-shrink: 0; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-row-track { flex: 1; background: var(--paper); border-radius: 6px; height: 14px; overflow: hidden; }
+  .bar-row-fill { height: 100%; border-radius: 6px; background: var(--accent); }
+  .bar-row-value { width: 42px; flex-shrink: 0; text-align: right; font-size: 13px; font-weight: 700; color: var(--accent-deep); }
+
+  .obj-row { display:flex; gap:12px; align-items:flex-start; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); }
+  .obj-row:last-child { border-bottom:none; }
+  .obj-paused { opacity:.6; }
+  .obj-main { flex:1; min-width:0; }
+  .obj-title { font-weight:600; font-size:14.5px; overflow-wrap:anywhere; }
+  .obj-side { flex-shrink:0; }
+  .obj-tag { display:inline-block; font-size:11px; font-weight:600; padding:1px 7px; border-radius:99px; background:var(--accent-tint); color:var(--accent-deep); vertical-align:middle; }
+  .obj-bar { position:relative; height:8px; background:var(--line); border-radius:4px; margin:8px 0 2px; overflow:visible; }
+  .obj-fill { display:block; height:100%; border-radius:4px; background:var(--accent); }
+  .obj-fill.obj-missing { background:#c0522b; } .obj-fill.obj-above { background:#c58a00; } .obj-fill.obj-ok, .obj-fill.obj-done { background:#2e7d4f; } .obj-fill.obj-nodata, .obj-fill.obj-manual { background:var(--muted); }
+  .obj-mark { position:absolute; top:-3px; width:2px; height:14px; background:var(--ink); }
+  .obj-pill { display:inline-block; font-size:12px; font-weight:600; padding:2px 9px; border-radius:99px; white-space:nowrap; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  .obj-pill.obj-missing { border-color:#c0522b; color:#8f3a1b; } .obj-pill.obj-above { border-color:#c58a00; color:#7a5700; } .obj-pill.obj-ok, .obj-pill.obj-done { border-color:#2e7d4f; color:#1f5a37; } .obj-pill.obj-nodata, .obj-pill.obj-manual { color:var(--muted); }
+  .obj-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .obj-btn { padding:3px 10px; font-size:12.5px; }
+  .obj-form { border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; background:var(--paper); }
+  .obj-form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
+  .obj-form-grid label { display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--muted); font-weight:600; }
+  .obj-form-grid input, .obj-form-grid select { font:inherit; font-size:14.5px; padding:7px 9px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); }
+  .themes-table { width:100%; border-collapse:collapse; font-size:14px; }
+  .themes-table th, .themes-table td { padding:7px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
+  .themes-table th { font-size:12px; color:var(--muted); font-weight:600; }
+  .themes-table .num { text-align:right; white-space:nowrap; }
+  .themes-other td { color:var(--muted); }
+  .table-scroll { overflow-x:auto; }
+  .tip-row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); font-size:14.5px; }
+  .tip-row:last-child { border-bottom:none; }
+  .tip-text { overflow-wrap:anywhere; } .tip-text a { color:var(--ink); text-decoration:underline; text-decoration-color:var(--line); }
+  .tip-src { flex-shrink:0; text-align:right; }
+  .card-head-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .card-head-row h2 { margin:0; font-size:17px; }
+  @media (max-width:560px) { .themes-table th:nth-child(2), .themes-table td:nth-child(2) { display:none; } .themes-table th:nth-child(6), .themes-table td:nth-child(6) { display:none; } .obj-row { flex-direction:column; } .tip-row { flex-direction:column; gap:2px; } .tip-src { text-align:left; } }
+</style>
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//playpivot.app/analytics/matomo/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '1']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+<link rel="stylesheet" href="./team-bar.css" />
+<link rel="stylesheet" href="./pivot-mobile.css" />
+<meta name="theme-color" content="#080026" />
+<link rel="manifest" href="./manifest.json" />
+</head>
+<body>
+
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">☰</button>
+  <img src="./playpivot-logo.png" alt="PlayPivot" />
+</div>
+
+<div class="app-shell">
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="./dashboard.html" style="display:inline-flex; align-items:center;"><img src="./playpivot-logo-negativo.png" alt="PlayPivot" class="sidebar-logo-img" /></a>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close menu">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div id="sidebar-admin-badge" style="display:none; font-size:12px; font-weight:700; letter-spacing:0.05em; color:var(--accent); padding:0 12px 6px;">⚡ PLATFORM ADMIN</div>
+
+      <div style="padding:8px 12px 12px;">
+        <select id="org-switcher" style="display:none; width:100%; padding:8px 10px; border:1px solid #2a2456; border-radius:8px; font-size:14px; background:#140d31; color:#fff; margin-bottom:4px;"></select>
+      </div>
+      <a href="./dashboard.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>Dashboard</a>
+      <div class="sidebar-group">Team</div>
+      <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
+      <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
+      <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+      <a href="./season.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M7 15h4M7 18h7"/></svg>Season plan</a>
+      <div class="sidebar-group">Games</div>
+      <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
+      <a href="./stats.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
+      <div class="sidebar-group">Training</div>
+      <a href="./exercises.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="36.13 6.64 41.79 6.64 41.79 12.61 22.21 12.61 22.21 6.64 27.87 6.64"/><path d="M27.87,6.64c0-2.28,1.85-4.13,4.13-4.13s4.13,1.85,4.13,4.13"/></g><polyline points="41.79 8.6 55.33 8.6 55.33 61.49 8.67 61.49 8.67 8.6 22.21 8.6"/></g><circle cx="19.08" cy="22.15" r="3.13"/><circle cx="46.01" cy="46.32" r="3.13"/><circle cx="36.13" cy="31.35" r="3.13"/><g><line x1="15.13" y1="38.18" x2="20.83" y2="43.97"/><line x1="20.83" y1="38.18" x2="15.13" y2="43.97"/></g><g><line x1="43.16" y1="19.02" x2="48.86" y2="24.81"/><line x1="48.86" y1="19.02" x2="43.16" y2="24.81"/></g><g><line x1="27.87" y1="50.15" x2="33.57" y2="55.93"/><line x1="33.57" y1="50.15" x2="27.87" y2="55.93"/></g><path d="M22.85,27.43s-.14,14.97,16.41,16.53"/><line x1="36.13" y1="24.21" x2="36.13" y2="16.58"/></g></svg>Exercise creator</a>
+      <a href="./library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32" cy="32" r="28.47"/><path d="M53.56,13.43c-.83-.12-1.68-.22-2.53-.29-4.71-.4-9.31.04-13.64,1.19-1.84.49-3.63,1.1-5.35,1.84-2.43,1.03-4.73,2.29-6.89,3.76-9.03,6.14-15.48,15.91-17.13,27.41"/><path d="M28.72,60.28c-3.75-10.02-.22-28.04-.24-31.84-.02-2.73-.81-6.11-3.33-8.51-1.46-1.39-3.51-2.45-6.32-2.87-7.42-1.11-14.12,7.82-14.51,8.37h0s-.02.03-.02.03"/><path d="M19.45,6.45c3.12,1.58,7.83,4.54,12.59,9.71,6.95,7.51,14.03,19.71,16.44,39.05"/><path d="M33.2,3.56c-.06,3.02.62,7.34,4.19,10.76.3.29.62.56.97.84,4.87,3.87,13.96,8.1,22.01,14.61"/></g></svg>Exercise library</a>
+      <a href="./training.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><circle cx="32.02" cy="36.65" r="24.65"/><g><path d="M31.98,17.39c10.64,0,19.26,8.62,19.26,19.26s-8.62,19.26-19.26,19.26-18.5-7.88-19.2-17.88"/><circle cx="31.98" cy="36.65" r="3.87"/><line x1="29.36" y1="33.81" x2="21.76" y2="25.58"/></g><rect x="26.15" y="2.58" width="11.74" height="5.74" rx="2.87" ry="2.87"/><line x1="32.02" y1="12" x2="32.02" y2="8.31"/><g><g><rect x="3.48" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(-8.12 11.64) rotate(-46.93)"/><line x1="14.13" y1="19.69" x2="11.42" y2="17.15"/></g><g><rect x="48.75" y="12.3" width="11.74" height="5.74" rx="2.87" ry="2.87" transform="translate(27.65 -34.69) rotate(46.07)"/><line x1="52.53" y1="17.14" x2="49.89" y2="19.68"/></g></g></g></svg>Training builder</a>
+      <div class="sidebar-group">Plays</div>
+      <a href="./play_design.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><rect x="2.43" y="9.83" width="59.13" height="44.35"/><path d="M2.44,48.82c9.75-1.29,17.22-8.32,17.22-16.82S12.19,16.46,2.44,15.18"/><circle cx="12.01" cy="32" r="4.54"/><circle cx="32" cy="32" r="7.82"/><rect x="2.43" y="24.53" width="9.57" height="14.94"/><path d="M61.56,15.18c-9.75,1.29-17.22,8.32-17.22,16.82,0,8.5,7.46,15.54,17.22,16.82"/><rect x="51.99" y="24.53" width="9.57" height="14.94" transform="translate(113.56 64) rotate(-180)"/><line x1="32" y1="9.83" x2="32" y2="54.17"/><circle cx="51.99" cy="32" r="4.54"/></g></svg>Play design</a>
+      <a href="./play_library.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21V7"/><path d="M4 5c2-1 5-1 8 2 3-3 6-3 8-2v13c-2-1-5-1-8 2-3-3-6-3-8-2Z"/></svg>Playbook</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-divider"></div>
+      <nav class="sidebar-nav" style="padding:0;">
+        <a href="./settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
+        <a href="./help.html" id="sidebar-help-link" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3 1-1.3 1.9v.3"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none"/></svg>Help</a>
+      </nav>
+      <div class="sidebar-user" id="sidebar-user">
+        <div class="sidebar-user-avatar" id="sidebar-user-avatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">—</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">—</div>
+        </div>
+        <button class="sidebar-logout-btn" id="logout-btn" title="Log out">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+<div class="topbar" style="align-items:center;">
+  <div></div>
+  <div class="topbar-right">
+    <div id="pending-requests-widget" style="position:relative; display:none;">
+      <button id="pending-requests-btn" class="icon-btn" aria-label="Pending requests">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z"/><path d="M9.5 16a2.5 2.5 0 0 0 5 0"/></svg>
+        <span class="icon-badge" id="pending-requests-count" style="display:none;"></span>
+      </button>
+      <div id="pending-requests-panel" style="display:none; position:absolute; top:44px; right:0; width:320px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
+    </div>
+    <div id="messages-widget" style="position:relative;">
+      <button id="messages-btn" class="icon-btn" aria-label="Messages">
+        <svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+        <span class="icon-badge" id="messages-count" style="display:none;"></span>
+      </button>
+      <div id="messages-panel" style="display:none; position:absolute; top:44px; right:0; width:340px; max-height:420px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px; z-index:50; font-size:14.5px;"></div>
+    </div>
+    <img id="org-logo-big" style="width:72px; height:72px; border-radius:10px; object-fit:cover; display:none;" />
+    <div id="org-name-big" style="display:none;"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <h1>
+    Season plan
+    <button id="help-btn" title="How does this work?" style="width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--muted); font-size:15px; cursor:pointer; line-height:1;">?</button>
+  </h1>
+  <p class="sub" id="current-selection">Pick a team and season below.</p>
+  <div class="help-box" id="help-box"></div>
+  <div class="msg" id="msg"></div>
+
+  <div class="team-bar-card">
+    <div class="tsc-header">
+      <div class="tsc-header-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+      <div>
+        <p class="tsc-header-title">Team &amp; season</p>
+        <p class="tsc-header-sub">Pick the team and season to plan and review. Create teams from Roster or Match day.</p>
+      </div>
+    </div>
+
+    <div class="tsc-cols">
+      <div>
+        <p class="tsc-step-label">1. Select team</p>
+        <div id="team-gender-category-select" style="position:relative;"></div>
+      </div>
+      <div>
+        <p class="tsc-step-label">2. Select season</p>
+        <div id="season-picker"></div>
+      </div>
+    </div>
+
+    <div class="tsc-selected-card" id="tsc-selected-card" style="display:none;">
+      <div class="icon" id="tsc-selected-icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c2 2 3 4 3 6.4s-1 4.4-3 6.4M18.4 5.6c-2 2-3 4-3 6.4s1 4.4 3 6.4"/></svg></div>
+      <div style="flex:1; min-width:0;">
+        <div class="tsc-selected-name" id="tsc-selected-name"></div>
+        <div class="tsc-selected-sub" id="tsc-selected-sub"></div>
+        <div class="tsc-chips">
+          <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><div><strong id="tsc-chip-matches">0</strong><span>Matches</span></div></div>
+          <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.3 4 4.8"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.3-4 4.8"/></svg></span><div><strong id="tsc-chip-category">—</strong><span>Category</span></div></div>
+          <div class="tsc-chip"><span class="icon"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg></span><div><strong id="tsc-chip-gender">—</strong><span>Gender</span></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+    <div id="season-content" style="display:none;">
+
+    <div class="team-bar-card">
+      <div class="card-head-row">
+        <h2>Season at a glance</h2>
+        <div class="pill-choice-row" id="sg-planned-toggle" style="margin-bottom:0;"></div>
+      </div>
+      <p class="hint" id="sg-label" style="margin:0 0 10px; font-weight:600;"></p>
+      <div class="stat-tile-grid" id="sg-tiles"></div>
+      <p class="hint" id="sg-note" style="margin:10px 0 0;"></p>
+    </div>
+
+    <div class="team-bar-card" id="obj-card">
+      <div class="card-head-row">
+        <h2>Objectives</h2>
+        <button type="button" class="btn btn-secondary" id="obj-add-btn" style="display:none;">+ Add objective</button>
+      </div>
+      <p class="hint" style="margin:0 0 12px;">Global objectives are set by PlayPivot for every team. The team's admin can add the team's own below. Progress is calculated from what you record in Training, Attendance, Assessment and Match day.</p>
+      <div class="msg" id="obj-msg"></div>
+      <div class="obj-form" id="obj-form" style="display:none;"></div>
+      <div id="obj-unavailable" class="hint" style="display:none; padding:10px 12px; background:var(--accent-tint); border-radius:8px; margin-bottom:12px;">Objectives need a one-time database step: ask your PlayPivot administrator to run “step95” in Supabase. Everything else on this page already works.</div>
+      <div id="obj-global-block"><p class="section-label">Global objectives <span class="obj-tag">PlayPivot</span></p><div id="obj-global-list"></div></div>
+      <div id="obj-team-block"><p class="section-label">Team objectives</p><div id="obj-team-list"></div></div>
+    </div>
+
+    <div class="team-bar-card" id="themes-card">
+      <div class="card-head-row">
+        <h2>Training themes</h2>
+      </div>
+      <p class="hint" style="margin:0 0 12px;" id="themes-hint"></p>
+      <div id="themes-area"></div>
+    </div>
+
+    <div class="team-bar-card" id="tips-card">
+      <h2>What to look at</h2>
+      <p class="hint" style="margin:0 0 10px;">Suggestions worked out from your own data and the objectives above. Each one says where it comes from.</p>
+      <div id="tips-list"></div>
+    </div>
+
+    <div class="team-bar-card" id="report-card">
+      <div class="card-head-row">
+        <h2>Season report</h2>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-secondary" id="report-pdf-btn">Download PDF</button>
+          <button type="button" class="btn btn-secondary" id="report-xlsx-btn">Download Excel</button>
+        </div>
+      </div>
+      <p class="hint" style="margin:0;">A one-page summary of the season so far — results, attendance, training themes against objectives, playing time and assessments — in the language you're using now. Handy for a board meeting or the end-of-season review.</p>
+    </div>
+  </div>
+
+  <div class="team-bar-card" id="no-team-card" style="display:none;">
+    <div class="empty-state">Pick a team and season above to see its season plan.</div>
+  </div>
+
+</div>
+
+  </main>
+</div>
+
+<script src="./i18n.js?v=2"></script>
+<script src="./exercise-categories.js"></script>
+<script src="./sw-register.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="org-switcher.js"></script>
+<script src="sidebar-widgets.js"></script>
+<script src="team-tree.js"></script>
+<script>
+  const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function escapeHtml(str) { return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  function filterByCategory(query, category) { return category ? query.eq("team_category", category) : query.is("team_category", null); }
+  function filterByGender(query, gender) { return gender ? query.eq("team_gender", gender) : query.is("team_gender", null); }
+  function formatDateDisplay(iso) {
+    if (!iso) return "";
+    const parts = String(iso).split("-");
+    if (parts.length !== 3) return iso;
+    const [y, m, d] = parts;
+    return `${d}.${m}.${y}`;
+  }
+  // 1 decimal si hace falta, nunca "0.0" feo para enteros -- igual de
+  // legible en una tabla densa de muchas columnas.
+  function fmtAvg(v, decimals) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "—";
+    return v.toFixed(decimals === undefined ? 1 : decimals);
+  }
+
+  const els = {
+    orgName: document.getElementById("org-name-big"),
+    orgLogo: document.getElementById("org-logo-big"),
+    logoutBtn: document.getElementById("logout-btn"),
+    currentSelection: document.getElementById("current-selection"),
+    msg: document.getElementById("msg"),
+    statsContent: document.getElementById("season-content"),
+    noTeamCard: document.getElementById("no-team-card"),
+    selectedCard: document.getElementById("tsc-selected-card"),
+    selectedIcon: document.getElementById("tsc-selected-icon"),
+    selectedName: document.getElementById("tsc-selected-name"),
+    selectedSub: document.getElementById("tsc-selected-sub"),
+    chipMatches: document.getElementById("tsc-chip-matches"),
+    chipCategory: document.getElementById("tsc-chip-category"),
+    chipGender: document.getElementById("tsc-chip-gender"),
+  };
+  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; }
+
+  let currentOrgId = null;
+  let myOrgIds = new Set();
+  let currentUserId = null;
+  let isPlatformController = false;
+  let myRole = null;
+  let currentSeason = null;
+  let currentTeam = null;
+  let currentTeamCategory = "";
+  let currentTeamGender = "";
+  let lastTreeRows = [];
+  let logoRequestToken = 0;
+
+  async function loadMyOrganization() {
+    const { data: userData } = await supabaseClient.auth.getUser();
+    currentUserId = userData.user.id;
+    const { data: profRow } = await supabaseClient.from("profiles").select("full_name, is_platform_controller, is_association_validator").eq("id", currentUserId).maybeSingle();
+    isPlatformController = !!(profRow && profRow.is_platform_controller);
+    pivotUpdateSidebarUser((profRow && profRow.full_name) || userData.user.email, isPlatformController ? "Platform admin" : null);
+    const { data, error } = await supabaseClient
+      .from("memberships").select("organization_id, role, status, team_season, team_name, organizations(name, is_active)").eq("status", "active").eq("user_id", currentUserId);
+    myOrgIds = new Set((data || []).map((m) => m.organization_id));
+    if ((error || !data || data.length === 0) && !isPlatformController) {
+      showMessage("You're not an active member of any club yet.", "error");
+      return null;
+    }
+    const chosen = await pivotResolveActiveOrg(data, { isPlatformController, supabaseClient });
+    if (!chosen) { showMessage("You're not an active member of any club yet.", "error"); await pivotRenderOrgSwitcher("org-switcher", data, null, { isPlatformController, supabaseClient }); return null; }
+    await pivotRenderOrgSwitcher("org-switcher", data, chosen.organization_id, { isPlatformController, supabaseClient });
+    currentOrgId = chosen.organization_id;
+    myRole = chosen.role;
+    myTeamScope = (chosen.team_season || chosen.team_name) ? { season: chosen.team_season, team: chosen.team_name } : null;
+    if (!isPlatformController) pivotUpdateSidebarUser(null, myRole === "admin" ? "Club admin" : "Coach");
+    els.orgName.textContent = (chosen.organizations && chosen.organizations.name) || "";
+    els.orgLogo.onload = () => { els.orgLogo.style.display = "inline-block"; };
+    els.orgLogo.onerror = () => { els.orgLogo.style.display = "none"; };
+    els.orgLogo.src = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png?t=${Date.now()}`;
+    return currentOrgId;
+  }
+
+  async function loadTree() {
+    const { data, error } = await supabaseClient
+      .from("players").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
+    if (error) { showMessage("Couldn't load your teams: " + (error.message || "unknown error"), "error"); console.error("loadTree error:", error); return; }
+    const { data: teamRows } = await supabaseClient.from("teams").select("season, team, team_category, team_gender").eq("organization_id", currentOrgId);
+    const rows = mergeTeamRows(data, teamRows);
+    lastTreeRows = rows;
+
+    if (!currentSeason && !currentTeam && rows.length > 0) {
+      let restored = null;
+      try {
+        // Mismo localStorage que Roster/Match day/Training ("último equipo
+        // usado en este club") -- así cambiar de página mantiene el
+        // contexto, en vez de forzar a elegir equipo otra vez.
+        const saved = JSON.parse(localStorage.getItem(`pivot-roster-last-${currentOrgId}`) || "null");
+        if (saved && rows.some((r) => r.season === saved.season && r.team === saved.team && (r.team_category || "") === (saved.category || "") && (r.team_gender || "") === (saved.gender || ""))) restored = { season: saved.season, team: saved.team, team_category: saved.category || "", team_gender: saved.gender || "" };
+      } catch (e) { /* almacenamiento ilegible -- no pasa nada */ }
+      const fallback = restored || [...rows].sort((a, b) => a.team.localeCompare(b.team) || b.season.localeCompare(a.season) || (a.team_category || "").localeCompare(b.team_category || ""))[0];
+      currentSeason = fallback.season;
+      currentTeam = fallback.team;
+      currentTeamCategory = fallback.team_category || "";
+      currentTeamGender = fallback.team_gender || "";
+    }
+
+    if (rows.length === 0) {
+      els.noTeamCard.style.display = "block";
+      els.statsContent.style.display = "none";
+      return;
+    }
+
+    renderTeamGenderCategoryDropdown("team-gender-category-select", rows, { team: currentTeam, team_category: currentTeamCategory, team_gender: currentTeamGender }, (team, category, gender) => {
+      currentTeam = team; currentTeamCategory = category || ""; currentTeamGender = gender || "";
+      const seasonsForThis = [...new Set(rows.filter((r) => r.team === team && (r.team_category || "") === (category || "") && (r.team_gender || "") === (gender || "")).map((r) => r.season))].sort().reverse();
+      selectSeasonTeam(seasonsForThis.includes(currentSeason) ? currentSeason : seasonsForThis[0], team);
+    });
+
+    const seasonsForCurrent = currentTeam
+      ? [...new Set(rows.filter((r) => r.team === currentTeam && (r.team_category || "") === (currentTeamCategory || "") && (r.team_gender || "") === (currentTeamGender || "")).map((r) => r.season))].sort().reverse()
+      : [];
+    renderSeasonPicker("season-picker", seasonsForCurrent, currentSeason, (season) => selectSeasonTeam(season, currentTeam));
+
+    if (currentSeason && currentTeam) await selectSeasonTeam(currentSeason, currentTeam, true);
+  }
+
+  // =========================================================================
+  // Season plan (organizador de temporada): una página por equipo+temporada.
+  // Todo se calcula con datos que ya existen (entrenos, ejercicios, asistencia,
+  // partidos, evaluaciones) más los objetivos de la tabla season_objectives
+  // (step95): globales (los fija la plataforma) y del equipo (su admin).
+  // =========================================================================
+  const THEMES = (typeof CATEGORIES !== "undefined") ? CATEGORIES : [];
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const ymd = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const todayStr = () => ymd(new Date());
+  const f1 = (v) => (v === null || v === undefined || Number.isNaN(v) ? "—" : (Math.round(v * 10) / 10).toString());
+  const pctTxt = (v) => (v === null || v === undefined || Number.isNaN(v) ? "—" : f1(v) + "%");
+
+  let myTeamScope = null;      // {season, team} si el admin está fijado a un equipo; null = todo el club
+  let objectives = [], objectivesOk = true;
+  let includePlanned = false;
+  let ctx = null;              // datos crudos de la temporada elegida
+  let metrics = null;          // resultado de computeMetrics()
+  let formState = null;        // {scope, id|null}
+
+  function canManageTeam() {
+    return isPlatformController || (myRole === "admin" && (!myTeamScope || (myTeamScope.season === currentSeason && myTeamScope.team === currentTeam)));
+  }
+
+  async function fetchIn(table, select, col, ids, size) {
+    let out = []; size = size || 40;
+    for (let i = 0; i < ids.length; i += size) {
+      const chunk = ids.slice(i, i + size);
+      let from = 0;
+      for (;;) {
+        const { data, error } = await supabaseClient.from(table).select(select).in(col, chunk).range(from, from + 999);
+        if (error) { console.error("fetchIn " + table, error); return out; }
+        out = out.concat(data || []);
+        if (!data || data.length < 1000) break;
+        from += 1000;
+      }
+    }
+    return out;
+  }
+
+  const sameTeamFilter = (q) => filterByGender(filterByCategory(q.eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam), currentTeamCategory), currentTeamGender);
+
+  async function loadObjectives() {
+    const r = await supabaseClient.from("season_objectives").select("*").order("position", { ascending: true }).order("created_at", { ascending: true });
+    if (r.error) { objectivesOk = false; objectives = []; return; }
+    objectivesOk = true;
+    objectives = (r.data || []).filter((o) => o.scope === "global"
+      ? (o.active !== false || isPlatformController)
+      : (o.organization_id === currentOrgId && o.season === currentSeason && o.team === currentTeam
+         && (o.team_category || "") === (currentTeamCategory || "") && (o.team_gender || "") === (currentTeamGender || "")
+         && (o.active !== false || canManageTeam())));
+  }
+
+  async function loadSeasonData() {
+    const [trR, maR, plR] = await Promise.all([
+      sameTeamFilter(supabaseClient.from("trainings").select("id, date, title, categories_summary")).order("date", { ascending: true }),
+      sameTeamFilter(supabaseClient.from("matches").select("id, date, opponent, team_score, opponent_score")).order("date", { ascending: true }),
+      sameTeamFilter(supabaseClient.from("players").select("id, first_name, last_name, active")),
+    ]);
+    if (trR.error) { showMessage("Couldn't load trainings: " + (trR.error.message || "unknown error"), "error"); }
+    const trainings = (trR.data || []), matches = (maR.data || []), players = (plR.data || []).filter((p) => p.active !== false);
+    const tids = trainings.map((t) => t.id), mids = matches.map((m) => m.id), pids = players.map((p) => p.id);
+    const tex = await fetchIn("training_exercises", "training_id, exercise_id, duration_minutes, is_pause, is_match, is_freetext", "training_id", tids);
+    const exIds = [...new Set(tex.map((r) => r.exercise_id).filter(Boolean))];
+    const exs = await fetchIn("exercises", "id, categories", "id", exIds, 100);
+    const exCats = {}; exs.forEach((e) => { exCats[e.id] = Array.isArray(e.categories) ? e.categories : []; });
+    const att = await fetchIn("attendance", "player_id, status, training_id", "training_id", tids);
+    const mps = await fetchIn("match_player_stats", "match_id, player_id, started, minutes, periods_played", "match_id", mids);
+    const asm = await fetchIn("player_assessments", "player_id, date", "player_id", pids);
+    await loadObjectives();
+    ctx = { trainings, matches, players, tex, exCats, att, mps, asm };
+  }
+
+  // ---------------------------------------------------------------------
+  // Cálculo de indicadores
+  // ---------------------------------------------------------------------
+  function computeMetrics() {
+    const today = todayStr();
+    const { trainings, matches, players, tex, exCats, att, mps, asm } = ctx;
+    const counted = trainings.filter((t) => includePlanned || t.date <= today);
+    const countedIds = new Set(counted.map((t) => t.id));
+    const pastTr = trainings.filter((t) => t.date <= today);
+    const byTheme = {}; let noThemeMin = 0, totalMin = 0; const withRows = new Set();
+    tex.forEach((r) => {
+      if (!countedIds.has(r.training_id) || r.is_pause) return;
+      withRows.add(r.training_id);
+      const dur = Number(r.duration_minutes) || 0;
+      const cats = (!r.is_match && !r.is_freetext && r.exercise_id) ? (exCats[r.exercise_id] || []) : [];
+      totalMin += dur;
+      if (!cats.length) { noThemeMin += dur; return; }
+      cats.forEach((c) => { const b = byTheme[c] = byTheme[c] || { min: 0, sessions: new Set() }; b.min += dur / cats.length; b.sessions.add(r.training_id); });
+    });
+    // las categorías escritas en el resumen de la sesión también cuentan como sesión que la trabaja
+    counted.forEach((t) => (t.categories_summary || []).forEach((txt) => {
+      const m = THEMES.find((c) => c.toLowerCase() === String(txt).trim().toLowerCase());
+      if (m) { const b = byTheme[m] = byTheme[m] || { min: 0, sessions: new Set() }; b.sessions.add(t.id); }
+    }));
+    // asistencia a entrenos (solo los ya celebrados)
+    const pastIds = new Set(pastTr.map((t) => t.id));
+    let attended = 0, denom = 0; const perPlayer = {}; const trWithAtt = new Set();
+    att.forEach((a) => {
+      if (!pastIds.has(a.training_id)) return;
+      trWithAtt.add(a.training_id);
+      const isAtt = a.status === "present" || a.status === "late" || a.status === "coach" || a.status === "ot", isMiss = a.status === "absent" || a.status === "excused";
+      if (!isAtt && !isMiss) return;
+      denom++; if (isAtt) attended++;
+      const p = perPlayer[a.player_id] = perPlayer[a.player_id] || { a: 0, d: 0 };
+      p.d++; if (isAtt) p.a++;
+    });
+    const attPct = denom ? (attended / denom) * 100 : null;
+    const lowAtt = players.filter((p) => perPlayer[p.id] && perPlayer[p.id].d >= 3 && (perPlayer[p.id].a / perPlayer[p.id].d) < 0.6);
+    // partidos
+    const played = matches.filter((m) => m.date <= today);
+    const decided = played.filter((m) => m.team_score != null && m.opponent_score != null);
+    const wins = decided.filter((m) => m.team_score > m.opponent_score).length, losses = decided.filter((m) => m.team_score < m.opponent_score).length;
+    const withStats = new Set(mps.map((r) => r.match_id));
+    const matchesNoStats = decided.filter((m) => !withStats.has(m.id)).length;
+    // periodos por jugador y partido
+    const perPer = {};
+    mps.forEach((r) => { if (r.periods_played == null) return; const p = perPer[r.player_id] = perPer[r.player_id] || { s: 0, n: 0 }; p.s += Number(r.periods_played) || 0; p.n++; });
+    const perAvgs = Object.keys(perPer).map((id) => ({ id, avg: perPer[id].s / perPer[id].n }));
+    const avgPeriods = perAvgs.length ? perAvgs.reduce((a, x) => a + x.avg, 0) / perAvgs.length : null;
+    const byId = {}; players.forEach((p) => { byId[p.id] = p; });
+    const lowPlay = avgPeriods === null ? [] : perAvgs.filter((x) => byId[x.id] && x.avg < avgPeriods * 0.5);
+    // evaluaciones (últimos 60 días)
+    const cut = ymd(new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 60));
+    const lastAs = {}; asm.forEach((a) => { if (!lastAs[a.player_id] || a.date > lastAs[a.player_id]) lastAs[a.player_id] = a.date; });
+    const unassessed = players.filter((p) => !lastAs[p.id] || lastAs[p.id] < cut);
+    return {
+      today, sessions: counted.length, sessionsPast: pastTr.length, sessionsPlanned: trainings.length - pastTr.length,
+      totalMin, noThemeMin, byTheme, themedMin: totalMin - noThemeMin,
+      attPct, lowAtt, trainingsNoAtt: pastTr.filter((t) => !trWithAtt.has(t.id)).length,
+      trainingsNoPlan: counted.filter((t) => !withRows.has(t.id)).length,
+      matchesPlayed: played.length, wins, losses, decided: decided.length, matchesNoStats,
+      avgPeriods, lowPlay: lowPlay.map((x) => byId[x.id]), unassessed, players: players.length,
+      assessedPct: players.length ? ((players.length - unassessed.length) / players.length) * 100 : null,
+    };
+  }
+
+  // Evalúa un objetivo con los indicadores: devuelve estado + textos.
+  function evalObjective(o, m) {
+    const t = Number(o.target);
+    const nodata = { status: "nodata", actual: null, text: _t("No data yet") };
+    switch (o.kind) {
+      case "theme_time_pct": {
+        if (!m.totalMin) return nodata;
+        const A = ((m.byTheme[o.theme] && m.byTheme[o.theme].min) || 0), a = (A / m.totalMin) * 100, diff = a - t;
+        if (diff < -2) {
+          const x = t < 100 ? Math.max(0, Math.ceil(((t / 100) * m.totalMin - A) / (1 - t / 100))) : null;
+          return { status: "missing", actual: a, ratio: t ? a / t : 0, text: x !== null ? _t("{n} points below target — about {min} more minutes of it", { n: f1(-diff), min: x }) : _t("{n} points below target", { n: f1(-diff) }) };
+        }
+        return diff > 2 ? { status: "above", actual: a, ratio: t ? a / t : 1, text: _t("{n} points above target", { n: f1(diff) }) } : { status: "ok", actual: a, ratio: 1, text: _t("On target") };
+      }
+      case "theme_sessions": {
+        if (!m.sessions) return nodata;
+        const a = (m.byTheme[o.theme] && m.byTheme[o.theme].sessions.size) || 0;
+        return a >= t ? { status: "ok", actual: a, ratio: 1, text: _t("Reached") } : { status: "missing", actual: a, ratio: t ? a / t : 0, text: _t(t - a === 1 ? "{n} more session needed" : "{n} more sessions needed", { n: t - a }) };
+      }
+      case "attendance_pct": {
+        if (m.attPct === null) return nodata;
+        return m.attPct >= t ? { status: "ok", actual: m.attPct, ratio: 1, text: _t("On target") } : { status: "missing", actual: m.attPct, ratio: t ? m.attPct / t : 0, text: _t("{n} points below target", { n: f1(t - m.attPct) }) };
+      }
+      case "min_periods_per_match": {
+        if (m.avgPeriods === null) return nodata;
+        return m.avgPeriods >= t ? { status: "ok", actual: m.avgPeriods, ratio: 1, text: _t("On target") } : { status: "missing", actual: m.avgPeriods, ratio: t ? m.avgPeriods / t : 0, text: _t("{n} below target", { n: f1(t - m.avgPeriods) }) };
+      }
+      default:
+        return o.done ? { status: "done", actual: null, ratio: 1, text: _t("Done") } : { status: "manual", actual: null, ratio: 0, text: _t("Not done yet") };
+    }
+  }
+  function describeObjective(o) {
+    switch (o.kind) {
+      case "theme_time_pct": return _t("{theme}: {n}% of training time", { theme: _t(o.theme), n: f1(Number(o.target)) });
+      case "theme_sessions": return _t("{theme} in at least {n} sessions", { theme: _t(o.theme), n: f1(Number(o.target)) });
+      case "attendance_pct": return _t("Training attendance of at least {n}%", { n: f1(Number(o.target)) });
+      case "min_periods_per_match": return _t("At least {n} periods per player per match (average)", { n: f1(Number(o.target)) });
+      default: return o.title || "";
+    }
+  }
+  const STATUS_LABEL = () => ({ ok: _t("On track"), missing: _t("Missing"), above: _t("Above target"), nodata: _t("No data"), done: _t("Done"), manual: _t("To do") });
+  function actualTarget(o, ev) {
+    if (o.kind === "custom") return "";
+    const unit = (o.kind === "theme_time_pct" || o.kind === "attendance_pct") ? "%" : "";
+    return `${ev.actual === null ? "—" : f1(ev.actual) + unit} / ${f1(Number(o.target))}${unit}`;
+  }
+
+  // ---------------------------------------------------------------------
+  // Pintado
+  // ---------------------------------------------------------------------
+  function renderGlance() {
+    const m = metrics;
+    document.getElementById("sg-label").textContent = els.currentSelection.textContent;
+    const tog = document.getElementById("sg-planned-toggle");
+    tog.innerHTML = [[false, _t("Worked so far")], [true, _t("Include planned sessions")]].map(([v, l]) => `<button type="button" class="pill-choice${includePlanned === v ? " active" : ""}" data-v="${v}">${escapeHtml(l)}</button>`).join("");
+    tog.querySelectorAll(".pill-choice").forEach((b) => b.addEventListener("click", () => { includePlanned = b.dataset.v === "true"; renderAll(); }));
+    const tile = (v, l) => `<div class="stat-tile"><div class="stat-tile-value">${v}</div><div class="stat-tile-label">${escapeHtml(l)}</div></div>`;
+    document.getElementById("sg-tiles").innerHTML =
+      tile(String(m.sessions), includePlanned ? _t("Training sessions (incl. planned)") : _t("Training sessions"))
+      + tile(String(Math.round(m.totalMin)), _t("Training minutes"))
+      + tile(pctTxt(m.attPct), _t("Training attendance"))
+      + tile(String(m.matchesPlayed), _t("Matches played"))
+      + tile(m.decided ? `${m.wins}–${m.losses}` : "—", _t("Wins – losses"))
+      + tile(String(m.players), _t("Active players"))
+      + tile(pctTxt(m.assessedPct), _t("Assessed in the last 60 days"))
+      + tile(f1(m.avgPeriods), _t("Periods per player and match"));
+    const notes = [];
+    if (m.sessionsPlanned && !includePlanned) notes.push(_t(m.sessionsPlanned === 1 ? "{n} more session is planned and not counted yet." : "{n} more sessions are planned and not counted yet.", { n: m.sessionsPlanned }));
+    document.getElementById("sg-note").textContent = notes.join(" ");
+  }
+
+  function objRow(o) {
+    const ev = evalObjective(o, metrics);
+    const isGlobal = o.scope === "global";
+    const can = isGlobal ? isPlatformController : canManageTeam();
+    const pct = Math.max(0, Math.min(100, (ev.ratio || 0) * 100));
+    const bar = (o.kind === "custom") ? "" : `<div class="obj-bar"><span class="obj-fill obj-${ev.status}" style="width:${pct.toFixed(0)}%"></span></div>`;
+    const controls = can ? `<div class="obj-actions">
+        ${o.kind === "custom" ? `<button type="button" class="btn btn-secondary obj-btn" data-act="toggle" data-id="${escapeHtml(o.id)}">${escapeHtml(o.done ? _t("Mark as not done") : _t("Mark as done"))}</button>` : ""}
+        <button type="button" class="btn btn-secondary obj-btn" data-act="edit" data-id="${escapeHtml(o.id)}">${escapeHtml(_t("Edit"))}</button>
+        <button type="button" class="btn btn-secondary obj-btn" data-act="pause" data-id="${escapeHtml(o.id)}">${escapeHtml(o.active === false ? _t("Resume") : _t("Pause"))}</button>
+        <button type="button" class="btn btn-secondary obj-btn" data-act="delete" data-id="${escapeHtml(o.id)}">${escapeHtml(_t("Delete"))}</button></div>` : "";
+    return `<div class="obj-row${o.active === false ? " obj-paused" : ""}">
+      <div class="obj-main"><div class="obj-title"><span${o.kind === "custom" ? " data-i18n-skip" : ""}>${escapeHtml(describeObjective(o))}</span>${o.active === false ? ` <span class="obj-tag">${escapeHtml(_t("Paused"))}</span>` : ""}</div>
+        <div class="hint">${escapeHtml(ev.text)}${o.kind !== "custom" ? ` · ${escapeHtml(actualTarget(o, ev))}` : ""}</div>${bar}${controls}</div>
+      <div class="obj-side"><span class="obj-pill obj-${ev.status}">${escapeHtml(STATUS_LABEL()[ev.status])}</span></div></div>`;
+  }
+
+  function renderObjectives() {
+    const addBtn = document.getElementById("obj-add-btn");
+    addBtn.style.display = (objectivesOk && canManageTeam()) ? "" : "none";
+    document.getElementById("obj-unavailable").style.display = objectivesOk ? "none" : "block";
+    const g = objectives.filter((o) => o.scope === "global"), t = objectives.filter((o) => o.scope === "team");
+    const gBlock = document.getElementById("obj-global-block"), tBlock = document.getElementById("obj-team-block");
+    gBlock.style.display = objectivesOk ? "" : "none"; tBlock.style.display = objectivesOk ? "" : "none";
+    const gHead = gBlock.querySelector(".section-label");
+    gHead.innerHTML = `${escapeHtml(_t("Global objectives"))} <span class="obj-tag">PlayPivot</span>${isPlatformController && objectivesOk ? ` <button type="button" class="btn btn-secondary obj-btn" id="obj-add-global">${escapeHtml(_t("+ Add global objective"))}</button>` : ""}`;
+    const gb = document.getElementById("obj-add-global"); if (gb) gb.onclick = () => openForm("global", null);
+    document.getElementById("obj-global-list").innerHTML = g.length ? g.map(objRow).join("") : `<p class="hint">${escapeHtml(_t("No global objectives set."))}</p>`;
+    document.getElementById("obj-team-list").innerHTML = t.length ? t.map(objRow).join("") : `<p class="hint">${escapeHtml(canManageTeam() ? _t("No team objectives yet — add the first one. Two or three clear ones are enough.") : _t("No team objectives set yet. The team's admin can add them."))}</p>`;
+    document.querySelectorAll(".obj-actions button").forEach((b) => b.addEventListener("click", () => objAction(b.dataset.act, b.dataset.id)));
+    addBtn.onclick = () => openForm("team", null);
+  }
+
+  function renderThemes() {
+    const m = metrics, area = document.getElementById("themes-area");
+    document.getElementById("themes-hint").textContent = m.sessions
+      ? _t("Based on {n} sessions and {min} minutes. Each exercise's time is split equally among its themes; pauses don't count; free-text and match blocks go to “No theme”.", { n: m.sessions, min: Math.round(m.totalMin) })
+      : _t("No training sessions counted yet. Plan them in Training builder and choose exercises from the Library: their themes are what appears here.");
+    if (!m.totalMin && !Object.keys(m.byTheme).length) { area.innerHTML = ""; return; }
+    // objetivos por temática (el último gana si hay varios del mismo tema)
+    const tgtTime = {}, tgtSess = {};
+    objectives.forEach((o) => { if (o.active === false) return; if (o.kind === "theme_time_pct") tgtTime[o.theme] = Number(o.target); if (o.kind === "theme_sessions") tgtSess[o.theme] = Number(o.target); });
+    const all = [...new Set([...THEMES, ...Object.keys(m.byTheme)])];
+    const rows = all.map((th) => { const b = m.byTheme[th] || { min: 0, sessions: new Set() }; return { th, min: b.min, pct: m.totalMin ? (b.min / m.totalMin) * 100 : 0, sess: b.sessions.size }; });
+    const worked = rows.filter((r) => r.min > 0 || r.sess > 0 || tgtTime[r.th] !== undefined || tgtSess[r.th] !== undefined).sort((a, b) => b.min - a.min);
+    const idle = rows.filter((r) => !worked.includes(r));
+    const maxPct = Math.max(20, ...worked.map((r) => r.pct), ...Object.values(tgtTime));
+    const line = (r) => {
+      const tt = tgtTime[r.th], ts = tgtSess[r.th];
+      const gap = tt === undefined ? null : r.pct - tt;
+      const gapTxt = gap === null ? "" : (gap < -2 ? `<span class="obj-pill obj-missing">${escapeHtml(_t("{n} pts missing", { n: f1(-gap) }))}</span>` : (gap > 2 ? `<span class="obj-pill obj-above">${escapeHtml(_t("{n} pts above", { n: f1(gap) }))}</span>` : `<span class="obj-pill obj-ok">${escapeHtml(_t("On target"))}</span>`));
+      const sessTxt = ts === undefined ? String(r.sess) : `${r.sess} / ${f1(ts)}`;
+      return `<tr><td>${escapeHtml(_t(r.th))}</td>
+        <td style="min-width:160px;"><div class="obj-bar" style="margin:0;"><span class="obj-fill obj-ok" style="width:${Math.min(100, r.pct / maxPct * 100).toFixed(1)}%"></span>${tt !== undefined ? `<i class="obj-mark" style="left:${Math.min(100, tt / maxPct * 100).toFixed(1)}%" title="${escapeHtml(_t("Target"))} ${f1(tt)}%"></i>` : ""}</div></td>
+        <td class="num">${f1(r.pct)}%${tt !== undefined ? ` <small class="hint">/ ${f1(tt)}%</small>` : ""}</td><td class="num">${Math.round(r.min)}</td><td class="num">${sessTxt}</td><td>${gapTxt}</td></tr>`;
+    };
+    const noThemePct = m.totalMin ? (m.noThemeMin / m.totalMin) * 100 : 0;
+    area.innerHTML = `<div class="table-scroll"><table class="themes-table"><thead><tr><th>${escapeHtml(_t("Theme"))}</th><th></th><th class="num">${escapeHtml(_t("% of time"))}</th><th class="num">${escapeHtml(_t("Minutes"))}</th><th class="num">${escapeHtml(_t("Sessions"))}</th><th></th></tr></thead><tbody>`
+      + worked.map(line).join("")
+      + (m.noThemeMin ? `<tr class="themes-other"><td>${escapeHtml(_t("No theme"))}</td><td></td><td class="num">${f1(noThemePct)}%</td><td class="num">${Math.round(m.noThemeMin)}</td><td class="num"></td><td></td></tr>` : "")
+      + `</tbody></table></div>`
+      + (idle.length ? `<p class="hint" style="margin-top:10px;"><strong>${escapeHtml(_t("Not worked yet"))}:</strong> <span>${idle.map((r) => escapeHtml(_t(r.th))).join(", ")}</span></p>` : "");
+  }
+
+  function seasonalTip() {
+    const mo = new Date().getMonth(); // 0 = enero
+    if (mo === 8 || mo === 9) return _t("Early season: prioritise fundamentals and shared team rules, and assess each player once so you have a starting point.");
+    if (mo === 10 || mo === 11) return _t("First half: compare with your starting assessments and choose one individual focus per player.");
+    if (mo === 0) return _t("After the break: check attendance and fitness, and a quick re-assessment will show who has progressed.");
+    if (mo === 1 || mo === 2) return _t("Second half: take the fundamentals into game situations and review which themes you have neglected.");
+    if (mo >= 3 && mo <= 5) return _t("Closing stretch: protect rotations and playing time, and start preparing the season review.");
+    return _t("Off-season: roll the roster over to the new season and set the objectives before the first practice.");
+  }
+
+  function buildTips() {
+    const m = metrics, tips = [];
+    objectives.filter((o) => o.active !== false && o.kind !== "custom").forEach((o) => {
+      const ev = evalObjective(o, m);
+      if (ev.status === "missing") tips.push({ text: `${describeObjective(o)} — ${ev.text}.`, source: _t("Objectives"), pri: 1 });
+    });
+    objectives.filter((o) => o.active !== false && o.kind === "custom" && !o.done).forEach((o) => tips.push({ text: _t("Pending objective: {t}", { t: o.title }), source: _t("Objectives"), pri: 3, raw: true }));
+    if (m.sessionsPast >= 5) {
+      const idle = THEMES.filter((c) => !(m.byTheme[c] && m.byTheme[c].sessions.size));
+      if (idle.length) tips.push({ text: _t("Not worked yet in {n} sessions: {list}.", { n: m.sessions, list: idle.map((c) => _t(c)).join(", ") }), source: _t("Training themes"), pri: 2 });
+    }
+    if (m.themedMin > 0) {
+      const hasTarget = new Set(objectives.filter((o) => o.kind === "theme_time_pct").map((o) => o.theme));
+      Object.keys(m.byTheme).forEach((c) => { const p = (m.byTheme[c].min / m.totalMin) * 100; if (p > 40 && !hasTarget.has(c)) tips.push({ text: _t("{theme} takes {n}% of the training time and has no objective — is that what you want?", { theme: _t(c), n: f1(p) }), source: _t("Training themes"), pri: 2 }); });
+    }
+    if (m.lowAtt.length) tips.push({ text: _t(m.lowAtt.length === 1 ? "{n} player attends fewer than 60% of trainings." : "{n} players attend fewer than 60% of trainings.", { n: m.lowAtt.length }), source: _t("Attendance"), href: "./attendance.html", pri: 2 });
+    if (m.unassessed.length) tips.push({ text: _t(m.unassessed.length === 1 ? "{n} player has no assessment in the last 60 days." : "{n} players have no assessment in the last 60 days.", { n: m.unassessed.length }), source: _t("Player assessment"), href: "./assessment.html", pri: 2 });
+    if (m.lowPlay.length) tips.push({ text: _t(m.lowPlay.length === 1 ? "{n} player plays less than half the team's average periods." : "{n} players play less than half the team's average periods.", { n: m.lowPlay.length }), source: _t("Playing time"), href: "./stats.html", pri: 2 });
+    if (m.trainingsNoAtt) tips.push({ text: _t(m.trainingsNoAtt === 1 ? "{n} past training has no attendance recorded, so attendance figures may be incomplete." : "{n} past trainings have no attendance recorded, so attendance figures may be incomplete.", { n: m.trainingsNoAtt }), source: _t("Data completeness"), href: "./attendance.html", pri: 3 });
+    if (m.trainingsNoPlan) tips.push({ text: _t(m.trainingsNoPlan === 1 ? "{n} session has no exercises, so it doesn't add to the theme percentages." : "{n} sessions have no exercises, so they don't add to the theme percentages.", { n: m.trainingsNoPlan }), source: _t("Data completeness"), href: "./training.html", pri: 3 });
+    if (m.matchesNoStats) tips.push({ text: _t(m.matchesNoStats === 1 ? "{n} played match has no player stats." : "{n} played matches have no player stats.", { n: m.matchesNoStats }), source: _t("Data completeness"), href: "./match.html", pri: 3 });
+    if (!objectives.some((o) => o.scope === "team") && objectivesOk) tips.push({ text: _t("This team has no objectives yet: two or three clear ones turn this page into a tracker."), source: _t("Objectives"), pri: 3 });
+    tips.sort((a, b) => a.pri - b.pri);
+    tips.push({ text: seasonalTip(), source: _t("Season calendar"), pri: 9 });
+    return tips;
+  }
+  function renderTips() {
+    const tips = buildTips();
+    document.getElementById("tips-list").innerHTML = tips.map((t) => `<div class="tip-row"><span class="tip-text"${t.raw ? " data-i18n-skip" : ""}>${t.href ? `<a href="${t.href}">${escapeHtml(t.text)}</a>` : escapeHtml(t.text)}</span><small class="hint tip-src">${escapeHtml(t.source)}</small></div>`).join("");
+  }
+
+  function renderAll() {
+    metrics = computeMetrics();
+    renderGlance(); renderObjectives(); renderThemes(); renderTips();
+    els.chipMatches.textContent = String(ctx.matches.length);
+  }
+
+  // ---------------------------------------------------------------------
+  // Formulario y acciones sobre objetivos
+  // ---------------------------------------------------------------------
+  const KINDS = () => [["theme_time_pct", _t("Theme: % of training time")], ["theme_sessions", _t("Theme: minimum number of sessions")], ["attendance_pct", _t("Training attendance (%)")], ["min_periods_per_match", _t("Periods per player and match (average)")], ["custom", _t("Free objective (tick it yourself)")]];
+  function objMsg(text, type) { const el = document.getElementById("obj-msg"); el.textContent = (type === "error" ? "⚠ " : "✓ ") + text; el.className = "msg " + type; }
+  function objMsgClear() { const el = document.getElementById("obj-msg"); el.className = "msg"; el.textContent = ""; }
+
+  function openForm(scope, id) {
+    const o = id ? objectives.find((x) => x.id === id) : null;
+    formState = { scope, id };
+    const form = document.getElementById("obj-form");
+    const kind = o ? o.kind : "theme_time_pct";
+    form.innerHTML = `<p class="section-label" style="margin-top:0;">${escapeHtml(o ? _t("Edit objective") : (scope === "global" ? _t("New global objective") : _t("New team objective")))}</p>
+      <div class="obj-form-grid">
+        <label>${escapeHtml(_t("Type"))}<select id="of-kind" ${o ? "disabled" : ""}>${KINDS().map(([v, l]) => `<option value="${v}" ${v === kind ? "selected" : ""}>${escapeHtml(l)}</option>`).join("")}</select></label>
+        <label id="of-theme-wrap">${escapeHtml(_t("Theme"))}<select id="of-theme">${THEMES.map((c) => `<option value="${escapeHtml(c)}" ${o && o.theme === c ? "selected" : ""}>${escapeHtml(_t(c))}</option>`).join("")}</select></label>
+        <label id="of-target-wrap"><span id="of-target-label"></span><input type="number" id="of-target" min="0" step="any" value="${o && o.target != null ? escapeHtml(o.target) : ""}"></label>
+        <label id="of-title-wrap">${escapeHtml(_t("Objective"))}<input type="text" id="of-title" maxlength="200" value="${o && o.title ? escapeHtml(o.title) : ""}"></label>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:10px;"><button type="button" class="btn btn-primary" id="of-save">${escapeHtml(_t("Save"))}</button><button type="button" class="btn btn-secondary" id="of-cancel">${escapeHtml(_t("Cancel"))}</button></div>`;
+    form.style.display = "block";
+    const sync = () => {
+      const k = document.getElementById("of-kind").value;
+      document.getElementById("of-theme-wrap").style.display = (k === "theme_time_pct" || k === "theme_sessions") ? "" : "none";
+      document.getElementById("of-target-wrap").style.display = k === "custom" ? "none" : "";
+      document.getElementById("of-title-wrap").style.display = k === "custom" ? "" : "none";
+      document.getElementById("of-target-label").textContent = ({ theme_time_pct: _t("Target (% of time)"), theme_sessions: _t("Minimum sessions"), attendance_pct: _t("Target (%)"), min_periods_per_match: _t("Minimum periods per match") })[k] || "";
+    };
+    document.getElementById("of-kind").addEventListener("change", sync); sync();
+    document.getElementById("of-cancel").addEventListener("click", closeForm);
+    document.getElementById("of-save").addEventListener("click", saveObjective);
+    form.scrollIntoView({ block: "nearest" });
+  }
+  function closeForm() { formState = null; const f = document.getElementById("obj-form"); f.style.display = "none"; f.innerHTML = ""; }
+
+  async function saveObjective() {
+    const btn = document.getElementById("of-save"); if (btn.disabled) return;
+    objMsgClear();
+    const kind = document.getElementById("of-kind").value;
+    const row = { kind, theme: null, target: null, title: null };
+    if (kind === "theme_time_pct" || kind === "theme_sessions") row.theme = document.getElementById("of-theme").value;
+    if (kind === "custom") { row.title = document.getElementById("of-title").value.trim(); if (!row.title) { objMsg(_t("Write the objective first."), "error"); return; } }
+    else {
+      const raw = document.getElementById("of-target").value;
+      const v = Number(raw);
+      if (raw === "" || Number.isNaN(v) || v < 0) { objMsg(_t("Enter a target number (0 or more)."), "error"); return; }
+      if ((kind === "theme_time_pct" || kind === "attendance_pct") && v > 100) { objMsg(_t("A percentage can't be more than 100."), "error"); return; }
+      row.target = v;
+    }
+    btn.disabled = true;
+    try {
+      if (formState.id) {
+        const { data, error } = await supabaseClient.from("season_objectives").update({ theme: row.theme, target: row.target, title: row.title }).eq("id", formState.id).select();
+        if (error) throw error;
+        if (!data || !data.length) throw new Error(_t("You don't have permission to change this objective."));
+      } else {
+        const payload = formState.scope === "global"
+          ? { scope: "global", ...row }
+          : { scope: "team", organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null, team_gender: currentTeamGender || null, ...row };
+        const { error } = await supabaseClient.from("season_objectives").insert(payload);
+        if (error) throw error;
+      }
+      closeForm(); await loadObjectives(); renderAll(); objMsg(_t("Objective saved."), "success");
+    } catch (err) {
+      btn.disabled = false; objMsg(err.message || _t("Couldn't save the objective."), "error");
+    }
+  }
+
+  async function objAction(act, id) {
+    objMsgClear();
+    const o = objectives.find((x) => x.id === id); if (!o) return;
+    if (act === "edit") { openForm(o.scope, id); return; }
+    try {
+      let res;
+      if (act === "delete") res = await supabaseClient.from("season_objectives").delete().eq("id", id).select();
+      else if (act === "pause") res = await supabaseClient.from("season_objectives").update({ active: o.active === false }).eq("id", id).select();
+      else if (act === "toggle") res = await supabaseClient.from("season_objectives").update({ done: !o.done }).eq("id", id).select();
+      if (res.error) throw res.error;
+      if (!res.data || !res.data.length) throw new Error(_t("You don't have permission to change this objective."));
+      await loadObjectives(); renderAll();
+    } catch (err) { objMsg(err.message || _t("Couldn't update the objective."), "error"); }
+  }
+
+  // ---------------------------------------------------------------------
+  // Selección equipo/temporada
+  // ---------------------------------------------------------------------
+  async function selectSeasonTeam(season, team, skipRerenderPickers) {
+    currentSeason = season; currentTeam = team;
+    try { localStorage.setItem(`pivot-roster-last-${currentOrgId}`, JSON.stringify({ season, team, category: currentTeamCategory || "", gender: currentTeamGender || "" })); } catch (e) { /* no pasa nada */ }
+    const label = currentTeamCategory ? `${team} (${currentTeamCategory}${currentTeamGender ? " " + currentTeamGender : ""}) — ${season}` : `${team} — ${season}`;
+    els.currentSelection.textContent = label;
+    els.selectedCard.style.display = "flex";
+    els.selectedName.textContent = team;
+    els.selectedSub.textContent = `Season ${season}`;
+    els.chipCategory.textContent = currentTeamCategory || "—";
+    els.chipGender.textContent = currentTeamGender || "—";
+    const BALL_ICON_HTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--accent)" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6c3 3 3 9.8 0 12.8M18.4 5.6c-3 3-3 9.8 0 12.8"/></svg>`;
+    els.selectedIcon.innerHTML = BALL_ICON_HTML;
+    logoRequestToken++;
+    const myLogoToken = logoRequestToken;
+    const teamLogoUrl = `${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/teams/${encodeURIComponent(team)}.png?t=${Date.now()}`;
+    const teamImg = new Image();
+    teamImg.onload = () => { if (myLogoToken === logoRequestToken) els.selectedIcon.innerHTML = `<img src="${teamLogoUrl}" alt="" />`; };
+    teamImg.src = teamLogoUrl;
+    if (!skipRerenderPickers) {
+      const seasonsForThis = [...new Set(lastTreeRows.filter((r) => r.team === team && (r.team_category || "") === (currentTeamCategory || "") && (r.team_gender || "") === (currentTeamGender || "")).map((r) => r.season))].sort().reverse();
+      renderSeasonPicker("season-picker", seasonsForThis, currentSeason, (s) => selectSeasonTeam(s, team));
+    }
+    els.noTeamCard.style.display = "none";
+    els.statsContent.style.display = "block";
+    closeForm(); objMsgClear();
+    const token = ++loadToken;
+    await loadSeasonData();
+    if (token !== loadToken) return; // llegó tarde: ya se eligió otro equipo
+    renderAll();
+  }
+  let loadToken = 0;
+
+  document.getElementById("help-btn").addEventListener("click", () => {
+    const box = document.getElementById("help-box");
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    box.innerHTML = `
+      <strong>${escapeHtml(_t("How the Season plan works"))}</strong>
+      <p style="margin:10px 0 4px; font-weight:600;">${escapeHtml(_t("Objectives"))}</p>
+      <p style="margin:0 0 10px;">${escapeHtml(_t("Global objectives come from PlayPivot and apply to every team. The team's admin adds the team's own. Progress is calculated automatically from your trainings, attendance, assessments and matches; “free” objectives you tick yourself."))}</p>
+      <p style="margin:0 0 4px; font-weight:600;">${escapeHtml(_t("Training themes"))}</p>
+      <p style="margin:0 0 10px;">${escapeHtml(_t("The themes of each exercise (set in the Exercise creator) tell what you worked. Time is split equally if an exercise has several themes. Free-text and match blocks have no theme."))}</p>
+      <p style="margin:0;">${escapeHtml(_t("Only your own team's data is used, and only what you actually recorded: nothing is guessed."))}</p>`;
+    box.style.display = "block";
+  });
+  els.logoutBtn.addEventListener("click", async () => { await supabaseClient.auth.signOut(); window.location.href = "./login.html"; });
+
+  // =========================================================================
+  // Informe de temporada (PDF / Excel) -- en el idioma de la pantalla. Usa
+  // exactamente lo que se ve en la página (metrics + objectives), nada nuevo.
+  // =========================================================================
+  function reportTeamLabel() { return currentTeam + (currentTeamCategory ? " (" + currentTeamCategory + (currentTeamGender ? " " + currentTeamGender : "") + ")" : ""); }
+  function reportFileBase() { return [currentTeam, currentTeamCategory, currentTeamGender].filter(Boolean).join(" ") + "_" + currentSeason + "_" + _t("season report||file name word"); }
+  function reportData() {
+    const m = metrics, st = STATUS_LABEL();
+    const glance = [
+      [_t("Training sessions"), String(m.sessions)], [_t("Training minutes"), String(Math.round(m.totalMin))], [_t("Training attendance"), pctTxt(m.attPct)],
+      [_t("Matches played"), String(m.matchesPlayed)], [_t("Wins – losses"), m.decided ? `${m.wins}–${m.losses}` : "—"], [_t("Active players"), String(m.players)],
+      [_t("Assessed in the last 60 days"), pctTxt(m.assessedPct)], [_t("Periods per player and match"), f1(m.avgPeriods)],
+    ];
+    const objRows = objectives.filter((o) => o.active !== false).map((o) => {
+      const ev = evalObjective(o, m);
+      return [o.scope === "global" ? _t("Global") : _t("Team"), describeObjective(o), o.kind === "custom" ? "" : actualTarget(o, ev), st[ev.status], ev.text];
+    });
+    const tgt = {}; objectives.forEach((o) => { if (o.active !== false && o.kind === "theme_time_pct") tgt[o.theme] = Number(o.target); });
+    const tgtS = {}; objectives.forEach((o) => { if (o.active !== false && o.kind === "theme_sessions") tgtS[o.theme] = Number(o.target); });
+    const themeRows = [...new Set([...THEMES, ...Object.keys(m.byTheme)])].map((th) => {
+      const b = m.byTheme[th] || { min: 0, sessions: new Set() };
+      return { th, pct: m.totalMin ? (b.min / m.totalMin) * 100 : 0, min: Math.round(b.min), sess: b.sessions.size };
+    }).filter((r) => r.min > 0 || r.sess > 0 || tgt[r.th] !== undefined || tgtS[r.th] !== undefined).sort((a, b) => b.min - a.min)
+      .map((r) => [_t(r.th), f1(r.pct) + "%", tgt[r.th] !== undefined ? f1(tgt[r.th]) + "%" : "", String(r.min), String(r.sess), tgtS[r.th] !== undefined ? f1(tgtS[r.th]) : ""]);
+    if (m.noThemeMin) themeRows.push([_t("No theme"), f1((m.noThemeMin / m.totalMin) * 100) + "%", "", String(Math.round(m.noThemeMin)), "", ""]);
+    const idle = THEMES.filter((c) => !(m.byTheme[c] && (m.byTheme[c].min > 0 || m.byTheme[c].sessions.size)));
+    const tips = buildTips().map((t) => [t.text, t.source]);
+    return { glance, objRows, themeRows, idle: idle.map((c) => _t(c)), tips };
+  }
+  const THEME_HEAD = () => [_t("Theme"), _t("% of time"), _t("Target"), _t("Minutes"), _t("Sessions"), _t("Target sessions")];
+  const OBJ_HEAD = () => [_t("Scope"), _t("Objective"), _t("Actual / target"), _t("Status"), _t("Detail")];
+
+  document.getElementById("report-xlsx-btn").addEventListener("click", () => {
+    if (!metrics) return;
+    const d = reportData(); const club = els.orgName.textContent || "PlayPivot";
+    const top = [[club], [_t("Season report — {team} — {season}", { team: reportTeamLabel(), season: currentSeason })], [_t("Generated {date}", { date: new Date().toISOString().slice(0, 10) })], [includePlanned ? _t("Includes planned sessions") : _t("Worked so far")], []];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...top, [_t("Indicator"), _t("Value")], ...d.glance]), _t("Summary"));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([OBJ_HEAD(), ...d.objRows]), _t("Objectives"));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([THEME_HEAD(), ...d.themeRows, [], [_t("Not worked yet"), d.idle.join(", ")]]), _t("Training themes"));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([[_t("What to look at"), _t("Source")], ...d.tips]), _t("What to look at"));
+    XLSX.writeFile(wb, reportFileBase() + ".xlsx");
+  });
+
+  async function loadLogoDataUrlSimple() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/storage/v1/object/public/logos/${currentOrgId}/logo.png`);
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      const raw = await new Promise((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = () => resolve(null); r.readAsDataURL(blob); });
+      if (!raw) return null;
+      return await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => { try { const c = document.createElement("canvas"); c.width = img.naturalWidth || img.width; c.height = img.naturalHeight || img.height; c.getContext("2d").drawImage(img, 0, 0); resolve(c.toDataURL("image/png")); } catch (e2) { resolve(null); } };
+        img.onerror = () => resolve(null); img.src = raw;
+      });
+    } catch (e) { return null; }
+  }
+
+  document.getElementById("report-pdf-btn").addEventListener("click", async () => {
+    if (!metrics) return;
+    const d = reportData(); const club = els.orgName.textContent || "PlayPivot";
+    const logo = await loadLogoDataUrlSimple();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const accent = [236, 103, 24], navy = [8, 0, 38], ink = [26, 26, 26], muted = [130, 130, 136];
+    const W = 595, H = 842, mx = 40, cw = W - mx * 2; let y = 0, page = 1;
+    const footer = () => { doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...muted); doc.text(_t("Generated by PlayPivot on {date}", { date: new Date().toISOString().slice(0, 10) }), mx, H - 18); doc.text(String(page), W - mx, H - 18, { align: "right" }); };
+    const top = () => {
+      if (logo) { try { doc.addImage(logo, "PNG", W - mx - 46, 24, 46, 46); } catch (e) {} }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(...navy); doc.text(club, mx, 44);
+      doc.setFontSize(11.5); doc.setTextColor(...accent); doc.text(_t("Season report — {team} — {season}", { team: reportTeamLabel(), season: currentSeason }), mx, 62);
+      doc.setDrawColor(...accent); doc.setLineWidth(1.6); doc.line(mx, 72, W - mx, 72); y = 94;
+    };
+    const need = (h) => { if (y + h > H - 40) { footer(); doc.addPage(); page++; top(); } };
+    const h2 = (txt) => { need(40); doc.setFont("helvetica", "bold"); doc.setFontSize(12.5); doc.setTextColor(...navy); doc.text(txt, mx, y); y += 8; doc.setDrawColor(225, 225, 225); doc.setLineWidth(0.5); doc.line(mx, y, W - mx, y); y += 16; };
+    const table = (head, rows, widths) => {
+      const xs = []; let acc = mx; widths.forEach((w) => { xs.push(acc); acc += w * cw; });
+      const row = (cells, bold, fill) => {
+        doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(8.8);
+        const wrapped = cells.map((c, i) => doc.splitTextToSize(String(c || ""), widths[i] * cw - 8));
+        const lines = Math.max(1, ...wrapped.map((w) => w.length)), rh = lines * 11 + 6;
+        need(rh); if (fill) { doc.setFillColor(248, 248, 248); doc.rect(mx, y - 9, cw, rh, "F"); }
+        doc.setTextColor(...(bold ? muted : ink));
+        wrapped.forEach((w, i) => doc.text(w, xs[i] + 2, y));
+        y += rh;
+      };
+      row(head, true, false); rows.forEach((r, i) => row(r, false, i % 2 === 1)); y += 10;
+    };
+    top();
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...muted);
+    doc.text(includePlanned ? _t("Includes planned sessions") : _t("Worked so far"), mx, y - 8);
+    h2(_t("Season at a glance"));
+    table([_t("Indicator"), _t("Value")], d.glance, [0.7, 0.3]);
+    h2(_t("Objectives"));
+    if (d.objRows.length) table(OBJ_HEAD(), d.objRows, [0.1, 0.3, 0.17, 0.13, 0.3]); else { doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...muted); doc.text(_t("No objectives set."), mx, y); y += 18; }
+    h2(_t("Training themes"));
+    if (d.themeRows.length) table(THEME_HEAD(), d.themeRows, [0.22, 0.13, 0.13, 0.13, 0.13, 0.26]); else { doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...muted); doc.text(_t("No training sessions counted yet."), mx, y); y += 18; }
+    if (d.idle.length) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.8); doc.setTextColor(...ink); const ls = doc.splitTextToSize(_t("Not worked yet") + ": " + d.idle.join(", "), cw); need(ls.length * 11 + 8); doc.text(ls, mx, y); y += ls.length * 11 + 10; }
+    h2(_t("What to look at"));
+    table([_t("Suggestion"), _t("Source")], d.tips, [0.76, 0.24]);
+    footer();
+    doc.save(reportFileBase() + ".pdf");
+  });
+
+  async function init() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) { window.location.href = "./login.html"; return; }
+    pivotInitSidebarChrome();
+    const orgId = await loadMyOrganization();
+    pivotInitTopbarWidgets();
+    if (orgId) await loadTree();
+  }
+  init();
+</script>
+
+</body>
+</html>

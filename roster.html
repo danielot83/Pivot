@@ -341,6 +341,7 @@
       <a href="./roster.html" class="sidebar-link active"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
       <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
       <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+      <a href="./season.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M7 15h4M7 18h7"/></svg>Season plan</a>
       <div class="sidebar-group">Games</div>
       <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
       <a href="./stats.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
@@ -456,6 +457,7 @@
 
     <div class="toolbar">
       <button class="btn btn-primary" id="add-btn">+ Add player</button>
+      <button class="btn btn-secondary" id="copy-season-btn" title="Bring the players of this team from another season">↺ Copy players from another season</button>
       <div class="columns-menu">
         <button class="btn btn-secondary" id="columns-btn">Columns ▾</button>
         <div class="columns-panel" id="columns-panel"></div>
@@ -522,6 +524,7 @@
 </div><!-- /app-shell -->
 
 <script src="./i18n.js?v=2"></script>
+<script src="./stat-measured.js"></script>
 <script src="./sw-register.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -1107,32 +1110,103 @@
       const counted = by.present + by.late + by.absent + by.excused;
       const pct = counted ? Math.round(((by.present + by.late) / counted) * 100) : null;
       const tile = (n, label) => `<div class="pp-tile"><b>${n}</b><span>${ppEsc(label)}</span></div>`;
+      // desglose por tipo: entrenos / partidos / eventos (solo los que tienen filas)
+      const typeOf = (r) => (r.training_id ? "t" : r.match_id ? "m" : r.event_id ? "e" : null);
+      const tb = { t: [0, 0], m: [0, 0], e: [0, 0] };
+      rows.forEach((r) => { const k = typeOf(r); if (!k) return; if (r.status === "present" || r.status === "late") { tb[k][0]++; tb[k][1]++; } else if (r.status === "absent" || r.status === "excused") tb[k][1]++; });
+      const tLabel = { t: _t("Trainings"), m: _t("Matches"), e: _t("Events") };
+      const byType = ["t", "m", "e"].filter((k) => tb[k][1] > 0).map((k) => tile(Math.round((tb[k][0] / tb[k][1]) * 100) + "%", `${tLabel[k]} · ${tb[k][0]}/${tb[k][1]}`)).join("");
       ov.querySelector("#pp-att").innerHTML = `<h3>${ppEsc(_t("Attendance"))}</h3>` + (rows.length === 0 ? `<div class="pp-muted">${ppEsc(_t("No attendance recorded for this player yet."))}</div>`
-        : `<div class="pp-tiles">${tile(pct === null ? "—" : pct + "%", _t("Attended (present or late)"))}${tile(by.present, _t("Present"))}${tile(by.late, _t("Late"))}${tile(by.absent, _t("Absent"))}${tile(by.excused, _t("Excused"))}${by.coach + by.ot ? tile(by.coach + by.ot, _t("Coach") + " / " + _t("OT||status letter: table official")) : ""}</div>`);
+        : `<div class="pp-tiles">${tile(pct === null ? "—" : pct + "%", _t("Attended (present or late)"))}${tile(by.present, _t("Present"))}${tile(by.late, _t("Late"))}${tile(by.absent, _t("Absent"))}${tile(by.excused, _t("Excused"))}${by.coach + by.ot ? tile(by.coach + by.ot, _t("Coach") + " / " + _t("OT||status letter: table official")) : ""}</div>${byType ? `<div class="pp-tiles" style="margin-top:8px;">${byType}</div>` : ""}`);
     } catch (e) { ov.querySelector("#pp-att").innerHTML = `<h3>${ppEsc(_t("Attendance"))}</h3><div class="pp-muted">—</div>`; }
 
     // ---- partidos ----
+    // Solo se enseñan las estadísticas que de verdad se midieron: la BD guarda 0
+    // por defecto en puntos/rebotes/asistencias/faltas/tiros, así que un partido
+    // donde solo se anotaron puntos tiene "0 rebotes" para todos. Una estadística
+    // cuenta como medida en un partido si algún jugador de ese partido tiene un
+    // valor distinto de 0 (stat-measured.js). Las columnas que nunca se midieron
+    // para este jugador no aparecen, y las medias solo usan partidos con dato.
     try {
-      const { data: st } = await supabaseClient.from("match_player_stats").select("match_id, minutes, points, rebounds, assists, fouls, periods_played, periods_sub, started").eq("player_id", p.id);
+      const { data: st } = await supabaseClient.from("match_player_stats").select("match_id, minutes, points, rebounds, assists, fouls, made_1, made_2, made_3, periods_played, periods_sub, started, custom_stats").eq("player_id", p.id);
       const stats = (st || []);
       let matchesById = {};
+      let allRows = [];
       if (stats.length) {
-        const { data: ms } = await supabaseClient.from("matches").select("id, date, opponent").in("id", stats.map((r) => r.match_id));
+        const ids = stats.map((r) => r.match_id);
+        const { data: ms } = await supabaseClient.from("matches").select("id, date, opponent").in("id", ids);
         (ms || []).forEach((m) => { matchesById[m.id] = m; });
+        // filas de TODOS los jugadores de esos partidos (para saber qué se midió)
+        for (let i = 0; i < ids.length; i += 25) {
+          const { data: chunk } = await supabaseClient.from("match_player_stats").select("match_id, player_id, started, minutes, periods_played, points, rebounds, assists, fouls, made_1, made_2, made_3, custom_stats").in("match_id", ids.slice(i, i + 25));
+          allRows = allRows.concat(chunk || []);
+        }
       }
-      const list = stats.filter((r) => matchesById[r.match_id]).sort((a, b) => String(matchesById[a.match_id].date).localeCompare(String(matchesById[b.match_id].date)));
-      const num = (v) => (v === null || v === undefined ? 0 : Number(v) || 0);
-      const tot = (k) => list.reduce((a, r) => a + num(r[k]), 0);
-      const avg = (k) => (list.length ? (tot(k) / list.length).toFixed(1) : "—");
-      ov.querySelector("#pp-stats").innerHTML = `<h3>${ppEsc(_t("Matches"))}</h3>` + (list.length === 0 ? `<div class="pp-muted">${ppEsc(_t("No match stats saved for this player yet."))}</div>`
-        : `<div class="pp-table-wrap"><table class="pp-table"><thead><tr><th>${ppEsc(_t("Match"))}</th><th>${ppEsc(_t("MIN||player profile column"))}</th><th>${ppEsc(_t("PTS||player profile column"))}</th><th>${ppEsc(_t("REB||player profile column"))}</th><th>${ppEsc(_t("AST||player profile column"))}</th><th>${ppEsc(_t("PF||player profile column"))}</th><th>${ppEsc(_t("Per.||player profile column"))}</th></tr></thead><tbody>`
-          + list.map((r) => { const m = matchesById[r.match_id]; return `<tr><td data-i18n-skip>${ppEsc(fmt(m.date))} · ${ppEsc(m.opponent || "")}</td><td>${r.minutes ?? "—"}</td><td>${r.points ?? "—"}</td><td>${r.rebounds ?? "—"}</td><td>${r.assists ?? "—"}</td><td>${r.fouls ?? "—"}</td><td>${r.periods_played ?? "—"}${r.periods_sub ? " (" + r.periods_sub + ")" : ""}</td></tr>`; }).join("")
-          + `</tbody><tfoot><tr><td>${ppEsc(_t("Average per match"))}</td><td>${avg("minutes")}</td><td>${avg("points")}</td><td>${avg("rebounds")}</td><td>${avg("assists")}</td><td>${avg("fouls")}</td><td>${avg("periods_played")}</td></tr></tfoot></table></div>`);
+      // partidos del equipo en esa temporada ya jugados (para "jugó X de Y")
+      let teamMatchCount = null;
+      try {
+        let mq = supabaseClient.from("matches").select("id, date").eq("organization_id", currentOrgId).eq("season", p.season || currentSeason).eq("team", p.team || currentTeam);
+        const tcat = p.team_category !== undefined ? p.team_category : (currentTeamCategory || null), tg = p.team_gender !== undefined ? p.team_gender : (currentTeamGender || null);
+        mq = tcat ? mq.eq("team_category", tcat) : mq.is("team_category", null);
+        mq = tg ? mq.eq("team_gender", tg) : mq.is("team_gender", null);
+        const { data: tm } = await mq;
+        const todayStr = new Date().toISOString().slice(0, 10);
+        teamMatchCount = (tm || []).filter((m) => String(m.date) <= todayStr).length;
+      } catch (e) { teamMatchCount = null; }
+      let customDefs = [];
+      try {
+        const { data: mf } = await supabaseClient.from("match_stat_fields").select("key, label, position, enabled").eq("organization_id", currentOrgId).eq("enabled", true).order("position");
+        customDefs = mf || [];
+      } catch (e) { /* sin campos personalizados */ }
+      const measured = PPMeasured.measuredByMatch(allRows);
+      // "jugó de verdad" (no solo convocado): mismo criterio que Estadísticas
+      const played = (r) => r.started || r.minutes != null || r.periods_played != null || r.periods_sub != null
+        || ["points", "rebounds", "assists", "fouls", "made_1", "made_2", "made_3"].some((f) => Number(r[f] || 0) !== 0)
+        || (r.custom_stats && Object.keys(r.custom_stats).some((k) => Number(r.custom_stats[k] || 0) !== 0));
+      const inList = stats.filter((r) => matchesById[r.match_id]);
+      const list = inList.filter(played).sort((a, b) => String(matchesById[a.match_id].date).localeCompare(String(matchesById[b.match_id].date)));
+      const calledOnly = inList.length - list.length;
+      const cols = [
+        { f: "minutes", h: _t("MIN||player profile column") }, { f: "points", h: _t("PTS||player profile column") },
+        { f: "rebounds", h: _t("REB||player profile column") }, { f: "assists", h: _t("AST||player profile column") },
+        { f: "fouls", h: _t("PF||player profile column") }, { f: "made_1", h: _t("1PM") }, { f: "made_2", h: _t("2PM") }, { f: "made_3", h: _t("3PM") },
+      ].concat(customDefs.map((d) => ({ f: "custom:" + d.key, h: d.label, user: true })));
+      const val = (r, f) => (f === "minutes" ? (r.minutes == null ? null : Number(r.minutes)) : PPMeasured.value(measured, r, f));
+      const shown = cols.filter((c) => list.some((r) => val(r, c.f) !== null));
+      const hasPer = list.some((r) => r.periods_played != null);
+      const cell = (v) => (v === null ? "—" : (Number.isInteger(v) ? String(v) : v.toFixed(1)));
+      const avgOf = (f) => { const vs = list.map((r) => val(r, f)).filter((v) => v !== null); return vs.length ? (vs.reduce((a, v) => a + v, 0) / vs.length).toFixed(1) : "—"; };
+      // Tiempo de juego frente al resto del equipo (solo con datos reales)
+      const realRow = (r) => r.started || r.minutes != null || r.periods_played != null;
+      const avgN = (arr) => (arr.length ? arr.reduce((a, v) => a + v, 0) / arr.length : null);
+      const mine = (key) => avgN(list.map((r) => (r[key] == null ? null : Number(r[key]))).filter((v) => v !== null));
+      const team = (key) => avgN(allRows.filter(realRow).map((r) => (r[key] == null ? null : Number(r[key]))).filter((v) => v !== null));
+      const f1 = (v) => (v === null ? "—" : (Number.isInteger(v) ? String(v) : v.toFixed(1)));
+      const ptile = (n, label) => `<div class="pp-tile"><b>${n}</b><span>${ppEsc(label)}</span></div>`;
+      let timeTiles = "";
+      if (list.length) {
+        timeTiles += ptile(teamMatchCount ? `${list.length}/${teamMatchCount}` : String(list.length), _t("Matches played"));
+        const myPer = mine("periods_played"), tmPer = team("periods_played"), myMin = mine("minutes"), tmMin = team("minutes");
+        if (myPer !== null) timeTiles += ptile(f1(myPer) + (tmPer !== null ? ` / ${f1(tmPer)}` : ""), _t("Periods per match (player / team avg)"));
+        if (myMin !== null) timeTiles += ptile(f1(myMin) + (tmMin !== null ? ` / ${f1(tmMin)}` : ""), _t("Minutes per match (player / team avg)"));
+        const starts = list.filter((r) => r.started).length;
+        if (starts) timeTiles += ptile(String(starts), _t("Started"));
+      }
+      const noteBits = [];
+      const anyDash = list.some((r) => shown.some((c) => val(r, c.f) === null));
+      if (list.length && anyDash) noteBits.push(_t("A “—” means it wasn't recorded in that match and it doesn't count in the average."));
+      if (calledOnly > 0) noteBits.push(_t(calledOnly === 1 ? "{n} match where the player was called up but has no recorded play isn't listed." : "{n} matches where the player was called up but has no recorded play aren't listed.", { n: calledOnly }));
+      ov.querySelector("#pp-stats").innerHTML = `<h3>${ppEsc(_t("Matches"))}</h3>` + (timeTiles ? `<div class="pp-tiles" style="margin-bottom:10px;">${timeTiles}</div>` : "") + (list.length === 0 ? `<div class="pp-muted">${ppEsc(_t("No match stats saved for this player yet."))}</div>` + (calledOnly > 0 ? `<div class="pp-note">${ppEsc(noteBits[noteBits.length - 1])}</div>` : "")
+        : (shown.length === 0 && !hasPer ? `<div class="pp-muted">${ppEsc(_t("{n} match(es) played, no individual stats recorded yet.", { n: list.length }))}</div>`
+        : `<div class="pp-table-wrap"><table class="pp-table"><thead><tr><th>${ppEsc(_t("Match"))}</th>${shown.map((c) => `<th${c.user ? " data-i18n-skip" : ""}>${ppEsc(c.h)}</th>`).join("")}${hasPer ? `<th>${ppEsc(_t("Per.||player profile column"))}</th>` : ""}</tr></thead><tbody>`
+          + list.map((r) => { const m = matchesById[r.match_id]; return `<tr><td data-i18n-skip>${ppEsc(fmt(m.date))} · ${ppEsc(m.opponent || "")}</td>${shown.map((c) => `<td>${cell(val(r, c.f))}</td>`).join("")}${hasPer ? `<td>${r.periods_played ?? "—"}${r.periods_sub ? " (" + r.periods_sub + ")" : ""}</td>` : ""}</tr>`; }).join("")
+          + `</tbody><tfoot><tr><td>${ppEsc(_t("Average per match"))}</td>${shown.map((c) => `<td>${avgOf(c.f)}</td>`).join("")}${hasPer ? `<td>${avgOf("periods_played")}</td>` : ""}</tr></tfoot></table></div>`
+          + noteBits.map((n) => `<div class="pp-note pp-muted">${ppEsc(n)}</div>`).join("")));
     } catch (e) { ov.querySelector("#pp-stats").innerHTML = `<h3>${ppEsc(_t("Matches"))}</h3><div class="pp-muted">—</div>`; }
 
     // ---- evaluaciones ----
     try {
-      const { data: as } = await supabaseClient.from("player_assessments").select("id, date, location, positive_points, negative_points, to_improve").eq("player_id", p.id).order("date", { ascending: false });
+      const { data: as } = await supabaseClient.from("player_assessments").select("id, date, location, positive_points, negative_points, to_improve, ratings").eq("player_id", p.id).order("date", { ascending: false });
       const list = (as || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
       const last = list[0];
       ov.querySelector("#pp-assess").innerHTML = `<h3>${ppEsc(_t("Assessments"))}</h3>` + (!last ? `<div class="pp-muted">${ppEsc(_t("No assessments yet for this player."))}</div>`
@@ -1140,6 +1214,16 @@
           + (last.positive_points ? `<div class="pp-note"><b>${ppEsc(_t("Positive points"))}:</b> <span data-i18n-skip>${ppEsc(last.positive_points)}</span></div>` : "")
           + (last.negative_points ? `<div class="pp-note"><b>${ppEsc(_t("Points to watch"))}:</b> <span data-i18n-skip>${ppEsc(last.negative_points)}</span></div>` : "")
           + (last.to_improve ? `<div class="pp-note"><b>${ppEsc(_t("To improve||assessment export column"))}:</b> <span data-i18n-skip>${ppEsc(last.to_improve)}</span></div>` : "")
+          + (function () {
+            // evolución por sector: última frente a la anterior (media 0-5 de lo valorado)
+            const SECT = [["technique", "Technique"], ["intelligence", "Basketball IQ"], ["personnalite", "Personality"], ["comportement", "Behaviour"]];
+            const avg = (row, k) => { let sum = 0, n = 0; const g = (row && row.ratings && row.ratings[k]) || {}; Object.keys(g).forEach((gk) => (g[gk] || []).forEach((v) => { if (v !== null && v !== undefined && !isNaN(Number(v))) { sum += Number(v); n++; } })); return n ? sum / n : null; };
+            const prev = list[1];
+            const trs = SECT.map(([k, label]) => { const a = avg(last, k); if (a === null) return ""; const b = prev ? avg(prev, k) : null; const d = b === null ? null : a - b;
+              const dTxt = d === null ? "" : (Math.abs(d) < 0.05 ? "＝" : (d > 0 ? "▲ +" : "▼ ") + d.toFixed(1));
+              return `<tr><td>${ppEsc(_t(label))}</td><td>${a.toFixed(1)}</td><td>${b === null ? "—" : b.toFixed(1)}</td><td>${dTxt}</td></tr>`; }).join("");
+            return trs ? `<div class="pp-table-wrap" style="margin-top:8px;"><table class="pp-table"><thead><tr><th>${ppEsc(_t("Development (0–5)"))}</th><th>${ppEsc(_t("Latest"))}</th><th>${ppEsc(_t("Previous"))}</th><th>${ppEsc(_t("Change"))}</th></tr></thead><tbody>${trs}</tbody></table></div>` : "";
+          })()
           + `<div class="pp-note"><a href="./assessment.html">${ppEsc(_t("Open in Player assessment"))} →</a></div>`);
     } catch (e) { ov.querySelector("#pp-assess").innerHTML = `<h3>${ppEsc(_t("Assessments"))}</h3><div class="pp-muted">—</div>`; }
   }
@@ -1714,6 +1798,91 @@
   // El botón de "cargar datos de ejemplo" (Bulls) queda apagado por
   // ahora -- vuelve fácil, es solo esta línea de más abajo la que
   // faltaría descomentar (renderExampleDataCard).
+
+
+  // ---------------------------------------------------------------------
+  // Pase de plantilla: copiar jugadores de otra temporada del MISMO equipo
+  // (mismo nombre/categoría/género) a la temporada actual, sin retecleo.
+  // Copia datos de identidad (nombre, año, posición, dorsal, género, nº de
+  // licencia); "Ready" (licencia en regla) y cotización se reinician porque
+  // cada temporada se renueva; los que ya están (mismo nombre) se saltan.
+  // ---------------------------------------------------------------------
+  const normName = (v) => String(v || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+  const nameKey = (p) => `${normName(p.first_name)}|${normName(p.last_name)}`;
+  async function openCopyFromSeason() {
+    if (!currentOrgId || !currentTeam || !currentSeason) { showMessage("Pick a team and season first.", "error"); return; }
+    if (document.getElementById("pp-overlay")) return;
+    clearMessage();
+    let q = supabaseClient.from("players").select("id, season, first_name, last_name, birth_year, category, jersey_number, gender, license_number, active")
+      .eq("organization_id", currentOrgId).eq("team", currentTeam).neq("season", currentSeason);
+    q = currentTeamCategory ? q.eq("team_category", currentTeamCategory) : q.is("team_category", null);
+    q = currentTeamGender ? q.eq("team_gender", currentTeamGender) : q.is("team_gender", null);
+    const { data, error } = await q;
+    if (error) { showMessage(error.message || "Couldn't read the other seasons.", "error"); return; }
+    const bySeason = {};
+    (data || []).filter((p) => p.season !== currentSeason).forEach((p) => { (bySeason[p.season] = bySeason[p.season] || []).push(p); });
+    const seasons = Object.keys(bySeason).sort().reverse();
+    if (!seasons.length) { showMessage("This team has no players in any other season to copy.", "error"); return; }
+    const ov = document.createElement("div");
+    ov.className = "pp-overlay"; ov.id = "pp-overlay";
+    ov.innerHTML = `<div class="pp-modal" role="dialog" aria-modal="true" style="max-width:560px;">
+      <div class="pp-head"><div><h2>${ppEsc(_t("Copy players from another season"))}</h2><div class="pp-sub" data-i18n-skip>${ppEsc(currentTeam)} · ${ppEsc(currentSeason)}</div></div>
+        <button type="button" class="btn btn-secondary" id="cs-close">Close</button></div>
+      <div class="pp-body">
+        <label class="pp-muted" for="cs-season" style="display:block;margin:10px 0 4px;">${ppEsc(_t("Copy from season"))}</label>
+        <select id="cs-season" data-i18n-skip style="width:100%;padding:8px;">${seasons.map((x) => `<option value="${ppEsc(x)}">${ppEsc(x)} (${bySeason[x].length})</option>`).join("")}</select>
+        <div id="cs-list" style="margin:12px 0;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px;"></div>
+        <label style="display:flex;gap:8px;align-items:center;font-size:13.5px;"><input type="checkbox" id="cs-jersey" checked> ${ppEsc(_t("Keep jersey numbers (when free)"))}</label>
+        <p class="pp-muted" style="font-size:12.5px;margin:8px 0 0;">${ppEsc(_t("Players already on this team (same name) are skipped. “Ready” (license) and cotisation start unchecked for the new season."))}</p>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><button type="button" class="btn btn-secondary" id="cs-cancel">Cancel</button><button type="button" class="btn btn-primary" id="cs-go">Copy selected</button></div>
+      </div></div>`;
+    document.body.appendChild(ov);
+    const close = () => { ov.remove(); document.removeEventListener("keydown", onKey); };
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+    ov.querySelector("#cs-close").addEventListener("click", close);
+    ov.querySelector("#cs-cancel").addEventListener("click", close);
+    const have = new Set(currentRosterPlayers.map(nameKey));
+    const renderList = () => {
+      const sea = ov.querySelector("#cs-season").value;
+      const list = (bySeason[sea] || []).slice().sort((a, b) => String(a.last_name).localeCompare(String(b.last_name)));
+      ov.querySelector("#cs-list").innerHTML = list.map((p) => {
+        const dupe = have.has(nameKey(p));
+        return `<label style="display:flex;gap:8px;align-items:center;padding:4px 0;font-size:13.5px;${dupe ? "opacity:.55;" : ""}"><input type="checkbox" class="cs-pick" data-id="${ppEsc(p.id)}" ${dupe || p.active === false ? "" : "checked"} ${dupe ? "disabled" : ""}> <span data-i18n-skip>${p.jersey_number ? "#" + ppEsc(p.jersey_number) + " " : ""}${ppEsc(p.first_name)} ${ppEsc(p.last_name)}</span>${dupe ? `<small class="pp-muted">${ppEsc(_t("already here"))}</small>` : (p.active === false ? `<small class="pp-muted">${ppEsc(_t("inactive"))}</small>` : "")}</label>`;
+      }).join("");
+    };
+    ov.querySelector("#cs-season").addEventListener("change", renderList); renderList();
+    const go = ov.querySelector("#cs-go");
+    go.addEventListener("click", async () => {
+      if (go.disabled) return;
+      go.disabled = true;
+      try {
+        const sea = ov.querySelector("#cs-season").value;
+        const ids = new Set([...ov.querySelectorAll(".cs-pick:checked")].map((c) => c.dataset.id));
+        const picked = (bySeason[sea] || []).filter((p) => ids.has(p.id) && !have.has(nameKey(p)));
+        if (!picked.length) { close(); showMessage("Nothing to copy.", "error"); return; }
+        const keepJersey = ov.querySelector("#cs-jersey").checked;
+        const used = new Set(currentRosterPlayers.filter((p) => p.active !== false).map((p) => String(p.jersey_number || "").trim()).filter(Boolean));
+        const rows = picked.map((p) => {
+          let j = keepJersey && p.jersey_number ? String(p.jersey_number).trim() : null;
+          if (j && used.has(j)) j = null; else if (j) used.add(j);
+          return { organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null, team_gender: currentTeamGender || null,
+            first_name: p.first_name, last_name: p.last_name, birth_year: p.birth_year, category: p.category, jersey_number: j, gender: p.gender, license_number: p.license_number,
+            has_license: false, active: true, dues_paid: false };
+        });
+        const { error: insErr } = await supabaseClient.from("players").insert(rows);
+        if (insErr) throw insErr;
+        close();
+        await loadPlayers(); await loadTree();
+        showMessage(_t(rows.length === 1 ? "{n} player copied from {season}." : "{n} players copied from {season}.", { n: rows.length, season: sea }), "success");
+      } catch (err) {
+        go.disabled = false;
+        showMessage(err.message || "Couldn't copy the players.", "error");
+      }
+    });
+  }
+  document.getElementById("copy-season-btn").addEventListener("click", openCopyFromSeason);
 
   els.addBtn.addEventListener("click", openAdd);
   els.cancelBtn.addEventListener("click", closePanel);

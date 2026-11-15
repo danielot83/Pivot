@@ -233,6 +233,7 @@
       <a href="./roster.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><g><g><polyline points="31.82 61.3 5.85 61.3 5.85 26.3 13.63 20.19 13.63 2.7 19.24 2.7 21.61 2.7"/><polyline points="31.82 61.3 58.15 61.3 58.15 26.3 50.36 20.19 50.36 2.7 44.41 2.7 42.04 2.7"/><path d="M19.24,2.7c1.3,4.82,6.44,8.43,12.59,8.43s11.29-3.61,12.59-8.43"/><path d="M21.61,2.7c2.36,2.57,6.06,4.21,10.21,4.21s7.85-1.64,10.21-4.21"/></g><g><rect x="20.21" y="28.23" width="10" height="18.75" rx="4.7" ry="4.7"/><polyline points="34.91 30.56 36.07 28.23 40.19 28.23 40.19 46.98"/><line x1="36.59" y1="46.98" x2="43.79" y2="46.98"/></g></g><polyline points="13.63 2.7 7.28 2.7 7.28 25.18"/><polyline points="50.37 2.7 56.72 2.7 56.72 25.18"/></g></svg>Roster</a>
       <a href="./attendance.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>Attendance</a>
       <a href="./assessment.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><path d="M58.02,49.76c-19.51,1.3-44.05.31-52.52-.11-1.7-.08-3.03-1.49-3.03-3.19v-1.8c0-1.52,1.07-2.83,2.56-3.13l14.23-2.89c2.83-.57,5.75-.57,8.58,0l16.04,3.25c1.48.3,2.99.44,4.49.43l9.36-.09c2.09-.02,3.8,1.67,3.8,3.77h0c0,1.99-1.54,3.63-3.52,3.76Z"/><path d="M4.03,41.9l-.14-15.4c-.01-2.09,1.16-4.01,3.06-5l14.28-7.46c1.99-1.04,4.48-.23,5.4,1.75l3.33,7.09,16.76,9.81h6.51c3.38,0,6.13,2.63,6.13,5.9v4"/><polyline points="36.36 26.62 32.14 32.91 27.12 29.53 31.14 23.56"/><polyline points="44.45 31.36 41.65 35.53 36.63 32.16 39.23 28.3"/><path d="M16.91,16.31v4.4c0,3.31-1.82,6.35-4.72,7.93l-8.24,4.44"/></g></svg>Player assessment</a>
+      <a href="./season.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M7 15h4M7 18h7"/></svg>Season plan</a>
       <div class="sidebar-group">Games</div>
       <a href="./match.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><g transform="scale(0.375)"><polyline points="32 13.75 23.1 6.4 16.3 8.74 1.65 19.78 11.63 31.04 16.82 28.49 16.82 57.6 32 57.6"/><polyline points="4.88 23.43 16.82 14.33 16.82 28.49"/><line x1="16.82" y1="21.12" x2="8.47" y2="27.48"/><polyline points="23.1 57.6 23.1 6.4 40.9 6.4 40.9 57.6"/><line x1="29.38" y1="57.6" x2="29.38" y2="11.59"/><polyline points="32 13.75 40.9 6.4 47.7 8.74 62.35 19.78 52.37 31.04 47.18 28.49 47.18 57.6 32 57.6"/><polyline points="59.12 23.43 47.18 14.33 47.18 28.49"/><line x1="55.53" y1="27.48" x2="47.18" y2="21.12"/><line x1="34.62" y1="57.6" x2="34.62" y2="11.59"/></g></svg>Match day</a>
       <a href="./stats.html" class="sidebar-link"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="8"/><rect x="12" y="7" width="3" height="12"/><rect x="17" y="13" width="3" height="6"/></svg>Match stats</a>
@@ -391,6 +392,7 @@
 </div><!-- /app-shell -->
 
 <script src="./i18n.js?v=2"></script>
+<script src="./stat-measured.js"></script>
 <script src="./sw-register.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="org-switcher.js"></script>
@@ -851,7 +853,14 @@
   async function loadMatchFields() {
     const { data } = await supabaseClient.from("match_stat_fields").select("*").eq("organization_id", currentOrgId).eq("enabled", true).order("position");
     matchFields = data || [];
-    els.matchStatsHead.innerHTML = `<th>Player</th><th>Games</th><th>PPG</th><th>RPG</th><th>APG</th><th>Fouls/g</th>${matchFields.map((f) => `<th>${escapeHtml(f.label)}${escapeHtml(_t("/g||per game suffix"))}</th>`).join("")}`;
+    renderMatchStatsHead(null);
+  }
+
+  // Cabecera: solo las estadísticas que de verdad se midieron para alguno de los
+  // jugadores elegidos (keys = Set de "ppg","rpg","apg","fpg","custom:<key>"; null = todas).
+  function renderMatchStatsHead(keys) {
+    const show = (k) => !keys || keys.has(k);
+    els.matchStatsHead.innerHTML = `<th>Player</th><th>Games</th>${show("ppg") ? "<th>PPG</th>" : ""}${show("rpg") ? "<th>RPG</th>" : ""}${show("apg") ? "<th>APG</th>" : ""}${show("fpg") ? "<th>Fouls/g</th>" : ""}${matchFields.filter((f) => show("custom:" + f.key)).map((f) => `<th>${escapeHtml(f.label)}${escapeHtml(_t("/g||per game suffix"))}</th>`).join("")}`;
   }
 
   async function loadMatchStats() {
@@ -859,22 +868,38 @@
       if (matchStatsCache[id]) continue;
       const { data, error } = await filterByGender(filterByCategory(
         supabaseClient.from("match_player_stats")
-          .select("points, rebounds, assists, fouls, custom_stats, matches!inner(season, team, team_category, team_gender)")
+          .select("match_id, started, minutes, periods_played, periods_sub, made_1, made_2, made_3, points, rebounds, assists, fouls, custom_stats, matches!inner(season, team, team_category, team_gender)")
           .eq("player_id", id).eq("matches.season", currentSeason).eq("matches.team", currentTeam),
         currentTeamCategory, "matches.team_category"
       ), currentTeamGender, "matches.team_gender");
       if (error) { matchStatsCache[id] = null; continue; }
-      const rows = data || [];
+      const all = data || [];
+      // Solo partidos jugados de verdad (no solo convocado), y solo las
+      // estadísticas que se midieron en cada partido (stat-measured.js): un 0
+      // puesto por defecto en un partido donde no se anotaron rebotes no cuenta.
+      const rows = all.filter((r) => r.started || r.minutes != null || r.periods_played != null || r.periods_sub != null
+        || ["points", "rebounds", "assists", "fouls", "made_1", "made_2", "made_3"].some((f) => Number(r[f] || 0) !== 0)
+        || (r.custom_stats && Object.keys(r.custom_stats).some((k) => Number(r.custom_stats[k] || 0) !== 0)));
       if (rows.length === 0) { matchStatsCache[id] = { games: 0 }; continue; }
-      const sum = (key) => rows.reduce((acc, r) => acc + (r[key] || 0), 0);
+      let allRows = [];
+      const mids = [...new Set(rows.map((r) => r.match_id))];
+      for (let i = 0; i < mids.length; i += 25) {
+        const { data: chunk } = await supabaseClient.from("match_player_stats").select("match_id, points, rebounds, assists, fouls, made_1, made_2, made_3, custom_stats").in("match_id", mids.slice(i, i + 25));
+        allRows = allRows.concat(chunk || []);
+      }
+      const measured = PPMeasured.measuredByMatch(allRows);
+      const avgOf = (field) => {
+        const vs = rows.map((r) => PPMeasured.value(measured, r, field)).filter((v) => v !== null);
+        return vs.length ? vs.reduce((a, v) => a + v, 0) / vs.length : null;
+      };
       const custom = {};
-      matchFields.forEach((f) => { custom[f.key] = rows.reduce((acc, r) => acc + ((r.custom_stats && r.custom_stats[f.key]) || 0), 0) / rows.length; });
+      matchFields.forEach((f) => { custom[f.key] = avgOf("custom:" + f.key); });
       matchStatsCache[id] = {
         games: rows.length,
-        ppg: sum("points") / rows.length,
-        rpg: sum("rebounds") / rows.length,
-        apg: sum("assists") / rows.length,
-        fpg: sum("fouls") / rows.length,
+        ppg: avgOf("points"),
+        rpg: avgOf("rebounds"),
+        apg: avgOf("assists"),
+        fpg: avgOf("fouls"),
         custom,
       };
     }
@@ -882,18 +907,28 @@
 
   function renderMatchStats() {
     els.matchStatsBody.innerHTML = "";
-    if (selectedIds.length === 0) { els.matchStatsEmpty.style.display = "block"; return; }
+    if (selectedIds.length === 0) { els.matchStatsEmpty.style.display = "block"; renderMatchStatsHead(null); return; }
     els.matchStatsEmpty.style.display = "none";
+    // qué columnas tienen algún dato medido entre los jugadores elegidos
+    const keys = new Set();
+    selectedIds.forEach((id) => {
+      const s = matchStatsCache[id];
+      if (!s || !s.games) return;
+      ["ppg", "rpg", "apg", "fpg"].forEach((k) => { if (s[k] != null) keys.add(k); });
+      matchFields.forEach((f) => { if (s.custom[f.key] != null) keys.add("custom:" + f.key); });
+    });
+    renderMatchStatsHead(keys);
+    const cell = (v) => `<td>${v == null ? "—" : v.toFixed(1)}</td>`;
     selectedIds.forEach((id) => {
       const p = allPlayers.find((pp) => pp.id === id);
       const s = matchStatsCache[id];
       const tr = document.createElement("tr");
       if (!s || s.games === 0) {
         const teamLabel = [currentTeam, currentTeamCategory, currentTeamGender ? _t(currentTeamGender) : ""].filter(Boolean).join(" ");
-        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="${5 + matchFields.length}">${escapeHtml(_t("No matches recorded for {team} ({season})", { team: teamLabel, season: currentSeason || "" }))}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td colspan="${1 + keys.size}">${escapeHtml(_t("No matches recorded for {team} ({season})", { team: teamLabel, season: currentSeason || "" }))}</td>`;
       } else {
-        const customCells = matchFields.map((f) => `<td>${(s.custom[f.key] || 0).toFixed(1)}</td>`).join("");
-        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td>${s.games}</td><td>${s.ppg.toFixed(1)}</td><td>${s.rpg.toFixed(1)}</td><td>${s.apg.toFixed(1)}</td><td>${s.fpg.toFixed(1)}</td>${customCells}`;
+        const customCells = matchFields.filter((f) => keys.has("custom:" + f.key)).map((f) => cell(s.custom[f.key])).join("");
+        tr.innerHTML = `<td>${escapeHtml(p ? p.name : "?")}</td><td>${s.games}</td>${keys.has("ppg") ? cell(s.ppg) : ""}${keys.has("rpg") ? cell(s.rpg) : ""}${keys.has("apg") ? cell(s.apg) : ""}${keys.has("fpg") ? cell(s.fpg) : ""}${customCells}`;
       }
       els.matchStatsBody.appendChild(tr);
     });
