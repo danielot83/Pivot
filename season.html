@@ -310,6 +310,13 @@
   .obj-form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
   .obj-form-grid label { display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--muted); font-weight:600; }
   .obj-form-grid input, .obj-form-grid select { font:inherit; font-size:14.5px; padding:7px 9px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); }
+  .obj-calc { margin-top:14px; border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+  .obj-calc > summary { cursor:pointer; padding:10px 14px; font-weight:600; font-size:14px; }
+  .obj-calc-body { padding:0 14px 14px; }
+  .calc-total { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:4px 0 10px; font-size:14px; }
+  .calc-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:8px 0; font-size:14px; }
+  .calc-row input { width:84px; font:inherit; font-size:14.5px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); }
+  .calc-row b { font-size:15px; }
   .themes-table { width:100%; border-collapse:collapse; font-size:14px; }
   .themes-table th, .themes-table td { padding:7px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
   .themes-table th { font-size:12px; color:var(--muted); font-weight:600; }
@@ -496,6 +503,7 @@
       <div id="obj-unavailable" class="hint" style="display:none; padding:10px 12px; background:var(--accent-tint); border-radius:8px; margin-bottom:12px;">Objectives need a one-time database step: ask your PlayPivot administrator to run “step95” in Supabase. Everything else on this page already works.</div>
       <div id="obj-global-block"><p class="section-label">Global objectives <span class="obj-tag">PlayPivot</span></p><div id="obj-global-list"></div></div>
       <div id="obj-team-block"><p class="section-label">Team objectives</p><div id="obj-team-list"></div></div>
+      <details class="obj-calc" id="obj-calc"><summary>Percentage calculator</summary><div id="obj-calc-body"></div></details>
     </div>
 
     <div class="team-bar-card" id="main-card">
@@ -911,6 +919,53 @@
       <div class="obj-side"><span class="obj-pill obj-${ev.status}">${escapeHtml(STATUS_LABEL()[ev.status])}</span></div></div>`;
   }
 
+  // ---- Calculadora de % (suma de objetivos de tiempo + conversor % <-> minutos) ----
+  let calcLen = null;
+  const timeObjs = (excludeId) => objectives.filter((o) => o.active !== false && o.kind === "theme_time_pct" && o.id !== excludeId);
+  function timeSums(excludeId) {
+    const list = timeObjs(excludeId);
+    const g = list.filter((o) => o.scope === "global").reduce((a, o) => a + Number(o.target), 0);
+    const t = list.filter((o) => o.scope === "team").reduce((a, o) => a + Number(o.target), 0);
+    return { g, t, total: g + t, list };
+  }
+  const leftPill = (total) => {
+    const d = Math.round((100 - total) * 10) / 10;
+    if (Math.abs(d) < 0.05) return `<span class="obj-pill obj-ok">${escapeHtml(_t("Fully assigned: 100%"))}</span>`;
+    return d > 0 ? `<span class="obj-pill obj-missing">${escapeHtml(_t("Left to assign: {n}%", { n: f1(d) }))}</span>` : `<span class="obj-pill obj-above">${escapeHtml(_t("Over by {n}%", { n: f1(-d) }))}</span>`;
+  };
+  function renderCalc() {
+    const box = document.getElementById("obj-calc"), body = document.getElementById("obj-calc-body");
+    box.style.display = objectivesOk ? "" : "none";
+    if (!objectivesOk) return;
+    const { g, t, total, list } = timeSums();
+    if (calcLen === null) calcLen = (metrics && metrics.sessions && metrics.totalMin) ? Math.round(metrics.totalMin / metrics.sessions) : 90;
+    const seen = {}, dup = [];
+    list.forEach((o) => { if (seen[o.theme]) dup.push(_t(o.theme)); seen[o.theme] = true; });
+    body.className = "obj-calc-body";
+    body.innerHTML = `<p class="hint" style="margin:0 0 6px;">${escapeHtml(_t("Time objectives should add up to 100%. Global and team ones are added together."))}</p>
+      <div class="calc-total"><strong>${escapeHtml(_t("Time objectives add up to {total}% (global {g}% + team {t}%).", { total: f1(total), g: f1(g), t: f1(t) }))}</strong> ${leftPill(total)}</div>
+      ${dup.length ? `<p class="hint" style="margin:0 0 8px;">${escapeHtml(_t("Two time objectives on the same theme ({list}): the themes table shows only the last one, but both are added up here.", { list: [...new Set(dup)].join(", ") }))}</p>` : ""}
+      <div class="calc-row"><label for="calc-len">${escapeHtml(_t("Session length (minutes)"))}</label><input type="number" id="calc-len" min="1" step="1" value="${calcLen}"></div>
+      ${list.length ? `<div class="table-scroll"><table class="themes-table"><thead><tr><th>${escapeHtml(_t("Theme"))}</th><th class="num">%</th><th class="num">${escapeHtml(_t("Minutes per session"))}</th></tr></thead><tbody id="calc-rows">${list.map((o) => `<tr><td>${escapeHtml(_t(o.theme))}</td><td class="num">${f1(Number(o.target))}%</td><td class="num" data-pct="${Number(o.target)}">${f1(Number(o.target) * calcLen / 100)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+      <p class="section-label" style="margin:14px 0 2px;">${escapeHtml(_t("Quick calculation"))}</p>
+      <div class="calc-row"><input type="number" id="c1-p" step="any" value="10"> % ${escapeHtml(_t("of"))} <input type="number" id="c1-m" step="any" value="${calcLen}"> min = <b id="c1-r"></b> min</div>
+      <div class="calc-row"><input type="number" id="c2-a" step="any" value="10"> min ${escapeHtml(_t("of"))} <input type="number" id="c2-b" step="any" value="${calcLen}"> min = <b id="c2-r"></b> %</div>`;
+    const upd = () => {
+      const num = (id) => { const v = parseFloat(document.getElementById(id).value); return Number.isFinite(v) ? v : null; };
+      const p = num("c1-p"), m = num("c1-m"), a = num("c2-a"), b = num("c2-b");
+      document.getElementById("c1-r").textContent = (p === null || m === null) ? "—" : f1(p * m / 100);
+      document.getElementById("c2-r").textContent = (a === null || b === null || b === 0) ? "—" : f1(a / b * 100);
+    };
+    upd();
+    ["c1-p", "c1-m", "c2-a", "c2-b"].forEach((id) => document.getElementById(id).addEventListener("input", upd));
+    document.getElementById("calc-len").addEventListener("input", (e) => {
+      const v = parseFloat(e.target.value); if (!Number.isFinite(v) || v <= 0) return;
+      calcLen = v;
+      body.querySelectorAll("#calc-rows td[data-pct]").forEach((td) => { td.textContent = f1(Number(td.dataset.pct) * v / 100); });
+      document.getElementById("c1-m").value = v; document.getElementById("c2-b").value = v; upd();
+    });
+  }
+
   function renderObjectives() {
     const addBtn = document.getElementById("obj-add-btn");
     addBtn.style.display = (objectivesOk && canManageTeam()) ? "" : "none";
@@ -924,6 +979,7 @@
     document.getElementById("obj-global-list").innerHTML = g.length ? g.map(objRow).join("") : `<p class="hint">${escapeHtml(_t("No global objectives set."))}</p>`;
     document.getElementById("obj-team-list").innerHTML = t.length ? t.map(objRow).join("") : `<p class="hint">${escapeHtml(canManageTeam() ? _t("No team objectives yet — add the first one. Two or three clear ones are enough.") : _t("No team objectives set yet. The team's admin can add them."))}</p>`;
     document.querySelectorAll(".obj-actions button").forEach((b) => b.addEventListener("click", () => objAction(b.dataset.act, b.dataset.id)));
+    const wasOpen = document.getElementById("obj-calc").open; renderCalc(); document.getElementById("obj-calc").open = wasOpen;
     addBtn.onclick = () => openForm("team", null);
   }
 
@@ -1053,6 +1109,7 @@
         <label id="of-target-wrap"><span id="of-target-label"></span><input type="number" id="of-target" min="0" step="any" value="${o && o.target != null ? escapeHtml(o.target) : ""}"></label>
         <label id="of-title-wrap">${escapeHtml(_t("Objective"))}<input type="text" id="of-title" maxlength="200" value="${o && o.title ? escapeHtml(o.title) : ""}"></label>
       </div>
+      <p class="hint" id="of-calc" style="margin:8px 0 0;"></p>
       <div style="display:flex; gap:8px; margin-top:10px;"><button type="button" class="btn btn-primary" id="of-save">${escapeHtml(_t("Save"))}</button><button type="button" class="btn btn-secondary" id="of-cancel">${escapeHtml(_t("Cancel"))}</button></div>`;
     form.style.display = "block";
     const sync = () => {
@@ -1062,7 +1119,14 @@
       document.getElementById("of-title-wrap").style.display = k === "custom" ? "" : "none";
       document.getElementById("of-target-label").textContent = ({ theme_time_pct: _t("Target (% of time)"), theme_sessions: _t("Minimum sessions"), attendance_pct: _t("Target (%)"), min_periods_per_match: _t("Minimum periods per match") })[k] || "";
     };
-    document.getElementById("of-kind").addEventListener("change", sync); sync();
+    const syncCalc = () => {
+      const el = document.getElementById("of-calc"), k = document.getElementById("of-kind").value;
+      if (k !== "theme_time_pct") { el.textContent = ""; return; }
+      const a = timeSums(id).total, v = parseFloat(document.getElementById("of-target").value), w = Number.isFinite(v) ? v : 0, left = Math.round((100 - a - w) * 10) / 10;
+      el.textContent = left >= 0 ? _t("Already assigned: {a}% · with this one: {b}% · left: {c}%", { a: f1(a), b: f1(a + w), c: f1(left) }) : _t("Already assigned: {a}% · with this one: {b}% · over by {c}%", { a: f1(a), b: f1(a + w), c: f1(-left) });
+    };
+    document.getElementById("of-kind").addEventListener("change", () => { sync(); syncCalc(); }); sync();
+    document.getElementById("of-target").addEventListener("input", syncCalc); syncCalc();
     document.getElementById("of-cancel").addEventListener("click", closeForm);
     document.getElementById("of-save").addEventListener("click", saveObjective);
     form.scrollIntoView({ block: "nearest" });
@@ -1144,7 +1208,7 @@
     }
     els.noTeamCard.style.display = "none";
     els.statsContent.style.display = "block";
-    closeForm(); objMsgClear();
+    calcLen = null; closeForm(); objMsgClear();
     const token = ++loadToken;
     await loadSeasonData();
     if (token !== loadToken) return; // llegó tarde: ya se eligió otro equipo
