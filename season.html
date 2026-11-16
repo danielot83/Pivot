@@ -498,9 +498,17 @@
       <div id="obj-team-block"><p class="section-label">Team objectives</p><div id="obj-team-list"></div></div>
     </div>
 
+    <div class="team-bar-card" id="main-card">
+      <div class="card-head-row">
+        <h2>Main theme of each session</h2>
+      </div>
+      <p class="hint" style="margin:0 0 12px;" id="main-hint"></p>
+      <div id="main-area"></div>
+    </div>
+
     <div class="team-bar-card" id="themes-card">
       <div class="card-head-row">
-        <h2>Training themes</h2>
+        <h2>Themes worked in the exercises</h2>
       </div>
       <p class="hint" style="margin:0 0 12px;" id="themes-hint"></p>
       <div id="themes-area"></div>
@@ -720,7 +728,7 @@
 
   async function loadSeasonData() {
     const [trR, maR, plR] = await Promise.all([
-      sameTeamFilter(supabaseClient.from("trainings").select("id, date, title, categories_summary")).order("date", { ascending: true }),
+      sameTeamFilter(supabaseClient.from("trainings").select("id, date, title, main_objective")).order("date", { ascending: true }),
       sameTeamFilter(supabaseClient.from("matches").select("id, date, opponent, team_score, opponent_score")).order("date", { ascending: true }),
       sameTeamFilter(supabaseClient.from("players").select("id, first_name, last_name, active")),
     ]);
@@ -729,13 +737,13 @@
     const tids = trainings.map((t) => t.id), mids = matches.map((m) => m.id), pids = players.map((p) => p.id);
     const tex = await fetchIn("training_exercises", "training_id, exercise_id, duration_minutes, is_pause, is_match, is_freetext", "training_id", tids);
     const exIds = [...new Set(tex.map((r) => r.exercise_id).filter(Boolean))];
-    const exs = await fetchIn("exercises", "id, categories", "id", exIds, 100);
-    const exCats = {}; exs.forEach((e) => { exCats[e.id] = Array.isArray(e.categories) ? e.categories : []; });
+    const exs = await fetchIn("exercises", "id, name, categories", "id", exIds, 100);
+    const exCats = {}, exNames = {}; exs.forEach((e) => { exCats[e.id] = Array.isArray(e.categories) ? e.categories : []; exNames[e.id] = e.name || ""; });
     const att = await fetchIn("attendance", "player_id, status, training_id", "training_id", tids);
     const mps = await fetchIn("match_player_stats", "match_id, player_id, started, minutes, periods_played", "match_id", mids);
     const asm = await fetchIn("player_assessments", "player_id, date", "player_id", pids);
     await loadObjectives();
-    ctx = { trainings, matches, players, tex, exCats, att, mps, asm };
+    ctx = { trainings, matches, players, tex, exCats, exNames, att, mps, asm };
   }
 
   // ---------------------------------------------------------------------
@@ -743,25 +751,36 @@
   // ---------------------------------------------------------------------
   function computeMetrics() {
     const today = todayStr();
-    const { trainings, matches, players, tex, exCats, att, mps, asm } = ctx;
+    const { trainings, matches, players, tex, exCats, exNames, att, mps, asm } = ctx;
     const counted = trainings.filter((t) => includePlanned || t.date <= today);
     const countedIds = new Set(counted.map((t) => t.id));
     const pastTr = trainings.filter((t) => t.date <= today);
-    const byTheme = {}; let noThemeMin = 0, totalMin = 0; const withRows = new Set();
+    const byTheme = {}; let noThemeMin = 0, totalMin = 0; const withRows = new Set(), noThemeSess = new Set(), undef = {}; let matchMin = 0, pauseMin = 0; const matchSess = new Set(), pauseSess = new Set();
     tex.forEach((r) => {
-      if (!countedIds.has(r.training_id) || r.is_pause) return;
+      if (!countedIds.has(r.training_id)) return;
+      if (r.is_pause) { pauseMin += Number(r.duration_minutes) || 0; pauseSess.add(r.training_id); return; }
       withRows.add(r.training_id);
       const dur = Number(r.duration_minutes) || 0;
       const cats = (!r.is_match && !r.is_freetext && r.exercise_id) ? (exCats[r.exercise_id] || []) : [];
       totalMin += dur;
-      if (!cats.length) { noThemeMin += dur; return; }
+      if (r.is_match) { matchMin += dur; matchSess.add(r.training_id); return; } // un partido dentro de la sesión es "Partido", no "Sin definir"
+      if (!cats.length) {
+        noThemeMin += dur; noThemeSess.add(r.training_id);
+        // de dónde sale lo "sin definir": texto libre, partido, ejercicio sin temática, o ejercicio que no se puede leer
+        const why = r.is_freetext ? "freetext" : (r.exercise_id && exCats[r.exercise_id] !== undefined) ? "nocat" : "missing";
+        const u = undef[why] = undef[why] || { min: 0, names: new Set() };
+        u.min += dur; if (why === "nocat" && exNames[r.exercise_id]) u.names.add(exNames[r.exercise_id]);
+        return;
+      }
       cats.forEach((c) => { const b = byTheme[c] = byTheme[c] || { min: 0, sessions: new Set() }; b.min += dur / cats.length; b.sessions.add(r.training_id); });
     });
-    // las categorías escritas en el resumen de la sesión también cuentan como sesión que la trabaja
-    counted.forEach((t) => (t.categories_summary || []).forEach((txt) => {
-      const m = THEMES.find((c) => c.toLowerCase() === String(txt).trim().toLowerCase());
-      if (m) { const b = byTheme[m] = byTheme[m] || { min: 0, sessions: new Set() }; b.sessions.add(t.id); }
-    }));
+    // temática principal de cada sesión (campo "Main objective" del Training builder: 1-3 temáticas separadas por "; ")
+    const mainBy = {}; let mainUndef = 0;
+    counted.forEach((t) => {
+      const vals = String(t.main_objective || "").split(";").map((x) => x.trim()).filter(Boolean);
+      if (!vals.length) { mainUndef++; return; }
+      vals.forEach((v) => { (mainBy[v] = mainBy[v] || new Set()).add(t.id); });
+    });
     // asistencia a entrenos (solo los ya celebrados)
     const pastIds = new Set(pastTr.map((t) => t.id));
     let attended = 0, denom = 0; const perPlayer = {}; const trWithAtt = new Set();
@@ -795,7 +814,7 @@
     const unassessed = players.filter((p) => !lastAs[p.id] || lastAs[p.id] < cut);
     return {
       today, sessions: counted.length, sessionsPast: pastTr.length, sessionsPlanned: trainings.length - pastTr.length,
-      totalMin, noThemeMin, byTheme, themedMin: totalMin - noThemeMin,
+      totalMin, noThemeMin, noThemeSessions: noThemeSess.size, undef, matchMin, matchSessions: matchSess.size, pauseMin, pauseSessions: pauseSess.size, byTheme, themedMin: totalMin - noThemeMin - matchMin, mainBy, mainUndef,
       attPct, lowAtt, trainingsNoAtt: pastTr.filter((t) => !trWithAtt.has(t.id)).length,
       trainingsNoPlan: counted.filter((t) => !withRows.has(t.id)).length,
       matchesPlayed: played.length, wins, losses, decided: decided.length, matchesNoStats,
@@ -908,10 +927,35 @@
     addBtn.onclick = () => openForm("team", null);
   }
 
+  function undefinedBreakdown() {
+    const u = metrics.undef || {}, out = [];
+    if (u.freetext) out.push(_t("{min} min of free-text blocks", { min: Math.round(u.freetext.min) }));
+    if (u.nocat) { const names = [...u.nocat.names]; out.push(_t("{min} min in exercises with no theme set: {names}", { min: Math.round(u.nocat.min), names: names.slice(0, 6).join(", ") + (names.length > 6 ? "…" : "") })); }
+    if (u.missing) out.push(_t("{min} min in exercises that can't be read (deleted, or not visible to you)", { min: Math.round(u.missing.min) }));
+    return out;
+  }
+  function mainRows() {
+    const m = metrics, n = m.sessions;
+    const rows = Object.keys(m.mainBy).map((th) => ({ th, sess: m.mainBy[th].size, pct: n ? (m.mainBy[th].size / n) * 100 : 0 })).sort((a, b) => b.sess - a.sess);
+    if (m.mainUndef) rows.push({ th: null, sess: m.mainUndef, pct: n ? (m.mainUndef / n) * 100 : 0 });
+    return rows;
+  }
+  function renderMain() {
+    const m = metrics, area = document.getElementById("main-area"), n = m.sessions;
+    document.getElementById("main-hint").textContent = n
+      ? _t("The main theme chosen for each session in Training builder (usually one or two, sometimes three). A session with two main themes counts for both, so the percentages can add up to more than 100%. Based on {n} sessions.", { n })
+      : _t("No training sessions counted yet. Plan them in Training builder and choose exercises from the Library: their themes are what appears here.");
+    if (!n) { area.innerHTML = ""; return; }
+    const rows = mainRows();
+    area.innerHTML = `<div class="table-scroll"><table class="themes-table main-table"><thead><tr><th>${escapeHtml(_t("Theme"))}</th><th></th><th class="num">${escapeHtml(_t("% of sessions"))}</th><th class="num">${escapeHtml(_t("Sessions"))}</th></tr></thead><tbody>`
+      + rows.map((r) => `<tr${r.th ? "" : ' class="themes-other"'}><td>${escapeHtml(r.th ? _t(r.th) : _t("Undefined"))}</td><td style="min-width:160px;"><div class="obj-bar" style="margin:0;"><span class="obj-fill ${r.th ? "obj-ok" : "obj-nodata"}" style="width:${Math.min(100, r.pct).toFixed(1)}%"></span></div></td><td class="num">${f1(r.pct)}%</td><td class="num">${r.sess}</td></tr>`).join("")
+      + `</tbody></table></div>`;
+  }
+
   function renderThemes() {
     const m = metrics, area = document.getElementById("themes-area");
     document.getElementById("themes-hint").textContent = m.sessions
-      ? _t("Based on {n} sessions and {min} minutes. Each exercise's time is split equally among its themes; pauses don't count; free-text and match blocks go to “No theme”.", { n: m.sessions, min: Math.round(m.totalMin) })
+      ? _t("Based on {n} sessions and {min} minutes. Each exercise's time is split equally among its themes; pauses are shown apart and not counted in the percentages; match blocks show as “Match”; free-text blocks and exercises without a theme count as “Undefined”.", { n: m.sessions, min: Math.round(m.totalMin) })
       : _t("No training sessions counted yet. Plan them in Training builder and choose exercises from the Library: their themes are what appears here.");
     if (!m.totalMin && !Object.keys(m.byTheme).length) { area.innerHTML = ""; return; }
     // objetivos por temática (el último gana si hay varios del mismo tema)
@@ -934,8 +978,11 @@
     const noThemePct = m.totalMin ? (m.noThemeMin / m.totalMin) * 100 : 0;
     area.innerHTML = `<div class="table-scroll"><table class="themes-table"><thead><tr><th>${escapeHtml(_t("Theme"))}</th><th></th><th class="num">${escapeHtml(_t("% of time"))}</th><th class="num">${escapeHtml(_t("Minutes"))}</th><th class="num">${escapeHtml(_t("Sessions"))}</th><th></th></tr></thead><tbody>`
       + worked.map(line).join("")
-      + (m.noThemeMin ? `<tr class="themes-other"><td>${escapeHtml(_t("No theme"))}</td><td></td><td class="num">${f1(noThemePct)}%</td><td class="num">${Math.round(m.noThemeMin)}</td><td class="num"></td><td></td></tr>` : "")
+      + (m.pauseMin ? `<tr class="themes-other"><td>${escapeHtml(_t("Pause"))}</td><td></td><td class="num">—</td><td class="num">${Math.round(m.pauseMin)}</td><td class="num">${m.pauseSessions}</td><td></td></tr>` : "")
+      + (m.matchMin ? `<tr class="themes-other"><td>${escapeHtml(_t("Match"))}</td><td></td><td class="num">${f1((m.matchMin / m.totalMin) * 100)}%</td><td class="num">${Math.round(m.matchMin)}</td><td class="num">${m.matchSessions}</td><td></td></tr>` : "")
+      + (m.noThemeMin ? `<tr class="themes-other"><td>${escapeHtml(_t("Undefined"))}</td><td></td><td class="num">${f1(noThemePct)}%</td><td class="num">${Math.round(m.noThemeMin)}</td><td class="num">${m.noThemeSessions}</td><td></td></tr>` : "")
       + `</tbody></table></div>`
+      + (m.noThemeMin ? `<p class="hint" style="margin-top:10px;" data-i18n-skip><strong>${escapeHtml(_t("Undefined"))}:</strong> ${escapeHtml(undefinedBreakdown().join(" · "))}</p>` : "")
       + (idle.length ? `<p class="hint" style="margin-top:10px;"><strong>${escapeHtml(_t("Not worked yet"))}:</strong> <span>${idle.map((r) => escapeHtml(_t(r.th))).join(", ")}</span></p>` : "");
   }
 
@@ -968,6 +1015,7 @@
     if (m.unassessed.length) tips.push({ text: _t(m.unassessed.length === 1 ? "{n} player has no assessment in the last 60 days." : "{n} players have no assessment in the last 60 days.", { n: m.unassessed.length }), source: _t("Player assessment"), href: "./assessment.html", pri: 2 });
     if (m.lowPlay.length) tips.push({ text: _t(m.lowPlay.length === 1 ? "{n} player plays less than half the team's average periods." : "{n} players play less than half the team's average periods.", { n: m.lowPlay.length }), source: _t("Playing time"), href: "./stats.html", pri: 2 });
     if (m.trainingsNoAtt) tips.push({ text: _t(m.trainingsNoAtt === 1 ? "{n} past training has no attendance recorded, so attendance figures may be incomplete." : "{n} past trainings have no attendance recorded, so attendance figures may be incomplete.", { n: m.trainingsNoAtt }), source: _t("Data completeness"), href: "./attendance.html", pri: 3 });
+    if (m.sessions && m.mainUndef) tips.push({ text: _t(m.mainUndef === 1 ? "{n} session has no main theme set." : "{n} sessions have no main theme set.", { n: m.mainUndef }), source: _t("Data completeness"), href: "./training.html", pri: 3 });
     if (m.trainingsNoPlan) tips.push({ text: _t(m.trainingsNoPlan === 1 ? "{n} session has no exercises, so it doesn't add to the theme percentages." : "{n} sessions have no exercises, so they don't add to the theme percentages.", { n: m.trainingsNoPlan }), source: _t("Data completeness"), href: "./training.html", pri: 3 });
     if (m.matchesNoStats) tips.push({ text: _t(m.matchesNoStats === 1 ? "{n} played match has no player stats." : "{n} played matches have no player stats.", { n: m.matchesNoStats }), source: _t("Data completeness"), href: "./match.html", pri: 3 });
     if (!objectives.some((o) => o.scope === "team") && objectivesOk) tips.push({ text: _t("This team has no objectives yet: two or three clear ones turn this page into a tracker."), source: _t("Objectives"), pri: 3 });
@@ -982,7 +1030,7 @@
 
   function renderAll() {
     metrics = computeMetrics();
-    renderGlance(); renderObjectives(); renderThemes(); renderTips();
+    renderGlance(); renderObjectives(); renderMain(); renderThemes(); renderTips();
     els.chipMatches.textContent = String(ctx.matches.length);
   }
 
@@ -1113,6 +1161,7 @@
       <p style="margin:0 0 10px;">${escapeHtml(_t("Global objectives come from PlayPivot and apply to every team. The team's admin adds the team's own. Progress is calculated automatically from your trainings, attendance, assessments and matches; “free” objectives you tick yourself."))}</p>
       <p style="margin:0 0 4px; font-weight:600;">${escapeHtml(_t("Training themes"))}</p>
       <p style="margin:0 0 10px;">${escapeHtml(_t("The themes of each exercise (set in the Exercise creator) tell what you worked. Time is split equally if an exercise has several themes. Free-text and match blocks have no theme."))}</p>
+      <p style="margin:0 0 10px;">${escapeHtml(_t("The main theme of each session is the one you pick as “Main objective” in Training builder. “Undefined” means nothing was picked."))}</p>
       <p style="margin:0;">${escapeHtml(_t("Only your own team's data is used, and only what you actually recorded: nothing is guessed."))}</p>`;
     box.style.display = "block";
   });
@@ -1142,10 +1191,14 @@
       return { th, pct: m.totalMin ? (b.min / m.totalMin) * 100 : 0, min: Math.round(b.min), sess: b.sessions.size };
     }).filter((r) => r.min > 0 || r.sess > 0 || tgt[r.th] !== undefined || tgtS[r.th] !== undefined).sort((a, b) => b.min - a.min)
       .map((r) => [_t(r.th), f1(r.pct) + "%", tgt[r.th] !== undefined ? f1(tgt[r.th]) + "%" : "", String(r.min), String(r.sess), tgtS[r.th] !== undefined ? f1(tgtS[r.th]) : ""]);
-    if (m.noThemeMin) themeRows.push([_t("No theme"), f1((m.noThemeMin / m.totalMin) * 100) + "%", "", String(Math.round(m.noThemeMin)), "", ""]);
+    if (m.pauseMin) themeRows.push([_t("Pause"), "—", "", String(Math.round(m.pauseMin)), String(m.pauseSessions), ""]);
+    if (m.matchMin) themeRows.push([_t("Match"), f1((m.matchMin / m.totalMin) * 100) + "%", "", String(Math.round(m.matchMin)), String(m.matchSessions), ""]);
+    if (m.noThemeMin) themeRows.push([_t("Undefined"), f1((m.noThemeMin / m.totalMin) * 100) + "%", "", String(Math.round(m.noThemeMin)), String(m.noThemeSessions), ""]);
     const idle = THEMES.filter((c) => !(m.byTheme[c] && (m.byTheme[c].min > 0 || m.byTheme[c].sessions.size)));
+    const mainRowsR = mainRows().map((r) => [r.th ? _t(r.th) : _t("Undefined"), f1(r.pct) + "%", String(r.sess)]);
     const tips = buildTips().map((t) => [t.text, t.source]);
-    return { glance, objRows, themeRows, idle: idle.map((c) => _t(c)), tips };
+    const undefLine = metrics.noThemeMin ? _t("Undefined") + ": " + undefinedBreakdown().join(" · ") : "";
+    return { glance, objRows, themeRows, mainRowsR, undefLine, idle: idle.map((c) => _t(c)), tips };
   }
   const THEME_HEAD = () => [_t("Theme"), _t("% of time"), _t("Target"), _t("Minutes"), _t("Sessions"), _t("Target sessions")];
   const OBJ_HEAD = () => [_t("Scope"), _t("Objective"), _t("Actual / target"), _t("Status"), _t("Detail")];
@@ -1157,7 +1210,8 @@
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...top, [_t("Indicator"), _t("Value")], ...d.glance]), _t("Summary"));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([OBJ_HEAD(), ...d.objRows]), _t("Objectives"));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([THEME_HEAD(), ...d.themeRows, [], [_t("Not worked yet"), d.idle.join(", ")]]), _t("Training themes"));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([[_t("Theme"), _t("% of sessions"), _t("Sessions")], ...d.mainRowsR]), _t("Main theme"));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([THEME_HEAD(), ...d.themeRows, [], [_t("Not worked yet"), d.idle.join(", ")], [d.undefLine]]), _t("Training themes"));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([[_t("What to look at"), _t("Source")], ...d.tips]), _t("What to look at"));
     XLSX.writeFile(wb, reportFileBase() + ".xlsx");
   });
@@ -1214,9 +1268,12 @@
     table([_t("Indicator"), _t("Value")], d.glance, [0.7, 0.3]);
     h2(_t("Objectives"));
     if (d.objRows.length) table(OBJ_HEAD(), d.objRows, [0.1, 0.3, 0.17, 0.13, 0.3]); else { doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...muted); doc.text(_t("No objectives set."), mx, y); y += 18; }
-    h2(_t("Training themes"));
+    h2(_t("Main theme of each session"));
+    if (d.mainRowsR.length) table([_t("Theme"), _t("% of sessions"), _t("Sessions")], d.mainRowsR, [0.5, 0.25, 0.25]); else { doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...muted); doc.text(_t("No training sessions counted yet."), mx, y); y += 18; }
+    h2(_t("Themes worked in the exercises"));
     if (d.themeRows.length) table(THEME_HEAD(), d.themeRows, [0.22, 0.13, 0.13, 0.13, 0.13, 0.26]); else { doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...muted); doc.text(_t("No training sessions counted yet."), mx, y); y += 18; }
     if (d.idle.length) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.8); doc.setTextColor(...ink); const ls = doc.splitTextToSize(_t("Not worked yet") + ": " + d.idle.join(", "), cw); need(ls.length * 11 + 8); doc.text(ls, mx, y); y += ls.length * 11 + 10; }
+    if (d.undefLine) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.8); doc.setTextColor(...ink); const lu = doc.splitTextToSize(d.undefLine, cw); need(lu.length * 11 + 8); doc.text(lu, mx, y); y += lu.length * 11 + 10; }
     h2(_t("What to look at"));
     table([_t("Suggestion"), _t("Source")], d.tips, [0.76, 0.24]);
     footer();
