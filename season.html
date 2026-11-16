@@ -322,6 +322,7 @@
   .themes-table th { font-size:12px; color:var(--muted); font-weight:600; }
   .themes-table .num { text-align:right; white-space:nowrap; }
   .themes-other td { color:var(--muted); }
+  .themes-sub td { font-size:13px; }
   .table-scroll { overflow-x:auto; }
   .tip-row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); font-size:14.5px; }
   .tip-row:last-child { border-bottom:none; }
@@ -329,7 +330,7 @@
   .tip-src { flex-shrink:0; text-align:right; }
   .card-head-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
   .card-head-row h2 { margin:0; font-size:17px; }
-  @media (max-width:560px) { .themes-table th:nth-child(2), .themes-table td:nth-child(2) { display:none; } .themes-table th:nth-child(6), .themes-table td:nth-child(6) { display:none; } .obj-row { flex-direction:column; } .tip-row { flex-direction:column; gap:2px; } .tip-src { text-align:left; } }
+  @media (max-width:560px) { .themes-table th:nth-child(2), .themes-table td:nth-child(2) { display:none; } .themes-table th:nth-child(7), .themes-table td:nth-child(7) { display:none; } .obj-row { flex-direction:column; } .tip-row { flex-direction:column; gap:2px; } .tip-src { text-align:left; } }
 </style>
 <!-- Matomo -->
 <script>
@@ -771,7 +772,11 @@
       const dur = Number(r.duration_minutes) || 0;
       const cats = (!r.is_match && !r.is_freetext && r.exercise_id) ? (exCats[r.exercise_id] || []) : [];
       totalMin += dur;
-      if (r.is_match) { matchMin += dur; matchSess.add(r.training_id); return; } // un partido dentro de la sesión es "Partido", no "Sin definir"
+      if (r.is_match) { // un bloque de partido cuenta como Competición (y se guarda aparte cuánto de eso son partidos)
+        matchMin += dur; matchSess.add(r.training_id);
+        const bm = byTheme.Competition = byTheme.Competition || { min: 0, full: 0, sessions: new Set() };
+        bm.min += dur; bm.full += dur; bm.sessions.add(r.training_id); return;
+      }
       if (!cats.length) {
         noThemeMin += dur; noThemeSess.add(r.training_id);
         // de dónde sale lo "sin definir": texto libre, partido, ejercicio sin temática, o ejercicio que no se puede leer
@@ -780,7 +785,7 @@
         u.min += dur; if (why === "nocat" && exNames[r.exercise_id]) u.names.add(exNames[r.exercise_id]);
         return;
       }
-      cats.forEach((c) => { const b = byTheme[c] = byTheme[c] || { min: 0, sessions: new Set() }; b.min += dur / cats.length; b.sessions.add(r.training_id); });
+      cats.forEach((c) => { const b = byTheme[c] = byTheme[c] || { min: 0, full: 0, sessions: new Set() }; b.min += dur / cats.length; b.full += dur; b.sessions.add(r.training_id); });
     });
     // temática principal de cada sesión (campo "Main objective" del Training builder: 1-3 temáticas separadas por "; ")
     const mainBy = {}; let mainUndef = 0;
@@ -822,7 +827,7 @@
     const unassessed = players.filter((p) => !lastAs[p.id] || lastAs[p.id] < cut);
     return {
       today, sessions: counted.length, sessionsPast: pastTr.length, sessionsPlanned: trainings.length - pastTr.length,
-      totalMin, noThemeMin, noThemeSessions: noThemeSess.size, undef, matchMin, matchSessions: matchSess.size, pauseMin, pauseSessions: pauseSess.size, byTheme, themedMin: totalMin - noThemeMin - matchMin, mainBy, mainUndef,
+      totalMin, noThemeMin, noThemeSessions: noThemeSess.size, undef, matchMin, matchSessions: matchSess.size, pauseMin, pauseSessions: pauseSess.size, byTheme, sumFull: Object.keys(byTheme).reduce((a, k) => a + byTheme[k].full, 0) + noThemeMin, themedMin: totalMin - noThemeMin, mainBy, mainUndef,
       attPct, lowAtt, trainingsNoAtt: pastTr.filter((t) => !trWithAtt.has(t.id)).length,
       trainingsNoPlan: counted.filter((t) => !withRows.has(t.id)).length,
       matchesPlayed: played.length, wins, losses, decided: decided.length, matchesNoStats,
@@ -831,6 +836,10 @@
     };
   }
 
+  // "Partido" es una temática más para objetivos: sus minutos/sesiones salen de los bloques de partido
+  // (que además ya cuentan dentro de Competición, por eso NO entra en la suma de 100 %).
+  const MATCH_THEME = "Match";
+  function themeData(m, th) { return th === MATCH_THEME ? { min: m.matchMin, sessions: { size: m.matchSessions } } : m.byTheme[th]; }
   // Evalúa un objetivo con los indicadores: devuelve estado + textos.
   function evalObjective(o, m) {
     const t = Number(o.target);
@@ -838,7 +847,7 @@
     switch (o.kind) {
       case "theme_time_pct": {
         if (!m.totalMin) return nodata;
-        const A = ((m.byTheme[o.theme] && m.byTheme[o.theme].min) || 0), a = (A / m.totalMin) * 100, diff = a - t;
+        const A = ((themeData(m, o.theme) && themeData(m, o.theme).min) || 0), a = (A / m.totalMin) * 100, diff = a - t;
         if (diff < -2) {
           const x = t < 100 ? Math.max(0, Math.ceil(((t / 100) * m.totalMin - A) / (1 - t / 100))) : null;
           return { status: "missing", actual: a, ratio: t ? a / t : 0, text: x !== null ? _t("{n} points below target — about {min} more minutes of it", { n: f1(-diff), min: x }) : _t("{n} points below target", { n: f1(-diff) }) };
@@ -847,7 +856,7 @@
       }
       case "theme_sessions": {
         if (!m.sessions) return nodata;
-        const a = (m.byTheme[o.theme] && m.byTheme[o.theme].sessions.size) || 0;
+        const a = (themeData(m, o.theme) && themeData(m, o.theme).sessions.size) || 0;
         return a >= t ? { status: "ok", actual: a, ratio: 1, text: _t("Reached") } : { status: "missing", actual: a, ratio: t ? a / t : 0, text: _t(t - a === 1 ? "{n} more session needed" : "{n} more sessions needed", { n: t - a }) };
       }
       case "attendance_pct": {
@@ -921,7 +930,7 @@
 
   // ---- Calculadora de % (suma de objetivos de tiempo + conversor % <-> minutos) ----
   let calcLen = null;
-  const timeObjs = (excludeId) => objectives.filter((o) => o.active !== false && o.kind === "theme_time_pct" && o.id !== excludeId);
+  const timeObjs = (excludeId) => objectives.filter((o) => o.active !== false && o.kind === "theme_time_pct" && o.theme !== MATCH_THEME && o.id !== excludeId);
   function timeSums(excludeId) {
     const list = timeObjs(excludeId);
     const g = list.filter((o) => o.scope === "global").reduce((a, o) => a + Number(o.target), 0);
@@ -943,6 +952,7 @@
     list.forEach((o) => { if (seen[o.theme]) dup.push(_t(o.theme)); seen[o.theme] = true; });
     body.className = "obj-calc-body";
     body.innerHTML = `<p class="hint" style="margin:0 0 6px;">${escapeHtml(_t("Time objectives should add up to 100%. Global and team ones are added together."))}</p>
+      ${objectives.some((o) => o.active !== false && o.kind === "theme_time_pct" && o.theme === MATCH_THEME) ? `<p class="hint" style="margin:0 0 6px;">${escapeHtml(_t("Match time is already counted inside Competition, so it is not added to the 100%."))}</p>` : ""}
       <div class="calc-total"><strong>${escapeHtml(_t("Time objectives add up to {total}% (global {g}% + team {t}%).", { total: f1(total), g: f1(g), t: f1(t) }))}</strong> ${leftPill(total)}</div>
       ${dup.length ? `<p class="hint" style="margin:0 0 8px;">${escapeHtml(_t("Two time objectives on the same theme ({list}): the themes table shows only the last one, but both are added up here.", { list: [...new Set(dup)].join(", ") }))}</p>` : ""}
       <div class="calc-row"><label for="calc-len">${escapeHtml(_t("Session length (minutes)"))}</label><input type="number" id="calc-len" min="1" step="1" value="${calcLen}"></div>
@@ -1011,32 +1021,32 @@
   function renderThemes() {
     const m = metrics, area = document.getElementById("themes-area");
     document.getElementById("themes-hint").textContent = m.sessions
-      ? _t("Based on {n} sessions and {min} minutes. Each exercise's time is split equally among its themes; pauses are shown apart and not counted in the percentages; match blocks show as “Match”; free-text blocks and exercises without a theme count as “Undefined”.", { n: m.sessions, min: Math.round(m.totalMin) })
+      ? _t("Based on {n} sessions and {min} minutes. “% of time” splits each exercise's time equally among its themes (it adds up to 100%); “Relative %” counts the full time of the exercise for every theme it works and then normalises to 100%. Match blocks count as Competition (and also appear in their own “Match” row, which is not added to the totals); pauses are shown apart; free-text blocks and exercises without a theme count as “Undefined”.", { n: m.sessions, min: Math.round(m.totalMin) })
       : _t("No training sessions counted yet. Plan them in Training builder and choose exercises from the Library: their themes are what appears here.");
     if (!m.totalMin && !Object.keys(m.byTheme).length) { area.innerHTML = ""; return; }
     // objetivos por temática (el último gana si hay varios del mismo tema)
     const tgtTime = {}, tgtSess = {};
     objectives.forEach((o) => { if (o.active === false) return; if (o.kind === "theme_time_pct") tgtTime[o.theme] = Number(o.target); if (o.kind === "theme_sessions") tgtSess[o.theme] = Number(o.target); });
     const all = [...new Set([...THEMES, ...Object.keys(m.byTheme)])];
-    const rows = all.map((th) => { const b = m.byTheme[th] || { min: 0, sessions: new Set() }; return { th, min: b.min, pct: m.totalMin ? (b.min / m.totalMin) * 100 : 0, sess: b.sessions.size }; });
+    const rows = all.map((th) => { const b = m.byTheme[th] || { min: 0, full: 0, sessions: new Set() }; return { th, min: b.min, pct: m.totalMin ? (b.min / m.totalMin) * 100 : 0, rel: m.sumFull ? (b.full / m.sumFull) * 100 : 0, sess: b.sessions.size }; });
     const worked = rows.filter((r) => r.min > 0 || r.sess > 0 || tgtTime[r.th] !== undefined || tgtSess[r.th] !== undefined).sort((a, b) => b.min - a.min);
     const idle = rows.filter((r) => !worked.includes(r));
     const maxPct = Math.max(20, ...worked.map((r) => r.pct), ...Object.values(tgtTime));
-    const line = (r) => {
+    const line = (r, label) => {
       const tt = tgtTime[r.th], ts = tgtSess[r.th];
       const gap = tt === undefined ? null : r.pct - tt;
       const gapTxt = gap === null ? "" : (gap < -2 ? `<span class="obj-pill obj-missing">${escapeHtml(_t("{n} pts missing", { n: f1(-gap) }))}</span>` : (gap > 2 ? `<span class="obj-pill obj-above">${escapeHtml(_t("{n} pts above", { n: f1(gap) }))}</span>` : `<span class="obj-pill obj-ok">${escapeHtml(_t("On target"))}</span>`));
       const sessTxt = ts === undefined ? String(r.sess) : `${r.sess} / ${f1(ts)}`;
-      return `<tr><td>${escapeHtml(_t(r.th))}</td>
+      return `<tr${label ? ' class="themes-sub"' : ""}><td>${escapeHtml(label || _t(r.th))}</td>
         <td style="min-width:160px;"><div class="obj-bar" style="margin:0;"><span class="obj-fill obj-ok" style="width:${Math.min(100, r.pct / maxPct * 100).toFixed(1)}%"></span>${tt !== undefined ? `<i class="obj-mark" style="left:${Math.min(100, tt / maxPct * 100).toFixed(1)}%" title="${escapeHtml(_t("Target"))} ${f1(tt)}%"></i>` : ""}</div></td>
-        <td class="num">${f1(r.pct)}%${tt !== undefined ? ` <small class="hint">/ ${f1(tt)}%</small>` : ""}</td><td class="num">${Math.round(r.min)}</td><td class="num">${sessTxt}</td><td>${gapTxt}</td></tr>`;
+        <td class="num">${f1(r.pct)}%${tt !== undefined ? ` <small class="hint">/ ${f1(tt)}%</small>` : ""}</td><td class="num">${f1(r.rel)}%</td><td class="num">${Math.round(r.min)}</td><td class="num">${sessTxt}</td><td>${gapTxt}</td></tr>`
     };
     const noThemePct = m.totalMin ? (m.noThemeMin / m.totalMin) * 100 : 0;
-    area.innerHTML = `<div class="table-scroll"><table class="themes-table"><thead><tr><th>${escapeHtml(_t("Theme"))}</th><th></th><th class="num">${escapeHtml(_t("% of time"))}</th><th class="num">${escapeHtml(_t("Minutes"))}</th><th class="num">${escapeHtml(_t("Sessions"))}</th><th></th></tr></thead><tbody>`
-      + worked.map(line).join("")
-      + (m.pauseMin ? `<tr class="themes-other"><td>${escapeHtml(_t("Pause"))}</td><td></td><td class="num">—</td><td class="num">${Math.round(m.pauseMin)}</td><td class="num">${m.pauseSessions}</td><td></td></tr>` : "")
-      + (m.matchMin ? `<tr class="themes-other"><td>${escapeHtml(_t("Match"))}</td><td></td><td class="num">${f1((m.matchMin / m.totalMin) * 100)}%</td><td class="num">${Math.round(m.matchMin)}</td><td class="num">${m.matchSessions}</td><td></td></tr>` : "")
-      + (m.noThemeMin ? `<tr class="themes-other"><td>${escapeHtml(_t("Undefined"))}</td><td></td><td class="num">${f1(noThemePct)}%</td><td class="num">${Math.round(m.noThemeMin)}</td><td class="num">${m.noThemeSessions}</td><td></td></tr>` : "")
+    area.innerHTML = `<div class="table-scroll"><table class="themes-table"><thead><tr><th>${escapeHtml(_t("Theme"))}</th><th></th><th class="num">${escapeHtml(_t("% of time"))}</th><th class="num" title="${escapeHtml(_t("Relative % explained"))}">${escapeHtml(_t("Relative %"))}</th><th class="num">${escapeHtml(_t("Minutes"))}</th><th class="num">${escapeHtml(_t("Sessions"))}</th><th></th></tr></thead><tbody>`
+      + worked.map((r) => line(r)).join("")
+      + ((m.matchMin || tgtTime[MATCH_THEME] !== undefined || tgtSess[MATCH_THEME] !== undefined) ? line({ th: MATCH_THEME, min: m.matchMin, pct: m.totalMin ? (m.matchMin / m.totalMin) * 100 : 0, rel: m.sumFull ? (m.matchMin / m.sumFull) * 100 : 0, sess: m.matchSessions }, _t("Match (also counted in Competition)")) : "")
+      + (m.pauseMin ? `<tr class="themes-other"><td>${escapeHtml(_t("Pause"))}</td><td></td><td class="num">—</td><td class="num">—</td><td class="num">${Math.round(m.pauseMin)}</td><td class="num">${m.pauseSessions}</td><td></td></tr>` : "")
+      + (m.noThemeMin ? `<tr class="themes-other"><td>${escapeHtml(_t("Undefined"))}</td><td></td><td class="num">${f1(noThemePct)}%</td><td class="num">${f1(m.sumFull ? (m.noThemeMin / m.sumFull) * 100 : 0)}%</td><td class="num">${Math.round(m.noThemeMin)}</td><td class="num">${m.noThemeSessions}</td><td></td></tr>` : "")
       + `</tbody></table></div>`
       + (m.noThemeMin ? `<p class="hint" style="margin-top:10px;" data-i18n-skip><strong>${escapeHtml(_t("Undefined"))}:</strong> ${escapeHtml(undefinedBreakdown().join(" · "))}</p>` : "")
       + (idle.length ? `<p class="hint" style="margin-top:10px;"><strong>${escapeHtml(_t("Not worked yet"))}:</strong> <span>${idle.map((r) => escapeHtml(_t(r.th))).join(", ")}</span></p>` : "");
@@ -1105,7 +1115,7 @@
     form.innerHTML = `<p class="section-label" style="margin-top:0;">${escapeHtml(o ? _t("Edit objective") : (scope === "global" ? _t("New global objective") : _t("New team objective")))}</p>
       <div class="obj-form-grid">
         <label>${escapeHtml(_t("Type"))}<select id="of-kind" ${o ? "disabled" : ""}>${KINDS().map(([v, l]) => `<option value="${v}" ${v === kind ? "selected" : ""}>${escapeHtml(l)}</option>`).join("")}</select></label>
-        <label id="of-theme-wrap">${escapeHtml(_t("Theme"))}<select id="of-theme">${THEMES.map((c) => `<option value="${escapeHtml(c)}" ${o && o.theme === c ? "selected" : ""}>${escapeHtml(_t(c))}</option>`).join("")}</select></label>
+        <label id="of-theme-wrap">${escapeHtml(_t("Theme"))}<select id="of-theme">${[...THEMES, MATCH_THEME].map((c) => `<option value="${escapeHtml(c)}" ${o && o.theme === c ? "selected" : ""}>${escapeHtml(_t(c))}</option>`).join("")}</select></label>
         <label id="of-target-wrap"><span id="of-target-label"></span><input type="number" id="of-target" min="0" step="any" value="${o && o.target != null ? escapeHtml(o.target) : ""}"></label>
         <label id="of-title-wrap">${escapeHtml(_t("Objective"))}<input type="text" id="of-title" maxlength="200" value="${o && o.title ? escapeHtml(o.title) : ""}"></label>
       </div>
@@ -1122,11 +1132,12 @@
     const syncCalc = () => {
       const el = document.getElementById("of-calc"), k = document.getElementById("of-kind").value;
       if (k !== "theme_time_pct") { el.textContent = ""; return; }
+      if (document.getElementById("of-theme").value === MATCH_THEME) { el.textContent = _t("Match time is already counted inside Competition, so it is not added to the 100%."); return; }
       const a = timeSums(id).total, v = parseFloat(document.getElementById("of-target").value), w = Number.isFinite(v) ? v : 0, left = Math.round((100 - a - w) * 10) / 10;
       el.textContent = left >= 0 ? _t("Already assigned: {a}% · with this one: {b}% · left: {c}%", { a: f1(a), b: f1(a + w), c: f1(left) }) : _t("Already assigned: {a}% · with this one: {b}% · over by {c}%", { a: f1(a), b: f1(a + w), c: f1(-left) });
     };
     document.getElementById("of-kind").addEventListener("change", () => { sync(); syncCalc(); }); sync();
-    document.getElementById("of-target").addEventListener("input", syncCalc); syncCalc();
+    document.getElementById("of-target").addEventListener("input", syncCalc); document.getElementById("of-theme").addEventListener("change", syncCalc); syncCalc();
     document.getElementById("of-cancel").addEventListener("click", closeForm);
     document.getElementById("of-save").addEventListener("click", saveObjective);
     form.scrollIntoView({ block: "nearest" });
@@ -1251,20 +1262,20 @@
     const tgt = {}; objectives.forEach((o) => { if (o.active !== false && o.kind === "theme_time_pct") tgt[o.theme] = Number(o.target); });
     const tgtS = {}; objectives.forEach((o) => { if (o.active !== false && o.kind === "theme_sessions") tgtS[o.theme] = Number(o.target); });
     const themeRows = [...new Set([...THEMES, ...Object.keys(m.byTheme)])].map((th) => {
-      const b = m.byTheme[th] || { min: 0, sessions: new Set() };
-      return { th, pct: m.totalMin ? (b.min / m.totalMin) * 100 : 0, min: Math.round(b.min), sess: b.sessions.size };
+      const b = m.byTheme[th] || { min: 0, full: 0, sessions: new Set() };
+      return { th, pct: m.totalMin ? (b.min / m.totalMin) * 100 : 0, rel: m.sumFull ? (b.full / m.sumFull) * 100 : 0, min: Math.round(b.min), sess: b.sessions.size };
     }).filter((r) => r.min > 0 || r.sess > 0 || tgt[r.th] !== undefined || tgtS[r.th] !== undefined).sort((a, b) => b.min - a.min)
-      .map((r) => [_t(r.th), f1(r.pct) + "%", tgt[r.th] !== undefined ? f1(tgt[r.th]) + "%" : "", String(r.min), String(r.sess), tgtS[r.th] !== undefined ? f1(tgtS[r.th]) : ""]);
-    if (m.pauseMin) themeRows.push([_t("Pause"), "—", "", String(Math.round(m.pauseMin)), String(m.pauseSessions), ""]);
-    if (m.matchMin) themeRows.push([_t("Match"), f1((m.matchMin / m.totalMin) * 100) + "%", "", String(Math.round(m.matchMin)), String(m.matchSessions), ""]);
-    if (m.noThemeMin) themeRows.push([_t("Undefined"), f1((m.noThemeMin / m.totalMin) * 100) + "%", "", String(Math.round(m.noThemeMin)), String(m.noThemeSessions), ""]);
+      .flatMap((r) => [[_t(r.th), f1(r.pct) + "%", f1(r.rel) + "%", tgt[r.th] !== undefined ? f1(tgt[r.th]) + "%" : "", String(r.min), String(r.sess), tgtS[r.th] !== undefined ? f1(tgtS[r.th]) : ""]]);
+    if (m.matchMin || tgt[MATCH_THEME] !== undefined || tgtS[MATCH_THEME] !== undefined) themeRows.push([_t("Match (also counted in Competition)"), f1(m.totalMin ? (m.matchMin / m.totalMin) * 100 : 0) + "%", f1(m.sumFull ? (m.matchMin / m.sumFull) * 100 : 0) + "%", tgt[MATCH_THEME] !== undefined ? f1(tgt[MATCH_THEME]) + "%" : "", String(Math.round(m.matchMin)), String(m.matchSessions), tgtS[MATCH_THEME] !== undefined ? f1(tgtS[MATCH_THEME]) : ""]);
+    if (m.pauseMin) themeRows.push([_t("Pause"), "—", "—", "", String(Math.round(m.pauseMin)), String(m.pauseSessions), ""]);
+    if (m.noThemeMin) themeRows.push([_t("Undefined"), f1((m.noThemeMin / m.totalMin) * 100) + "%", f1(m.sumFull ? (m.noThemeMin / m.sumFull) * 100 : 0) + "%", "", String(Math.round(m.noThemeMin)), String(m.noThemeSessions), ""]);
     const idle = THEMES.filter((c) => !(m.byTheme[c] && (m.byTheme[c].min > 0 || m.byTheme[c].sessions.size)));
     const mainRowsR = mainRows().map((r) => [r.th ? _t(r.th) : _t("Undefined"), f1(r.pct) + "%", String(r.sess)]);
     const tips = buildTips().map((t) => [t.text, t.source]);
     const undefLine = metrics.noThemeMin ? _t("Undefined") + ": " + undefinedBreakdown().join(" · ") : "";
     return { glance, objRows, themeRows, mainRowsR, undefLine, idle: idle.map((c) => _t(c)), tips };
   }
-  const THEME_HEAD = () => [_t("Theme"), _t("% of time"), _t("Target"), _t("Minutes"), _t("Sessions"), _t("Target sessions")];
+  const THEME_HEAD = () => [_t("Theme"), _t("% of time"), _t("Relative %"), _t("Target"), _t("Minutes"), _t("Sessions"), _t("Target sessions")];
   const OBJ_HEAD = () => [_t("Scope"), _t("Objective"), _t("Actual / target"), _t("Status"), _t("Detail")];
 
   document.getElementById("report-xlsx-btn").addEventListener("click", () => {
@@ -1335,7 +1346,7 @@
     h2(_t("Main theme of each session"));
     if (d.mainRowsR.length) table([_t("Theme"), _t("% of sessions"), _t("Sessions")], d.mainRowsR, [0.5, 0.25, 0.25]); else { doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...muted); doc.text(_t("No training sessions counted yet."), mx, y); y += 18; }
     h2(_t("Themes worked in the exercises"));
-    if (d.themeRows.length) table(THEME_HEAD(), d.themeRows, [0.22, 0.13, 0.13, 0.13, 0.13, 0.26]); else { doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...muted); doc.text(_t("No training sessions counted yet."), mx, y); y += 18; }
+    if (d.themeRows.length) table(THEME_HEAD(), d.themeRows, [0.2, 0.13, 0.13, 0.12, 0.11, 0.12, 0.19]); else { doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...muted); doc.text(_t("No training sessions counted yet."), mx, y); y += 18; }
     if (d.idle.length) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.8); doc.setTextColor(...ink); const ls = doc.splitTextToSize(_t("Not worked yet") + ": " + d.idle.join(", "), cw); need(ls.length * 11 + 8); doc.text(ls, mx, y); y += ls.length * 11 + 10; }
     if (d.undefLine) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.8); doc.setTextColor(...ink); const lu = doc.splitTextToSize(d.undefLine, cw); need(lu.length * 11 + 8); doc.text(lu, mx, y); y += lu.length * 11 + 10; }
     h2(_t("What to look at"));
