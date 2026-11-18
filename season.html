@@ -192,6 +192,20 @@
   .pill-choice:hover { border-color: var(--accent); }
   .pill-choice.pill-dim { opacity:.6; }
   .period-bar .pill-choice { padding:5px 10px; font-size:12.5px; }
+  .mx-table { border-collapse:separate; border-spacing:0; font-size:13px; min-width:100%; }
+  .mx-table th, .mx-table td { padding:6px 7px; border-bottom:1px solid var(--line); text-align:center; white-space:nowrap; vertical-align:middle; }
+  .mx-table th { font-size:12px; color:var(--muted); font-weight:600; }
+  .mx-table th:first-child, .mx-table td:first-child { text-align:left; position:sticky; left:0; background:var(--card); z-index:1; min-width:140px; white-space:normal; font-weight:600; }
+  .mx-table th.mx-now { color:var(--accent-deep); }
+  .mx-cell .mx-t { display:block; color:var(--muted); }
+  .mx-cell.mx-own .mx-t { color:var(--ink, inherit); font-weight:700; }
+  .mx-cell .mx-a { display:block; font-size:11px; }
+  .mx-cell.mx-edit { cursor:pointer; } .mx-cell.mx-edit:hover, .mx-cell.mx-edit:focus-visible { background:var(--accent-tint); outline:none; }
+  .mx-a.mx-ok { color:#2e7d4f; } .mx-a.mx-near { color:#a06f00; } .mx-a.mx-missing { color:#b04a25; }
+  .mx-table input { width:62px; padding:3px 5px; font-size:13px; }
+  .mx-btns { display:flex; gap:3px; justify-content:center; margin-top:3px; }
+  .mx-btns button { padding:1px 6px; font-size:12px; line-height:1.4; }
+  .mx-total td { font-size:12px; }
   .obj-tag.obj-tag-soft { background:var(--line); color:var(--muted); }
   .pill-choice.active { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-deep); }
 
@@ -519,6 +533,15 @@
       <details class="obj-calc" id="obj-calc"><summary>Percentage calculator</summary><div id="obj-calc-body"></div></details>
     </div>
 
+    <div class="team-bar-card" id="mx-card" style="display:none;">
+      <div class="card-head-row">
+        <h2>Monthly plan</h2>
+      </div>
+      <p class="hint" style="margin:0 0 12px;" id="mx-hint"></p>
+      <div id="mx-msg" class="msg"></div>
+      <div id="mx-area"></div>
+    </div>
+
     <div class="team-bar-card" id="main-card">
       <div class="card-head-row">
         <h2>Main theme of each session</h2>
@@ -766,6 +789,7 @@
     return [...set].sort();
   }
   async function loadObjectives() {
+    mxEdit = null; // una celda de la matriz a medio editar no sobrevive a una recarga de objetivos
     const r = await supabaseClient.from("season_objectives").select("*").order("position", { ascending: true }).order("created_at", { ascending: true });
     if (r.error) { objectivesOk = false; allObjectives = []; objectives = []; return; }
     objectivesOk = true;
@@ -803,12 +827,12 @@
   // ---------------------------------------------------------------------
   // Cálculo de indicadores
   // ---------------------------------------------------------------------
-  function computeMetrics() {
+  function computeMetrics(per = period) {
     const today = todayStr();
     let { trainings, matches, mps } = ctx; const { players, tex, exCats, exNames, att, asm } = ctx;
-    if (period) { // un mes: solo entrenos y partidos de ese mes (ejercicios, asistencia y estadísticas se filtran por ellos)
-      trainings = trainings.filter((t) => (t.date || "").slice(0, 7) === period);
-      matches = matches.filter((x) => (x.date || "").slice(0, 7) === period);
+    if (per) { // un mes: solo entrenos y partidos de ese mes (ejercicios, asistencia y estadísticas se filtran por ellos)
+      trainings = trainings.filter((t) => (t.date || "").slice(0, 7) === per);
+      matches = matches.filter((x) => (x.date || "").slice(0, 7) === per);
       const mset = new Set(matches.map((x) => x.id)); mps = mps.filter((r) => mset.has(r.match_id));
     }
     const counted = trainings.filter((t) => includePlanned || t.date <= today);
@@ -1183,6 +1207,102 @@
     document.getElementById("tips-list").innerHTML = tips.map((t) => `<div class="tip-row"><span class="tip-text"${t.raw ? " data-i18n-skip" : ""}>${t.href ? `<a href="${t.href}">${escapeHtml(t.text)}</a>` : escapeHtml(t.text)}</span><small class="hint tip-src">${escapeHtml(t.source)}</small></div>`).join("");
   }
 
+  // ---- Plan por meses: matriz objetivo × mes (lo que vale cada mes + lo conseguido) ----
+  let mxEdit = null, mxRows = [];
+  const mxKey = (o) => o.kind + "|" + (o.theme || "");
+  function mxRowLabel(r) {
+    if (r.kind === "theme_time_pct") return `${_t(r.theme)} · ${_t("% minutes")}`;
+    if (r.kind === "theme_sessions") return `${_t(r.theme)} · ${_t("Sessions")}`;
+    return r.kind === "attendance_pct" ? _t("Training attendance (%)") : _t("Periods per player and match (average)");
+  }
+  const mxFmt = (kind, v) => (v === null || v === undefined) ? "—" : f1(Number(v)) + ((kind === "theme_time_pct" || kind === "attendance_pct") ? "%" : "");
+  function mxActual(kind, theme, m) {
+    if (kind === "theme_time_pct") { if (!m.sumFull) return null; return ((m.byTheme[theme] ? m.byTheme[theme].full : 0) / m.sumFull) * 100; }
+    if (kind === "theme_sessions") return m.sessions ? (m.byTheme[theme] ? m.byTheme[theme].sessions.size : 0) : null;
+    if (kind === "attendance_pct") return m.attPct;
+    return m.avgPeriods;
+  }
+  function renderMatrix() {
+    const card = document.getElementById("mx-card"), area = document.getElementById("mx-area");
+    const rowsSrc = allObjectives.filter((o) => o.kind !== "custom" && (o.month || o.active !== false));
+    if (!objectivesOk || !rowsSrc.length) { card.style.display = "none"; return; }
+    card.style.display = "";
+    const months = seasonMonths(), canEdit = monthlyOk && canManageTeam();
+    // una fila por clase+temática: valor de temporada (el último si hay varios) y los de cada mes
+    const rows = {}, order = [];
+    rowsSrc.forEach((o) => {
+      const k = mxKey(o); if (!rows[k]) { rows[k] = { k, kind: o.kind, theme: o.theme || null, base: null, scope: null, own: {} }; order.push(k); }
+      if (o.month) rows[k].own[o.month] = o; else if (o.active !== false) { rows[k].base = o; rows[k].scope = o.scope; }
+    });
+    mxRows = order.map((k) => rows[k]);
+    const metricsBy = {}; const dataMonths = new Set();
+    if (ctx) { ctx.trainings.forEach((t) => t.date && dataMonths.add(t.date.slice(0, 7))); ctx.matches.forEach((x) => x.date && dataMonths.add(x.date.slice(0, 7))); }
+    months.forEach((ym) => { if (dataMonths.has(ym)) metricsBy[ym] = computeMetrics(ym); });
+    const nowYm = todayStr().slice(0, 7);
+    document.getElementById("mx-hint").textContent = canEdit
+      ? _t("Each row is a season objective; each column is a month. Bold figures are set for that month, grey ones are inherited from the season. Click a cell to set its value; the small figure underneath is what was achieved that month.")
+      : (monthlyOk ? _t("Each row is a season objective; each column is a month. Bold figures are set for that month, grey ones are inherited from the season. The small figure underneath is what was achieved that month.") : _t("Monthly objectives need one more database step (step96). Until then you can still look at the figures of a month."));
+    const cell = (r, ri, ym) => {
+      const ov = r.own[ym], tgt = ov ? (ov.active === false ? null : Number(ov.target)) : (r.base ? Number(r.base.target) : null);
+      const mm = metricsBy[ym], act = mm && tgt !== null ? mxActual(r.kind, r.theme, mm) : null;
+      const tone = act === null || tgt === null ? "" : toneOf(act, tgt);
+      if (mxEdit && mxEdit.ri === ri && mxEdit.m === ym) {
+        return `<td class="mx-cell mx-editing"><input type="number" min="0" step="any" id="mx-input" aria-label="${escapeHtml(mxRowLabel(r) + " " + monthLabel(ym, true))}" value="${tgt === null ? "" : escapeHtml(String(tgt))}">
+          <div class="mx-btns"><button type="button" class="btn btn-primary obj-btn" data-mx="save">✓</button><button type="button" class="btn btn-secondary obj-btn" data-mx="cancel">✕</button>${ov ? `<button type="button" class="btn btn-secondary obj-btn" data-mx="reset" title="${escapeHtml(_t("Use season value"))}">↺</button>` : ""}</div></td>`;
+      }
+      return `<td class="mx-cell${ov ? " mx-own" : ""}${canEdit ? " mx-edit" : ""}"${canEdit ? ` tabindex="0" role="button" data-ri="${ri}" data-m="${ym}" title="${escapeHtml(_t("Set for this month"))}"` : ""}><span class="mx-t">${ov && ov.active === false ? "⏸" : mxFmt(r.kind, tgt)}</span>${act !== null ? `<small class="mx-a mx-${tone}">${escapeHtml(mxFmt(r.kind, act))}</small>` : ""}</td>`;
+    };
+    // total de los objetivos de tiempo de cada mes (deben sumar 100 %)
+    const timeRows = mxRows.filter((r) => r.kind === "theme_time_pct");
+    const totalRow = timeRows.length ? `<tr class="mx-total"><td>${escapeHtml(_t("Time objectives add up to"))}</td>${months.map((ym) => {
+      const tot = timeRows.reduce((a, r) => { const ov = r.own[ym]; const t = ov ? (ov.active === false ? 0 : Number(ov.target)) : (r.base ? Number(r.base.target) : 0); return a + t; }, 0);
+      const d = Math.round((100 - tot) * 10) / 10;
+      return `<td><span class="obj-pill obj-${Math.abs(d) < 0.05 ? "ok" : d > 0 ? "near" : "missing"}" title="${escapeHtml(Math.abs(d) < 0.05 ? _t("Fully assigned: 100%") : d > 0 ? _t("Left to assign: {n}%", { n: f1(d) }) : _t("Over by {n}%", { n: f1(-d) }))}">${f1(tot)}%</span></td>`; }).join("")}</tr>` : "";
+    area.innerHTML = `<div class="table-scroll"><table class="mx-table"><thead><tr><th>${escapeHtml(_t("Objective"))}</th>${months.map((ym) => `<th class="${ym === nowYm ? "mx-now" : ""}" title="${escapeHtml(monthLabel(ym, true))}" data-i18n-skip>${escapeHtml(monthLabel(ym))}</th>`).join("")}</tr></thead><tbody>`
+      + mxRows.map((r, ri) => `<tr><td>${escapeHtml(mxRowLabel(r))}${r.scope === "global" ? ` <span class="obj-tag">PlayPivot</span>` : (!r.base ? ` <span class="obj-tag obj-tag-soft">${escapeHtml(_t("Months only"))}</span>` : "")}</td>${months.map((ym) => cell(r, ri, ym)).join("")}</tr>`).join("")
+      + totalRow + `</tbody></table></div>`;
+    area.querySelectorAll("td.mx-edit").forEach((td) => {
+      const go = () => { mxEdit = { ri: Number(td.dataset.ri), m: td.dataset.m }; mxMsg(""); renderMatrix(); const i = document.getElementById("mx-input"); if (i) { i.focus(); i.select(); } };
+      td.addEventListener("click", go);
+      td.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+    });
+    const inp = document.getElementById("mx-input");
+    if (inp) {
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); mxSave(); } else if (e.key === "Escape") { mxEdit = null; renderMatrix(); } });
+      area.querySelectorAll("[data-mx]").forEach((b) => b.addEventListener("click", () => { const a = b.dataset.mx; if (a === "save") mxSave(); else if (a === "reset") mxReset(); else { mxEdit = null; renderMatrix(); } }));
+    }
+  }
+  function mxMsg(text, type) { const el = document.getElementById("mx-msg"); el.textContent = text ? (type === "error" ? "⚠ " : "✓ ") + text : ""; el.className = "msg" + (text ? " " + type : ""); }
+  // Guarda el valor de un mes: si ya hay uno propio lo actualiza, si no crea uno (que sustituye al de temporada ese mes).
+  async function mxSave() {
+    if (!mxEdit || !monthlyOk || !canManageTeam()) return;
+    const r = mxRows[mxEdit.ri], ym = mxEdit.m, raw = document.getElementById("mx-input").value, v = Number(raw);
+    if (!r) return;
+    if (raw === "" || Number.isNaN(v) || v < 0) { mxMsg(_t("Enter a target number (0 or more)."), "error"); return; }
+    if ((r.kind === "theme_time_pct" || r.kind === "attendance_pct") && v > 100) { mxMsg(_t("A percentage can't be more than 100."), "error"); return; }
+    try {
+      const ov = r.own[ym];
+      if (ov) {
+        const { data, error } = await supabaseClient.from("season_objectives").update({ target: v }).eq("id", ov.id).select();
+        if (error) throw error;
+        if (!data || !data.length) throw new Error(_t("You don't have permission to change this objective."));
+      } else {
+        const { error } = await supabaseClient.from("season_objectives").insert({ scope: "team", organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null, team_gender: currentTeamGender || null, kind: r.kind, theme: r.theme, target: v, month: ym });
+        if (error) throw error;
+      }
+      mxEdit = null; await loadObjectives(); renderAll(); mxMsg(_t("Objective saved."), "success");
+    } catch (err) { mxMsg(err.message || _t("Couldn't save the objective."), "error"); }
+  }
+  async function mxReset() {
+    if (!mxEdit || !monthlyOk || !canManageTeam()) return;
+    const r = mxRows[mxEdit.ri], ov = r && r.own[mxEdit.m]; if (!ov) return;
+    try {
+      const res = await supabaseClient.from("season_objectives").delete().eq("id", ov.id).select();
+      if (res.error) throw res.error;
+      if (!res.data || !res.data.length) throw new Error(_t("You don't have permission to change this objective."));
+      mxEdit = null; await loadObjectives(); renderAll(); mxMsg(_t("Objective saved."), "success");
+    } catch (err) { mxMsg(err.message || _t("Couldn't update the objective."), "error"); }
+  }
   function renderPeriodBar() {
     const bar = document.getElementById("period-bar");
     const months = seasonMonths(), withData = new Set();
@@ -1195,7 +1315,7 @@
     if (period && !seasonMonths().includes(period)) period = null;
     objectives = effectiveObjectives(allObjectives, period);
     metrics = computeMetrics();
-    renderPeriodBar(); renderGlance(); renderObjectives(); renderMain(); renderThemes(); renderTips();
+    renderPeriodBar(); renderGlance(); renderObjectives(); renderMatrix(); renderMain(); renderThemes(); renderTips();
     els.chipMatches.textContent = String(ctx.matches.length);
   }
 
@@ -1328,7 +1448,7 @@
     }
     els.noTeamCard.style.display = "none";
     els.statsContent.style.display = "block";
-    calcLen = null; period = null; closeForm(); objMsgClear();
+    calcLen = null; period = null; mxEdit = null; closeForm(); objMsgClear(); mxMsg("");
     const token = ++loadToken;
     await loadSeasonData();
     if (token !== loadToken) return; // llegó tarde: ya se eligió otro equipo
@@ -1346,7 +1466,7 @@
       <p style="margin:0 0 4px; font-weight:600;">${escapeHtml(_t("Training themes"))}</p>
       <p style="margin:0 0 10px;">${escapeHtml(_t("The themes of each exercise (set in the Exercise creator) tell what you worked. Time is split equally if an exercise has several themes. Free-text and match blocks have no theme."))}</p>
       <p style="margin:0 0 4px; font-weight:600;">${escapeHtml(_t("Months"))}</p>
-      <p style="margin:0 0 10px;">${escapeHtml(_t("The buttons above the figures switch between the whole season and one month: every card then shows only that month. A season objective applies to every month unless you set a value of its own for that month (“Set for this month”); you can also add objectives that exist only in one month."))}</p>
+      <p style="margin:0 0 10px;">${escapeHtml(_t("The buttons above the figures switch between the whole season and one month: every card then shows only that month. A season objective applies to every month unless you set a value of its own for that month (“Set for this month”); you can also add objectives that exist only in one month. The “Monthly plan” table shows all the months at once and lets you fill them in."))}</p>
       <p style="margin:0 0 10px;">${escapeHtml(_t("The main theme of each session is the one you pick as “Main objective” in Training builder. “Undefined” means nothing was picked."))}</p>
       <p style="margin:0;">${escapeHtml(_t("Only your own team's data is used, and only what you actually recorded: nothing is guessed."))}</p>`;
     box.style.display = "block";
