@@ -693,8 +693,8 @@
             <p class="tsc-step-label" style="margin:0;">Fill in with AI</p>
             <a href="#" id="ai-match-guide-link" style="font-size:12.5px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap;">❔ What this does</a>
           </div>
-          <p class="hint" style="margin:10px 0;">Copy this prompt into any AI chat that can read images and PDFs (ChatGPT, Claude…), attach your photo or PDF of the scoresheet there — including an official federation match sheet, like the ones with a "running score" grid instead of a simple table, the prompt explains how to read those too — then paste its reply below. Tip: if your AI chat can also create/edit files (ChatGPT or Claude, paid plans), also attach the file from "⬇️ Download Excel template" above — the prompt asks the AI to fill that file in directly and hand it back, so you can skip pasting text and just re-upload the finished .xlsx with "Import stats from Excel" instead. PlayPivot doesn't send anything anywhere by itself — you copy and paste between the two tabs, same as "Fill in with AI" in Exercise creator.</p>
-          <textarea id="ai-match-prompt-template" readonly style="width:100%; min-height:130px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12px; font-family:inherit; color:var(--muted); margin-bottom:8px;"></textarea>
+          <p class="hint" style="margin:10px 0;">Copy this prompt into any AI chat that can read images and PDFs (ChatGPT, Claude…), attach your photo or PDF of the scoresheet there — including an official federation match sheet, like the ones with a "running score" grid instead of a simple table, the prompt explains how to read those too — then paste its reply below. Tip: if your AI chat can also create/edit files (ChatGPT or Claude, paid plans), also attach the file from "⬇️ Download Excel template" above — the prompt asks the AI to fill that file in directly and hand it back, so you can skip pasting text and just re-upload the finished .xlsx with "Import stats from Excel" instead. How it works: the AI first reads the sheet, double-checks its own reading and may ask you questions (overtime, unclear jersey numbers, who scored a basket…) — answer them in the AI chat, it is told not to guess; only then does it give you the final table or Excel to bring back here. PlayPivot doesn't send anything anywhere by itself — you copy and paste between the two tabs, same as "Fill in with AI" in Exercise creator.</p>
+          <textarea id="ai-match-prompt-template" readonly style="width:100%; min-height:260px; resize:vertical; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12px; font-family:inherit; color:var(--muted); margin-bottom:8px;"></textarea>
           <button class="btn btn-secondary" id="copy-ai-match-prompt-btn" style="margin-bottom:10px;">📋 Copy this prompt</button>
           <textarea id="ai-match-reply-input" placeholder="Paste the AI's reply here…" style="width:100%; min-height:110px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit;"></textarea>
           <button class="btn btn-primary" id="fill-match-from-ai-btn" style="margin-top:8px;">Fill from AI reply</button>
@@ -3246,59 +3246,161 @@
   // pasa por el MISMO parser que ya usa el Excel (parseSheetRowsIntoMatchImport)
   // -- nada de esto llama a ninguna IA por cuenta de PlayPivot.
   // -----------------------------------------------------------------------
+  // Dani (2026-11-18): "hay que cambiar el prompt del partido porque no
+  // funciona. Cada vez salen resultados diferentes... el prompt tiene que
+  // ser lo más largo posible para que siempre haya una verificación...
+  // cuando algo no lo entiende, que no lo invente, que haga la pregunta".
+  // Reescrito como "prompt maestro" en dos fases (1: leer + verificar +
+  // preguntar; 2: respuesta final en el mismo formato de siempre, así el
+  // motor de import NO cambia). Errores reales que cubre: puntos sin
+  // asignar (PlayPivot suma "Points total" literal), columnas 1/2/3 pts
+  // vacías o incoherentes, nombres con paréntesis/comillas, atribuir una
+  // canasta al jugador equivocado (preguntar en vez de adivinar), prórroga,
+  // técnicas, dorsales cambiados/duplicados, nombres tachados, letra mala.
+  // Placeholders: {{OWN}} equipo propio, {{HEADER}}/{{SEP}} cabecera de la
+  // tabla (misma lista de columnas que el import), {{LANG}} idioma de la app.
   function buildMatchAiPromptTemplate() {
     const cols = excelTemplateColumns();
     const headerLine = "| " + cols.map((c) => c.header).join(" | ") + " |";
     const sepLine = "|" + cols.map(() => " --- ").join("|") + "|";
     const ownLabel = teamFileLabel() || "my team";
+    const langName = ({ es: "Spanish", fr: "French", en: "English" })[(window.pivotI18n && window.pivotI18n.lang) || "en"] || "English";
+    const fill = (line) => line.split("{{OWN}}").join(ownLabel).split("{{HEADER}}").join(headerLine).split("{{SEP}}").join(sepLine).split("{{LANG}}").join(langName);
     return [
-      "You're helping a basketball coach digitize a paper match box score (feuille de marque) from a photo or PDF I'm about to attach in this chat.",
+      "MASTER PROMPT — DIGITIZE AND VERIFY A BASKETBALL MATCH SHEET (feuille de marque / acta / scoresheet)",
       "",
-      // Dani (voz, ronda 39): "uno de los equipos... pero no siempre será...
-      // tenemos que hacer un prompt mucho más generico" -- antes el prompt
-      // asumía que mi equipo siempre aparece como "Équipe A" EN LA HOJA
-      // ORIGINAL, pero una hoja oficial puede listarlo como el equipo B (o
-      // con cualquier otro orden) según la liga -- eso no depende de mí. La
-      // IA ahora tiene que IDENTIFICAR cuál de los dos equipos de la hoja
-      // es el mío (por nombre) y siempre ponerlo en "ÉQUIPE A" EN SU
-      // RESPUESTA, sin importar cómo esté ordenado en el documento original.
-      `My own team is "${ownLabel}" -- on the actual sheet it could be printed as either "Team A" or "Team B" (or under some other label entirely), that depends on the league/federation's own convention, not on me. Find which of the two teams on the sheet is mine by matching the name, and regardless of how the SOURCE sheet itself orders or labels them, always put MY team ("${ownLabel}") under "ÉQUIPE A" in YOUR reply below, and the actual opponent under "ÉQUIPE B" -- never just copy the sheet's own A/B order if it puts my team second.`,
+      "You are going to digitize a paper basketball match sheet from a photo, a scan or a PDF that I attach in this chat. The result will be imported into PlayPivot, a coaching app. Accuracy matters more than speed: a reading that is checked and flagged is worth far more to me than one that merely looks complete. Read this whole prompt before you start.",
       "",
-      // Dani (voz, ronda 39): "deberiamos de mandarle un excel para que lo
-      // rellene... que nos envie un excel... si es el mismo excel,
-      // simplemente que rellene ese" -- si el chat de IA puede editar y
-      // devolver archivos (plan de pago de ChatGPT/Claude), esto es más
-      // fiable que pedirle que arme una tabla de texto desde cero: solo
-      // tiene que llenar celdas de una plantilla que YA tiene la
-      // estructura correcta, no inventar el formato.
-      "If I also attached a spreadsheet (.xlsx) -- the \"Download Excel template\" file from this same page, blank or with this team's roster already in it -- that's my PREFERRED way to get this back: fill its cells in directly from what you read on the photo/PDF (same idea as above: my team always in the block already labelled with my team's name, whichever side of the original sheet it came from), keep its structure exactly as given (both team blocks, the header row, any formulas already there), and reply with that completed file as a downloadable .xlsx attachment instead of the text table below -- I'll re-upload it here with \"Import stats from Excel\", I don't need you to also type out the text table in that case. Only use the text-table format below if you can't return files (free plan, or a chat without file creation), or if I didn't attach that template. Important: that template's own team block already comes with my ENTIRE roster pre-filled (every player's name and jersey number, whether or not they played this particular game) -- for anyone who did NOT play, leave their row exactly as you found it (name/number only, every stat cell still blank), don't fill in zeros just to \"complete\" it. See the stats rule below for why that matters.",
+      "=== 0. HOW WE WORK: TWO PHASES ===",
+      "PHASE 1 (in this chat, with me): you read the sheet, run every verification in section 9, and show me a short audit. If ANYTHING is unclear, you STOP and ask me (section 11) and wait for my answer. Do not produce the final table yet.",
+      "PHASE 2 (final reply): only when every check passes, or when I have answered / explicitly waived your questions, you send the final reply in the exact format of section 12. That final reply contains nothing except that format.",
+      "Write your Phase 1 messages and questions to me in {{LANG}}. The final reply keeps every header and label exactly as given below, whatever language you used with me.",
       "",
-      "For the text-table format: read it carefully -- it usually has two tables (one per team) plus some general info (competition, date, place, referee, team names, final score) written somewhere on the page. Reply with ONLY the following, in EXACTLY this format (plain text, real markdown tables with pipes, no bold, nothing before or after):",
+      "GOLDEN RULES (they apply to everything below):",
+      "1. NEVER invent. Do not guess a name, a jersey number, a score, a foul, a period or a basket. If you cannot read it or do not understand it, say so and ask me.",
+      "2. NEVER change a number you read in order to make a total match. If a total does not match, you misread something (re-read that exact zone, see section 10) or the sheet itself is inconsistent (tell me). Forcing totals is the worst possible error.",
+      "3. When two readings are possible, or two players could fit one mark, ASK me directly instead of choosing (for example: \"Who scored these 3 points, #10 or #11?\"). Number your questions, make them answerable in a few words, and put them all in ONE message.",
+      "4. Follow the procedure below literally and in the same order every time, so that reading the same sheet twice gives the same result. Do not skip steps, do not summarize the grid, do not rely on a general impression of the photo.",
+      "5. Do not trust any earlier reading of this sheet (yours in another chat, another AI's, or mine) as correct. Re-read from the image. If my answers contradict what the sheet seems to show, keep both observations, tell me about the conflict and re-examine the sheet.",
+      "6. Points must not be left floating: at the end, 100% of each team's points have to belong to some player in the table (see section 13 for how, when a basket cannot be attributed with certainty). PlayPivot adds up the \"Points total\" column literally, so any point left out makes my team total come out lower than the real score.",
+      "",
+      "=== 1. WHAT PLAYPIVOT DOES WITH YOUR OUTPUT (so you understand why the format rules exist) ===",
+      "- It matches each row to my roster by jersey number and name, and it sums the \"Points total\" column literally to get each team's score. It does not recalculate or correct anything.",
+      "- A row whose stat cells are ALL blank means \"this player did not play\". A row with at least one real number, even a deliberate 0, means \"played\".",
+      "- Player names are read as plain text. Parentheses, quotes, question marks, slashes, asterisks, pipes or any annotation inside a name cell create junk rows or break the match. Doubts about a name go in the NOTES line, never in the cell.",
+      "- Anything after a line that starts with \"NOTES:\" is ignored by the import, so that is the only place for comments.",
+      "",
+      "=== 2. SOURCES AND PRIORITY ===",
+      "You may receive: one or several photos of the same sheet, a scanned PDF, an Excel template (blank, or with my roster already in it), a team list, and extra information from me. Priority when sources disagree: (1) official data that is clearly legible on the sheet; (2) the running score, checked mark by mark; (3) explicit facts I confirm; (4) my roster, to resolve identities and jersey numbers; (5) probable visual readings; (6) unconfirmed hypotheses. Never use this hierarchy to hide a contradiction: report it.",
+      "",
+      "=== 3. RECOGNIZE THE SHEET BEFORE EXTRACTING ANYTHING ===",
+      "Do not assume every sheet is a FIBA sheet. Possible models: official FIBA sheets, national or regional federation sheets, Swiss sheets (Swiss Basketball, Ligue Romande de Basket Corporatif / LRBC with its \"marque courante\" grid), Mini basketball sheets with participation by period, simplified tournament sheets, club-made sheets, sheets with a cumulative running score, sheets with points written directly per player. Each one has its own conventions.",
+      "First tell me what you identified: competition, organizing body, date and time, venue, team names exactly as written, coaches, referees, the final result, the result per period, whether there is a 5th period / overtime, how baskets are recorded, how fouls are recorded and how player participation is recorded. For anything unreadable write \"unknown\" and ask; never fill in referees, venues or dates from imagination.",
+      "",
+      "=== 4. WHICH TEAM IS MINE: ALWAYS \"ÉQUIPE A\" IN YOUR OUTPUT ===",
+      "My team is \"{{OWN}}\". On the sheet it may be printed as team A, team B or under another label, depending on the league. Find which side is mine by the NAME (allow reasonable differences in abbreviations, capitals and accents). If both or neither name seem to match, ask me.",
+      "Whatever the sheet's own order, in YOUR output my team ({{OWN}}) is always \"ÉQUIPE A\" and the opponent is always \"ÉQUIPE B\". Swap everything that belongs to a side together: players, jersey numbers, fouls, points, period results and the final score (the final score line is written \"my score - opponent score\"). Changing only the labels is a serious error.",
+      "Check before answering: no opponent player appears in my block and no player of mine appears in the opponent block; my score is the one that belongs to my side of the sheet.",
+      "",
+      "=== 5. READING THE IMAGE ===",
+      "Never try to read a hard sheet from the overview alone. Work region by region, zooming into each one: header; team A roster (original sheet side); team B roster; fouls of A; fouls of B; running score of A; running score of B; period results and final result; signatures or notes. Correct rotation and perspective if the photo is at an angle. If a photo is too blurry or cut off to read a region reliably, tell me which region and ask for a better photo instead of guessing.",
+      "Handwriting quality: if one side of the sheet is clearly harder to read than the other, say it explicitly and ask whether I prefer you to try anyway or to mark that side as estimated.",
+      "Read the running score of each team TWICE, independently (second time starting from the end of the grid and going backwards, or by quarters), and compare the two passes. Any difference between the two passes is a doubt that must be resolved by re-reading that spot, or asked about.",
+      "",
+      "=== 6. HEADER DATA ===",
+      "Competition, date (final format DD.MM.YYYY), venue, both team names as written, referee(s), final score and the period-by-period score. If a field cannot be read, leave it blank in the final reply and mention it in NOTES.",
+      "",
+      "=== 7. ROSTERS AND JERSEY NUMBERS ===",
+      "- Copy each player's name and number from the roster area of the sheet, one row per listed player. If I attached a template or a roster, use the exact spelling of my roster for my players.",
+      "- Duplicate or look-alike numbers (two players that both look like \"10\", a 1 that could be a 7, a 6 that could be a 0...): do not choose. Ask me which number each player wears.",
+      "- Crossed-out or corrected names or numbers on the sheet: show me your reading and ask me to confirm it.",
+      "- A player who played with a number different from the one he usually wears: ask me. A wrong jersey number breaks the match with my roster in PlayPivot.",
+      "- Players listed on the sheet but who never took part (no starter mark, no entry, no points, no fouls, no period mark): they are \"did not play\" (section 12).",
+      "",
+      "=== 8. POINTS: HOW TO READ THE RUNNING SCORE ===",
+      "Most sheets have, for each team, a grid of numbered boxes (1, 2, 3 ... up to 160 or more). THE NUMBER OF A CROSSED BOX IS THE TEAM'S CUMULATIVE TOTAL AT THAT MOMENT, not a count of plays. The DIFFERENCE between two consecutive crossed boxes is the value of that basket: +1 = free throw, +2 = field goal, +3 = three-pointer. Next to each crossed box there is normally the jersey number of the player who scored.",
+      "Official FIBA-style sheets add a visual code for the same information: a diagonal slash through the box = 2-point field goal; a filled dot = free throw (1 point); the scorer's jersey number circled = 3-point field goal. Ink colors often alternate by quarter: that is only the scorer's own convention, ignore it for the statistics. A thick circle plus a line under the last box of a quarter = end of that quarter. Other leagues use their own convention: identify it first and tell me what you found.",
+      "Procedure (do it in this order and write the ledger in your Phase 1 message so I can audit it):",
+      "a) For each team, list every crossed box in order as: cumulative total -> value of that basket (difference with the previous crossed box) -> jersey number written next to it -> mark type if there is one (slash / dot / circled).",
+      "b) Cross-check each entry: the mark type must agree with the numeric difference (a dot with a +2, or a circled number with a +1, means you misread something). Any disagreement is a doubt to resolve.",
+      "c) Check that the crossed numbers are strictly increasing, with no repeated and no missing box where a basket should be. A gap larger than 3 between two crossed boxes means you missed a crossed box or misread a number.",
+      "d) Add up the baskets per player: number of 1-point, 2-point and 3-point baskets. These give \"1 pt\", \"2 pts\", \"3 pts\" and \"Points total\" directly, with 1pt + 2×(2 pts) + 3×(3 pts) = Points total on every row. Note that \"1 pt\", \"2 pts\", \"3 pts\" count BASKETS MADE of that value, not points.",
+      "e) If a mark is ambiguous and could belong to two players (a smudged or doubled number, two numbers close together), do not pick one: ask me \"who scored these X points, #Y or #Z?\", quoting the cumulative totals involved.",
+      "If the sheet has NO running score and instead has points written directly per player, read those and check them against the team result in the same way.",
+      "",
+      "=== 9. MANDATORY VERIFICATIONS (all of them, before Phase 2) ===",
+      "V1. Last crossed box of each team's running score = that team's final score printed on the sheet.",
+      "V2. The sum of the printed period scores of each team = that team's final score.",
+      "V3. The running-score ledger, cut at the end of each period, gives the printed score of that period (if the period results are printed).",
+      "V4. The sum of all players' \"Points total\" in each team = that team's final score. This is the one that matters for PlayPivot.",
+      "V5. On every player's row: 1 pt + 2 × (2 pts) + 3 × (3 pts) = Points total.",
+      "V6. Fouls: each player's fouls are 5 or fewer (a 5th foul ends his game; more than 5 means a misread, or a technical/disqualifying foul to explain); the sum of the fouls charged to players is consistent with the team fouls per period if the sheet records them.",
+      "V7. Jersey numbers: no repeated number within a team, every scorer's number is on that team's roster, no player of one team is in the other block.",
+      "V8. Periods: how many periods were played (4, or 5+ if overtime), and the running score is consistent with that.",
+      "V9. The player count: how many players are listed and how many have stats; every player with points or fouls is marked as having played.",
+      "If V1 and V2 both match the official result exactly, the final score and the period scores are reliable at 100% even if the split per player is less certain: say so. The per-player split is the part that needs the most care.",
+      "",
+      "=== 10. WHEN A CHECK FAILS ===",
+      "Do not fix it by changing numbers. In order: (1) re-read the exact zone involved, zoomed in; (2) compare your two independent passes; (3) test the most likely misread (a 1 read as a 7, a 3 as an 8, a missed or doubled crossed box, a quarter-end circle read as a basket); (4) if it is still unresolved, show me the discrepancy (which check, which totals, which zone of the sheet) and ask. Never silently choose.",
+      "",
+      "=== 11. QUESTIONS TO ASK ME — ALWAYS WHEN IN DOUBT, NEVER GUESS ===",
+      "Always ask (if the sheet does not make it fully clear):",
+      "- Was there overtime / extra time? (look for a 5th period on the sheet and tell me what you see)",
+      "- Was there any technical foul, bench/coach technical foul, disqualifying or unsportsmanlike foul, or an ejection?",
+      "- Did any player play with a jersey number different from his usual one?",
+      "- Which number does each player wear when two are written the same or similar in the roster?",
+      "- Any crossed-out or corrected name or number: confirm your reading.",
+      "- Any basket whose scorer could be two different players: who scored it?",
+      "- Is the handwriting on one side clearly worse? Should I try anyway or mark it as estimated?",
+      "- Did a player who has no points, no fouls and no other mark actually play? (if the sheet gives no way to tell)",
+      "- Anything else you do not understand or that two readings could explain.",
+      "Format of your questions: one single message, numbered, each answerable in a few words, with the evidence (zone of the sheet, numbers read) next to it. Then wait for my answer before continuing.",
+      "",
+      "=== 12. FINAL REPLY (PHASE 2): EXACT FORMAT ===",
+      "If I also attached a spreadsheet (.xlsx) -- the \"Download Excel template\" file from this same page, blank or with this team's roster already in it -- that is my PREFERRED way to get this back: fill its cells in directly (my team always in the block labelled with my team's name, whichever side of the original sheet it came from), keep its structure exactly as given (both team blocks, the header row, any formulas already there), and reply with that completed file as a downloadable .xlsx instead of the text table; I will re-upload it here with \"Import stats from Excel\". In that case put the verification report and any NOTES in your chat message, never inside the cells. That template comes with my ENTIRE roster pre-filled (every player's name and number, whether or not he played): for anyone who did NOT play, leave the row exactly as you found it (name/number only, every stat cell blank), without writing zeros. Only use the text format below if you cannot return files or if I did not attach that template.",
+      "",
+      "Text format: reply with ONLY the following, in EXACTLY this format (plain text, real markdown tables with pipes, no bold, nothing before or after except the final NOTES block):",
       "",
       "Compétition: [competition name, or leave blank]",
       "Date: [DD.MM.YYYY, or leave blank]",
       "Lieu: [place, or leave blank]",
-      `Équipe A: ${ownLabel}`,
+      "Équipe A: {{OWN}}",
       "Équipe B: [the OTHER team's name, as written on the sheet]",
       "Arbitre: [referee name, or leave blank]",
-      "Score final: [team A score] - [team B score]",
+      "Score final: [my team's score] - [opponent's score]",
       "",
-      `ÉQUIPE A — ${ownLabel}`,
-      headerLine,
-      sepLine,
-      "[one row per player of team A, same column order as the header above -- leave a cell blank if the sheet doesn't track it]",
+      "ÉQUIPE A — {{OWN}}",
+      "{{HEADER}}",
+      "{{SEP}}",
+      "[one row per player of my team, same column order as the header above -- leave a cell blank if the sheet doesn't track it]",
       "",
       "ÉQUIPE B — [the other team's name]",
-      headerLine,
-      sepLine,
-      "[one row per player of team B, same column order]",
+      "{{HEADER}}",
+      "{{SEP}}",
+      "[one row per player of the opponent, same column order]",
       "",
-      "Rules: \"N°\" is the jersey number. \"Starter\" is whether that player started the game (was in the opening five) -- write \"Y\" if the sheet marks them as a starter, leave it blank otherwise (don't guess if the sheet doesn't say). \"1 pt\"/\"2 pts\"/\"3 pts\" are shots MADE of each value (not attempts) -- fill them in whenever the sheet tracks them separately. For any player who actually took part in the game, ALWAYS fill in \"Points total\" too, with the real total for that player (add up 1 pt/2 pts/3 pts yourself if you filled those in, or your best read of a running score if that's all the sheet has) -- never leave \"Points total\" blank just because you filled in the breakdown, a blank cell there is read as zero. The one exception: if a player is listed (name/jersey number) but never actually entered the game -- every stat column genuinely blank on the sheet itself, or pre-filled from my roster but untouched -- leave EVERY stat cell in their row blank, including \"Points total\": don't invent a \"0\" just to fill it in. A row with every stat cell blank is read as \"didn't play\"; a row with at least one real number, even a deliberate 0, is read as \"played\" -- so a made-up zero would wrongly mark someone as having played when they didn't. One player per row, don't merge or skip rows, keep the header row as given. If you're unsure about a specific number for someone who DID play, still give your best guess rather than leaving it empty, but you can add a short confidence note in a line starting with \"NOTES:\" at the very end, outside both tables.",
+      "NOTES: [verification report, see below]",
       "",
-      "Periods columns (only if the sheet has a per-period grid, like the Swiss Basketball Mini sheet with periods 1 to 6 per player): \"Periods played\" = the number of periods where the player's box has a normal mark (X or a tick) -- i.e. they were on court as one of the players who START that period. \"Periods as sub\" = the number of periods where the player's box has only a DOT (a small point, meaning a substitution/change during that period). NEVER add the dots into \"Periods played\" -- keep the two numbers separate. Sanity check you should do before answering: for each team, the sum of \"Periods played\" over all players must equal (number of periods) x (players on court per period, e.g. 6 x 4 = 24 in Mini basketball); if your total is higher, you counted dots as normal marks, so re-read the grid.",
+      "Column and row rules:",
+      "- \"N°\" is the jersey number, digits only. The player name cell is CLEAN TEXT: just the name (first name and last name as on the sheet, or as in my roster), with no parentheses, brackets, quotes, question marks, slashes, asterisks, pipes, \"?\" or any annotation. Doubts about a name or number go in NOTES.",
+      "- \"Starter\": write \"Y\" if the sheet marks the player as a starter (in the opening five), otherwise leave blank. Do not guess if the sheet does not say.",
+      "- \"1 pt\", \"2 pts\", \"3 pts\": baskets MADE of that value (not attempts, not points). They may NOT be left blank for a player who scored: fill them in from your section 8 ledger.",
+      "- \"Points total\": the real total of that player. ALWAYS fill it in for anyone who played, and it must equal 1 pt + 2 × (2 pts) + 3 × (3 pts). A blank there is read as zero. Min, Reb, Ast: fill them in only if the sheet records them, otherwise leave them blank.",
+      "- Fouls: the fouls charged to that player (personal, technical, unsportsmanlike or disqualifying). Fouls of the coach or bench are not a player's fouls: mention them in NOTES.",
+      "- A row with EVERY stat cell blank = \"did not play\". A row with at least one real number, even a deliberate 0, = \"played\". So a player who played but did not score gets an explicit 0 in \"Points total\" (and 0 in 1 pt / 2 pts / 3 pts), and a player who has fouls marked but no baskets also gets 0 points, never a blank. Never write a made-up 0 for a player who did not play.",
+      "- One player per row; do not merge, skip or reorder rows; keep the header row as given.",
       "",
-      "Some official federation sheets don't have a simple per-player points column at all -- instead they have a \"running score\" grid: one column of small numbered boxes PER TEAM, filled in order as the game goes, one box per point scored (not per basket). If you see one of these, read it using the standard FIBA scorer convention: a diagonal slash through a box = a 2-point field goal; a small filled dot (•) = a free throw (1 point); a circled jersey number next to the slash = a 3-point field goal instead of a 2. The ink color often alternates by quarter (e.g. red for Q1/Q3, blue or black for Q2/Q4) -- that's only for the human scorer's own reference, ignore it, it doesn't change the stats. For each player, count how many points their marked boxes add up to (1 per dot, 2 per plain slash, 3 per slash-with-circle) to get \"1 pt\"/\"2 pts\"/\"3 pts\"/\"Points total\" -- same columns as above, this is just a different way of reading the same information, not a different table. Afterwards, double-check your own reading: add up all of Team A's player points and compare to Team A's final score (same for Team B) -- if your count doesn't match the final score printed on the sheet, don't silently force it to match; say so in the \"NOTES:\" line instead so it gets double-checked by hand.",
-    ].join("\n");
+      "Periods columns (only if the sheet has a per-period participation grid, like the Swiss Basketball Mini sheet with periods 1 to 6 per player): \"Periods played\" = the number of periods where the player's box has a normal mark (X or a tick) -- i.e. they were on court as one of the players who START that period. \"Periods as sub\" = the number of periods where the player's box has only a DOT (a small point, meaning a substitution/change during that period). NEVER add the dots into \"Periods played\" -- keep the two numbers separate. Sanity check before answering: for each team, the sum of \"Periods played\" over all players must equal (number of periods) x (players on court per period, e.g. 6 x 4 = 24 in Mini basketball); if your total is higher, you counted dots as normal marks, so re-read the grid.",
+      "",
+      "=== 13. UNCERTAINTY THAT SURVIVES MY ANSWERS ===",
+      "The order of preference is always: (1) read it from the sheet; (2) ask me; (3) only if I answer that I do not know, or tell you to estimate, or I cannot be asked: estimate. In that third case: attribute the basket to the most probable player (never leave it unassigned and never drop it), rebuild that player's \"1 pt / 2 pts / 3 pts\" so the identity in section 8d holds, and flag every such cell clearly in NOTES as ESTIMATED, naming the player, the cumulative totals involved and the alternative candidate. If the sheet does not record the value of individual baskets at all, give the most plausible split that adds up exactly and say in NOTES that the split is an estimate. Estimates are always declared, never silent, and never change the team totals, which come from the sheet.",
+      "",
+      "=== 14. NOTES: VERIFICATION REPORT (last lines of your reply, outside the tables) ===",
+      "Start a line with \"NOTES:\" and write, in a few lines: V1-V9 result (OK / not OK, with the numbers); final score and period scores read; overtime yes/no; technical or disqualifying fouls; jersey-number changes; every ESTIMATED cell; every doubt about a name; the questions I answered and what I answered; anything I should double-check by hand. Everything after \"NOTES:\" is ignored by the import, so it can span several lines.",
+      "",
+      "=== 15. LAST CHECK BEFORE SENDING THE FINAL REPLY ===",
+      "Tick every item mentally: my team is in ÉQUIPE A and the final score is written \"mine - opponent's\"; each team's \"Points total\" column adds up to its final score; every scorer's row has 1 pt / 2 pts / 3 pts filled in and consistent; no parentheses or odd punctuation in any name; players who did not play have blank rows and players who played have at least one number (0 counts); every doubt is either asked and answered or declared in NOTES; the reply contains only the format above. If any item fails, go back to section 10 instead of sending."
+    ].map(fill).join("\n");
   }
 
   // Convierte el texto pegado (tabla markdown con "|", más las líneas
@@ -3383,7 +3485,7 @@
       <div style="background:var(--card); border-radius:12px; max-width:460px; width:100%; padding:24px 26px; max-height:85vh; overflow-y:auto;">
         <h3 style="margin:0 0 6px; font-size:17px;">Fill in with AI — what it actually does</h3>
         <p class="hint" style="margin:0 0 14px;">PlayPivot doesn't send your photo or PDF anywhere, and doesn't call any AI itself — no account, no setup, no cost on our side. You do the reading with an AI chat you already have (ChatGPT, Claude…), in another tab.</p>
-        <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>Steps:</strong> click "📋 Copy this prompt", open any AI chat that can read images and PDFs, paste the prompt, attach your photo or PDF of the scoresheet, and send it. Then copy the AI's whole reply and paste it into the box below "Fill in with AI" here, and click "Fill from AI reply".</p>
+        <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>Steps:</strong> click "📋 Copy this prompt", open any AI chat that can read images and PDFs, paste the prompt, attach your photo or PDF of the scoresheet, and send it. The AI will first read and double-check the sheet and may ask you a few questions (overtime, unclear jersey numbers, who scored a basket…): answer them in the chat — it is told not to guess. Then it sends its final reply: copy the AI's whole final reply and paste it into the box below "Fill in with AI" here, and click "Fill from AI reply".</p>
         <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>Prefer getting a finished Excel file back instead of pasting text?</strong> If your AI chat can also create and edit files — ChatGPT or Claude, on a paid plan — also attach the file from "⬇️ Download Excel template" (above "Fill in with AI") when you send the prompt. The prompt already asks the AI to fill that exact file's cells in directly and reply with the completed .xlsx, so instead of pasting anything here, you just download that file from the AI chat and upload it with "Import stats from Excel". If your chat can't create files, or you didn't attach the template, it falls back to the text table — paste that one here as usual.</p>
         <p style="font-size:14.5px; line-height:1.7; margin:0 0 10px;"><strong>Why this instead of "Import from a photo"?</strong> that one reads letters off the image (OCR) without understanding what it's looking at — it struggles with handwriting and busy tables. An AI chat actually understands a box score, so it's usually much more reliable on a hard photo, and it can also read an official federation PDF straight from the file, including the "running score" grid some of those use instead of a simple table (the prompt tells it exactly how to read that grid, point by point), and it figures out which team on the sheet is yours by name, not by assuming it's always listed first. Review its reply (or the filled Excel file) before importing it, the same way you'd check anyone else's work — if the sheet had a running-score grid, check the "NOTES:" line at the end too, the AI is told to flag it there if its count doesn't add up to the final score.</p>
         <p class="hint" style="margin:0 0 16px;">You can reopen this anytime with "❔ What this does", next to "Fill in with AI".</p>

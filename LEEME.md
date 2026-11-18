@@ -1,29 +1,28 @@
-# Paquete 82 — Entreno: feedback cuantificable (fase B)
+# Paquete 83 — Nuevo prompt de «Rellenar con IA» (partido)
 
-Sube `training.html`, `i18n-fr.js` e `i18n-es.js` (sustituyen a los actuales). `i18n-fr.js` e `i18n-es.js` ya incluyen lo de los paquetes anteriores (81 y antes), así que no hace falta nada más.
+Sube `match.html`, `i18n-fr.js` e `i18n-es.js`. **Sin SQL.** El motor de import no cambia: la IA sigue devolviendo la misma tabla de siempre.
 
-## SQL: SÍ (uno)
-Ejecuta **`step97_training_feedback.sql`** en el SQL Editor de Supabase: crea 2 tablas nuevas (`training_feedback`, `training_exercise_feedback`) y la función `replace_training_feedback`. Seguro de repetir; no toca ninguna tabla existente. Sin él, la página funciona igual (estrellas, comentarios e ideas) y avisa de que falta ejecutarlo.
+## Qué cambia
+El prompt se ha reescrito entero (≈19.000 caracteres, 15 secciones) para que dé el mismo resultado cada vez y no invente. Ahora funciona en **dos fases**:
 
-## Qué hay de nuevo (dentro de "Post-session feedback")
-Las estrellas, comentarios e ideas de siempre **no cambian**. Se añade, todo opcional y de un toque:
-- **Preguntas rápidas:** ¿respetaste los tiempos? · ¿objetivo principal cumplido? · ¿entendieron las explicaciones a la primera? · ¿viste mejora? · intensidad · energía del grupo (1–5) · duración real (minutos) · incidencias (material, pista, pocos jugadores, empezó tarde, lesiones, clima). Pulsar otra vez la misma respuesta la quita.
-- **¿Cómo fue cada ejercicio?:** para cada ejercicio de la biblioteca del plan: **Funcionó / Ajustar / Descartar**. En Ajustar/Descartar salen motivos (demasiado fácil/difícil, explicación larga, poco tiempo, mucho tiempo en filas, faltaba material, no los enganchó, nivel del grupo) y una nota corta.
-- Pausas, partidos y bloques de texto libre no se valoran.
-- Se guarda con "Save session". Al reabrir el entreno, el bloque se abre solo con lo guardado.
-- **Duplicar sesión** y **sesión nueva** empiezan en blanco.
+1. **Fase 1 (en el chat con la IA):** lee la hoja por zonas, lee cada marcador acumulado DOS veces de forma independiente, escribe el «libro de canastas» (total acumulado → valor → dorsal), pasa 9 verificaciones y, si algo no queda claro, **te pregunta** (todas las preguntas en un solo mensaje) y espera.
+2. **Fase 2:** solo cuando todo cuadra, o tú has respondido, da la respuesta final en el formato de siempre.
 
-## Cosas que conviene saber
-- La valoración va ligada al **ejercicio de la biblioteca**, no a su posición: si reordenas o quitas ejercicios del plan, cada valoración sigue en su ejercicio (esto es la base del "cuaderno" de la fase C).
-- **Privacidad:** el cuestionario y las valoraciones **solo los ve tu club** (o tú si la sesión es privada) y la plataforma. Aunque compartas la sesión con la asociación o la comunidad, el feedback NO se comparte.
-- Pueden escribir/borrar admin, coach y assistant. El viewer los ve pero no los puede guardar.
-- Si el feedback falla al guardar, la sesión ya está guardada y se avisa con el motivo.
+Verificaciones obligatorias: última casilla tachada = resultado final impreso; suma de parciales = final; parciales por período; suma de «Puntos totales» por equipo = resultado; `1 pt + 2×(2 pts) + 3×(3 pts) = Puntos totales` en cada fila; faltas ≤ 5; dorsales sin repetir; períodos jugados; jugadores que jugaron.
 
-## Comprobado
-- SQL ejecutado contra un PostgreSQL 16 real (14 casos: permisos por rol, privacidad entre clubes y sesiones privadas, validaciones, todo-o-nada, borrado en cascada y ejercicio borrado de la biblioteca).
-- Pruebas automáticas en EN/FR/ES (rellenar, guardar, reabrir, plan reordenado, ejercicio repetido, vaciar, fallo de guardado, sin step97, duplicar, solo lectura), prueba de XSS, páginas, traducciones y capturas en escritorio y móvil.
+Reglas que recoge (tus errores reales): nunca dejar puntos sin asignar (PlayPivot suma «Puntos totales» tal cual); 1/2/3 pts nunca vacíos para quien anotó y coherentes con el total; nombres limpios (sin paréntesis, comillas ni «?»; las dudas van en NOTES); no adivinar a quién va una canasta dudosa (pregunta «¿#10 o #11?»); mi equipo siempre «ÉQUIPE A» aunque en la hoja sea B (se voltea todo, también el marcador «mío - rival»); fila en blanco = no jugó, un 0 explícito = jugó, faltas sin canastas = 0 puntos.
 
-## No hecho
-- Las respuestas del cuestionario no salen en el PDF de la sesión.
-- No se suman todavía en el Plan de temporada (p. ej. "% de sesiones con tiempos respetados").
-- Los avisos hacia el siguiente entreno y el cuaderno por ejercicio son la fase C (usarán estos datos).
+Preguntas que hace siempre ante la duda: prórroga (¿hay 5.º período?), técnicas/expulsiones, dorsal distinto al habitual, dos dorsales iguales o parecidos, nombres tachados o corregidos, canasta atribuible a dos jugadores, letra claramente peor en un lado (¿lo intento o lo marco estimado?), jugador sin marcas que quizá jugó.
+
+Si tras preguntarte sigue habiendo duda (o dices «no lo sé»): reparte la canasta al jugador más probable, rehace su 1/2/3 pts para que cuadre y lo marca como **ESTIMADO** en la línea NOTES (con jugador, totales y alternativa). Nunca en silencio y nunca cambiando el resultado de equipo.
+
+También: el prompt le habla a la IA en el idioma de la app (ES/FR/EN) para las preguntas; la cabecera final no cambia. La caja del prompt es más alta, y el texto de ayuda y la ventana «Qué hace esto» avisan de que la IA puede hacer preguntas antes de dar la tabla (traducido FR/ES).
+
+## Probado
+Prompt generado sin huecos en EN/FR/ES con la cabecera real de columnas; una respuesta de ejemplo en el formato nuevo (con NOTES de varias líneas, con `|` dentro) pasa por el import real y da los puntos esperados sin filas fantasma; regresión de match/plantilla/periodos, todas las páginas, comprobación estática y XSS limpios.
+
+## No hecho / a tener en cuenta
+- **No lo he probado con una IA real leyendo una hoja real** (no tengo la foto de esta hoja ni una IA externa aquí). Se ha probado que el prompt se genera bien y que la respuesta en ese formato se importa. La fiabilidad real hay que comprobarla con tu hoja: si vuelve a fallar, dime exactamente qué falló y ajusto la sección correspondiente.
+- El texto que pegaste estaba cortado en el apartado 6 («Ampliar individual…»); el resto (lectura, verificaciones, preguntas, formato) lo he construido yo con tus reglas y tus errores.
+- Reglas en conflicto que he decidido: tu borrador decía «nunca redistribuyas» y tus notas «reparte el 100 % de los puntos». Lo he resuelto así: primero leer, luego preguntar, y solo si no hay respuesta, estimar declarándolo. Si prefieres otra cosa, se cambia en la sección 13.
+- El import NO limpia nombres raros: un rival con nombre `Bob "Bobby" R` entra tal cual. Solo lo evita el prompt. Se puede hacer que el import limpie paréntesis y comillas si quieres.
