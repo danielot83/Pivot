@@ -906,6 +906,7 @@ window.PIVOT_I18N_DICT["fr"] = {
 "Match stats": "Statistiques de match",
 "Match template — {team}": "Modèle de match — {team}",
 "Match {n}": "Match {n}",
+"Matched by jersey number only, the name didn't match (please check): {names}.": "Associés uniquement par numéro de maillot, le nom ne correspondait pas (à vérifier) : {names}.",
 "Matched by similar name (please check): {names}.": "Associés par nom proche (à vérifier) : {names}.",
 "Matches": "Matchs",
 "Matches (": "Matchs (",

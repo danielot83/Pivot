@@ -111,6 +111,12 @@
      pantalla -- se ve sin mover el scroll para nada, asi que
      showMessage() ya no necesita (ni hace) scrollIntoView. */
   .msg { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); margin: 0; padding: 12px 18px; border-radius: 8px; font-size: 15px; font-weight: 600; display: none; border-left: 4px solid transparent; z-index: 400; max-width: min(460px, calc(100vw - 32px)); box-shadow: 0 10px 28px rgba(0,0,0,.18); }
+  .msg { max-height: 60vh; overflow-y: auto; }
+  .msg .msg-row { display: flex; align-items: flex-start; gap: 12px; }
+  .msg .msg-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .msg .msg-close { position: sticky; top: 0; flex: none; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(0,0,0,.08); color: inherit; font-size: 18px; line-height: 1; cursor: pointer; padding: 0; }
+  .msg .msg-close::before { content: "×"; }
+  .msg .msg-close:hover { background: rgba(0,0,0,.16); }
   .msg.error { background: #fef2f2; color: #991b1b; display: block; border-left-color: #dc2626; box-shadow: 0 1px 4px rgba(220,38,38,0.15); }
   .msg.success { background: #f0fdf4; color: #166534; display: block; border-left-color: #16a34a; }
   .help-box { display: none; background: var(--accent-tint); border-radius: 8px; padding: 12px 16px; font-size: 14.5px; color: var(--ink); margin-bottom: 12px; }
@@ -984,7 +990,26 @@
     return opponentColumnOrder.map((k) => defs.find((c) => c.key === k)).filter((c) => c && visibleOpponentColumns.includes(c.key));
   }
 
-  function showMessage(text, type) { els.msg.textContent = (type === "error" ? "⚠ " : "✓ ") + text; els.msg.className = "msg " + type; }
+  // Dani 2026-11-18: "la pantalla verde no puedo cerrarlo" -- el aviso fijo
+  // no tenía forma de cerrarse (solo lo reemplazaba otro aviso) y, si era
+  // largo (import con avisos), se salía de la pantalla. Ahora tiene botón ×
+  // (y Esc), scroll interno si es largo, y los éxitos CORTOS se cierran solos.
+  // Los largos y los errores se quedan hasta que los cierres.
+  let msgTimer = null;
+  function hideMessage() { clearTimeout(msgTimer); els.msg.className = "msg"; els.msg.textContent = ""; }
+  function showMessage(text, type) {
+    clearTimeout(msgTimer);
+    const full = (type === "error" ? "⚠ " : "✓ ") + text;
+    els.msg.textContent = "";
+    const row = document.createElement("div"); row.className = "msg-row";
+    const span = document.createElement("span"); span.className = "msg-text"; span.textContent = full;
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "msg-close"; btn.setAttribute("aria-label", _t("Close")); btn.title = _t("Close");
+    btn.addEventListener("click", hideMessage);
+    row.appendChild(span); row.appendChild(btn); els.msg.appendChild(row);
+    els.msg.className = "msg " + type;
+    if (type !== "error" && full.length <= 160) msgTimer = setTimeout(hideMessage, 8000);
+  }
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && (els.msg.classList.contains("success") || els.msg.classList.contains("error"))) hideMessage(); });
 
   async function deleteTeam(season, team, category) {
     const gender = currentTeamGender;
@@ -2464,17 +2489,43 @@
   // nombre (letra confundida, apodo, nombre y apellido al revés con un
   // segundo nombre de por medio...). Solo cuenta si el dorsal no es
   // ambiguo -- un único jugador del roster con ese número.
-  function matchUnmatchedByJerseyNumber(unmatchedRows) {
+  // Dani 2026-11-18 (hoja Palinzards vs Lynx): "lo importante son los nombres
+  // no los numeros". Ahora el dorsal es el ÚLTIMO recurso (después del nombre
+  // exacto y del nombre parecido, ver matchOwnRowsNameFirst), solo cuenta
+  // para jugadores que NO han sido ya emparejados por nombre, y cada
+  // emparejamiento por dorsal se devuelve en `notes` para avisar al usuario.
+  function matchUnmatchedByJerseyNumber(unmatchedRows, takenPlayerIds) {
+    const taken = new Set(takenPlayerIds || []);
     const matchedRows = [];
     const stillUnmatched = [];
+    const notes = [];
     unmatchedRows.forEach((row) => {
       if (row.jersey_number) {
-        const candidates = teamPlayers.filter((p) => String(p.jersey_number || "").trim() === row.jersey_number);
-        if (candidates.length === 1) { matchedRows.push({ player_id: candidates[0].id, ...stripRawMatchFields(row) }); return; }
+        const candidates = teamPlayers.filter((p) => !taken.has(p.id) && String(p.jersey_number || "").trim() === row.jersey_number);
+        if (candidates.length === 1) {
+          taken.add(candidates[0].id);
+          matchedRows.push({ player_id: candidates[0].id, ...stripRawMatchFields(row) });
+          notes.push(`${String(row.raw_name || "").trim()} #${row.jersey_number} → ${candidates[0].first_name} ${candidates[0].last_name}`.replace(/\s+/g, " ").trim());
+          return;
+        }
       }
       stillUnmatched.push(row);
     });
-    return { matchedRows, stillUnmatched };
+    return { matchedRows, stillUnmatched, notes };
+  }
+
+  // Orden de emparejamiento de las filas de TU equipo: 1) nombre exacto, 2)
+  // nombre parecido (Nico/Nicolas, Fabian/Fabien, Pete/Peter...), 3) solo
+  // entonces el dorsal, y únicamente con jugadores que sigan libres. Antes
+  // el dorsal iba ANTES del nombre parecido: en la hoja del 17/11 «Patrick»
+  // (dorsal 15 en la hoja, aunque en el roster Patrick es el 21) caía en
+  // Antoine Rossier (15 en el roster) y el verdadero Antoine (27 en la hoja)
+  // se quedaba sin emparejar.
+  function matchOwnRowsNameFirst(rawRows) {
+    const { matchedRows: byName, unmatchedRows } = matchRowsByName(rawRows);
+    const fz = matchUnmatchedByFuzzyName(unmatchedRows, byName.map((r) => r.player_id));
+    const jn = matchUnmatchedByJerseyNumber(fz.stillUnmatched, [...byName, ...fz.matchedRows].map((r) => r.player_id));
+    return { matchedRows: [...byName, ...fz.matchedRows, ...jn.matchedRows], stillUnmatched: jn.stillUnmatched, fuzzyNotes: fz.notes, numberNotes: jn.notes };
   }
 
 
@@ -2541,7 +2592,11 @@
       if (ok) {
         const p = x.top[0].p;
         matchedRows.push({ player_id: p.id, ...stripRawMatchFields(x.row) });
-        notes.push(`${x.row.raw_name} → ${p.first_name} ${p.last_name}`.replace(/\s+/g, " ").trim());
+        // Solo se avisa si alguna palabra del archivo NO era idéntica a una del
+        // jugador (Nico/Nicolas, Fabian/Fabien, Pete/Peter): "Patrick" ->
+        // Patrick Rossier (solo el nombre de pila, igual) no necesita revisión.
+        const ft = nameTokens(x.row.raw_name), rt = nameTokens(`${p.first_name} ${p.last_name}`);
+        if (!(ft.length && ft.every((t) => rt.includes(t)))) notes.push(`${x.row.raw_name} → ${p.first_name} ${p.last_name}`.replace(/\s+/g, " ").trim());
       } else {
         const r = x.row;
         if (x.top.length > 1) r.__ambiguous = x.top.map((t) => `${t.p.first_name} ${t.p.last_name}`.trim());
@@ -2669,6 +2724,7 @@
         const { matchedRows: byNumber, stillUnmatched } = matchUnmatchedByJerseyNumber(unmatchedByName);
         return {
           rawRows,
+          nameFirst: null, // se calcula solo si el bloque resulta ser el nuestro
           matchedRows: [...byName, ...byNumber],
           stillUnmatched,
           rate: rawRows.length > 0 ? (byName.length + byNumber.length) / rawRows.length : 0,
@@ -2706,6 +2762,7 @@
     // (plantilla recién descargada, reimportada sin tocar nada).
     let blankMatchedCount = 0;
     const fuzzyNotes = []; // emparejamientos "por parecido" de nombre, para que el usuario los confirme
+    const numberNotes = []; // emparejamientos solo por dorsal (último recurso), también para confirmar
     const unmatchedOwn = []; // filas de TU equipo en el archivo que no están en el roster (antes se descartaban en silencio)
     // Dani, ronda 32: posición (0 = primer bloque de la hoja, 1 = segundo...)
     // del bloque que resultó ser "nuestro equipo" -- para poder relacionarlo
@@ -2729,10 +2786,12 @@
         // "Present" (applyPresentFromImport la deja fuera del archivo,
         // es decir Absent -- igual que si el jugador no apareciera en la
         // hoja en absoluto).
-        const fz = matchUnmatchedByFuzzyName(b.stillUnmatched, b.matchedRows.map((r) => r.player_id));
-        b.matchedRows = [...b.matchedRows, ...fz.matchedRows];
-        b.stillUnmatched = fz.stillUnmatched;
-        fuzzyNotes.push(...fz.notes);
+        // Dani 2026-11-18: el nombre manda, el dorsal solo es el último recurso.
+        const nf = matchOwnRowsNameFirst(b.rawRows);
+        b.matchedRows = nf.matchedRows;
+        b.stillUnmatched = nf.stillUnmatched;
+        fuzzyNotes.push(...nf.fuzzyNotes);
+        numberNotes.push(...nf.numberNotes);
         const withData = b.matchedRows.filter((r) => r.has_stat_data);
         blankMatchedCount += b.matchedRows.length - withData.length;
         playerRows.push(...withData.map(({ has_stat_data, ...rest }) => rest));
@@ -2762,7 +2821,7 @@
       }
     });
 
-    return { playerRows, opponentRows, unmatchedCount, blankMatchedCount, unmatchedOwn, fuzzyNotes, ownBlockPosition: ownBlockCount === 1 ? ownBlockPosition : null };
+    return { playerRows, opponentRows, unmatchedCount, blankMatchedCount, unmatchedOwn, fuzzyNotes, numberNotes, ownBlockPosition: ownBlockCount === 1 ? ownBlockPosition : null };
   }
 
   // Dani, ronda 32: a petición tuya -- la hoja que generó ChatGPT trae,
@@ -2921,7 +2980,7 @@
     }
   }
 
-  async function importParsedStatsIntoMatch(playerRows, opponentRows, generalInfo, unmatchedOwn, fuzzyNotes) {
+  async function importParsedStatsIntoMatch(playerRows, opponentRows, generalInfo, unmatchedOwn, fuzzyNotes, numberNotes) {
     opponentRows = opponentRows || [];
     const matchId = await promptMatchTarget(allMatchesCache, playerRows.length + opponentRows.length);
     if (!matchId) return false;
@@ -2986,6 +3045,7 @@
       if (generalInfoApplied) message += " Also filled in general info.";
       // Jugadores del archivo que no están en el roster: antes se perdían sin avisar y luego "faltaban" en Stats.
       if (fuzzyNotes && fuzzyNotes.length) message += " " + _t("Matched by similar name (please check): {names}.", { names: fuzzyNotes.join("; ") });
+      if (numberNotes && numberNotes.length) message += " " + _t("Matched by jersey number only, the name didn't match (please check): {names}.", { names: numberNotes.join("; ") });
       if (unmatchedOwn && unmatchedOwn.length) message += " " + _t("WARNING: {n} player(s) in the file are not on this team's roster, so they were NOT imported: {names}. Add them in Roster (or fix the spelling) and import again.", { n: unmatchedOwn.length, names: unmatchedOwn.join(", ") });
       showMessage(message, "success");
       if (currentMatchId === matchId) await openMatch(matchId);
@@ -3210,7 +3270,7 @@
       }
       throw new Error(result.unmatchedCount > 0 ? `Found ${result.unmatchedCount} row(s), but none matched a name in ${currentTeam}'s roster.` : "Couldn't find a usable player name column.");
     }
-    return { playerRows, opponentRows, generalInfo, unmatchedOwn: result.unmatchedOwn || [], fuzzyNotes: result.fuzzyNotes || [] };
+    return { playerRows, opponentRows, generalInfo, unmatchedOwn: result.unmatchedOwn || [], fuzzyNotes: result.fuzzyNotes || [], numberNotes: result.numberNotes || [] };
   }
 
   document.getElementById("import-stats-file-input").addEventListener("change", async (e) => {
@@ -3233,7 +3293,7 @@
       return;
     }
 
-    await importParsedStatsIntoMatch(parsed.playerRows, parsed.opponentRows, parsed.generalInfo, parsed.unmatchedOwn, parsed.fuzzyNotes);
+    await importParsedStatsIntoMatch(parsed.playerRows, parsed.opponentRows, parsed.generalInfo, parsed.unmatchedOwn, parsed.fuzzyNotes, parsed.numberNotes);
   });
 
   // -----------------------------------------------------------------------
@@ -3475,7 +3535,7 @@
       showMessage((err.message || "Couldn't read that reply.") + " Use the template above so the AI replies in the right format.", "error");
       return;
     }
-    await importParsedStatsIntoMatch(parsed.playerRows, parsed.opponentRows, parsed.generalInfo, parsed.unmatchedOwn, parsed.fuzzyNotes);
+    await importParsedStatsIntoMatch(parsed.playerRows, parsed.opponentRows, parsed.generalInfo, parsed.unmatchedOwn, parsed.fuzzyNotes, parsed.numberNotes);
   });
 
   function openAiMatchGuideModal() {
@@ -3738,18 +3798,16 @@
       }
       const dataRows = photoGridRows.map((row) => row.map((cell) => (cell || "").trim()));
       const rawRows = rawStatsFromFieldMap(fieldMap, dataRows);
-      const { matchedRows, unmatchedRows } = matchRowsByName(rawRows);
-      const { matchedRows: byNumber, stillUnmatched } = matchUnmatchedByJerseyNumber(unmatchedRows);
-      const fzP = matchUnmatchedByFuzzyName(stillUnmatched, [...matchedRows, ...byNumber].map((r) => r.player_id));
-      const playerRows = [...matchedRows, ...byNumber, ...fzP.matchedRows];
+      const nfP = matchOwnRowsNameFirst(rawRows);
+      const playerRows = nfP.matchedRows;
       if (playerRows.length === 0) {
-        msgEl.textContent = stillUnmatched.length > 0
-          ? `Found ${stillUnmatched.length} row(s), but none matched a name in ${currentTeam}'s roster — fix the name column and try again.`
+        msgEl.textContent = nfP.stillUnmatched.length > 0
+          ? `Found ${nfP.stillUnmatched.length} row(s), but none matched a name in ${currentTeam}'s roster — fix the name column and try again.`
           : "No usable rows yet — check the player name column.";
         return;
       }
       overlay.remove();
-      await importParsedStatsIntoMatch(playerRows, [], undefined, fzP.stillUnmatched.map((r) => String(r.raw_name || "").trim()), fzP.notes);
+      await importParsedStatsIntoMatch(playerRows, [], undefined, nfP.stillUnmatched.map((r) => String(r.raw_name || "").trim()), nfP.fuzzyNotes, nfP.numberNotes);
     });
   }
 

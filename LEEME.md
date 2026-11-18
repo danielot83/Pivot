@@ -1,28 +1,23 @@
-# Paquete 83 — Nuevo prompt de «Rellenar con IA» (partido)
+# Paquete 84 — Importar: el nombre manda sobre el dorsal + aviso verde cerrable
 
-Sube `match.html`, `i18n-fr.js` e `i18n-es.js`. **Sin SQL.** El motor de import no cambia: la IA sigue devolviendo la misma tabla de siempre.
+Sube `match.html`, `i18n-fr.js` e `i18n-es.js`. **Sin SQL.** (Incluye el prompt nuevo del paquete 83; si ya subiste el 83, este lo sustituye.)
 
-## Qué cambia
-El prompt se ha reescrito entero (≈19.000 caracteres, 15 secciones) para que dé el mismo resultado cada vez y no invente. Ahora funciona en **dos fases**:
+## 1) Nombres antes que dorsales (el conflicto de tu Excel Palinzards vs Lynx)
+**Causa:** el import emparejaba así: nombre exacto → **dorsal** → nombre parecido. Con tu hoja (que trae solo nombres de pila y dorsales que no coinciden con el roster) pasaba esto: «Patrick» (15 en la hoja) caía en Antoine Rossier (15 en el roster), el verdadero Antoine (27) se quedaba fuera con el aviso de jugador sin emparejar, y por eso salían «7 jugadores» en vez de 8. Pete solo entró bien de casualidad (el 21).
 
-1. **Fase 1 (en el chat con la IA):** lee la hoja por zonas, lee cada marcador acumulado DOS veces de forma independiente, escribe el «libro de canastas» (total acumulado → valor → dorsal), pasa 9 verificaciones y, si algo no queda claro, **te pregunta** (todas las preguntas en un solo mensaje) y espera.
-2. **Fase 2:** solo cuando todo cuadra, o tú has respondido, da la respuesta final en el formato de siempre.
+**Ahora:** nombre exacto → **nombre parecido** (Nico/Nicolas, Fabian/Fabien, Pete/Peter…) → dorsal solo como último recurso y solo con jugadores que sigan libres. Con tu archivo real entran los 8: Patrick→Patrick Rossier, Antoine→Antoine Rossier, Pete→Peter Mattai, Nicolas→Nico Martin, Amadou→Amadou Diop (23), Fabian→Fabien Pires (18), Natale, Daniel; y los 8 de Lynx. Ninguno por dorsal.
+- El aviso «emparejados por nombre parecido» ahora solo lista los casos donde el nombre cambió (Nicolas→Nico, Pete→Peter, Fabian→Fabien), no los triviales (solo nombre de pila).
+- Si alguna fila solo se emparejara por dorsal, sale un aviso aparte para revisarla («Emparejados solo por dorsal, el nombre no coincidía…»).
+- Mismo orden aplicado a «Importar desde una foto».
+- Los dorsales de la hoja ya no se escriben en tu roster (nunca se escribían); si quieres corregir los dorsales del roster (Amadou 00, Fabian 10…), se hace en Plantilla.
 
-Verificaciones obligatorias: última casilla tachada = resultado final impreso; suma de parciales = final; parciales por período; suma de «Puntos totales» por equipo = resultado; `1 pt + 2×(2 pts) + 3×(3 pts) = Puntos totales` en cada fila; faltas ≤ 5; dorsales sin repetir; períodos jugados; jugadores que jugaron.
-
-Reglas que recoge (tus errores reales): nunca dejar puntos sin asignar (PlayPivot suma «Puntos totales» tal cual); 1/2/3 pts nunca vacíos para quien anotó y coherentes con el total; nombres limpios (sin paréntesis, comillas ni «?»; las dudas van en NOTES); no adivinar a quién va una canasta dudosa (pregunta «¿#10 o #11?»); mi equipo siempre «ÉQUIPE A» aunque en la hoja sea B (se voltea todo, también el marcador «mío - rival»); fila en blanco = no jugó, un 0 explícito = jugó, faltas sin canastas = 0 puntos.
-
-Preguntas que hace siempre ante la duda: prórroga (¿hay 5.º período?), técnicas/expulsiones, dorsal distinto al habitual, dos dorsales iguales o parecidos, nombres tachados o corregidos, canasta atribuible a dos jugadores, letra claramente peor en un lado (¿lo intento o lo marco estimado?), jugador sin marcas que quizá jugó.
-
-Si tras preguntarte sigue habiendo duda (o dices «no lo sé»): reparte la canasta al jugador más probable, rehace su 1/2/3 pts para que cuadre y lo marca como **ESTIMADO** en la línea NOTES (con jugador, totales y alternativa). Nunca en silencio y nunca cambiando el resultado de equipo.
-
-También: el prompt le habla a la IA en el idioma de la app (ES/FR/EN) para las preguntas; la cabecera final no cambia. La caja del prompt es más alta, y el texto de ayuda y la ventana «Qué hace esto» avisan de que la IA puede hacer preguntas antes de dar la tabla (traducido FR/ES).
+## 2) El aviso verde no se podía cerrar
+Antes el aviso fijo solo se reemplazaba por otro y, si era largo, se salía de la pantalla. Ahora: botón **×** (y tecla Esc), scroll interno si es muy largo, los avisos cortos de éxito se cierran solos a los 8 s; los largos (con avisos) y los errores se quedan hasta que los cierres. Vale para todos los avisos de la pantalla de partido.
 
 ## Probado
-Prompt generado sin huecos en EN/FR/ES con la cabecera real de columnas; una respuesta de ejemplo en el formato nuevo (con NOTES de varias líneas, con `|` dentro) pasa por el import real y da los puntos esperados sin filas fantasma; regresión de match/plantilla/periodos, todas las páginas, comprobación estática y XSS limpios.
+Tu Excel real (`match_Palinzards_vs_Lynx_20261117_v2.xlsx`) contra un roster como el de tu captura: 8 propios, 8 rivales, 0 sin emparejar, 0 por dorsal, puntos y faltas en el jugador correcto; caso del dorsal ya ocupado; botón ×/Esc/auto-cierre y que un aviso muy largo cabe en pantalla (capturas); EN/FR/ES; regresión de partido/plantilla/prompt, todas las páginas, comprobación estática y XSS.
 
-## No hecho / a tener en cuenta
-- **No lo he probado con una IA real leyendo una hoja real** (no tengo la foto de esta hoja ni una IA externa aquí). Se ha probado que el prompt se genera bien y que la respuesta en ese formato se importa. La fiabilidad real hay que comprobarla con tu hoja: si vuelve a fallar, dime exactamente qué falló y ajusto la sección correspondiente.
-- El texto que pegaste estaba cortado en el apartado 6 («Ampliar individual…»); el resto (lectura, verificaciones, preguntas, formato) lo he construido yo con tus reglas y tus errores.
-- Reglas en conflicto que he decidido: tu borrador decía «nunca redistribuyas» y tus notas «reparte el 100 % de los puntos». Lo he resuelto así: primero leer, luego preguntar, y solo si no hay respuesta, estimar declarándolo. Si prefieres otra cosa, se cambia en la sección 13.
-- El import NO limpia nombres raros: un rival con nombre `Bob "Bobby" R` entra tal cual. Solo lo evita el prompt. Se puede hacer que el import limpie paréntesis y comillas si quieres.
+## No hecho
+- No he tocado tu Excel (las notas dentro, «Pete» como nombre, etc.). Con este cambio entra tal cual.
+- Los avisos de las demás pantallas (Plantilla, Ajustes…) siguen como estaban; solo he cambiado el de Día de partido, que es donde lo viste.
+- Si hubiera dos jugadores con el mismo nombre de pila en el roster y la hoja solo trae el nombre de pila, no adivina: queda como «sin emparejar» y te dice entre quiénes dudó (como antes).
