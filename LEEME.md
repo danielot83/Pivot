@@ -1,23 +1,29 @@
-# Paquete 81 — Plan de temporada: matriz "Plan por meses"
+# Paquete 82 — Entreno: feedback cuantificable (fase B)
 
-Sube `season.html`, `i18n-fr.js` e `i18n-es.js` (sustituyen a los actuales). Necesita el paquete 80 subido y su SQL `step96` ejecutado. **Este paquete no trae SQL nuevo.**
+Sube `training.html`, `i18n-fr.js` e `i18n-es.js` (sustituyen a los actuales). `i18n-fr.js` e `i18n-es.js` ya incluyen lo de los paquetes anteriores (81 y antes), así que no hace falta nada más.
 
-## Qué hay de nuevo
-Tarjeta nueva **Plan por meses** (debajo de Objetivos): una fila por objetivo de temporada y una columna por mes (sep–jun).
-- Cifras **grises** = heredadas de la temporada. Cifras en **negrita** = fijadas para ese mes.
-- Debajo de cada cifra, en pequeño y con color (verde / ámbar / rojo, mismo criterio que Objetivos), **lo conseguido ese mes** (solo en meses con datos).
-- **Clic en una casilla** para fijar su valor: Enter o ✓ guarda, Esc o ✕ cancela, ↺ vuelve al valor de la temporada. Si ya había uno propio lo actualiza; si no, crea uno que sustituye al de temporada solo ese mes.
-- Última fila: **suma de los objetivos de tiempo de cada mes** (verde si da 100 %).
-- Los objetivos que solo existen en algún mes salen como fila con la etiqueta "Solo meses".
-- Quien no puede editar (entrenador sin permiso, o sin el SQL step96) la ve en solo lectura.
-- El informe PDF de un mes lleva el mes en el título y en el nombre del archivo (ya estaba en el 80; ahora con prueba específica).
+## SQL: SÍ (uno)
+Ejecuta **`step97_training_feedback.sql`** en el SQL Editor de Supabase: crea 2 tablas nuevas (`training_feedback`, `training_exercise_feedback`) y la función `replace_training_feedback`. Seguro de repetir; no toca ninguna tabla existente. Sin él, la página funciona igual (estrellas, comentarios e ideas) y avisa de que falta ejecutarlo.
+
+## Qué hay de nuevo (dentro de "Post-session feedback")
+Las estrellas, comentarios e ideas de siempre **no cambian**. Se añade, todo opcional y de un toque:
+- **Preguntas rápidas:** ¿respetaste los tiempos? · ¿objetivo principal cumplido? · ¿entendieron las explicaciones a la primera? · ¿viste mejora? · intensidad · energía del grupo (1–5) · duración real (minutos) · incidencias (material, pista, pocos jugadores, empezó tarde, lesiones, clima). Pulsar otra vez la misma respuesta la quita.
+- **¿Cómo fue cada ejercicio?:** para cada ejercicio de la biblioteca del plan: **Funcionó / Ajustar / Descartar**. En Ajustar/Descartar salen motivos (demasiado fácil/difícil, explicación larga, poco tiempo, mucho tiempo en filas, faltaba material, no los enganchó, nivel del grupo) y una nota corta.
+- Pausas, partidos y bloques de texto libre no se valoran.
+- Se guarda con "Save session". Al reabrir el entreno, el bloque se abre solo con lo guardado.
+- **Duplicar sesión** y **sesión nueva** empiezan en blanco.
+
+## Cosas que conviene saber
+- La valoración va ligada al **ejercicio de la biblioteca**, no a su posición: si reordenas o quitas ejercicios del plan, cada valoración sigue en su ejercicio (esto es la base del "cuaderno" de la fase C).
+- **Privacidad:** el cuestionario y las valoraciones **solo los ve tu club** (o tú si la sesión es privada) y la plataforma. Aunque compartas la sesión con la asociación o la comunidad, el feedback NO se comparte.
+- Pueden escribir/borrar admin, coach y assistant. El viewer los ve pero no los puede guardar.
+- Si el feedback falla al guardar, la sesión ya está guardada y se avisa con el motivo.
 
 ## Comprobado
-- Pruebas automáticas en EN/FR/ES (matriz, meses, herencia, permisos, informe de un mes), prueba de XSS y revisión de todas las páginas.
-- El SQL `step96` se ejecutó contra un PostgreSQL 16 real: se puede repetir sin problema; rechaza meses mal formados, meses en objetivos globales y duplicados (mismo equipo, mes, clase y temática).
+- SQL ejecutado contra un PostgreSQL 16 real (14 casos: permisos por rol, privacidad entre clubes y sesiones privadas, validaciones, todo-o-nada, borrado en cascada y ejercicio borrado de la biblioteca).
+- Pruebas automáticas en EN/FR/ES (rellenar, guardar, reabrir, plan reordenado, ejercicio repetido, vaciar, fallo de guardado, sin step97, duplicar, solo lectura), prueba de XSS, páginas, traducciones y capturas en escritorio y móvil.
 
 ## No hecho
-- Reparto automático por meses (rampa de un valor a otro o por fases).
-- La matriz no entra todavía en el PDF/Excel del informe.
-- Objetivos globales mensuales fijados por la plataforma.
-- No he tocado feedback, cuaderno ni modo debutante: siguen como diseño en el documento del proyecto.
+- Las respuestas del cuestionario no salen en el PDF de la sesión.
+- No se suman todavía en el Plan de temporada (p. ej. "% de sesiones con tiempos respetados").
+- Los avisos hacia el siguiente entreno y el cuaderno por ejercicio son la fase C (usarán estos datos).

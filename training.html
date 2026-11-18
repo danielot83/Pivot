@@ -176,6 +176,24 @@
   .btn-primary:hover { background: var(--accent-deep); }
   .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); filter: grayscale(0.85); }
   .btn-secondary:hover { border-color: var(--accent); }
+  .fb-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:7px 0; border-bottom:1px solid var(--line); }
+  .fb-row:last-child { border-bottom:none; }
+  .fb-q { flex:1 1 230px; font-size:13px; color:var(--ink); font-weight:500; overflow-wrap:anywhere; }
+  .fb-pills { display:flex; flex-wrap:wrap; gap:5px; }
+  .fb-pill { padding:5px 11px; border-radius:100px; border:1px solid var(--line); background:var(--card); font-size:12.5px; font-weight:600; color:var(--muted); cursor:pointer; font-family:inherit; }
+  .fb-pill:hover:not(:disabled) { border-color:var(--accent); }
+  .fb-pill:disabled { cursor:default; opacity:.6; }
+  .fb-pill.active { background:var(--accent-tint); border-color:var(--accent); color:var(--accent-deep); }
+  .fb-pill.v-worked.active { background:#e8f4ec; border-color:#2e7d4f; color:#1f6b40; }
+  .fb-pill.v-adjust.active { background:#fbf3df; border-color:#c58a00; color:#7a5700; }
+  .fb-pill.v-drop.active { background:#f8e7e0; border-color:#c0522b; color:#8f3a1b; }
+  .fb-ex { padding:8px 0; border-bottom:1px solid var(--line); }
+  .fb-ex:last-child { border-bottom:none; }
+  .fb-ex-head { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
+  .fb-ex-name { flex:1 1 200px; font-size:13px; font-weight:600; overflow-wrap:anywhere; }
+  .fb-ex-more { margin-top:6px; display:flex; flex-direction:column; gap:6px; }
+  .fb-ex-more input[type=text] { width:100%; padding:6px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit; }
+  .fb-min { width:80px; padding:5px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit; }
 
   .duration-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: var(--paper); border: 1px solid var(--line); font-size: 13px; margin-bottom: 14px; }
   .duration-banner.over { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
@@ -889,6 +907,9 @@
             <label>How did it go?</label>
             <div id="rating-stars" style="font-size:22px; color:var(--line); cursor:pointer; letter-spacing:2px;"></div>
           </div>
+          <p class="hint" id="fb-missing" style="display:none; font-size:12.5px; color:var(--muted); margin:0 0 12px; padding:8px 10px; background:var(--accent-tint); border-radius:8px;">Quick questions and exercise ratings need one more database step (step97). Stars, comments and ideas work as usual.</p>
+          <div class="field" id="fb-q-wrap" style="margin-bottom:12px;"><label>Quick questions</label><div id="fb-questions"></div></div>
+          <div class="field" id="fb-ex-wrap" style="margin-bottom:12px;"><label>How did each exercise go?</label><div id="fb-exercises"></div></div>
           <div class="field" style="margin-bottom:12px;"><label for="tr-comments">Comments</label><textarea id="tr-comments" rows="3" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea></div>
           <div class="field"><label for="tr-next">Ideas for next time</label><textarea id="tr-next" rows="3" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit;"></textarea></div>
         </div>
@@ -1093,6 +1114,149 @@
     section.style.display = open ? "none" : "block";
     e.target.textContent = open ? "▸ Post-session feedback (fill in after it happened)" : "▾ Post-session feedback (fill in after it happened)";
   });
+
+  // =======================================================================
+  // Feedback cuantificable (step97): cuestionario de sesión (respuestas de un
+  // toque) + valoración por ejercicio (funcionó / ajustar / descartar + motivos
+  // + nota corta). Las estrellas, comentarios e ideas de siempre no cambian.
+  // Todo opcional: nada de lo nuevo se guarda si no se toca.
+  // =======================================================================
+  let feedbackOk = true, feedbackProbe = null;
+  let sessionAnswers = {};   // { times, goal, understood, improvement, intensity, energy (1-5), minutes, incidents: [] }
+  const FB_YES = () => [["yes", _t("Yes")], ["partly", _t("In part")], ["no", _t("No")]];
+  const FB_QUESTIONS = () => [
+    { k: "times", label: _t("Did you keep to the planned times?"), opts: [["yes", _t("Yes")], ["mostly", _t("Mostly")], ["no", _t("No")]] },
+    { k: "goal", label: _t("Did you reach the main objective of the session?"), opts: FB_YES() },
+    { k: "understood", label: _t("Did they understand the explanations the first time?"), opts: FB_YES() },
+    { k: "improvement", label: _t("Did you see improvement in what you were working on?"), opts: [["yes", _t("Yes")], ["little", _t("A little")], ["no", _t("No")], ["early", _t("Too early to say")]] },
+    { k: "intensity", label: _t("Intensity"), opts: [["low", _t("Low")], ["right", _t("Right")], ["high", _t("High")]] },
+  ];
+  const FB_INCIDENTS = () => [["material", _t("Material")], ["court", _t("Court / space")], ["few_players", _t("Few players")], ["late_start", _t("Late start")], ["injuries", _t("Injuries")], ["weather", _t("Weather")]];
+  const FB_VERDICTS = () => [["worked", "✓ " + _t("Worked")], ["adjust", "~ " + _t("Adjust")], ["drop", "✕ " + _t("Drop")]];
+  const FB_REASONS = () => [["too_easy", _t("Too easy")], ["too_hard", _t("Too hard")], ["long_explanation", _t("Long explanation")], ["too_little_time", _t("Too little time")], ["queues", _t("Long queues")], ["no_material", _t("Missing material")], ["not_engaging", _t("Didn't engage them")], ["group_level", _t("Group level")]];
+
+  function fbEl(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  // Botones de elección: uno activo a la vez (un segundo clic lo quita) o varios (multi).
+  function fbPills(options, isActive, onToggle, extraCls) {
+    const wrap = fbEl("div", "fb-pills");
+    options.forEach(([v, label]) => {
+      const b = fbEl("button", "fb-pill" + (extraCls ? " " + extraCls(v) : "") + (isActive(v) ? " active" : ""), label);
+      b.type = "button"; b.dataset.v = v; b.disabled = !currentTrainingOwned; b.setAttribute("aria-pressed", isActive(v) ? "true" : "false");
+      b.addEventListener("click", () => onToggle(v));
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+  function renderFeedbackQuestions() {
+    const box = document.getElementById("fb-questions"); if (!box) return;
+    box.innerHTML = "";
+    FB_QUESTIONS().forEach((q) => {
+      const row = fbEl("div", "fb-row"); row.appendChild(fbEl("div", "fb-q", q.label));
+      row.appendChild(fbPills(q.opts, (v) => sessionAnswers[q.k] === v, (v) => { if (sessionAnswers[q.k] === v) delete sessionAnswers[q.k]; else sessionAnswers[q.k] = v; renderFeedbackQuestions(); }));
+      box.appendChild(row);
+    });
+    const en = fbEl("div", "fb-row"); en.appendChild(fbEl("div", "fb-q", _t("Energy and attitude of the group")));
+    en.appendChild(fbPills([1, 2, 3, 4, 5].map((n) => [String(n), String(n)]), (v) => String(sessionAnswers.energy) === v, (v) => { if (String(sessionAnswers.energy) === v) delete sessionAnswers.energy; else sessionAnswers.energy = Number(v); renderFeedbackQuestions(); }));
+    box.appendChild(en);
+    const mn = fbEl("div", "fb-row"); mn.appendChild(fbEl("div", "fb-q", _t("Actual length (minutes)")));
+    const inp = fbEl("input", "fb-min"); inp.type = "number"; inp.min = "0"; inp.max = "300"; inp.step = "1"; inp.id = "fb-minutes"; inp.disabled = !currentTrainingOwned;
+    inp.value = sessionAnswers.minutes != null ? sessionAnswers.minutes : "";
+    inp.addEventListener("input", () => { const v = parseInt(inp.value, 10); if (Number.isFinite(v) && v >= 0 && v <= 300) sessionAnswers.minutes = v; else delete sessionAnswers.minutes; });
+    mn.appendChild(inp); box.appendChild(mn);
+    const inc = fbEl("div", "fb-row"); inc.appendChild(fbEl("div", "fb-q", _t("Incidents")));
+    inc.appendChild(fbPills(FB_INCIDENTS(), (v) => (sessionAnswers.incidents || []).includes(v), (v) => {
+      const cur = new Set(sessionAnswers.incidents || []); if (cur.has(v)) cur.delete(v); else cur.add(v);
+      if (cur.size) sessionAnswers.incidents = [...cur]; else delete sessionAnswers.incidents; renderFeedbackQuestions();
+    }));
+    box.appendChild(inc);
+  }
+  function renderFeedbackExercises() {
+    const box = document.getElementById("fb-exercises"); if (!box) return;
+    box.innerHTML = "";
+    const rated = sessionExercises.map((se, i) => ({ se, i })).filter((x) => x.se.exercise_id && !x.se.is_pause && !x.se.is_match && !x.se.is_freetext);
+    if (!rated.length) { const p = fbEl("p", "hint", _t("Add exercises from the library to rate them here.")); p.style.cssText = "font-size:12.5px; color:var(--muted); margin:0;"; box.appendChild(p); return; }
+    rated.forEach(({ se }) => {
+      const fb = se.fb || {};
+      const wrap = fbEl("div", "fb-ex"), head = fbEl("div", "fb-ex-head");
+      const nm = fbEl("div", "fb-ex-name", se.name || ""); nm.setAttribute("data-i18n-skip", ""); head.appendChild(nm);
+      head.appendChild(fbPills(FB_VERDICTS(), (v) => fb.verdict === v, (v) => {
+        if (fb.verdict === v) se.fb = null;
+        else se.fb = { verdict: v, reasons: v === "worked" ? [] : (fb.reasons || []).slice(), note: fb.note || "" };
+        renderFeedbackExercises();
+      }, (v) => "v-" + v));
+      wrap.appendChild(head);
+      if (fb.verdict) {
+        const more = fbEl("div", "fb-ex-more");
+        if (fb.verdict !== "worked") {
+          more.appendChild(fbPills(FB_REASONS(), (v) => (fb.reasons || []).includes(v), (v) => {
+            const cur = new Set(se.fb.reasons || []); if (cur.has(v)) cur.delete(v); else cur.add(v); se.fb.reasons = [...cur]; renderFeedbackExercises();
+          }));
+        }
+        const note = fbEl("input"); note.type = "text"; note.maxLength = 300; note.value = fb.note || ""; note.placeholder = _t("Short note (optional)"); note.disabled = !currentTrainingOwned;
+        note.addEventListener("input", () => { if (se.fb) se.fb.note = note.value; });
+        more.appendChild(note); wrap.appendChild(more);
+      }
+      box.appendChild(wrap);
+    });
+  }
+  // Lo que se envía al guardar: respuestas (solo las contestadas) + una fila por ejercicio con veredicto.
+  function collectFeedback() {
+    const answers = {};
+    Object.keys(sessionAnswers).forEach((k) => { const v = sessionAnswers[k]; if (v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length)) answers[k] = v; });
+    if (Object.keys(answers).length) answers.v = 1;
+    const rows = [];
+    sessionExercises.forEach((se, i) => {
+      if (!se.fb || !se.fb.verdict || !se.exercise_id || se.is_pause || se.is_match || se.is_freetext) return;
+      rows.push({ exercise_id: se.exercise_id, position: i, verdict: se.fb.verdict, reasons: se.fb.verdict === "worked" ? [] : (se.fb.reasons || []), note: (se.fb.note || "").trim().slice(0, 300) });
+    });
+    return { answers, rows };
+  }
+  function hasNewFeedback() { const f = collectFeedback(); return Object.keys(f.answers).length > 0 || f.rows.length > 0; }
+  function syncFeedbackAvailability() {
+    const miss = document.getElementById("fb-missing"); if (miss) miss.style.display = feedbackOk ? "none" : "block";
+    ["fb-q-wrap", "fb-ex-wrap"].forEach((id) => { const e = document.getElementById(id); if (e) e.style.display = feedbackOk ? "" : "none"; });
+  }
+  // ¿existen ya las tablas de step97? Sin ellas se esconde lo nuevo y todo lo demás funciona igual.
+  async function probeFeedback() {
+    if (!feedbackProbe) feedbackProbe = (async () => { const r = await supabaseClient.from("training_feedback").select("training_id").limit(1); feedbackOk = !r.error; syncFeedbackAvailability(); return feedbackOk; })();
+    return feedbackProbe;
+  }
+  function setFeedbackOpen(open) {
+    document.getElementById("feedback-section").style.display = open ? "block" : "none";
+    document.getElementById("feedback-toggle-link").textContent = open ? "▾ Post-session feedback (fill in after it happened)" : "▸ Post-session feedback (fill in after it happened)";
+  }
+  // Carga cuestionario y valoraciones de un entreno y las reparte sobre los ejercicios del plan: por ejercicio de la
+  // biblioteca (la fila del plan cambia de id en cada guardado), prefiriendo la misma posición si el ejercicio se repite.
+  async function loadFeedbackFor(trainingId) {
+    sessionAnswers = {}; sessionExercises.forEach((se) => { se.fb = null; });
+    await probeFeedback();
+    if (feedbackOk) {
+      const [qr, er] = await Promise.all([
+        supabaseClient.from("training_feedback").select("answers").eq("training_id", trainingId).maybeSingle(),
+        supabaseClient.from("training_exercise_feedback").select("exercise_id, position, verdict, reasons, note").eq("training_id", trainingId).order("position"),
+      ]);
+      if (qr && qr.data && qr.data.answers && typeof qr.data.answers === "object") {
+        const a = qr.data.answers;
+        FB_QUESTIONS().forEach((q) => { if (q.opts.some((o) => o[0] === a[q.k])) sessionAnswers[q.k] = a[q.k]; });
+        if (Number.isInteger(a.energy) && a.energy >= 1 && a.energy <= 5) sessionAnswers.energy = a.energy;
+        if (Number.isInteger(a.minutes) && a.minutes >= 0 && a.minutes <= 300) sessionAnswers.minutes = a.minutes;
+        const inc = Array.isArray(a.incidents) ? a.incidents.filter((x) => FB_INCIDENTS().some((o) => o[0] === x)) : [];
+        if (inc.length) sessionAnswers.incidents = inc;
+      }
+      const taken = new Set();
+      ((er && er.data) || []).forEach((r) => {
+        if (!r.exercise_id) return;
+        let idx = -1;
+        if (sessionExercises[r.position] && sessionExercises[r.position].exercise_id === r.exercise_id && !taken.has(r.position)) idx = r.position;
+        else idx = sessionExercises.findIndex((se, i) => se.exercise_id === r.exercise_id && !taken.has(i));
+        if (idx < 0) return;
+        taken.add(idx);
+        sessionExercises[idx].fb = { verdict: r.verdict, reasons: Array.isArray(r.reasons) ? r.reasons.slice() : [], note: r.note || "" };
+      });
+    }
+    renderFeedbackQuestions(); renderFeedbackExercises();
+    if (hasNewFeedback()) setFeedbackOpen(true);
+  }
 
   async function loadMyOrganization() {
     const { data: userData } = await supabaseClient.auth.getUser();
@@ -1705,6 +1869,7 @@
     els.catSummary.value = ""; els.matSummary.value = ""; els.objSummary.value = "";
     sessionRating = 0; els.comments.value = ""; els.nextNotes.value = "";
     renderRatingStars();
+    sessionAnswers = {}; renderFeedbackQuestions();
     document.getElementById("feedback-section").style.display = "none";
     document.getElementById("feedback-toggle-link").textContent = "▸ Post-session feedback (fill in after it happened)";
     sessionExercises = [];
@@ -1774,6 +1939,7 @@
 
     expandedRowIdx = null;
     resetSummarySeenPool();
+    await loadFeedbackFor(id);
     renderSessionTable(); renderAttendanceTable(); updateDurationBanner(); syncSummaryChecklists();
     els.trainingArea.style.display = "block";
     const owned = currentTrainingOwned;
@@ -2100,6 +2266,7 @@
         els.sessionBody.appendChild(detailTr);
       }
     });
+    renderFeedbackExercises();
   }
 
   document.getElementById("add-pause-btn").addEventListener("click", () => {
@@ -2297,7 +2464,7 @@
   function duplicateTraining() {
     if (!currentTeam) { showMessage("Pick a season/team above first.", "error"); return; }
     if (!sessionExercises.length && !els.title.value.trim()) { showMessage("There is nothing to duplicate yet.", "error"); return; }
-    const copy = sessionExercises.map((r) => { const c = Object.assign({}, r); delete c.id; c.key_points = (r.key_points || []).slice(); return c; });
+    const copy = sessionExercises.map((r) => { const c = Object.assign({}, r); delete c.id; delete c.fb; c.key_points = (r.key_points || []).slice(); return c; });
     currentTrainingId = null;
     currentTrainingOwned = true;
     currentTranslationGroupId = null;
@@ -2306,6 +2473,7 @@
     els.date.value = new Date().toISOString().slice(0, 10);
     els.number.value = nextSessionNumber();
     sessionRating = 0; renderRatingStars(); els.comments.value = ""; els.nextNotes.value = "";
+    sessionAnswers = {}; renderFeedbackQuestions();
     document.getElementById("feedback-section").style.display = "none";
     sessionExercises = copy;
     attendance = {};
@@ -2449,10 +2617,19 @@
       const { error: rpcError } = await supabaseClient.rpc("replace_training_exercises", { p_training_id: trainingId, p_rows: exerciseRows });
       if (rpcError) throw rpcError;
 
+      // Cuestionario + valoración por ejercicio (step97). Si falla, la sesión ya está guardada: se avisa aparte.
+      let feedbackWarn = null;
+      if (feedbackOk) {
+        const fbData = collectFeedback();
+        const { error: fbError } = await supabaseClient.rpc("replace_training_feedback", { p_training_id: trainingId, p_answers: fbData.answers, p_rows: fbData.rows });
+        if (fbError) feedbackWarn = fbError.message || String(fbError);
+      }
+
       // La asistencia ya no se guarda aquí -- cada clic en la casilla P/A/E/L
       // escribe al momento en la tabla "attendance" (ver cycleAttendanceStatus).
 
-      showMessage("Session saved.", "success");
+      if (feedbackWarn) showMessage(_t("Session saved, but the feedback couldn't be saved: {msg}", { msg: feedbackWarn }), "error");
+      else showMessage("Session saved.", "success");
       await loadTrainingsList();
     } catch (err) {
       showMessage(err.message || "Couldn't save that session.", "error");
@@ -3429,6 +3606,7 @@
     pivotInitSidebarChrome();
     const orgId = await loadMyOrganization();
     pivotInitTopbarWidgets();
+    renderFeedbackQuestions(); renderFeedbackExercises(); probeFeedback();
     if (orgId) {
       await applyDefaultAddExerciseLanguageFilter();
       await loadExerciseOptions(); await loadNotebooks(); await loadTree();
