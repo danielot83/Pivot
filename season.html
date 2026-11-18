@@ -190,6 +190,9 @@
   .pill-choice-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
   .pill-choice { padding: 6px 12px; border-radius: 100px; border: 1px solid var(--line); background: var(--card); font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
   .pill-choice:hover { border-color: var(--accent); }
+  .pill-choice.pill-dim { opacity:.6; }
+  .period-bar .pill-choice { padding:5px 10px; font-size:12.5px; }
+  .obj-tag.obj-tag-soft { background:var(--line); color:var(--muted); }
   .pill-choice.active { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-deep); }
 
   table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 14px; margin-bottom: 0; }
@@ -303,6 +306,11 @@
   .obj-fill.obj-missing { background:#c0522b; } .obj-fill.obj-above { background:#c58a00; } .obj-fill.obj-ok, .obj-fill.obj-done { background:#2e7d4f; } .obj-fill.obj-nodata, .obj-fill.obj-manual { background:var(--muted); }
   .obj-mark { position:absolute; top:-3px; width:2px; height:14px; background:var(--ink); }
   .obj-pill { display:inline-block; font-size:12px; font-weight:600; padding:2px 9px; border-radius:99px; white-space:nowrap; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  .obj-row.obj-simple { align-items:center; flex-wrap:wrap; gap:6px 12px; padding:7px 0; }
+  .obj-simple .obj-title { flex:1 1 170px; font-size:14px; }
+  .obj-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .obj-simple .obj-actions { margin:0; display:flex; gap:4px; }
+  .obj-pill.obj-near { border-color:#c58a00; color:#7a5700; }
   .obj-pill.obj-missing { border-color:#c0522b; color:#8f3a1b; } .obj-pill.obj-above { border-color:#c58a00; color:#7a5700; } .obj-pill.obj-ok, .obj-pill.obj-done { border-color:#2e7d4f; color:#1f5a37; } .obj-pill.obj-nodata, .obj-pill.obj-manual { color:var(--muted); }
   .obj-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
   .obj-btn { padding:3px 10px; font-size:12.5px; }
@@ -332,7 +340,7 @@
   .tip-src { flex-shrink:0; text-align:right; }
   .card-head-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
   .card-head-row h2 { margin:0; font-size:17px; }
-  @media (max-width:560px) { .themes-table th:nth-child(2), .themes-table td:nth-child(2) { display:none; } .themes-table th:nth-child(5), .themes-table td:nth-child(5) { display:none; } .themes-table .sess-target { display:none; } .themes-table th, .themes-table td { padding:7px 5px; } .obj-row { flex-direction:column; } .tip-row { flex-direction:column; gap:2px; } .tip-src { text-align:left; } }
+  @media (max-width:560px) { .themes-table th:nth-child(2), .themes-table td:nth-child(2) { display:none; } .themes-table th:nth-child(5), .themes-table td:nth-child(5) { display:none; } .themes-table .sess-target { display:none; } .themes-table th, .themes-table td { padding:7px 5px; } .obj-row { flex-direction:column; } .obj-row.obj-simple { flex-direction:row; } .obj-simple .obj-title { flex:1 1 100%; } .tip-row { flex-direction:column; gap:2px; } .tip-src { text-align:left; } }
 </style>
 <!-- Matomo -->
 <script>
@@ -490,6 +498,7 @@
         <h2>Season at a glance</h2>
         <div class="pill-choice-row" id="sg-planned-toggle" style="margin-bottom:0;"></div>
       </div>
+      <div class="pill-choice-row period-bar" id="period-bar" style="margin-bottom:10px;"></div>
       <p class="hint" id="sg-label" style="margin:0 0 10px; font-weight:600;"></p>
       <div class="stat-tile-grid" id="sg-tiles"></div>
       <p class="hint" id="sg-note" style="margin:10px 0 0;"></p>
@@ -501,6 +510,7 @@
         <button type="button" class="btn btn-secondary" id="obj-add-btn" style="display:none;">+ Add objective</button>
       </div>
       <p class="hint" style="margin:0 0 12px;">Global objectives are set by PlayPivot for every team. The team's admin can add the team's own below. Progress is calculated from what you record in Training, Attendance, Assessment and Match day.</p>
+      <p class="hint" id="obj-period-hint" style="margin:0 0 10px;"></p>
       <div class="msg" id="obj-msg"></div>
       <div class="obj-form" id="obj-form" style="display:none;"></div>
       <div id="obj-unavailable" class="hint" style="display:none; padding:10px 12px; background:var(--accent-tint); border-radius:8px; margin-bottom:12px;">Objectives need a one-time database step: ask your PlayPivot administrator to run “step95” in Supabase. Everything else on this page already works.</div>
@@ -698,7 +708,8 @@
   const pctTxt = (v) => (v === null || v === undefined || Number.isNaN(v) ? "—" : f1(v) + "%");
 
   let myTeamScope = null;      // {season, team} si el admin está fijado a un equipo; null = todo el club
-  let objectives = [], objectivesOk = true;
+  let allObjectives = [], objectives = [], objectivesOk = true, monthlyOk = true; // allObjectives = filas de la tabla; objectives = las que valen para el periodo elegido
+  let period = null;           // null = toda la temporada; "YYYY-MM" = un mes
   let includePlanned = false;
   let ctx = null;              // datos crudos de la temporada elegida
   let metrics = null;          // resultado de computeMetrics()
@@ -726,15 +737,47 @@
 
   const sameTeamFilter = (q) => filterByGender(filterByCategory(q.eq("organization_id", currentOrgId).eq("season", currentSeason).eq("team", currentTeam), currentTeamCategory), currentTeamGender);
 
+  // Objetivos que valen para un periodo. Temporada: solo los de temporada (month vacío).
+  // Mes: cada objetivo de temporada se hereda tal cual, salvo que ese mes tenga el suyo propio
+  // (misma clase y misma temática) que lo sustituye; los objetivos que solo existen en ese mes se añaden.
+  // Los objetivos libres de temporada (se marcan a mano) no se heredan en los meses.
+  function effectiveObjectives(all, month) {
+    const base = all.filter((o) => !o.month);
+    if (!month) return base;
+    const key = (o) => (o.kind === "custom" ? null : o.kind + "|" + (o.theme || ""));
+    const ms = all.filter((o) => o.month === month), byKey = {};
+    ms.forEach((o) => { const k = key(o); if (k) (byKey[k] = byKey[k] || []).push(o); });
+    const out = [], used = new Set();
+    base.forEach((o) => {
+      const k = key(o); if (!k) return;
+      const ov = byKey[k];
+      if (ov) { if (!used.has(k)) { used.add(k); ov.forEach((x) => out.push(Object.assign({}, x, { _override: true, _base: o }))); } return; }
+      out.push(Object.assign({}, o, { _inherited: true }));
+    });
+    ms.forEach((o) => { const k = key(o); if (k && used.has(k)) return; out.push(Object.assign({}, o, { _monthOnly: true })); });
+    return out;
+  }
+  const monthLabel = (ym, long) => { try { const [y, m] = ym.split("-").map(Number); return new Date(y, m - 1, 1).toLocaleDateString((window.pivotI18n && pivotI18n.locale && pivotI18n.locale()) || "en", long ? { month: "long", year: "numeric" } : { month: "short" }); } catch (e) { return ym; } };
+  function seasonMonths() {
+    const set = new Set(), m = /^(\d{4})-(\d{2}|\d{4})$/.exec(currentSeason || "");
+    if (m) { const y = Number(m[1]); for (let k = 8; k < 18; k++) { const yy = y + (k > 11 ? 1 : 0), mm = (k % 12) + 1; set.add(`${yy}-${pad2(mm)}`); } } // septiembre – junio
+    if (ctx) { ctx.trainings.forEach((t) => t.date && set.add(t.date.slice(0, 7))); ctx.matches.forEach((x) => x.date && set.add(x.date.slice(0, 7))); }
+    allObjectives.forEach((o) => o.month && set.add(o.month));
+    return [...set].sort();
+  }
   async function loadObjectives() {
     const r = await supabaseClient.from("season_objectives").select("*").order("position", { ascending: true }).order("created_at", { ascending: true });
-    if (r.error) { objectivesOk = false; objectives = []; return; }
+    if (r.error) { objectivesOk = false; allObjectives = []; objectives = []; return; }
     objectivesOk = true;
-    objectives = (r.data || []).filter((o) => o.scope === "global"
+    // ¿existe ya la columna "month" (step96)? Sin ella el selector de mes sigue sirviendo para ver cifras, pero no se pueden guardar objetivos mensuales.
+    const mr = await supabaseClient.from("season_objectives").select("month").limit(1);
+    monthlyOk = !mr.error;
+    allObjectives = (r.data || []).filter((o) => o.scope === "global"
       ? (o.active !== false || isPlatformController)
       : (o.organization_id === currentOrgId && o.season === currentSeason && o.team === currentTeam
          && (o.team_category || "") === (currentTeamCategory || "") && (o.team_gender || "") === (currentTeamGender || "")
          && (o.active !== false || canManageTeam())));
+    objectives = effectiveObjectives(allObjectives, period);
   }
 
   async function loadSeasonData() {
@@ -762,7 +805,12 @@
   // ---------------------------------------------------------------------
   function computeMetrics() {
     const today = todayStr();
-    const { trainings, matches, players, tex, exCats, exNames, att, mps, asm } = ctx;
+    let { trainings, matches, mps } = ctx; const { players, tex, exCats, exNames, att, asm } = ctx;
+    if (period) { // un mes: solo entrenos y partidos de ese mes (ejercicios, asistencia y estadísticas se filtran por ellos)
+      trainings = trainings.filter((t) => (t.date || "").slice(0, 7) === period);
+      matches = matches.filter((x) => (x.date || "").slice(0, 7) === period);
+      const mset = new Set(matches.map((x) => x.id)); mps = mps.filter((r) => mset.has(r.match_id));
+    }
     const counted = trainings.filter((t) => includePlanned || t.date <= today);
     const countedIds = new Set(counted.map((t) => t.id));
     const pastTr = trainings.filter((t) => t.date <= today);
@@ -891,7 +939,7 @@
   // ---------------------------------------------------------------------
   function renderGlance() {
     const m = metrics;
-    document.getElementById("sg-label").textContent = els.currentSelection.textContent;
+    document.getElementById("sg-label").textContent = els.currentSelection.textContent + (period ? " · " + monthLabel(period, true) : "");
     const tog = document.getElementById("sg-planned-toggle");
     tog.innerHTML = [[false, _t("Worked so far")], [true, _t("Include planned sessions")]].map(([v, l]) => `<button type="button" class="pill-choice${includePlanned === v ? " active" : ""}" data-v="${v}">${escapeHtml(l)}</button>`).join("");
     tog.querySelectorAll(".pill-choice").forEach((b) => b.addEventListener("click", () => { includePlanned = b.dataset.v === "true"; renderAll(); }));
@@ -910,21 +958,43 @@
     document.getElementById("sg-note").textContent = notes.join(" ");
   }
 
+  // Semáforo: verde = en el objetivo o por encima; ámbar = por debajo pero a menos de un 10 % del objetivo; rojo = más lejos.
+  const TONE_NEAR = 0.9;
+  const toneOf = (actual, target) => (actual === null || actual === undefined || !Number.isFinite(actual)) ? "nodata" : actual >= target ? "ok" : (target > 0 && actual >= target * TONE_NEAR) ? "near" : "missing";
+  function shortObjective(o) {
+    const n = f1(Number(o.target));
+    switch (o.kind) {
+      case "theme_time_pct": return _t("{theme} · {n}%", { theme: _t(o.theme), n });
+      case "theme_sessions": return _t("{theme} · at least {n} sessions", { theme: _t(o.theme), n });
+      case "attendance_pct": return _t("Attendance · {n}%", { n });
+      case "min_periods_per_match": return _t("Periods per match · at least {n}", { n });
+      default: return o.title || "";
+    }
+  }
   function objRow(o) {
-    const ev = evalObjective(o, metrics);
+    const ev = evalObjective(o, metrics), m = metrics;
     const isGlobal = o.scope === "global";
-    const can = isGlobal ? isPlatformController : canManageTeam();
-    const pct = Math.max(0, Math.min(100, (ev.ratio || 0) * 100));
-    const bar = (o.kind === "custom") ? "" : `<div class="obj-bar"><span class="obj-fill obj-${ev.status}" style="width:${pct.toFixed(0)}%"></span></div>`;
-    const controls = can ? `<div class="obj-actions">
+    const can = (o._override || o._monthOnly) ? canManageTeam() : (isGlobal ? isPlatformController : canManageTeam());
+    const chip = (txt, tone) => `<span class="obj-pill obj-${tone}">${escapeHtml(txt)}</span>`;
+    const th = o.theme && m.byTheme[o.theme] ? m.byTheme[o.theme] : null;
+    const minPct = m.sumFull ? ((th ? th.full : 0) / m.sumFull) * 100 : null;
+    const sess = th ? th.sessions.size : 0;
+    const minTxt = minPct === null ? "—" : _t("{n}% minutes", { n: f1(minPct) });
+    const sessTxt = m.sessions ? _t("{n} of {total} sessions ({p}%)", { n: sess, total: m.sessions, p: Math.round(sess / m.sessions * 100) }) : "—";
+    let chips = "";
+    if (o.kind === "theme_time_pct") chips = chip(minTxt, minPct === null ? "nodata" : toneOf(minPct, Number(o.target))) + chip(sessTxt, "nodata");
+    else if (o.kind === "theme_sessions") chips = chip(minTxt, "nodata") + chip(sessTxt, m.sessions ? toneOf(sess, Number(o.target)) : "nodata");
+    else if (o.kind === "attendance_pct") chips = chip(m.attPct === null ? "—" : f1(m.attPct) + "%", m.attPct === null ? "nodata" : toneOf(m.attPct, Number(o.target)));
+    else if (o.kind === "min_periods_per_match") chips = chip(m.avgPeriods === null ? "—" : f1(m.avgPeriods), m.avgPeriods === null ? "nodata" : toneOf(m.avgPeriods, Number(o.target)));
+    else chips = chip(STATUS_LABEL()[ev.status], ev.status === "done" ? "ok" : "nodata");
+    const controls = o._inherited ? ((monthlyOk && canManageTeam() && o.kind !== "custom") ? `<span class="obj-actions"><button type="button" class="btn btn-secondary obj-btn" data-act="override" data-id="${escapeHtml(o.id)}">${escapeHtml(_t("Set for this month"))}</button></span>` : "") : can ? `<span class="obj-actions">
         ${o.kind === "custom" ? `<button type="button" class="btn btn-secondary obj-btn" data-act="toggle" data-id="${escapeHtml(o.id)}">${escapeHtml(o.done ? _t("Mark as not done") : _t("Mark as done"))}</button>` : ""}
         <button type="button" class="btn btn-secondary obj-btn" data-act="edit" data-id="${escapeHtml(o.id)}">${escapeHtml(_t("Edit"))}</button>
         <button type="button" class="btn btn-secondary obj-btn" data-act="pause" data-id="${escapeHtml(o.id)}">${escapeHtml(o.active === false ? _t("Resume") : _t("Pause"))}</button>
-        <button type="button" class="btn btn-secondary obj-btn" data-act="delete" data-id="${escapeHtml(o.id)}">${escapeHtml(_t("Delete"))}</button></div>` : "";
-    return `<div class="obj-row${o.active === false ? " obj-paused" : ""}">
-      <div class="obj-main"><div class="obj-title"><span${o.kind === "custom" ? " data-i18n-skip" : ""}>${escapeHtml(describeObjective(o))}</span>${o.active === false ? ` <span class="obj-tag">${escapeHtml(_t("Paused"))}</span>` : ""}</div>
-        <div class="hint">${escapeHtml(ev.text)}${o.kind !== "custom" ? ` · ${escapeHtml(actualTarget(o, ev))}` : ""}</div>${bar}${controls}</div>
-      <div class="obj-side"><span class="obj-pill obj-${ev.status}">${escapeHtml(STATUS_LABEL()[ev.status])}</span></div></div>`;
+        <button type="button" class="btn btn-secondary obj-btn" data-act="delete" data-id="${escapeHtml(o.id)}">${escapeHtml(o._override ? _t("Use season value") : _t("Delete"))}</button></span>` : "";
+    return `<div class="obj-row obj-simple${o.active === false ? " obj-paused" : ""}" title="${escapeHtml(o.kind === "custom" ? "" : ev.text)}">
+      <div class="obj-title"><span${o.kind === "custom" ? " data-i18n-skip" : ""}>${escapeHtml(shortObjective(o))}</span>${o.active === false ? ` <span class="obj-tag">${escapeHtml(_t("Paused"))}</span>` : ""}${period && !o._inherited ? ` <span class="obj-tag">${escapeHtml(_t("This month"))}</span>` : ""}${o._inherited ? ` <span class="obj-tag obj-tag-soft">${escapeHtml(_t("Season"))}</span>` : ""}</div>
+      <div class="obj-chips">${chips}</div>${controls}</div>`;
   }
 
   // ---- Calculadora de % (suma de objetivos de tiempo + conversor % <-> minutos) ----
@@ -982,13 +1052,18 @@
     const gBlock = document.getElementById("obj-global-block"), tBlock = document.getElementById("obj-team-block");
     gBlock.style.display = objectivesOk ? "" : "none"; tBlock.style.display = objectivesOk ? "" : "none";
     const gHead = gBlock.querySelector(".section-label");
-    gHead.innerHTML = `${escapeHtml(_t("Global objectives"))} <span class="obj-tag">PlayPivot</span>${isPlatformController && objectivesOk ? ` <button type="button" class="btn btn-secondary obj-btn" id="obj-add-global">${escapeHtml(_t("+ Add global objective"))}</button>` : ""}`;
+    gHead.innerHTML = `${escapeHtml(_t("Global objectives"))} <span class="obj-tag">PlayPivot</span>${isPlatformController && objectivesOk && !period ? ` <button type="button" class="btn btn-secondary obj-btn" id="obj-add-global">${escapeHtml(_t("+ Add global objective"))}</button>` : ""}`;
     const gb = document.getElementById("obj-add-global"); if (gb) gb.onclick = () => openForm("global", null);
     document.getElementById("obj-global-list").innerHTML = g.length ? g.map(objRow).join("") : `<p class="hint">${escapeHtml(_t("No global objectives set."))}</p>`;
     document.getElementById("obj-team-list").innerHTML = t.length ? t.map(objRow).join("") : `<p class="hint">${escapeHtml(canManageTeam() ? _t("No team objectives yet — add the first one. Two or three clear ones are enough.") : _t("No team objectives set yet. The team's admin can add them."))}</p>`;
     document.querySelectorAll(".obj-actions button").forEach((b) => b.addEventListener("click", () => objAction(b.dataset.act, b.dataset.id)));
+    const ph = document.getElementById("obj-period-hint"), nMonthly = allObjectives.filter((o) => o.month).length;
+    ph.textContent = !objectivesOk ? "" : period
+      ? (monthlyOk ? _t("Showing {month}. Objectives without a value of their own for this month inherit the season one; “Set for this month” gives them one.", { month: monthLabel(period, true) }) : _t("Monthly objectives need one more database step (step96). Until then you can still look at the figures of a month."))
+      : (nMonthly ? _t(nMonthly === 1 ? "{n} monthly objective is set. Pick a month above to see or change it." : "{n} monthly objectives are set. Pick a month above to see or change them.", { n: nMonthly }) : (monthlyOk && canManageTeam() ? _t("Tip: pick a month above to break a season objective down month by month.") : ""));
     const wasOpen = document.getElementById("obj-calc").open; renderCalc(); document.getElementById("obj-calc").open = wasOpen;
     addBtn.onclick = () => openForm("team", null);
+    addBtn.textContent = period ? _t("+ Add objective for this month") : _t("+ Add objective");
   }
 
   function undefinedBreakdown() {
@@ -1045,9 +1120,9 @@
     const rows = sortEntries(entries, themeSort.key, themeSort.dir);
     const maxPct = Math.max(20, ...rows.map((r) => r.pct), ...rows.map((r) => r.tt || 0));
     const line = (r) => {
-      const gap = r.tt === undefined ? null : r.pct - r.tt;
-      const gapTxt = gap === null ? "" : (gap < -2 ? `<span class="obj-pill obj-missing">${escapeHtml(_t("{n} pts missing", { n: f1(-gap) }))}</span>` : (gap > 2 ? `<span class="obj-pill obj-above">${escapeHtml(_t("{n} pts above", { n: f1(gap) }))}</span>` : `<span class="obj-pill obj-ok">${escapeHtml(_t("On target"))}</span>`));
-      const sessPill = r.ts === undefined ? "" : (r.sess >= r.ts ? `<span class="obj-pill obj-ok">${escapeHtml(_t("Reached"))}</span>` : `<span class="obj-pill obj-missing">${escapeHtml(_t(r.ts - r.sess === 1 ? "{n} more session needed" : "{n} more sessions needed", { n: f1(r.ts - r.sess) }))}</span>`);
+      const gap = r.tt === undefined ? null : r.pct - r.tt, tone = r.tt === undefined ? null : toneOf(r.pct, r.tt);
+      const gapTxt = gap === null ? "" : (tone === "ok" ? `<span class="obj-pill obj-ok">${escapeHtml(gap > 2 ? _t("{n} pts above", { n: f1(gap) }) : _t("On target"))}</span>` : `<span class="obj-pill obj-${tone}">${escapeHtml(_t("{n} pts missing", { n: f1(-gap) }))}</span>`);
+      const sessPill = r.ts === undefined ? "" : (r.sess >= r.ts ? `<span class="obj-pill obj-ok">${escapeHtml(_t("Reached"))}</span>` : `<span class="obj-pill obj-${toneOf(r.sess, r.ts)}">${escapeHtml(_t(r.ts - r.sess === 1 ? "{n} more session needed" : "{n} more sessions needed", { n: f1(r.ts - r.sess) }))}</span>`);
       const sessTxt = escapeHtml(_t("{n} of {total}", { n: r.sess, total: m.sessions })) + (r.ts !== undefined ? ` <small class="hint sess-target">· ${escapeHtml(_t("target {t}", { t: f1(r.ts) }))}</small>` : "");
       return `<tr${r.other ? ' class="themes-other"' : ""}><td>${escapeHtml(r.label)}</td>
         <td style="min-width:160px;"><div class="obj-bar" style="margin:0;"><span class="obj-fill ${r.other ? "obj-nodata" : "obj-ok"}" style="width:${Math.min(100, r.pct / maxPct * 100).toFixed(1)}%"></span>${r.tt !== undefined ? `<i class="obj-mark" style="left:${Math.min(100, r.tt / maxPct * 100).toFixed(1)}%" title="${escapeHtml(_t("Target"))} ${f1(r.tt)}%"></i>` : ""}</div></td>
@@ -1108,9 +1183,19 @@
     document.getElementById("tips-list").innerHTML = tips.map((t) => `<div class="tip-row"><span class="tip-text"${t.raw ? " data-i18n-skip" : ""}>${t.href ? `<a href="${t.href}">${escapeHtml(t.text)}</a>` : escapeHtml(t.text)}</span><small class="hint tip-src">${escapeHtml(t.source)}</small></div>`).join("");
   }
 
+  function renderPeriodBar() {
+    const bar = document.getElementById("period-bar");
+    const months = seasonMonths(), withData = new Set();
+    if (ctx) { ctx.trainings.forEach((t) => t.date && withData.add(t.date.slice(0, 7))); ctx.matches.forEach((x) => x.date && withData.add(x.date.slice(0, 7))); }
+    allObjectives.forEach((o) => o.month && withData.add(o.month));
+    bar.innerHTML = [[null, _t("Whole season")], ...months.map((ym) => [ym, monthLabel(ym)])].map(([v, l]) => `<button type="button" class="pill-choice${period === v ? " active" : ""}${v && !withData.has(v) ? " pill-dim" : ""}" data-m="${v || ""}"${v ? ` title="${escapeHtml(monthLabel(v, true))}" data-i18n-skip` : ""}>${escapeHtml(l)}</button>`).join("");
+    bar.querySelectorAll(".pill-choice").forEach((b) => b.addEventListener("click", () => { period = b.dataset.m || null; closeForm(); objMsgClear(); renderAll(); }));
+  }
   function renderAll() {
+    if (period && !seasonMonths().includes(period)) period = null;
+    objectives = effectiveObjectives(allObjectives, period);
     metrics = computeMetrics();
-    renderGlance(); renderObjectives(); renderMain(); renderThemes(); renderTips();
+    renderPeriodBar(); renderGlance(); renderObjectives(); renderMain(); renderThemes(); renderTips();
     els.chipMatches.textContent = String(ctx.matches.length);
   }
 
@@ -1121,18 +1206,20 @@
   function objMsg(text, type) { const el = document.getElementById("obj-msg"); el.textContent = (type === "error" ? "⚠ " : "✓ ") + text; el.className = "msg " + type; }
   function objMsgClear() { const el = document.getElementById("obj-msg"); el.className = "msg"; el.textContent = ""; }
 
-  function openForm(scope, id) {
-    const o = id ? objectives.find((x) => x.id === id) : null;
-    formState = { scope, id };
+  function openForm(scope, id, opts) {
+    const base = opts && opts.base ? opts.base : null;
+    const o = id ? objectives.find((x) => x.id === id) : base;           // al ajustar un objetivo de temporada para un mes, el formulario parte de él
+    formState = { scope, id, month: period || null, base, excludeId: id || (base && base.id) || null };
     const form = document.getElementById("obj-form");
     const kind = o ? o.kind : "theme_time_pct";
-    form.innerHTML = `<p class="section-label" style="margin-top:0;">${escapeHtml(o ? _t("Edit objective") : (scope === "global" ? _t("New global objective") : _t("New team objective")))}</p>
+    form.innerHTML = `<p class="section-label" style="margin-top:0;">${escapeHtml(period ? (o ? _t("Objective for {month}", { month: monthLabel(period, true) }) : _t("New objective for {month}", { month: monthLabel(period, true) })) : (o ? _t("Edit objective") : (scope === "global" ? _t("New global objective") : _t("New team objective"))))}</p>
       <div class="obj-form-grid">
         <label>${escapeHtml(_t("Type"))}<select id="of-kind" ${o ? "disabled" : ""}>${KINDS().map(([v, l]) => `<option value="${v}" ${v === kind ? "selected" : ""}>${escapeHtml(l)}</option>`).join("")}</select></label>
-        <label id="of-theme-wrap">${escapeHtml(_t("Theme"))}<select id="of-theme">${[...THEMES, MATCH_THEME].map((c) => `<option value="${escapeHtml(c)}" ${o && o.theme === c ? "selected" : ""}>${escapeHtml(_t(c))}</option>`).join("")}</select></label>
+        <label id="of-theme-wrap">${escapeHtml(_t("Theme"))}<select id="of-theme" ${(base || (o && o.month)) ? "disabled" : ""}>${[...THEMES, MATCH_THEME].map((c) => `<option value="${escapeHtml(c)}" ${o && o.theme === c ? "selected" : ""}>${escapeHtml(_t(c))}</option>`).join("")}</select></label>
         <label id="of-target-wrap"><span id="of-target-label"></span><input type="number" id="of-target" min="0" step="any" value="${o && o.target != null ? escapeHtml(o.target) : ""}"></label>
         <label id="of-title-wrap">${escapeHtml(_t("Objective"))}<input type="text" id="of-title" maxlength="200" value="${o && o.title ? escapeHtml(o.title) : ""}"></label>
       </div>
+      ${base && base.kind !== "custom" ? `<p class="hint" style="margin:8px 0 0;">${escapeHtml(_t("Season target: {n}", { n: f1(Number(base.target)) + ((base.kind === "theme_time_pct" || base.kind === "attendance_pct") ? "%" : "") }))}</p>` : ""}
       <p class="hint" id="of-calc" style="margin:8px 0 0;"></p>
       <div style="display:flex; gap:8px; margin-top:10px;"><button type="button" class="btn btn-primary" id="of-save">${escapeHtml(_t("Save"))}</button><button type="button" class="btn btn-secondary" id="of-cancel">${escapeHtml(_t("Cancel"))}</button></div>`;
     form.style.display = "block";
@@ -1146,7 +1233,8 @@
     const syncCalc = () => {
       const el = document.getElementById("of-calc"), k = document.getElementById("of-kind").value;
       if (k !== "theme_time_pct") { el.textContent = ""; return; }
-      const a = timeSums(id).total, v = parseFloat(document.getElementById("of-target").value), w = Number.isFinite(v) ? v : 0, left = Math.round((100 - a - w) * 10) / 10;
+      const th = document.getElementById("of-theme").value, same = period ? objectives.find((x) => x.kind === "theme_time_pct" && x.theme === th && (x._inherited || x._override)) : null;
+      const a = timeSums(formState.excludeId || (same && same.id) || null).total, v = parseFloat(document.getElementById("of-target").value), w = Number.isFinite(v) ? v : 0, left = Math.round((100 - a - w) * 10) / 10;
       el.textContent = left >= 0 ? _t("Already assigned: {a}% · with this one: {b}% · left: {c}%", { a: f1(a), b: f1(a + w), c: f1(left) }) : _t("Already assigned: {a}% · with this one: {b}% · over by {c}%", { a: f1(a), b: f1(a + w), c: f1(-left) });
     };
     document.getElementById("of-kind").addEventListener("change", () => { sync(); syncCalc(); }); sync();
@@ -1171,16 +1259,23 @@
       if ((kind === "theme_time_pct" || kind === "attendance_pct") && v > 100) { objMsg(_t("A percentage can't be more than 100."), "error"); return; }
       row.target = v;
     }
+    // En un mes: si ya hay un objetivo propio de ese mes con la misma clase y temática, se actualiza en vez de duplicarlo (hay un índice único).
+    let targetId = formState.id;
+    if (!targetId && formState.month && kind !== "custom") {
+      const ex = allObjectives.find((x) => x.month === formState.month && x.scope === "team" && x.kind === kind && (x.theme || null) === (row.theme || null));
+      if (ex) targetId = ex.id;
+    }
     btn.disabled = true;
     try {
-      if (formState.id) {
-        const { data, error } = await supabaseClient.from("season_objectives").update({ theme: row.theme, target: row.target, title: row.title }).eq("id", formState.id).select();
+      if (targetId) {
+        const { data, error } = await supabaseClient.from("season_objectives").update({ theme: row.theme, target: row.target, title: row.title }).eq("id", targetId).select();
         if (error) throw error;
         if (!data || !data.length) throw new Error(_t("You don't have permission to change this objective."));
       } else {
         const payload = formState.scope === "global"
           ? { scope: "global", ...row }
           : { scope: "team", organization_id: currentOrgId, season: currentSeason, team: currentTeam, team_category: currentTeamCategory || null, team_gender: currentTeamGender || null, ...row };
+        if (formState.month) payload.month = formState.month;
         const { error } = await supabaseClient.from("season_objectives").insert(payload);
         if (error) throw error;
       }
@@ -1194,6 +1289,7 @@
     objMsgClear();
     const o = objectives.find((x) => x.id === id); if (!o) return;
     if (act === "edit") { openForm(o.scope, id); return; }
+    if (act === "override") { openForm("team", null, { base: o }); return; }
     try {
       let res;
       if (act === "delete") res = await supabaseClient.from("season_objectives").delete().eq("id", id).select();
@@ -1232,7 +1328,7 @@
     }
     els.noTeamCard.style.display = "none";
     els.statsContent.style.display = "block";
-    calcLen = null; closeForm(); objMsgClear();
+    calcLen = null; period = null; closeForm(); objMsgClear();
     const token = ++loadToken;
     await loadSeasonData();
     if (token !== loadToken) return; // llegó tarde: ya se eligió otro equipo
@@ -1249,6 +1345,8 @@
       <p style="margin:0 0 10px;">${escapeHtml(_t("Global objectives come from PlayPivot and apply to every team. The team's admin adds the team's own. Progress is calculated automatically from your trainings, attendance, assessments and matches; “free” objectives you tick yourself."))}</p>
       <p style="margin:0 0 4px; font-weight:600;">${escapeHtml(_t("Training themes"))}</p>
       <p style="margin:0 0 10px;">${escapeHtml(_t("The themes of each exercise (set in the Exercise creator) tell what you worked. Time is split equally if an exercise has several themes. Free-text and match blocks have no theme."))}</p>
+      <p style="margin:0 0 4px; font-weight:600;">${escapeHtml(_t("Months"))}</p>
+      <p style="margin:0 0 10px;">${escapeHtml(_t("The buttons above the figures switch between the whole season and one month: every card then shows only that month. A season objective applies to every month unless you set a value of its own for that month (“Set for this month”); you can also add objectives that exist only in one month."))}</p>
       <p style="margin:0 0 10px;">${escapeHtml(_t("The main theme of each session is the one you pick as “Main objective” in Training builder. “Undefined” means nothing was picked."))}</p>
       <p style="margin:0;">${escapeHtml(_t("Only your own team's data is used, and only what you actually recorded: nothing is guessed."))}</p>`;
     box.style.display = "block";
@@ -1260,7 +1358,7 @@
   // exactamente lo que se ve en la página (metrics + objectives), nada nuevo.
   // =========================================================================
   function reportTeamLabel() { return currentTeam + (currentTeamCategory ? " (" + currentTeamCategory + (currentTeamGender ? " " + currentTeamGender : "") + ")" : ""); }
-  function reportFileBase() { return [currentTeam, currentTeamCategory, currentTeamGender].filter(Boolean).join(" ") + "_" + currentSeason + "_" + _t("season report||file name word"); }
+  function reportFileBase() { return [currentTeam, currentTeamCategory, currentTeamGender].filter(Boolean).join(" ") + "_" + currentSeason + (period ? "_" + period : "") + "_" + _t("season report||file name word"); }
   function reportData() {
     const m = metrics, st = STATUS_LABEL();
     const glance = [
@@ -1288,7 +1386,7 @@
   document.getElementById("report-xlsx-btn").addEventListener("click", () => {
     if (!metrics) return;
     const d = reportData(); const club = els.orgName.textContent || "PlayPivot";
-    const top = [[club], [_t("Season report — {team} — {season}", { team: reportTeamLabel(), season: currentSeason })], [_t("Generated {date}", { date: new Date().toISOString().slice(0, 10) })], [includePlanned ? _t("Includes planned sessions") : _t("Worked so far")], []];
+    const top = [[club], [_t("Season report — {team} — {season}", { team: reportTeamLabel(), season: currentSeason + (period ? " · " + monthLabel(period, true) : "") })], [_t("Generated {date}", { date: new Date().toISOString().slice(0, 10) })], [includePlanned ? _t("Includes planned sessions") : _t("Worked so far")], []];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...top, [_t("Indicator"), _t("Value")], ...d.glance]), _t("Summary"));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([OBJ_HEAD(), ...d.objRows]), _t("Objectives"));
@@ -1325,7 +1423,7 @@
     const top = () => {
       if (logo) { try { doc.addImage(logo, "PNG", W - mx - 46, 24, 46, 46); } catch (e) {} }
       doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(...navy); doc.text(club, mx, 44);
-      doc.setFontSize(11.5); doc.setTextColor(...accent); doc.text(_t("Season report — {team} — {season}", { team: reportTeamLabel(), season: currentSeason }), mx, 62);
+      doc.setFontSize(11.5); doc.setTextColor(...accent); doc.text(_t("Season report — {team} — {season}", { team: reportTeamLabel(), season: currentSeason + (period ? " · " + monthLabel(period, true) : "") }), mx, 62);
       doc.setDrawColor(...accent); doc.setLineWidth(1.6); doc.line(mx, 72, W - mx, 72); y = 94;
     };
     const need = (h) => { if (y + h > H - 40) { footer(); doc.addPage(); page++; top(); } };
