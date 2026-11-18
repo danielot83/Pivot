@@ -1,23 +1,26 @@
-# Paquete 85 — Prompt con «puerta de entrega» + rechazo de Excel vacío
+# Paquete 86 — Prompt de partido «por partes» y válido para cualquier hoja
 
-Sube `match.html`, `i18n-fr.js` e `i18n-es.js`. **Sin SQL.** Incluye todo lo de los paquetes 83 y 84 (si ya los subiste, este los sustituye).
+Sube `match.html`, `i18n-fr.js` e `i18n-es.js`. **Sin SQL.** Incluye todo lo de los paquetes 83–85.
 
-## Qué pasó
-Con ChatGPT, el prompt dio un Excel con solo nombres y todo a cero, sin preguntas: ni leyó la hoja ni lo dijo. Y PlayPivot lo aceptó como si todos hubieran jugado con 0.
+## Qué cambia en el prompt
+**Flexible con el formato, rígido con el contenido.** El prompt ya no habla de «tus hojas»: está escrito para cualquier hoja de partido (FIBA, federación, minibasket, torneo, hecha por un club; con o sin cuadrícula de marcador acumulado; con puntos por jugador; con o sin faltas/períodos/minutos…). Todo lo que explica son *ejemplos*, no suposiciones: si la hoja hace algo distinto, la IA describe lo que ve y te pregunta antes de apoyarse en ello. Y no puede inventar ni un dato.
 
-## 1) Prompt (sección nueva «DELIVERY GATE» y reglas más duras)
-- **La primera respuesta de la IA es SIEMPRE su lectura (Fase 1), nunca el archivo.** Tiene que mostrar con números reales: equipos y cuál es el tuyo, resultado final y parciales, el libro de canastas de cada equipo, puntos por jugador y el resultado de las verificaciones V1–V9. Termina con «Reply OK and I will generate the final file» y espera. Si entrega directamente, el trabajo queda rechazado. (Así ves enseguida si ha leído la hoja: si no hay números, no ha leído nada.)
-- **Regla de oro nueva:** un entregable con solo nombres y ceros (o en blanco) es un FALLO, nunca un resultado aceptable. El 0 solo vale para quien jugó y no anotó; nunca como relleno de «no pude leerlo». Si no puede sacar números reales, lo dice y no entrega nada.
-- **Debe poder VER la hoja:** si la foto/PDF no carga o solo tiene la plantilla, para y lo avisa; prohibido rellenar una plantilla a partir de la propia plantilla.
-- **Puerta de entrega G1–G8 antes de entregar:** al menos un jugador por equipo con puntos > 0; «Puntos totales» de cada equipo = resultado final; no es la plantilla con nombres; 1/2/3 pts coherentes; tu equipo en ÉQUIPE A; nombres limpios; dudas declaradas; ya hubo Fase 1 y tu OK. Si falla G1, G2 o G3 la respuesta correcta es «No he podido leer esta hoja con fiabilidad» + qué necesita (foto más nítida…).
-- **Excel adjunto:** tras guardar el .xlsx debe REABRIRLO y leer las celdas del propio archivo para pasar la puerta, y el mensaje del chat debe llevar el informe V1–V9 (sin informe, el archivo no vale).
+**Trabaja por etapas; en cada una te enseña lo que ha encontrado, marca cada punto como CLARO o DUDA, te pregunta y ESPERA tu respuesta:**
+1. **La hoja y el partido:** tipo de hoja y cómo anota canastas/faltas/participación (tú lo confirmas), equipos y cuál es el tuyo, fecha, lugar, árbitros, períodos, prórroga, resultado final y parciales.
+2. **Los jugadores:** «he encontrado estos jugadores con estos números, ¿es correcto?» (tachados, dorsales repetidos o parecidos, dorsal distinto al del roster, entrenador en la lista, titulares).
+3. **Los puntos:** canasta a canasta por equipo y período (total acumulado → valor → jugador), con cada duda señalada por sus números («casillas 26 y 28: +2, el dorsal podría ser el 10 o el 11, ¿cuál?») y cada período contra el parcial impreso.
+4. **Faltas y participación:** solo lo que la hoja anota; lo que no anota lo dice y te pide confirmar que no falta nada.
+5. **Verificación completa:** las 9 comprobaciones con números reales, puntos por jugador, dudas resueltas y estimaciones que queden. Termina con «Reply OK and I will generate the final file».
+6. **Entrega final**, solo tras tu OK y pasando la puerta de entrega (que ya existía: nada de archivos con solo nombres y ceros).
 
-## 2) La app rechaza un Excel/respuesta sin datos reales
-Si en todo el archivo (tu equipo y el rival) ninguna cifra es mayor que 0 —ni puntos, faltas, rebotes, minutos, tiros ni titular—, el import ya **no guarda nada** y avisa (ES/FR/EN): «Todas las cifras están a 0 o vacías… la IA probablemente no leyó el acta… no se ha importado nada». Con al menos un dato real, importa como siempre. Un partido real nunca queda todo en 0, pero si algún día quisieras importar así a propósito, dímelo y se ajusta.
+Reglas: su primera respuesta SIEMPRE es la etapa 1 (nunca el archivo); no avanza sin tu respuesta; si corriges algo de una etapa anterior, lo actualiza y vuelve a pasar las comprobaciones afectadas; si le dices «OK a todo» o «continúa», puede juntar etapas **sin dudas**, pero nunca una etapa con duda, ni la 5, ni la puerta de entrega. Las preguntas te las hace en el idioma de la app.
+
+También he actualizado el texto de ayuda y la ventana «Qué hace esto» (ES/FR/EN) para explicar que la IA va paso a paso.
 
 ## Probado
-Prompt generado sin huecos en EN/FR/ES con las frases nuevas; Excel todo-ceros → rechazado (mensaje traducido), con un solo dato real → pasa; tu Excel real Palinzards vs Lynx sigue entrando (8+8); regresión de partido/plantilla, todas las páginas, comprobación estática y XSS.
+El prompt se genera sin huecos en EN/FR/ES con las 6 etapas y todas las frases clave; sin restos del esquema anterior; el Excel real Palinzards vs Lynx sigue importando (8+8); rechazo de Excel todo-ceros; regresión de partido/plantilla, todas las páginas, comprobación estática y XSS.
 
 ## No hecho / a tener en cuenta
-- **No he podido probar con ChatGPT real**: no es posible desde aquí. El prompt es más estricto, pero ChatGPT puede seguir saltándose pasos. Si lo hace, pega aquí lo que respondió y se refuerza el punto exacto.
-- La parada obligatoria («Reply OK») añade un mensaje más por partido. Es lo que da la garantía de que ha leído; si prefieres que solo pare cuando tenga dudas, se cambia en una línea (y perderías esa garantía).
+- **No probado con ChatGPT/Claude reales sobre una hoja real** (no puedo desde aquí). La estructura está pensada para que no pueda saltarse pasos, pero habrá que ver cómo se comporta cada IA; si se salta una etapa, dime cuál y se refuerza.
+- Son más mensajes por partido (hasta 6). Con «OK a todo» se acorta cuando no hay dudas.
+- La parte de «las hojas de Dani» (LRBC, marque courante) ya no se menciona como caso especial: queda como un ejemplo más. Si una liga concreta necesitara una regla propia, se añade como ejemplo.
