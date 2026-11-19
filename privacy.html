@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://eeucbnhqsnfitzwzghtg.supabase.co; connect-src 'self' https://eeucbnhqsnfitzwzghtg.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'none'; form-action 'none'">
 <script src="./security-guard.js"></script>
-<title>PlayPivot — Privacy &amp; Terms</title>
+<title>PlayPivot — Terms of Use &amp; Privacy Policy</title>
 <style>
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
@@ -120,11 +120,17 @@
     font-weight: 700; border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center;
     justify-content: center; padding: 0 3px;
   }
+  .part-title { font-size: 22px; margin: 44px 0 6px; padding-top: 18px; border-top: 2px solid var(--accent); }
+  .toc-part { margin: 10px 0 0; font-weight: 600; }
+  .toc-n { color: var(--accent-deep); display: inline-block; min-width: 2.6em; }
+  .summary { background: var(--accent-tint); border-color: #f3d3c0; }
+  h2[id], h3 { scroll-margin-top: 16px; }
 </style>
 <!-- Matomo -->
 <script>
   var _paq = window._paq = window._paq || [];
   /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['disableCookies']);   // sin cookies de analítica (promesa de la política de privacidad, P9)
   _paq.push(['trackPageView']);
   _paq.push(['enableLinkTracking']);
   (function() {
@@ -211,124 +217,212 @@
 
 <div class="wrap">
   <span class="badge" id="version-badge">Version —</span>
-  <h1>Privacy &amp; Terms of Service</h1>
-  <p class="sub">This is the actual agreement between you and PlayPivot — written to be read, not just clicked past. If anything is unclear, ask (see "Contact" at the bottom).</p>
+  <h1>Terms of Use &amp; Privacy Policy</h1>
+  <p class="sub">This is the actual agreement between you and PlayPivot — written to be read, not just clicked past. If anything is unclear, ask (see “Contact” at the bottom).</p>
 
   <div class="card" id="acceptance-status-card" style="display:none;"></div>
 
+  <div class="card summary">
+      <strong>In plain words</strong>
+      <ul style="margin-top:8px;">
+        <li data-i18n-html>Accounts are for adult club staff (admins and coaches). Players and children do not have accounts.</li>
+        <li data-i18n-html>Your club decides what to record about its players and is responsible for having the right to do so. PlayPivot stores and processes it for the club, never sells it and never uses it for advertising.</li>
+        <li data-i18n-html>Please do not enter sensitive data: health or injuries, ID numbers, photos, addresses or phone numbers.</li>
+        <li data-i18n-html>Data is held by Supabase (database) and Infomaniak (hosting). If you paste a prompt and a match sheet into an AI chat, that is your own transfer to a third party.</li>
+        <li data-i18n-html>You can delete your data from Settings. Swiss law applies; the service is free for now and provided “as is”.</li>
+      </ul>
+    </div>
+
   <div class="card toc">
-    <strong>On this page:</strong>
-    <ul style="margin-top:8px;">
-      <li><a href="#acceptance">1. Acceptance of these terms</a></li>
-      <li><a href="#roles">2. Who's responsible for what</a></li>
-      <li><a href="#use">3. Acceptable use — what's allowed, what isn't</a></li>
-      <li><a href="#data">4. What PlayPivot stores, and what it doesn't</a></li>
-      <li><a href="#minors">5. Data about minors specifically</a></li>
-      <li><a href="#sharing">6. Who can see what</a></li>
-      <li><a href="#subprocessors">7. Who else touches your data</a></li>
-      <li><a href="#rights">8. Access, correction, and deletion</a></li>
-      <li><a href="#security">9. Security</a></li>
-      <li><a href="#changes">10. Changes to these terms</a></li>
-      <li><a href="#liability">11. Liability</a></li>
-      <li><a href="#contact">12. Contact</a></li>
-    </ul>
-  </div>
+      <strong>On this page:</strong>
+      <p class="toc-part"><a href="#use">Part A — Terms of Use</a></p>
+      <ul style="margin-top:4px;">
+        <li><a href="#who"><span class="toc-n">A1.</span> Who we are and what PlayPivot is</a></li>
+        <li><a href="#acceptance"><span class="toc-n">A2.</span> Accepting these terms, and who may use PlayPivot</a></li>
+        <li><a href="#club"><span class="toc-n">A3.</span> Your club's responsibilities — this matters</a></li>
+        <li><a href="#aup"><span class="toc-n">A4.</span> Acceptable use — what's allowed, what isn't</a></li>
+        <li><a href="#content"><span class="toc-n">A5.</span> Your content, and what you allow others to do with it</a></li>
+        <li><a href="#ai"><span class="toc-n">A6.</span> AI chats and imports — you are in control, and you are responsible</a></li>
+        <li><a href="#service"><span class="toc-n">A7.</span> Availability, backups and changes to the service</a></li>
+        <li><a href="#price"><span class="toc-n">A8.</span> Price</a></li>
+        <li><a href="#ending"><span class="toc-n">A9.</span> Ending your use, suspension and deletion</a></li>
+        <li><a href="#liability"><span class="toc-n">A10.</span> Liability</a></li>
+        <li><a href="#law"><span class="toc-n">A11.</span> Governing law and courts</a></li>
+        <li><a href="#changes"><span class="toc-n">A12.</span> Changes to these terms</a></li>
+        <li><a href="#general"><span class="toc-n">A13.</span> General</a></li>
+      </ul>
+      <p class="toc-part"><a href="#privacy">Part B — Privacy Policy</a></p>
+      <ul style="margin-top:4px;">
+        <li><a href="#roles"><span class="toc-n">P1.</span> Who is responsible for what</a></li>
+        <li><a href="#data"><span class="toc-n">P2.</span> What we process, and what we don't</a></li>
+        <li><a href="#purposes"><span class="toc-n">P3.</span> Why we process it, and on what basis</a></li>
+        <li><a href="#subprocessors"><span class="toc-n">P4.</span> Who else handles your data, and transfers abroad</a></li>
+        <li><a href="#sharing"><span class="toc-n">P5.</span> Who can see what inside PlayPivot</a></li>
+        <li><a href="#retention"><span class="toc-n">P6.</span> How long we keep data, and deletion</a></li>
+        <li><a href="#rights"><span class="toc-n">P7.</span> Your rights</a></li>
+        <li><a href="#minors"><span class="toc-n">P8.</span> Data about minors</a></li>
+        <li><a href="#cookies"><span class="toc-n">P9.</span> Cookies, local storage and statistics</a></li>
+        <li><a href="#security"><span class="toc-n">P10.</span> Security and incidents</a></li>
+        <li><a href="#clubs"><span class="toc-n">P11.</span> For clubs and associations</a></li>
+        <li><a href="#pchanges"><span class="toc-n">P12.</span> Changes to this policy</a></li>
+        <li><a href="#contact"><span class="toc-n">P13.</span> Contact</a></li>
+      </ul>
+    </div>
 
-  <h2 id="acceptance"><span class="clause-num">1.</span>Acceptance of these terms</h2>
-  <p>By creating a PlayPivot account, you agree to this document as it stands on the date you accept it. We keep a dated, versioned record of that acceptance — not just a checkbox that gets forgotten, an actual log entry: who, when, which version. If we change these terms in a way that matters, we'll ask you to accept the new version before you can keep using your account (see section 9).</p>
-
-  <h2 id="roles"><span class="clause-num">2.</span>Who's responsible for what</h2>
-  <p>PlayPivot is used by clubs all over the world — and data protection law isn't the same everywhere. <strong>PlayPivot doesn't decide which law applies to you: the laws of your own country do</strong>, whether that's an EU country, Switzerland, Bangladesh, or anywhere else. This document can't list every country's rules, so instead here's the chain of responsibility that holds regardless of where you are:</p>
-  <p style="text-align:center; font-weight:600; font-size:13.5px; color:var(--muted); margin:16px 0;">Player / family &nbsp;→&nbsp; Club &nbsp;→&nbsp; PlayPivot &nbsp;→&nbsp; Infomaniak (hosting)</p>
+  <h2 class="part-title" id="use">Part A — Terms of Use</h2>
+  <h2 id="who"><span class="clause-num">A1.</span>Who we are and what PlayPivot is</h2>
+  <p data-i18n-html>PlayPivot is a web application for running a basketball team or club: rosters, attendance, player assessments, match statistics, season planning, training sessions, exercises and plays. It is operated by <span class="op-name"></span> (“PlayPivot”, “we”, “us”).</p>
+  <p data-i18n-html>PlayPivot is under continuous development: features change, and parts of the service may be incomplete or unavailable at times. It is a coaching tool, not legal, medical, psychological or sports-governance advice — statistics, reports, objectives and assessments only reflect what you and your club enter.</p>
+  <h2 id="acceptance"><span class="clause-num">A2.</span>Accepting these terms, and who may use PlayPivot</h2>
+  <p data-i18n-html>By creating a PlayPivot account, you agree to this document as it stands on the date you accept it. We keep a dated, versioned record of that acceptance — an actual log entry: who, when, which version — not just a checkbox that gets forgotten.</p>
   <ul>
-    <li><strong>Your club is the data controller</strong> for the sporting data it enters — rosters, assessments, attendance. Your club decides which players to register, what to record about them, and why. That's true whether the data lives in PlayPivot, a spreadsheet, or a paper folder — the club, through its admin and coaches, is responsible for having a valid reason (and where required by the law that applies to you, valid consent) to hold that data in the first place.</li>
-    <li><strong>PlayPivot is the data processor</strong> for that same sporting data — we act on your club's instructions, we don't sell it, and we don't use it for advertising or our own purposes.</li>
-    <li><strong>PlayPivot is itself the controller for a narrower set of data</strong>: your own login/account details, security logs, and anything related to billing or subscriptions — data PlayPivot needs to run the platform and keep it secure, independent of any single club's instructions.</li>
-    <li><strong>Infomaniak, our hosting provider, is PlayPivot's sub-processor.</strong> They host the infrastructure PlayPivot runs on, under their own data-processing terms with PlayPivot. If PlayPivot ever adds another vendor that touches personal data (email delivery, analytics, AI features), it gets added here too — see section 6a.</li>
+    <li data-i18n-html><strong>Adults only.</strong> Accounts are for adults (18 or older, or the age of majority where you live) acting as club staff — admins and coaches. Players and children do not have accounts and must not be given one.</li>
+    <li data-i18n-html><strong>Acting for a club.</strong> If you register or manage a club, you confirm that you are authorised to act for it and to accept these terms on its behalf.</li>
+    <li data-i18n-html><strong>Your account.</strong> Give accurate information, keep your login to yourself, and tell us if you think someone else is using your account. You are responsible for what happens under it. One person, one account; roles (admin, coach) and team scopes are set by your club's admins.</li>
   </ul>
-  <p>Practically: <strong>if you're a club admin or coach adding a player, you're confirming you already have the right to hold that player's information under the law that applies where you are</strong> — through the club's own registration process, a parent/guardian's consent, or however that normally works in your country or federation. PlayPivot doesn't verify this for you, the same way a spreadsheet or a paper folder never did either.</p>
-  <p class="sub" style="margin-top:-4px;">Two examples of what "the law that applies to you" can look like, since they come up often for clubs using PlayPivot: the EU's GDPR generally requires parental consent for a child's data below age 16 (countries can lower this to 13); Switzerland's data protection act treats a child's own consent as valid only once they have "capacity of judgement" (usually around 13), with a parent or guardian deciding below that. These are examples, not a summary of every country's law — check what applies to you specifically if you're unsure.</p>
-
-  <h2 id="use"><span class="clause-num">3.</span>Acceptable use — what's allowed, what isn't</h2>
-  <p>PlayPivot is built for one purpose: running a basketball team or club. That means:</p>
+  <h2 id="club"><span class="clause-num">A3.</span>Your club's responsibilities — this matters</h2>
+  <p data-i18n-html>PlayPivot is used by clubs all over the world, and data protection law isn't the same everywhere. PlayPivot doesn't decide which law applies to you: the laws of your own country do. By using PlayPivot for your club, you confirm that:</p>
+  <ul>
+    <li data-i18n-html>your club has a valid legal basis under the law that applies to it (for example the club's registration process, a parent's or guardian's consent where required, or a legitimate interest) to hold each player's data, and players and their families have been informed about it;</li>
+    <li data-i18n-html>you only enter data your club needs to run its teams, and you do <strong>not</strong> enter sensitive data — health or injury details, religion, ethnicity, ID or social-security numbers (such as the Swiss AVS number), photos, home addresses, phone numbers or similar;</li>
+    <li data-i18n-html>you will deal with requests from players or parents (access, correction, deletion) and keep what you enter accurate;</li>
+    <li data-i18n-html>assessments, objectives, session feedback and comments about players — especially minors — are factual and respectful, and follow your club's own policy.</li>
+  </ul>
+  <p data-i18n-html>PlayPivot does not verify any of this — the same way a spreadsheet or a paper folder never did.</p>
+  <p data-i18n-html>Two examples of what “the law that applies to you” can look like: the EU's GDPR generally requires parental consent for a child's data below age 16 (countries can lower this to 13); Switzerland's data protection act (nLPD) treats a child's own consent as valid only once the child has capacity of judgement (usually around 13), with a parent or guardian deciding below that. These are examples, not a summary of every country's law.</p>
+  <h2 id="aup"><span class="clause-num">A4.</span>Acceptable use — what's allowed, what isn't</h2>
   <h3>Allowed</h3>
   <ul>
-    <li>Adding data about players you or your club actually coach or manage.</li>
-    <li>Sharing your own exercises, plays, and content with your team, your club association, or the wider PlayPivot community, at whatever circle you choose.</li>
-    <li>Using another club or coach's shared content (exercises, plays) within PlayPivot, the way it's meant to be used — for your own coaching.</li>
+    <li data-i18n-html>Adding data about players you or your club actually coach or manage.</li>
+    <li data-i18n-html>Sharing your own exercises, plays and content with your team, your club association or the wider PlayPivot community, at whatever circle you choose.</li>
+    <li data-i18n-html>Using another club's or coach's shared content within PlayPivot, the way it is meant to be used — for your own coaching.</li>
   </ul>
   <h3>Not allowed</h3>
   <ul>
-    <li>Adding data about someone you don't have the right to hold data about (see section 2).</li>
-    <li>Copying another club's shared content and republishing it outside PlayPivot as if it were your own.</li>
-    <li>Using PlayPivot to store or share anything unrelated to coaching a team — this isn't general-purpose file storage.</li>
-    <li>Trying to access another club's private data, or another account's credentials, without authorization.</li>
+    <li data-i18n-html>Adding data about people you have no right to hold data about (see A3), or entering sensitive data.</li>
+    <li data-i18n-html>Content that is unlawful, defamatory, discriminatory, harassing or demeaning towards players, parents, coaches, referees or anyone else.</li>
+    <li data-i18n-html>Copying another club's shared content and republishing it outside PlayPivot as if it were your own, or sharing material you have no right to share (for example exercises copied from a paid course, book or video).</li>
+    <li data-i18n-html>Using PlayPivot as general-purpose storage, for advertising, or for anything unrelated to coaching a team.</li>
+    <li data-i18n-html>Trying to access another club's private data or another account without authorisation; probing, attacking, scraping or overloading the service; or interfering with its security.</li>
+    <li data-i18n-html>Reselling or sub-licensing PlayPivot, or building a competing service from its content.</li>
   </ul>
-  <p>We can suspend or remove an account that breaks these terms, particularly anything touching a minor's data inappropriately.</p>
-
-  <h2 id="data"><span class="clause-num">4.</span>What PlayPivot stores, and what it doesn't</h2>
-  <p>We try to collect the minimum needed to run a team, not everything that's technically possible to collect. A few concrete choices:</p>
+  <p data-i18n-html>We may suspend or remove an account or content that breaks these terms — particularly anything touching a minor's data inappropriately — and we may report unlawful activity to the authorities.</p>
+  <h2 id="content"><span class="clause-num">A5.</span>Your content, and what you allow others to do with it</h2>
+  <p data-i18n-html>You keep ownership of what you create (exercises, plays, sessions, notes…). You give PlayPivot a non-exclusive, worldwide, royalty-free licence to store, process, display and back up that content, only as needed to run the service for you and in line with the “Who can see it?” setting you choose.</p>
   <ul>
-    <li><strong>No player photos.</strong> PlayPivot doesn't store or upload pictures of players.</li>
-    <li><strong>No license documents, no scanned IDs, no national identification numbers</strong> (like Switzerland's AVS number) in Roster. A license number (just the reference number, nothing behind it) and a simple "Ready" checkbox are as far as that goes.</li>
-    <li>Everything else in Roster (name, birth year, category, gender) is there because a club needs it to run a team — and every field is optional except a first and last name.</li>
-    <li><strong>Occasional product emails.</strong> If you choose to opt in, we may email you a couple of times a year about major new PlayPivot features — never more often, never sold or shared with anyone else, and you can opt out again at any time.</li>
+    <li data-i18n-html><strong>Sharing beyond your club.</strong> If you set content to “My club association” or “PlayPivot Community”, you also give the clubs that can see it a non-exclusive, worldwide, royalty-free licence to view it, to copy it into their own library and to use it for their coaching inside PlayPivot. Copies already made stay with those clubs even if you later make the original private or delete it — treat anything you share beyond your club as shared for good.</li>
+    <li data-i18n-html><strong>Your name</strong> appears as the author next to content you share beyond your club.</li>
+    <li data-i18n-html><strong>Your responsibility.</strong> You confirm that you have the right to share what you share. If you believe something on PlayPivot infringes your rights, tell us (see Contact) with enough detail to find it, and we will review it and, where appropriate, remove it.</li>
+    <li data-i18n-html><strong>Private by design.</strong> Session feedback (ratings, comments, quick questions) and season objectives are visible only to your club — they are never shared with an association or the community.</li>
   </ul>
-
-  <h2 id="minors"><span class="clause-num">5.</span>Data about minors specifically</h2>
-  <p>Most players in a youth basketball club are minors, so this matters more here than in most software. A few things worth knowing:</p>
+  <h2 id="ai"><span class="clause-num">A6.</span>AI chats and imports — you are in control, and you are responsible</h2>
+  <p data-i18n-html>PlayPivot does not call any AI service. “Fill in with AI” only prepares a text prompt. If you paste it — together with a photo, PDF or Excel file — into an AI chat (ChatGPT, Claude or any other), that is a transfer you make yourself, to a third party outside PlayPivot, under that third party's own terms.</p>
   <ul>
-    <li><strong>Player assessment</strong> — technique, game IQ, personality, and attitude scores — counts as evaluative data about a minor. Get comfortable with your club's own policy on this before filling one in; it's not something to enter casually.</li>
-    <li>Adding a minor's data may legally require a parent or guardian's consent before you enter it, depending on where your club and its players are based — see the examples in section 2. This is the club's responsibility to obtain, not something PlayPivot checks for you.</li>
-    <li>A parent or guardian can ask their club to show them, correct, or delete everything PlayPivot holds about their child — see section 7.</li>
+    <li data-i18n-html>A match sheet usually contains players' names and jersey numbers (often minors). Only send what you are allowed to send, and prefer not to send more than needed — for example, crop or cover what isn't necessary.</li>
+    <li data-i18n-html>AI can misread or invent data. Review everything before importing it. PlayPivot is not responsible for AI mistakes, or for what happens to data you send to an AI provider.</li>
+    <li data-i18n-html>Excel files and pasted text you import are processed in your browser and then saved as your club's data, like anything else you type.</li>
   </ul>
-
-  <h2 id="sharing"><span class="clause-num">6.</span>Who can see what</h2>
-  <p>Nothing in PlayPivot is shared more widely than you choose. Almost everything you create has its own "Who can see it?" setting:</p>
+  <h2 id="service"><span class="clause-num">A7.</span>Availability, backups and changes to the service</h2>
+  <p data-i18n-html>We aim for a reliable service but do not promise uninterrupted availability, or that nothing will ever be lost. Keep your own copies of anything important — PlayPivot lets you export to PDF and Excel. We may add, change or remove features, including to comply with the law or protect the service; for changes with a significant negative effect we will try to give notice.</p>
+  <h2 id="price"><span class="clause-num">A8.</span>Price</h2>
+  <p data-i18n-html>PlayPivot is currently free of charge. If we introduce paid plans, we will tell you in advance, and you will be able to stop using the service or export your data before any charge applies. You will never be charged for something you have not agreed to.</p>
+  <h2 id="ending"><span class="clause-num">A9.</span>Ending your use, suspension and deletion</h2>
+  <p data-i18n-html>You can stop at any time: Settings → “Delete my account &amp; data” lets you leave a club, or delete a club if you are its only admin (details in P6). We may suspend or end access immediately if you break these terms or put people or the service at risk, and otherwise with reasonable notice. Export what you need first. Clauses that by their nature continue — liability, governing law, and the licences for copies already made — survive the end of your use.</p>
+  <h2 id="liability"><span class="clause-num">A10.</span>Liability</h2>
+  <p data-i18n-html>PlayPivot is provided “as is” and “as available”. To the extent the law allows, we are not liable for indirect or consequential losses, lost profits or loss of data; for decisions made from the app's assessments or statistics; for how your club uses the data it enters; or for AI tools and third-party services you choose to use. Where liability can be limited by law, our total liability for direct damage is limited to the amount you paid us in the 12 months before the event (CHF 0 while the service is free).</p>
+  <p data-i18n-html>Nothing in these terms limits liability that cannot be limited by law — in particular for intent or gross negligence, for injury to life, body or health, or mandatory consumer-protection and data-protection rights.</p>
+  <p data-i18n-html>Your club is responsible for claims by third parties (players, parents, other clubs) that arise from data or content it entered in breach of these terms and, to the extent the law allows, will cover us for the resulting losses.</p>
+  <h2 id="law"><span class="clause-num">A11.</span>Governing law and courts</h2>
+  <p data-i18n-html>Swiss law applies, excluding its conflict-of-law rules. The courts of <span class="op-court"></span> have jurisdiction, unless a mandatory rule gives you the right to go to your home courts (for example as a consumer). Rights you have under the data protection law of your own country are not affected.</p>
+  <h2 id="changes"><span class="clause-num">A12.</span>Changes to these terms</h2>
+  <p data-i18n-html>Every version is kept, word for word, and never overwritten (see “archived versions” at the bottom). Small clarifications don't need re-acceptance. If we change something that materially affects your rights or how data is handled, we will ask you to review and accept the new version before you carry on using your account, and the acceptance log (A2) records which version each person agreed to and when.</p>
+  <h2 id="general"><span class="clause-num">A13.</span>General</h2>
+  <p data-i18n-html>If a part of these terms is invalid, the rest stays valid. These terms, together with Part B, are the whole agreement about PlayPivot. Translations are provided for convenience; if they differ, the English version prevails, except where mandatory law says otherwise.</p>
+  <h2 class="part-title" id="privacy">Part B — Privacy Policy</h2>
+  <h2 id="roles"><span class="clause-num">P1.</span>Who is responsible for what</h2>
+  <p data-i18n-html>The chain of responsibility is the same wherever you are:</p>
+  <p data-i18n-html>Player / family → Club → PlayPivot → Supabase and Infomaniak (providers)</p>
   <ul>
-    <li><span style="filter:grayscale(0.85);">🔒</span> <strong>Only me</strong> — private, not even your own teammates see it.</li>
-    <li><span style="filter:grayscale(0.85);">👥</span> <strong>Whole club</strong> — everyone active in your club (the default for most things).</li>
-    <li><span style="filter:grayscale(0.85);">🤝</span> <strong>My club association</strong> — a small group of clubs who agreed to share, needs approval.</li>
-    <li><span style="filter:grayscale(0.85);">🌐</span> <strong>PlayPivot Community</strong> — every club on PlayPivot can see it (view only).</li>
+    <li data-i18n-html><strong>Your club is the controller</strong> of the sporting data it enters — rosters, assessments, attendance, match statistics, training and season plans. The club decides which players to register, what to record and why, and must have a valid basis to do so (see A3).</li>
+    <li data-i18n-html><strong>PlayPivot is the processor</strong> of that same data: we process it on your club's instructions, to provide the service, and we do not sell it or use it for advertising or for our own unrelated purposes.</li>
+    <li data-i18n-html><strong>PlayPivot is the controller</strong> of a narrower set of data, for its own purposes: your own account details, security and technical logs, the acceptance log, support messages and anonymous usage statistics (P2).</li>
+    <li data-i18n-html><strong>Supabase and Infomaniak are our providers</strong> (sub-processors), under their own data-processing terms with us (P4).</li>
   </ul>
-  <!-- Dani 2026-09-17 (limpieza rol player/assistant/viewer, retirado de la base de datos desde step55): se elimina el párrafo entero sobre la cuenta "player" y su excepción a este sistema de círculos -- ese tipo de cuenta ya no existe, no hay nada que exceptuar. -->
-
-  <h2 id="subprocessors"><span class="clause-num">7.</span>Who else touches your data</h2>
-  <p>PlayPivot doesn't run its own servers — like almost every online service, it runs on infrastructure operated by someone else, under a contract that limits what they can do with what passes through it. Right now, that's:</p>
+  <p data-i18n-html><strong>Controller contact.</strong> For the data PlayPivot controls itself, and for any question about this policy: <span class="op-name"></span>, <span class="op-contact"></span>.</p>
+  <h2 id="data"><span class="clause-num">P2.</span>What we process, and what we don't</h2>
+  <p data-i18n-html>We try to collect the minimum needed to run a team. Concretely:</p>
   <ul>
-    <li><strong>Infomaniak</strong> — hosting and infrastructure. Their published documentation states their data centers are located and operated in Switzerland.</li>
+    <li data-i18n-html><strong>Account data (PlayPivot controls):</strong> email, name, a password protected by our authentication provider (we never see it in clear), role and team scope in your club, language, and the date and version of your acceptance of these terms.</li>
+    <li data-i18n-html><strong>Club data (club controls):</strong> for each player a first and last name, and optionally birth year, category, gender and a licence reference number; assessments (technique, game intelligence, personality, attitude); attendance; match statistics, match sheets and opponent notes; training sessions, comments and session feedback; season objectives and plans.</li>
+    <li data-i18n-html><strong>Content and files:</strong> exercises, plays, drawings, and your club's logo (stored in the file storage of our database provider).</li>
+    <li data-i18n-html><strong>Technical data:</strong> IP address and browser information, which our hosting and database providers' servers record in ordinary logs for security and operation; messages you send us through “Contact us”.</li>
+    <li data-i18n-html><strong>Anonymous usage statistics:</strong> see P9.</li>
+    <li data-i18n-html><strong>Occasional product emails</strong> only if you opt in: a couple a year about major new features, never sold or shared, and you can opt out at any time.</li>
   </ul>
-  <p>If PlayPivot ever adds a vendor that can access personal data — email delivery, analytics, an AI feature — it gets added to this list before it goes live, not after. We don't quietly add data-touching vendors.</p>
-  <p><strong>Analytics.</strong> PlayPivot uses Matomo to understand overall usage (which pages get visited, roughly how often) — self-hosted on our own Infomaniak infrastructure, not sent to a third-party analytics company. It's configured cookieless and anonymizes visitor IP addresses, so it doesn't build a profile of you individually or track you across other websites.</p>
-
-  <h2 id="rights"><span class="clause-num">8.</span>Access, correction, and deletion</h2>
-  <p>A parent, guardian, or player old enough to act for themselves can ask their club (or PlayPivot directly — see Contact) for:</p>
+  <p data-i18n-html><strong>What we do not collect:</strong> player photos, scanned documents or licences, national identification numbers (such as the Swiss AVS number), health or injury data, addresses or phone numbers of players or parents, payment data (the service is free), or any data from advertising trackers. Please do not type such data into free-text fields (see A3).</p>
+  <h2 id="purposes"><span class="clause-num">P3.</span>Why we process it, and on what basis</h2>
   <ul>
-    <li>A copy of everything held about that player.</li>
-    <li>A correction to anything inaccurate.</li>
-    <li>Deletion of that player's data. A club admin can remove a player from Roster at any time, which removes their record and everything tied to it (assessments, attendance, match stats).</li>
+    <li data-i18n-html><strong>To provide the service you asked for</strong> (account, club data, sharing settings): performance of the agreement you accept in Part A.</li>
+    <li data-i18n-html><strong>Security, abuse prevention and keeping proof of acceptance:</strong> our legitimate interest in running a safe service and being able to show which terms you accepted.</li>
+    <li data-i18n-html><strong>Understanding overall usage</strong> to improve PlayPivot: legitimate interest, with anonymised data only (P9).</li>
+    <li data-i18n-html><strong>Product emails:</strong> your consent, withdrawable at any time.</li>
+    <li data-i18n-html><strong>Legal obligations</strong> where they apply to us.</li>
   </ul>
-  <p>For your own account: Settings → "Delete my account & data" lets you leave any club instantly (its data stays intact for other members), or delete a club entirely if you're its only admin — that removes everything in it immediately. We keep the right to delete, on request, anything you created that was never shared with anyone else (private notes, drafts) — content you shared with your club (a play, an exercise marked "Whole club" or wider) stays with the club, since other people rely on it too. Deleting the login itself (your email/password) needs a person on our side to complete, since that's not something the app can do on its own for security reasons — the same page sends that request directly.</p>
-  <p>We aim to act on these within a reasonable time, and always within what local law requires (for example, one month under GDPR).</p>
-
-  <h2 id="security"><span class="clause-num">9.</span>Security</h2>
-  <p>Data is stored with row-level access rules, meaning the database itself — not just the app's interface — enforces who can read or write what, based on their role in the club. Passwords are never visible to us; authentication is handled by our database provider's standard login system.</p>
-  <p>If something goes wrong, here's who does what:</p>
+  <p data-i18n-html>We do not use your data to profile you, for automated decisions with legal effect, or for advertising. The “assessments” in the app are scores that coaches enter; PlayPivot does not generate evaluations of people.</p>
+  <h2 id="subprocessors"><span class="clause-num">P4.</span>Who else handles your data, and transfers abroad</h2>
+  <p data-i18n-html>PlayPivot does not run its own servers. It relies on the following providers, under contracts that limit what they can do with the data. We do not sell data to anyone.</p>
   <ul>
-    <li>A security incident inside PlayPivot's own systems — PlayPivot investigates, contains it, and notifies affected clubs as required by law.</li>
-    <li>An incident at a hosting/infrastructure provider (section 7) — PlayPivot coordinates with that provider and passes on what clubs need to know.</li>
-    <li>A correction or export request from a parent — the club handles it, with PlayPivot providing the technical means to do so.</li>
+    <li data-i18n-html><strong>Supabase</strong> — database, authentication and file storage: this is where all the data described in P2 is held. Supabase is a company based in the United States; our database project is hosted in <span class="op-region"></span>.</li>
+    <li data-i18n-html><strong>Infomaniak</strong> — web hosting of the application and of our self-hosted usage statistics. Its published documentation states that its data centres are located and operated in Switzerland.</li>
+    <li data-i18n-html><strong>jsDelivr (content delivery network)</strong> — the app loads some open-source code libraries from this public network. When your browser fetches them, the network sees your IP address and browser details, like any website you visit. No club or player data is sent to it.</li>
   </ul>
+  <p data-i18n-html>If PlayPivot adds a provider that can access personal data (email delivery, analytics, AI features), it is added to this list before it goes live. We do not quietly add data-touching providers.</p>
+  <p data-i18n-html><strong>Transfers abroad.</strong> Because Supabase is a US company and your club may be anywhere in the world, personal data can be accessed from or processed in countries without the same level of data protection as Switzerland or the EU. Where that happens we rely on the safeguards recognised by Swiss and EU law — such as the provider's data-processing agreement with standard contractual clauses, or an adequacy decision — and on technical measures (encryption in transit and at rest). You can ask us for a copy of the safeguards (see Contact).</p>
+  <p data-i18n-html><strong>AI chats are not a provider of ours.</strong> If you paste a prompt and a match sheet into an AI chat, you are sending data to that AI company yourself (A6).</p>
+  <h2 id="sharing"><span class="clause-num">P5.</span>Who can see what inside PlayPivot</h2>
+  <p data-i18n-html>Nothing is shared more widely than you choose. Most things you create have a “Who can see it?” setting:</p>
+  <ul>
+    <li data-i18n-html><strong>Only me</strong> — private; not even your own teammates see it.</li>
+    <li data-i18n-html><strong>Whole club</strong> (or a team) — people active in your club, depending on their role.</li>
+    <li data-i18n-html><strong>My club association</strong> — a small group of clubs that agreed to share; needs approval.</li>
+    <li data-i18n-html><strong>PlayPivot Community</strong> — every club on PlayPivot can see it (view only), with your name as author.</li>
+  </ul>
+  <p data-i18n-html>Only exercises and plays can go beyond your club. Player data, assessments, attendance, match statistics, trainings, session feedback and season objectives stay inside your club (or the private/team circle you pick) and are never shown to an association or the community.</p>
+  <p data-i18n-html>PlayPivot staff do not browse club data as part of normal operation; technical administrators can access the database only to run, secure and repair the service, to answer a request from you, or where the law requires.</p>
+  <h2 id="retention"><span class="clause-num">P6.</span>How long we keep data, and deletion</h2>
+  <ul>
+    <li data-i18n-html><strong>While your club is active</strong> we keep club data so the club can use it. The club decides what to record, and can delete players, sessions and other entries at any time. Removing a player from the roster removes their record and what is tied to it (assessments, attendance, match statistics).</li>
+    <li data-i18n-html><strong>Your account:</strong> Settings → “Delete my account &amp; data” lets you leave any club at once (its data stays for the other members), or delete a club entirely if you are its only admin, which removes everything in it immediately. Deleting the login itself (email and password) needs a person on our side to complete, because the app cannot do that on its own for security reasons; the same page sends that request to us, and we aim to complete it within one month.</li>
+    <li data-i18n-html><strong>Content you shared beyond your club</strong> (exercises, plays) stays with the clubs that copied it (A5); we can delete, on request, anything you created that was never shared with anyone else.</li>
+    <li data-i18n-html><strong>Backups and logs.</strong> Our providers keep technical backups and server logs for a limited period set by their own policies; deleted data disappears from them when they are overwritten. The acceptance log is kept as proof of what was agreed.</li>
+  </ul>
+  <h2 id="rights"><span class="clause-num">P7.</span>Your rights</h2>
+  <p data-i18n-html>Depending on the law that applies to you (for example the Swiss nLPD or the EU GDPR), you or — for a child — a parent or guardian can ask for: a copy of the data held about you; correction of inaccurate data; deletion; restriction or objection to certain processing; delivery of the data in a usable format; and withdrawal of any consent you gave. For club data, the quickest route is your club, which controls it and can usually resolve this from Settings; PlayPivot provides the technical means and will help the club respond.</p>
+  <p data-i18n-html>For the data PlayPivot controls itself, write to us (see Contact). We aim to answer within one month, or within whatever shorter period your law requires. We may need to verify your identity first. You also have the right to complain to a data-protection authority — in Switzerland the Federal Data Protection and Information Commissioner (FDPIC); in the EU, the authority of your country of residence.</p>
+  <h2 id="minors"><span class="clause-num">P8.</span>Data about minors</h2>
+  <p data-i18n-html>Most players in a youth club are minors, so this matters more here than in most software. Accounts are only for adults. Player assessments and objectives are evaluative data about a minor: follow your club's policy and keep them factual. Entering a minor's data may legally require a parent's or guardian's consent depending on where your club and its players are based (see A3) — obtaining it is the club's responsibility. A parent or guardian can ask the club, or us, to see, correct or delete everything held about their child (P7). We never use minors' data for advertising or profiling.</p>
+  <h2 id="cookies"><span class="clause-num">P9.</span>Cookies, local storage and statistics</h2>
+  <ul>
+    <li data-i18n-html><strong>Strictly necessary:</strong> your login session and a few remembered preferences (such as column choices or language) are stored in your browser. This is needed for the service to work and is not used to track you.</li>
+    <li data-i18n-html><strong>Offline cache:</strong> a service worker keeps copies of the app's own files in your browser so it loads faster. It does not store your club data for other purposes.</li>
+    <li data-i18n-html><strong>Usage statistics:</strong> we use Matomo, self-hosted on our own Infomaniak infrastructure, to see overall usage (which pages are visited, roughly how often). It is configured without cookies and with anonymised IP addresses, so it does not build a profile of you or follow you across other sites, and nothing goes to a third-party analytics company. We use no advertising trackers.</li>
+  </ul>
+  <h2 id="security"><span class="clause-num">P10.</span>Security and incidents</h2>
+  <p data-i18n-html>Data is protected with row-level access rules: the database itself, not only the app's interface, enforces who can read or write what, based on role in the club. Connections are encrypted, and passwords are handled by our authentication provider's standard login system — we never see them. No system is perfectly secure, and we cannot guarantee that nothing will ever go wrong.</p>
+  <ul>
+    <li data-i18n-html>A security incident inside PlayPivot's own systems: we investigate, contain it, and notify affected clubs and, where the law requires, the authority.</li>
+    <li data-i18n-html>An incident at a provider (P4): we coordinate with that provider and pass on what clubs need to know, as soon as we can.</li>
+    <li data-i18n-html>If you find a security problem, please tell us (see Contact) before making it public, and do not access data that is not yours.</li>
+  </ul>
+  <h2 id="clubs"><span class="clause-num">P11.</span>For clubs and associations</h2>
+  <p data-i18n-html>If your club needs a written data-processing agreement with PlayPivot (for example because your federation, school or local law requires one), ask us and we will provide one. A club that works with the data of minors should in any case keep its own short privacy notice for players and families, saying what it records and in which tools; this page can be linked from it.</p>
+  <h2 id="pchanges"><span class="clause-num">P12.</span>Changes to this policy</h2>
+  <p data-i18n-html>The version rules in A12 apply to this Part B too. The current version is shown at the top of the page; every earlier version stays archived, word for word.</p>
+  <h2 id="contact"><span class="clause-num">P13.</span>Contact</h2>
+  <p data-i18n-html>Questions, or a request about your data? Write to <span class="op-contact"></span>, or use the <strong>“Contact us”</strong> link at the bottom of the Dashboard to message the PlayPivot team, or ask your club admin, who can usually resolve most of it from Settings.</p>
 
-  <h2 id="changes"><span class="clause-num">10.</span>Changes to these terms</h2>
-  <p>We keep a version history — this page shows the current version's date at the top. Small clarifications don't require re-acceptance. If we change something that materially affects how your data is handled, existing accounts will be asked to review and accept the new version before continuing to use PlayPivot, and the acceptance log (section 1) will reflect exactly which version each person agreed to and when.</p>
-
-  <h2 id="liability"><span class="clause-num">11.</span>Liability</h2>
-  <p>PlayPivot is provided as-is, without warranties beyond what the law where you are requires. We aren't liable for how your club chooses to use the data it enters, or for decisions made based on the app's assessments or statistics. <span class="disclaimer">This document is written to be clear and fair, not to be a substitute for a lawyer's review — if you're operating PlayPivot commercially or at scale, get this reviewed by counsel familiar with data protection law in the jurisdictions you serve.</span></p>
-
-  <h2 id="contact"><span class="clause-num">12.</span>Contact</h2>
-  <p>Questions about your data, or a request to access/correct/delete something? Use the <strong>"💬 Contact us"</strong> link at the bottom of the Dashboard to message the PlayPivot team directly, or ask your club admin — they can usually resolve most of this themselves, right from Settings.</p>
-  <p class="sub" style="margin-top:24px; border-top:1px solid var(--line); padding-top:14px;">Exactly what you agreed to is what matters, not just that you clicked something — so every past version stays archived, word for word, and never gets overwritten: <a href="./privacy-archive.html" style="color:var(--accent-deep);">see archived versions</a>.</p>
+  <p class="sub" style="margin-top:24px; border-top:1px solid var(--line); padding-top:14px;" data-i18n-html>Exactly what you agreed to is what matters, not just that you clicked something — so every past version stays archived, word for word, and never gets overwritten: <a href="./privacy-archive.html" style="color:var(--accent-deep);">see archived versions</a>.</p>
+  <p class="disclaimer">This document is written to be clear and fair, not to be a substitute for a lawyer's review. If you operate PlayPivot for an organisation or at scale, have it reviewed by counsel familiar with data protection law in the places you serve.</p>
 </div>
 
 
@@ -340,11 +434,24 @@
 </main>
 </div><!-- /app-shell -->
 
+<script src="./i18n.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="sidebar-widgets.js"></script>
 <script src="terms-version.js"></script>
 <script>
-  document.getElementById("version-badge").textContent = "Version " + TERMS_VERSION;
+  document.getElementById("version-badge").textContent = _t("Version {v}", { v: TERMS_VERSION });
+
+  // Quién opera PlayPivot / tribunales / región de la base de datos: se leen de
+  // PIVOT_LEGAL en terms-version.js (una sola fuente). Si un dato aún no está
+  // rellenado se usa un texto neutro (traducible), nunca un hueco vacío.
+  (function fillOperator() {
+    const L = (typeof PIVOT_LEGAL === "object" && PIVOT_LEGAL) || {};
+    const fill = (cls, text) => document.querySelectorAll("." + cls).forEach((el) => { el.textContent = text; });
+    fill("op-name", L.operatorName || _t("the PlayPivot team"));
+    fill("op-contact", L.contact || _t("through the “Contact us” link inside the app (Dashboard, bottom of the page)"));
+    fill("op-court", L.court || _t("Lausanne, Switzerland"));
+    fill("op-region", L.dbRegion || _t("the region configured for our database project (we will name it here as soon as it is confirmed)"));
+  })();
 
   // La barra lateral funciona haya o no sesión iniciada -- esta página se
   // puede ver sin cuenta todavía (ej. desde el login, antes de registrarse).
@@ -359,21 +466,26 @@
     window.location.href = "./login.html";
   });
 
-  // Si hay sesión iniciada, muestra si esta persona ya aceptó esta
-  // versión exacta -- y cuándo, y rellena la tarjeta de usuario de la
-  // barra lateral. A un visitante sin cuenta (o sin sesión activa)
-  // simplemente no le mostramos esta tarjeta, ya que la pregunta no le
-  // aplica todavía.
+  // Si hay sesión iniciada, muestra qué versión aceptó esta persona la última
+  // vez (del registro terms_acceptances, no de un resumen) y cuándo.
   (async () => {
     try {
       const { data: sessionData } = await supabaseClient.auth.getSession();
       if (!sessionData.session) return;
-      const { data: profile } = await supabaseClient.from("profiles").select("full_name, terms_accepted_at").eq("id", sessionData.session.user.id).maybeSingle();
+      const uid = sessionData.session.user.id;
+      const { data: profile } = await supabaseClient.from("profiles").select("full_name").eq("id", uid).maybeSingle();
       pivotUpdateSidebarUser((profile && profile.full_name) || sessionData.session.user.email, null);
+      const { data: acc } = await supabaseClient.from("terms_acceptances").select("terms_version, accepted_at").eq("user_id", uid).order("accepted_at", { ascending: false }).limit(1);
+      const last = acc && acc[0];
       const card = document.getElementById("acceptance-status-card");
-      card.innerHTML = (profile && profile.terms_accepted_at)
-        ? `<strong style="color:var(--ink);">✓ You accepted version ${TERMS_VERSION}</strong> on ${new Date(profile.terms_accepted_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`
-        : `<strong style="color:var(--accent-deep);">No record of you accepting this yet</strong> (your account may predate this page) — worth reading through below.`;
+      const when = last ? new Date(last.accepted_at).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "";
+      let msg, color = "var(--ink)";
+      if (!last) { msg = _t("No record of you accepting this yet (your account may predate this page) — worth reading through below."); color = "var(--accent-deep)"; }
+      else if (last.terms_version === TERMS_VERSION) msg = _t("✓ You accepted version {v} on {date}.", { v: last.terms_version, date: when });
+      else { msg = _t("You last accepted version {v} on {date}. This page is a newer version — you will be asked to accept it.", { v: last.terms_version, date: when }); color = "var(--accent-deep)"; }
+      const strong = document.createElement("strong");
+      strong.style.color = color; strong.textContent = msg;
+      card.textContent = ""; card.appendChild(strong);
       card.style.display = "block";
     } catch (err) {
       console.error("acceptance status check failed:", err);

@@ -200,6 +200,7 @@
 <script>
   var _paq = window._paq = window._paq || [];
   /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['disableCookies']);   // sin cookies de analítica (promesa de la política de privacidad, P9)
   _paq.push(['trackPageView']);
   _paq.push(['enableLinkTracking']);
   (function() {
@@ -239,12 +240,12 @@
 
       <div id="terms-field" style="display:none; background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:16px;">
         <p style="font-size:12.5px; margin:0 0 10px; color:var(--muted); font-weight:600;">Before you continue, a few sentences on what PlayPivot actually is:</p>
-        <p style="font-size:12.5px; margin:0 0 8px; color:var(--ink);"><strong>What PlayPivot does:</strong> stores what your club enters (rosters, exercises, plans, assessments) so your club can organize its own coaching — and only acts on your club's instructions.</p>
+        <p style="font-size:12.5px; margin:0 0 8px; color:var(--ink);" data-i18n-html><strong>What PlayPivot does:</strong> stores what your club enters (rosters, exercises, plans, assessments) so your club can organize its own coaching. For your club's data it acts on your club's instructions; for your own account details (email, name, login) PlayPivot is itself responsible.</p>
         <p style="font-size:12.5px; margin:0 0 8px; color:var(--ink);"><strong>What PlayPivot doesn't do:</strong> sell data, use it for advertising, share it beyond the circle you choose, or decide whether your club had the right to enter it in the first place.</p>
         <p style="font-size:12.5px; margin:0 0 10px; color:var(--ink);"><strong>Who's responsible for what:</strong> PlayPivot is used worldwide, so this is a general principle, not every country's rules — <strong>your club is responsible</strong> for having the right to hold whatever data it enters (a player's, especially a minor's) under the law that applies where you are. <strong>PlayPivot is responsible</strong> for storing it securely and only using it the way your club instructs. Full detail in the document linked below.</p>
         <label class="radio-option">
           <input type="checkbox" id="terms_accept_check" />
-          <span>I have read and agree to the <a href="./privacy.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent-deep);">Privacy &amp; Terms of Service</a><span id="terms-version-inline"></span>.</span>
+          <span data-i18n-html>I have read and agree to the <a href="./privacy.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent-deep);">Terms of Use &amp; Privacy Policy</a><span id="terms-version-inline"></span>, and I am an adult acting for my club.</span>
         </label>
       </div>
 

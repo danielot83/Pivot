@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://eeucbnhqsnfitzwzghtg.supabase.co; connect-src 'self' https://eeucbnhqsnfitzwzghtg.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'none'; form-action 'none'">
 <script src="./security-guard.js"></script>
-<title>PlayPivot — Privacy &amp; Terms</title>
+<title>PlayPivot — Privacy &amp; Terms (archived 2026-09-17)</title>
 <style>
   :root {
     --ink: #1a1a1a; --muted: #6b6b70; --line: #e5e5e5; --paper: #fafafa; --card: #ffffff;
@@ -125,6 +125,7 @@
 <script>
   var _paq = window._paq = window._paq || [];
   /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['disableCookies']);   // sin cookies de analítica (promesa de la política de privacidad, P9)
   _paq.push(['trackPageView']);
   _paq.push(['enableLinkTracking']);
   (function() {
@@ -335,42 +336,32 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="sidebar-widgets.js"></script>
-<script src="terms-version.js"></script>
 <script>
-  document.getElementById("version-badge").textContent = "Version " + TERMS_VERSION;
-
-  // La barra lateral funciona haya o no sesión iniciada -- esta página se
-  // puede ver sin cuenta todavía (ej. desde el login, antes de registrarse).
+  // Página archivada: la versión es FIJA (no la vigente). Muestra solo si esta persona aceptó ESTA versión.
+  const ARCHIVED_VERSION = "2026-09-17";
+  document.getElementById("version-badge").textContent = "Archived version " + ARCHIVED_VERSION;
   pivotInitSidebarChrome();
-
   const SUPABASE_URL = "https://eeucbnhqsnfitzwzghtg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVldWNibmhxc25maXR6d3pnaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTE4NzMsImV4cCI6MjEwMDk2Nzg3M30.AHdw810kcl7CvdV5YhhEbcWfZssuSkp2r-BWnV16L6M";
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
   document.getElementById("logout-btn").addEventListener("click", async () => {
     await supabaseClient.auth.signOut();
     window.location.href = "./login.html";
   });
-
-  // Si hay sesión iniciada, muestra si esta persona ya aceptó esta
-  // versión exacta -- y cuándo, y rellena la tarjeta de usuario de la
-  // barra lateral. A un visitante sin cuenta (o sin sesión activa)
-  // simplemente no le mostramos esta tarjeta, ya que la pregunta no le
-  // aplica todavía.
   (async () => {
     try {
       const { data: sessionData } = await supabaseClient.auth.getSession();
       if (!sessionData.session) return;
-      const { data: profile } = await supabaseClient.from("profiles").select("full_name, terms_accepted_at").eq("id", sessionData.session.user.id).maybeSingle();
+      const uid = sessionData.session.user.id;
+      const { data: profile } = await supabaseClient.from("profiles").select("full_name").eq("id", uid).maybeSingle();
       pivotUpdateSidebarUser((profile && profile.full_name) || sessionData.session.user.email, null);
+      const { data: acc } = await supabaseClient.from("terms_acceptances").select("accepted_at").eq("user_id", uid).eq("terms_version", ARCHIVED_VERSION).order("accepted_at", { ascending: true }).limit(1);
       const card = document.getElementById("acceptance-status-card");
-      card.innerHTML = (profile && profile.terms_accepted_at)
-        ? `<strong style="color:var(--ink);">✓ You accepted version ${TERMS_VERSION}</strong> on ${new Date(profile.terms_accepted_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`
-        : `<strong style="color:var(--accent-deep);">No record of you accepting this yet</strong> (your account may predate this page) — worth reading through below.`;
-      card.style.display = "block";
-    } catch (err) {
-      console.error("acceptance status check failed:", err);
-    }
+      if (acc && acc.length) {
+        card.textContent = "✓ You accepted this version (" + ARCHIVED_VERSION + ") on " + new Date(acc[0].accepted_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) + ".";
+        card.style.display = "block";
+      }
+    } catch (err) { console.error("acceptance status check failed:", err); }
   })();
 </script>
 </body>

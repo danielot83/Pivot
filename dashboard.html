@@ -294,6 +294,7 @@
 <script>
   var _paq = window._paq = window._paq || [];
   /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['disableCookies']);   // sin cookies de analítica (promesa de la política de privacidad, P9)
   _paq.push(['trackPageView']);
   _paq.push(['enableLinkTracking']);
   (function() {
@@ -320,7 +321,7 @@
     <div class="onboard-circle-row"><span class="emoji">🤝</span><span><strong>My club association</strong> — a small group of clubs who agreed to share, needs approval.</span></div>
     <div class="onboard-circle-row"><span class="emoji">🌐</span><span><strong>PlayPivot Community</strong> — every club on PlayPivot can see it (view only).</span></div>
     <p>If you're a club admin, <strong>Settings</strong> also lets you set all of a type at once (e.g. every exercise), and manage who's in your club and their role (Club admin or Coach).</p>
-    <p style="font-size:14px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; margin-top:14px;"><strong>Worth knowing too:</strong> only add data about players you actually coach, and you're responsible for having the right to hold it (a guardian's consent, especially for a minor — see <a href="./privacy.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent-deep);">Privacy &amp; Terms</a>). Don't republish someone else's shared content outside PlayPivot as your own.</p>
+    <p style="font-size:14px; color:var(--muted); border-top:1px solid var(--line); padding-top:12px; margin-top:14px;"><strong>Worth knowing too:</strong> only add data about players you actually coach, and you're responsible for having the right to hold it (a guardian's consent, especially for a minor — see <a href="./privacy.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent-deep);">Terms of Use &amp; Privacy Policy</a>). Don't republish someone else's shared content outside PlayPivot as your own.</p>
     <button class="btn btn-primary" id="onboard-close-btn">Got it, let's go</button>
   </div>
 </div>
@@ -2000,6 +2001,68 @@
   }
 
   // -----------------------------------------------------------------------
+  // Re-aceptación de los términos (Dani 2026-11-18). El documento promete
+  // "te pediremos aceptar la nueva versión antes de seguir usando tu cuenta",
+  // pero antes la app solo guardaba la aceptación al REGISTRARSE: nadie con
+  // cuenta antigua veía nunca la nueva versión. Ahora, al abrir el panel, se
+  // mira la última fila de terms_acceptances de esta persona; si no hay o su
+  // versión es anterior a TERMS_VERSION, se muestra una pantalla que hay que
+  // aceptar (o cerrar sesión). La fecha la sigue poniendo el SERVIDOR
+  // (record_terms_acceptance, step76). Limitación conocida: la pantalla vive
+  // en el panel; quien entre directo a otra página (roster, match...) sin
+  // pasar por el panel no la ve hasta que lo abra. Si la consulta falla, NO
+  // se bloquea a nadie (fallo abierto).
+  async function ensureCurrentTerms(userId) {
+    if (typeof TERMS_VERSION !== "string" || document.getElementById("terms-gate")) return;
+    let last = null;
+    try {
+      const { data, error } = await supabaseClient.from("terms_acceptances").select("terms_version, accepted_at").eq("user_id", userId).order("accepted_at", { ascending: false }).limit(1);
+      if (error) return;
+      last = data && data[0] ? data[0].terms_version : null;
+    } catch (e) { return; }
+    if (last && last >= TERMS_VERSION) return;   // versiones = fechas ISO: la comparación de texto basta
+    const ov = document.createElement("div");
+    ov.id = "terms-gate";
+    ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-labelledby", "terms-gate-title");
+    ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(8,0,38,.72);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;";
+    const box = document.createElement("div");
+    box.style.cssText = "background:var(--card,#fff);color:var(--ink,#1a1a1a);max-width:560px;width:100%;border-radius:12px;padding:24px 26px;box-shadow:0 12px 40px rgba(0,0,0,.35);max-height:92vh;overflow:auto;";
+    const h = document.createElement("h2"); h.id = "terms-gate-title"; h.style.cssText = "margin:0 0 8px;font-size:19px;"; h.textContent = _t("We updated our Terms of Use & Privacy Policy");
+    const intro = document.createElement("p"); intro.style.cssText = "font-size:14.5px;margin:0 0 8px;"; intro.textContent = _t("Please review and accept version {v} to keep using PlayPivot. The main changes:", { v: TERMS_VERSION });
+    const ul = document.createElement("ul"); ul.style.cssText = "font-size:14px;margin:0 0 12px;padding-left:20px;";
+    ["Terms of Use and Privacy Policy are now two clearly separated parts, available in English, French and Spanish.",
+     "New: who operates PlayPivot, the providers that hold the data (Supabase, Infomaniak, jsDelivr), transfers abroad, retention, your rights and how to complain.",
+     "New: what you license when you share content beyond your club, AI chats and imports (“Fill in with AI”), liability, governing law (Switzerland)."
+    ].forEach((t) => { const li = document.createElement("li"); li.style.marginBottom = "6px"; li.textContent = _t(t); ul.appendChild(li); });
+    const link = document.createElement("a"); link.href = "./privacy.html"; link.target = "_blank"; link.rel = "noopener noreferrer";
+    link.style.cssText = "color:var(--accent-deep,#b85012);font-size:14px;font-weight:600;"; link.textContent = _t("Read the full document");
+    const lp = document.createElement("p"); lp.style.margin = "0 0 14px"; lp.appendChild(link);
+    const lab = document.createElement("label"); lab.style.cssText = "display:flex;gap:10px;align-items:flex-start;font-size:14px;margin:0 0 6px;cursor:pointer;";
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "terms-gate-check"; cb.style.cssText = "margin-top:3px;flex:none;width:auto;";
+    const lt = document.createElement("span"); lt.textContent = _t("I have read and accept the Terms of Use and Privacy Policy.");
+    lab.appendChild(cb); lab.appendChild(lt);
+    const err = document.createElement("div"); err.id = "terms-gate-err"; err.setAttribute("role", "alert"); err.style.cssText = "color:#b42318;font-size:13px;min-height:18px;margin:0 0 8px;";
+    const row = document.createElement("div"); row.style.cssText = "display:flex;gap:10px;flex-wrap:wrap;align-items:center;";
+    const ok = document.createElement("button"); ok.type = "button"; ok.id = "terms-gate-accept"; ok.className = "btn btn-primary"; ok.textContent = _t("Accept and continue");
+    const out = document.createElement("button"); out.type = "button"; out.id = "terms-gate-logout"; out.className = "btn btn-secondary"; out.textContent = _t("Log out instead");
+    row.appendChild(ok); row.appendChild(out);
+    [h, intro, ul, lp, lab, err, row].forEach((n) => box.appendChild(n));
+    ov.appendChild(box); document.body.appendChild(ov);
+    ok.addEventListener("click", async () => {
+      err.textContent = "";
+      if (!cb.checked) { err.textContent = _t("Tick the box to accept."); return; }
+      ok.disabled = true;
+      try {
+        const { error: rpcErr } = await supabaseClient.rpc("record_terms_acceptance", { p_version: TERMS_VERSION });
+        if (rpcErr) throw rpcErr;
+        ov.remove();
+      } catch (e) { ok.disabled = false; err.textContent = _t("Couldn't save your acceptance. Please try again."); }
+    });
+    out.addEventListener("click", async () => { await supabaseClient.auth.signOut(); window.location.href = "./login.html"; });
+    cb.focus();
+  }
+
+  // -----------------------------------------------------------------------
   // Demandes en attente pour les clubs que je dirige
   // -----------------------------------------------------------------------
   async function loadPendingRequestsForAdmin() {
@@ -3118,6 +3181,7 @@
     // affiche à tort "pas encore membre" alors que le club vient d'être créé.
     await completePendingClubAction();
     await completePendingTermsAccept(data.session.user.id);
+    await ensureCurrentTerms(data.session.user.id);
     const orgId = await loadMyOrganization(data.session.user);
     if (orgId) {
       await loadPendingRequestsForAdmin();

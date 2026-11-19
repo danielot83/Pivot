@@ -1,22 +1,23 @@
-# Paquete 87 — Prompt de partido: doble lectura independiente
+# Paquete 88 — Términos de uso + Política de privacidad (versión 2026-11-18)
 
-Sube solo `match.html`. **Sin SQL.** Incluye todo lo de los paquetes 83–86. (No cambia ningún texto de pantalla, así que no hay archivos de idioma.)
+Sube **todos** los archivos de este zip a la raíz (mismo sitio que el resto). **Sin SQL** (usa tablas y funciones que ya existen). Incluye lo de los paquetes 83–87 en `match.html`, `i18n-fr.js` e `i18n-es.js`.
 
-## Qué se ha añadido al prompt (sección nueva «8B. DOUBLE INDEPENDENT READING»)
-Todo lo que la IA extrae de la hoja (nombres, dorsales, resultados, cada canasta —valor y anotador—, faltas) se lee **dos veces, de forma independiente**:
-1. **Lectura 1:** lectura normal.
-2. **Lectura 2:** como si la primera no existiera, sin copiarla y **por un camino distinto** para no repetir el mismo fallo (hacia atrás desde el resultado final en vez de desde la casilla 1; por cuartos en vez de casilla a casilla; por jugador en vez de por canasta; el roster de abajo arriba; las faltas por período).
-3. **Comparación** punto por punto: igual = **VALIDADO**; distinto = no validado.
-4. **Tercera lectura** solo de lo que difiere, muy ampliada. Si coincide con una de las dos → «2 de 3, confírmalo» (te enseña las dos opciones). Si las tres difieren, o choca con las comprobaciones de totales → **SIN RESOLVER**.
-5. **Sin resolver:** te da la lista exacta (equipo, período, casillas o línea, dorsal, lecturas candidatas y qué total depende de ello) **para que lo resuelvas tú a mano con el papel**. No rellena nada con su mejor suposición salvo que tú le digas que estime.
-6. Que dos lecturas coincidan **no basta**: solo está plenamente validado si además pasan las comprobaciones de totales (resultado final, parciales, suma de puntos).
-7. Debe ser honesta: si no puede hacer una segunda lectura realmente separada, lo dice y marca el dato como «lectura única».
-8. Lo presenta como tabla corta (dato | lectura 1 | lectura 2 | lectura 3 | estado), con solo las diferencias en detalle y el resto contado («43 de 45 canastas validadas por dos lecturas iguales»).
-
-Está enganchado a las etapas: el roster (etapa 2) y los puntos (etapa 3) se leen dos veces; la verificación final (etapa 5) incluye el estado de la doble lectura con la lista de lo sin resolver; y la puerta de entrega tiene una comprobación nueva (nada «sin resolver» rellenado en silencio).
+## Qué cambia
+- **`privacy.html` reescrito** en EN/FR/ES: Parte A (Condiciones de uso) y Parte B (Política de privacidad), con resumen «En claro» y índice. Cambia de idioma con el selector de la página.
+- **`terms-version.js`:** versión nueva `2026-11-18` y un bloque `PIVOT_LEGAL` para rellenar **tú**: nombre del operador, correo de contacto, tribunal (por defecto Lausana) y región real de Supabase. Vacío = el documento usa un texto neutro («el equipo de PlayPivot»).
+- **Re-aceptación (`dashboard.html`):** al abrir el Panel, quien no haya aceptado la versión vigente ve una pantalla para aceptarla (o cerrar sesión). Antes el documento lo prometía y no existía.
+- **`login.html`:** la casilla del registro corregida (datos del club vs. datos de tu cuenta) y confirma «soy adulto y actúo en nombre de mi club».
+- **`match.html`:** aviso de privacidad en «Rellenar con IA» y en su guía.
+- **Versiones antiguas:** `privacy-archive.html` lista las cuatro; las páginas archivadas ahora muestran **su** versión fija (antes mostraban la vigente) y comprueban la aceptación de esa versión. Texto de las archivadas intacto. Nueva: `privacy-v2026-09-17-final.html` (la página viva anterior, que difería ligeramente de la publicada).
+- **Matomo sin cookies:** `_paq.push(['disableCookies'])` en todas las páginas (el texto decía «sin cookies» pero el código no lo hacía). Son las demás `.html` del zip.
 
 ## Probado
-El prompt se genera sin huecos en EN/FR/ES con la sección y sus frases clave; regresión de partido/importación, todas las páginas, comprobación estática y XSS limpios.
+Página legal en EN/FR/ES (99 bloques traducidos sin restos en inglés, mismas etiquetas, índice y referencias A/P válidos), tarjeta de estado de aceptación, pantalla de re-aceptación (sin aceptaciones / versión antigua / versión actual; no escribe sin marcar; llama a la función del servidor con la versión), login traducido, todas las páginas en 3 idiomas, comprobación estática, XSS limpio (`XSSHITS=[]`).
 
-## No hecho / a tener en cuenta
-- No probado con una IA real sobre una hoja real. Una IA de chat puede no ser capaz de una segunda lectura verdaderamente independiente de la misma imagen (por eso se le obliga a decirlo y a no fingirlo) y la doble lectura alarga las respuestas. Si ves que se la salta, dime en qué etapa.
+## No hecho / pendiente tuyo
+- **No es revisión de un abogado.** Léelo con un jurista antes de dar publicidad entre clubes con menores.
+- Rellenar `PIVOT_LEGAL` (operador, correo, **región real de Supabase**) y firmar/guardar el DPA de Supabase.
+- Confirmar en Matomo que la anonimización de IP está activada en el servidor (no lo puedo ver).
+- La pantalla de re-aceptación solo está en el Panel: quien entre directo a otra página no la ve hasta abrirlo. Si falla la consulta, no se bloquea a nadie.
+- No tocado: librerías de jsDelivr (sin SRI, `supabase-js@2` flotante), la frase «sin ánimo de lucro» de la portada, alemán.
+- Supuestos míos: derecho suizo/Lausana, servicio gratuito, cuentas solo adultos.
