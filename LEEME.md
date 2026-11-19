@@ -1,26 +1,22 @@
-# Paquete 86 — Prompt de partido «por partes» y válido para cualquier hoja
+# Paquete 87 — Prompt de partido: doble lectura independiente
 
-Sube `match.html`, `i18n-fr.js` e `i18n-es.js`. **Sin SQL.** Incluye todo lo de los paquetes 83–85.
+Sube solo `match.html`. **Sin SQL.** Incluye todo lo de los paquetes 83–86. (No cambia ningún texto de pantalla, así que no hay archivos de idioma.)
 
-## Qué cambia en el prompt
-**Flexible con el formato, rígido con el contenido.** El prompt ya no habla de «tus hojas»: está escrito para cualquier hoja de partido (FIBA, federación, minibasket, torneo, hecha por un club; con o sin cuadrícula de marcador acumulado; con puntos por jugador; con o sin faltas/períodos/minutos…). Todo lo que explica son *ejemplos*, no suposiciones: si la hoja hace algo distinto, la IA describe lo que ve y te pregunta antes de apoyarse en ello. Y no puede inventar ni un dato.
+## Qué se ha añadido al prompt (sección nueva «8B. DOUBLE INDEPENDENT READING»)
+Todo lo que la IA extrae de la hoja (nombres, dorsales, resultados, cada canasta —valor y anotador—, faltas) se lee **dos veces, de forma independiente**:
+1. **Lectura 1:** lectura normal.
+2. **Lectura 2:** como si la primera no existiera, sin copiarla y **por un camino distinto** para no repetir el mismo fallo (hacia atrás desde el resultado final en vez de desde la casilla 1; por cuartos en vez de casilla a casilla; por jugador en vez de por canasta; el roster de abajo arriba; las faltas por período).
+3. **Comparación** punto por punto: igual = **VALIDADO**; distinto = no validado.
+4. **Tercera lectura** solo de lo que difiere, muy ampliada. Si coincide con una de las dos → «2 de 3, confírmalo» (te enseña las dos opciones). Si las tres difieren, o choca con las comprobaciones de totales → **SIN RESOLVER**.
+5. **Sin resolver:** te da la lista exacta (equipo, período, casillas o línea, dorsal, lecturas candidatas y qué total depende de ello) **para que lo resuelvas tú a mano con el papel**. No rellena nada con su mejor suposición salvo que tú le digas que estime.
+6. Que dos lecturas coincidan **no basta**: solo está plenamente validado si además pasan las comprobaciones de totales (resultado final, parciales, suma de puntos).
+7. Debe ser honesta: si no puede hacer una segunda lectura realmente separada, lo dice y marca el dato como «lectura única».
+8. Lo presenta como tabla corta (dato | lectura 1 | lectura 2 | lectura 3 | estado), con solo las diferencias en detalle y el resto contado («43 de 45 canastas validadas por dos lecturas iguales»).
 
-**Trabaja por etapas; en cada una te enseña lo que ha encontrado, marca cada punto como CLARO o DUDA, te pregunta y ESPERA tu respuesta:**
-1. **La hoja y el partido:** tipo de hoja y cómo anota canastas/faltas/participación (tú lo confirmas), equipos y cuál es el tuyo, fecha, lugar, árbitros, períodos, prórroga, resultado final y parciales.
-2. **Los jugadores:** «he encontrado estos jugadores con estos números, ¿es correcto?» (tachados, dorsales repetidos o parecidos, dorsal distinto al del roster, entrenador en la lista, titulares).
-3. **Los puntos:** canasta a canasta por equipo y período (total acumulado → valor → jugador), con cada duda señalada por sus números («casillas 26 y 28: +2, el dorsal podría ser el 10 o el 11, ¿cuál?») y cada período contra el parcial impreso.
-4. **Faltas y participación:** solo lo que la hoja anota; lo que no anota lo dice y te pide confirmar que no falta nada.
-5. **Verificación completa:** las 9 comprobaciones con números reales, puntos por jugador, dudas resueltas y estimaciones que queden. Termina con «Reply OK and I will generate the final file».
-6. **Entrega final**, solo tras tu OK y pasando la puerta de entrega (que ya existía: nada de archivos con solo nombres y ceros).
-
-Reglas: su primera respuesta SIEMPRE es la etapa 1 (nunca el archivo); no avanza sin tu respuesta; si corriges algo de una etapa anterior, lo actualiza y vuelve a pasar las comprobaciones afectadas; si le dices «OK a todo» o «continúa», puede juntar etapas **sin dudas**, pero nunca una etapa con duda, ni la 5, ni la puerta de entrega. Las preguntas te las hace en el idioma de la app.
-
-También he actualizado el texto de ayuda y la ventana «Qué hace esto» (ES/FR/EN) para explicar que la IA va paso a paso.
+Está enganchado a las etapas: el roster (etapa 2) y los puntos (etapa 3) se leen dos veces; la verificación final (etapa 5) incluye el estado de la doble lectura con la lista de lo sin resolver; y la puerta de entrega tiene una comprobación nueva (nada «sin resolver» rellenado en silencio).
 
 ## Probado
-El prompt se genera sin huecos en EN/FR/ES con las 6 etapas y todas las frases clave; sin restos del esquema anterior; el Excel real Palinzards vs Lynx sigue importando (8+8); rechazo de Excel todo-ceros; regresión de partido/plantilla, todas las páginas, comprobación estática y XSS.
+El prompt se genera sin huecos en EN/FR/ES con la sección y sus frases clave; regresión de partido/importación, todas las páginas, comprobación estática y XSS limpios.
 
 ## No hecho / a tener en cuenta
-- **No probado con ChatGPT/Claude reales sobre una hoja real** (no puedo desde aquí). La estructura está pensada para que no pueda saltarse pasos, pero habrá que ver cómo se comporta cada IA; si se salta una etapa, dime cuál y se refuerza.
-- Son más mensajes por partido (hasta 6). Con «OK a todo» se acorta cuando no hay dudas.
-- La parte de «las hojas de Dani» (LRBC, marque courante) ya no se menciona como caso especial: queda como un ejemplo más. Si una liga concreta necesitara una regla propia, se añade como ejemplo.
+- No probado con una IA real sobre una hoja real. Una IA de chat puede no ser capaz de una segunda lectura verdaderamente independiente de la misma imagen (por eso se le obliga a decirlo y a no fingirlo) y la doble lectura alarga las respuestas. Si ves que se la salta, dime en qué etapa.
