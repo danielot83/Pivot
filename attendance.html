@@ -480,6 +480,7 @@
 </div><!-- /app-shell -->
 
 <script src="./i18n.js?v=2"></script>
+<script src="./data-notice.js"></script>
 <script src="./sw-register.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -1322,6 +1323,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
       const first = document.getElementById("new-player-first").value.trim();
       const last = document.getElementById("new-player-last").value.trim();
       if (!first || !last) { showMessage("First and last name are both needed.", "error"); return; }
+      if (!(await pivotEnsureDataNotice(supabaseClient))) return;
       const { error } = await supabaseClient.from("players").insert({
         organization_id: currentOrgId, season: filterSeason, team: filterTeam, team_category: filterTeamCategory || null, team_gender: filterTeamGender || null,
         first_name: first, last_name: last,
@@ -1409,6 +1411,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
       organization_id: currentOrgId, season: target.season, team: target.team, team_category: target.team_category || null, team_gender: target.team_gender || null, ...p,
     }));
 
+    if (!(await pivotEnsureDataNotice(supabaseClient))) return;
     try {
       const { error } = await supabaseClient.from("players").insert(payload);
       if (error) throw error;

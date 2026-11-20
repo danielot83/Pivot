@@ -738,6 +738,7 @@
 </div><!-- /app-shell -->
 
 <script src="./i18n.js?v=2"></script>
+<script src="./data-notice.js"></script>
 <script src="./sw-register.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -2265,6 +2266,7 @@
     if (!currentMatchId && !els.matchArea.classList.contains("open")) { showMessage("Open or start a match first.", "error"); return; }
     if (currentMatchId && !currentMatchOwned) { showMessage("This match belongs to another club — you can't add players to it.", "error"); return; }
     if (!currentOrgId || !currentSeason || !currentTeam) { showMessage("Pick a season/team above first.", "error"); return; }
+    if (!(await pivotEnsureDataNotice(supabaseClient))) return;
     const first_name = (prompt("First name (for a guest or call-up playing just this match -- won't show up in your normal Roster list):") || "").trim();
     if (!first_name) return;
     const last_name = (prompt(`Last name for ${first_name}:`) || "").trim();
