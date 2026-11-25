@@ -1,19 +1,23 @@
-# Paquete 90 — Botón × para ocultar avisos del Panel
+# Paquete 91 — Prompt de partido: las preguntas sobre jugadores vienen con opciones
 
-Sube los 3 archivos a la raíz. **Sin SQL.** (Incluye todo lo anterior de `dashboard.html`, `i18n-fr.js` e `i18n-es.js`; el paquete 89 sigue necesitando su SQL `step98` si aún no lo ejecutaste.)
+Sube los 3 archivos a la raíz. **Sin SQL.** Incluye todo lo de los paquetes 83–90 en estos archivos.
 
-## Qué hace
-Cada elemento de **Up next** (lo próximo), **To do** (lo que falta), **Heads up** (avisos de la temporada) y **What's new** (novedades) tiene un botón **×** para ocultarlo.
-- **Vuelve si cambia:** un aviso con número («3 entrenos sin asistencia», «2 jugadores sin evaluar») vuelve a salir si el número **sube**; si baja (porque arreglas alguno) sigue oculto. Un entreno o partido próximo vuelve si cambia de fecha o de título. Las novedades no vuelven.
-- **Restaurar:** bajo las tarjetas aparece «N elementos ocultos. Mostrarlos de nuevo» (solo si hay ocultos); un clic los devuelve todos.
-- Si ocultas todo un bloque, sale «Nada nuevo que mostrar» (no «todo al día», que sería mentira); si se ocultan todas las novedades, la tarjeta desaparece.
-- Al ocultar un próximo evento, entra el siguiente en su lugar (se muestran 4).
+## Qué cambia
+Cuando la IA dude de **qué jugador** (quién metió una canasta, de quién es una falta, qué dorsal lleva alguien, a qué jugador corresponde un nombre), ya no hace una pregunta abierta. Te da **los jugadores de ese equipo como opciones con letra**:
+- Primero los candidatos entre los que duda, marcados «most likely»; después **todos los demás jugadores del equipo** (los que ya validaste en la etapa 2), y al final «alguien que no está en la lista (dime quién)» y «no lo sé: el acta no lo dice».
+- Contestas con **una sola letra**. Si hay varias dudas en el mismo mensaje, cada una trae sus opciones y puedes responder **todas en una línea** (por ejemplo «Q1 A, Q2 C, Q3 B»).
+- Lo mismo con los dorsales (te ofrece los jugadores que aún no tienen número y los números leídos en el acta) y con los nombres (los de tu plantilla de PlayPivot si adjuntaste la plantilla Excel; si no, los leídos en la etapa 2).
+- Las preguntas que no son de jugadores (prórroga, técnicas, letra ilegible…) también salen como opciones («1 sí / 2 no / 3 no estoy seguro»). Solo te pide texto nuevo si ninguna opción sirve.
+- Una vez que confirmas la lista de jugadores (etapa 2), es la lista de opciones de todas las preguntas siguientes.
+- El texto de ayuda de «Rellenar con IA» (tarjeta y guía), en EN/FR/ES, lo explica.
+
+## Corregido de paso
+Las «reglas de oro» del prompt salían con el 7 antes que el 6 (un arreglo anterior se había perdido). Ahora van en orden 1–7, y un test lo comprueba.
 
 ## Probado
-EN/FR/ES: × en los cuatro bloques; ocultar y persistir (tras recargar); número que baja = sigue oculto, número que sube = vuelve; reprogramar un partido = vuelve; todo oculto = mensaje correcto; restaurar; lista distinta por club; novedades y avisos; títulos y textos traducidos; capturas revisadas. Panel, alertas, todas las páginas, página legal, comprobación estática y XSS (`XSSHITS=[]`) limpios.
+Prompt generado sin huecos en EN/FR/ES con la sección nueva y sus frases clave; regresión de partido e importación, todas las páginas, comprobación estática y XSS (`XSSHITS=[]`) limpios.
 
 ## No hecho / a tener en cuenta
-- Lo ocultado se recuerda **en ese navegador** (por persona y club), no entre móvil y ordenador. Hacerlo entre dispositivos requeriría guardarlo en la base de datos (SQL); dímelo si lo quieres.
-- No hay pantalla en Ajustes para esto: el control está en el propio Panel («Mostrarlos de nuevo»).
-- Incluí también «Heads up» (los avisos de temporada), aunque pediste tres bloques, para que todo se comporte igual.
-- «Getting started» ya tenía su propio botón «Hide» y no se ha tocado.
+- **No probado con una IA real**: es una instrucción; que la IA la cumpla depende del chat (si alguna vez pregunta en abierto, dime en qué etapa y lo aprieto).
+- La lista de jugadores sale de lo que la IA leyó del acta (y de tu plantilla si la adjuntas). PlayPivot no le envía tu plantilla por sí mismo.
+- Con equipos grandes la lista de opciones es larga; por eso los candidatos probables van arriba.
